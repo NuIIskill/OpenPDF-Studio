@@ -1,0 +1,8 @@
+<RCC>
+    <qresource prefix="/theme">
+        <file>../src/ui/theme/Style.qss</file>
+    </qresource>
+    <qresource prefix="/icons">
+        <!-- SVG icons will be added here -->
+    </qresource>
+</RCC>

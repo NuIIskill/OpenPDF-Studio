@@ -1,0 +1,304 @@
+/* ============================================================
+   OpenPDF Studio — Global Stylesheet
+   Design language: clean, modern, minimal
+   ============================================================ */
+
+/* ── QMainWindow ─────────────────────────────────────────── */
+QMainWindow {
+    background-color: #F8FAFC;
+}
+
+QMainWindow::separator {
+    width:  1px;
+    height: 1px;
+    background: #E2E8F0;
+}
+
+/* ── QSplitter ───────────────────────────────────────────── */
+QSplitter {
+    background: #F8FAFC;
+}
+
+QSplitter::handle {
+    background: #E2E8F0;
+}
+
+QSplitter::handle:horizontal {
+    width: 1px;
+}
+
+QSplitter::handle:vertical {
+    height: 1px;
+}
+
+QSplitter::handle:hover {
+    background: #CBD5E1;
+}
+
+/* ── TopToolbar ──────────────────────────────────────────── */
+#TopToolbar {
+    background-color: #FFFFFF;
+    border-bottom: 1px solid #E2E8F0;
+}
+
+#AppNameLabel {
+    color: #0F172A;
+    font-size: 15px;
+    font-weight: 700;
+    letter-spacing: -0.3px;
+}
+
+#FileNameLabel {
+    color: #64748B;
+    font-size: 13px;
+}
+
+#ZoomLabel {
+    color: #0F172A;
+    font-size: 13px;
+    font-weight: 500;
+    min-width: 42px;
+    qproperty-alignment: AlignCenter;
+}
+
+#ToolbarSeparator {
+    background: #E2E8F0;
+    min-width: 1px;
+    max-width: 1px;
+    min-height: 24px;
+    max-height: 24px;
+}
+
+/* ── IconButton ──────────────────────────────────────────── */
+#IconButton {
+    background: transparent;
+    border: none;
+    border-radius: 8px;
+    color: #0F172A;
+    font-size: 13px;
+    font-weight: 500;
+    padding: 0px;
+}
+
+#IconButton:hover {
+    background-color: rgba(37, 99, 235, 0.08);
+    color: #2563EB;
+}
+
+#IconButton:pressed {
+    background-color: rgba(37, 99, 235, 0.16);
+    color: #1D4ED8;
+}
+
+#IconButton:checked {
+    background-color: rgba(37, 99, 235, 0.12);
+    color: #2563EB;
+    border: 1px solid rgba(37, 99, 235, 0.25);
+}
+
+#IconButton:disabled {
+    color: #CBD5E1;
+    background: transparent;
+}
+
+/* ── LeftSidebar ─────────────────────────────────────────── */
+#LeftSidebar {
+    background-color: #1E293B;
+    border-right: 1px solid #0F172A;
+}
+
+#SidebarHeader {
+    color: #94A3B8;
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.8px;
+    text-transform: uppercase;
+    padding: 0px 12px;
+}
+
+#SidebarScrollArea {
+    background: transparent;
+    border: none;
+}
+
+#SidebarScrollArea QScrollBar:vertical {
+    background: #1E293B;
+    width: 5px;
+    margin: 0px;
+    border-radius: 3px;
+}
+
+#SidebarScrollArea QScrollBar::handle:vertical {
+    background: #475569;
+    border-radius: 3px;
+    min-height: 24px;
+}
+
+#SidebarScrollArea QScrollBar::handle:vertical:hover {
+    background: #64748B;
+}
+
+#SidebarScrollArea QScrollBar::add-line:vertical,
+#SidebarScrollArea QScrollBar::sub-line:vertical {
+    height: 0px;
+}
+
+/* ── ThumbnailItem ───────────────────────────────────────── */
+#ThumbnailItem {
+    background: transparent;
+    border: none;
+}
+
+#ThumbnailItem:hover {
+    background-color: #334155;
+}
+
+#ThumbnailItem[selected="true"] {
+    background-color: #1D4ED8;
+}
+
+#ThumbnailPageLabel {
+    color: #94A3B8;
+    font-size: 11px;
+    text-align: center;
+}
+
+/* ── DocumentView ────────────────────────────────────────── */
+#DocumentView {
+    background-color: #F1F5F9;
+    border: none;
+}
+
+#DocumentView QScrollBar:vertical {
+    background: #E2E8F0;
+    width: 8px;
+    margin: 0px;
+    border-radius: 4px;
+}
+
+#DocumentView QScrollBar::handle:vertical {
+    background: #CBD5E1;
+    border-radius: 4px;
+    min-height: 32px;
+}
+
+#DocumentView QScrollBar::handle:vertical:hover {
+    background: #94A3B8;
+}
+
+#DocumentView QScrollBar::add-line:vertical,
+#DocumentView QScrollBar::sub-line:vertical {
+    height: 0px;
+}
+
+#DocumentView QScrollBar:horizontal {
+    background: #E2E8F0;
+    height: 8px;
+    margin: 0px;
+    border-radius: 4px;
+}
+
+#DocumentView QScrollBar::handle:horizontal {
+    background: #CBD5E1;
+    border-radius: 4px;
+    min-width: 32px;
+}
+
+#DocumentView QScrollBar::handle:horizontal:hover {
+    background: #94A3B8;
+}
+
+#DocumentView QScrollBar::add-line:horizontal,
+#DocumentView QScrollBar::sub-line:horizontal {
+    width: 0px;
+}
+
+/* ── PagePlaceholder ─────────────────────────────────────── */
+#PagePlaceholder {
+    background-color: #FFFFFF;
+    border-radius: 4px;
+}
+
+/* ── RightSidebar ────────────────────────────────────────── */
+#RightSidebar {
+    background-color: #FFFFFF;
+    border-left: 1px solid #E2E8F0;
+}
+
+#PropertiesHeader {
+    color: #0F172A;
+    font-size: 13px;
+    font-weight: 600;
+}
+
+/* ── ToolPanel ───────────────────────────────────────────── */
+#ToolPanel {
+    background: transparent;
+}
+
+#ToolPanelSectionHeader {
+    color: #0F172A;
+    font-size: 12px;
+    font-weight: 600;
+    background: #F8FAFC;
+    border: 1px solid #E2E8F0;
+    border-radius: 6px;
+    padding: 6px 10px;
+}
+
+#ToolPanelSectionContent {
+    background: transparent;
+}
+
+#ToolPanelPlaceholderLabel {
+    color: #94A3B8;
+    font-size: 12px;
+    font-style: italic;
+}
+
+/* ── StatusBar ───────────────────────────────────────────── */
+#StatusBar {
+    background-color: #FFFFFF;
+    border-top: 1px solid #E2E8F0;
+}
+
+#StatusPageLabel,
+#StatusZoomLabel,
+#StatusFileSizeLabel {
+    color: #64748B;
+    font-size: 12px;
+}
+
+/* ── Generic QLabel ─────────────────────────────────────── */
+QLabel {
+    color: #0F172A;
+}
+
+/* ── Generic QPushButton (fallback) ─────────────────────── */
+QPushButton {
+    background-color: #2563EB;
+    color: #FFFFFF;
+    border: none;
+    border-radius: 8px;
+    font-size: 13px;
+    font-weight: 500;
+    padding: 6px 16px;
+}
+
+QPushButton:hover {
+    background-color: #3B82F6;
+}
+
+QPushButton:pressed {
+    background-color: #1D4ED8;
+}
+
+QPushButton:disabled {
+    background-color: #CBD5E1;
+    color: #94A3B8;
+}
+
+/* ── QScrollArea viewport ────────────────────────────────── */
+QScrollArea > QWidget > QWidget {
+    background: transparent;
+}
