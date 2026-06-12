@@ -5,10 +5,10 @@
 
 class IconButton;
 
-/// Narrow vertical toolbar on the left edge of the main window.
+/// Narrow vertical tool strip — light background, left edge of window.
 ///
-/// Fixed width: 56 px. Dark background.
-/// Tool buttons at the top, settings button pinned to the bottom.
+/// Fixed width: 60 px. Tools at top, settings pinned to bottom.
+/// Selected tool shown with rounded blue-tinted background.
 class LeftSidebar : public QWidget
 {
     Q_OBJECT

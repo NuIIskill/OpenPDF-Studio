@@ -4,15 +4,15 @@
 
 QT_BEGIN_NAMESPACE
 class QLabel;
+class QLineEdit;
 QT_END_NAMESPACE
 
 class IconButton;
 
-/// Bottom bar of the main window.
+/// Bottom page-navigation bar — 48 px.
 ///
-/// Fixed height: 44 px.
-/// Left: page indicator.
-/// Right: save, print, zoom controls, settings.
+/// Center: ‹ previous | page input | / total | › next
+/// Right: panel-toggle icon
 class StatusBar : public QWidget
 {
     Q_OBJECT
@@ -20,25 +20,17 @@ class StatusBar : public QWidget
 public:
     explicit StatusBar(QWidget *parent = nullptr);
 
-    void setCurrentPage(int page, int total);
-    void setZoom(int percent);
+    void setPageInfo(int current, int total);
 
 Q_SIGNALS:
-    void zoomInRequested();
-    void zoomOutRequested();
-    void saveRequested();
-    void printRequested();
-    void settingsRequested();
+    void previousPageRequested();
+    void nextPageRequested();
 
 private:
     void buildLayout();
-    QWidget *makeSeparator();
 
-    QLabel     *m_pageLabel  { nullptr };
-    QLabel     *m_zoomLabel  { nullptr };
-    IconButton *m_zoomOutBtn { nullptr };
-    IconButton *m_zoomInBtn  { nullptr };
-    IconButton *m_saveBtn    { nullptr };
-    IconButton *m_printBtn   { nullptr };
-    IconButton *m_settingsBtn{ nullptr };
+    QLabel     *m_totalLabel { nullptr };
+    QLineEdit  *m_pageInput  { nullptr };
+    IconButton *m_prevBtn    { nullptr };
+    IconButton *m_nextBtn    { nullptr };
 };

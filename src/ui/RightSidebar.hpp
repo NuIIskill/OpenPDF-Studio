@@ -2,13 +2,12 @@
 
 #include <QWidget>
 
-class ToolPanel;
+class IconButton;
 
-/// The light right-side properties panel.
+/// Narrow right-side mode panel — 110 px wide.
 ///
-/// Fixed width: 260 px.
-/// White background with a left border.
-/// Contains a "Eigenschaften" header and a ToolPanel.
+/// Shows three vertical mode buttons: Bearbeiten, Export, Ordnen.
+/// Each has an icon above a text label.
 class RightSidebar : public QWidget
 {
     Q_OBJECT
@@ -16,8 +15,11 @@ class RightSidebar : public QWidget
 public:
     explicit RightSidebar(QWidget *parent = nullptr);
 
-    [[nodiscard]] ToolPanel *toolPanel() const { return m_toolPanel; }
+Q_SIGNALS:
+    void modeSelected(const QString &mode);
 
 private:
-    ToolPanel *m_toolPanel { nullptr };
+    void buildLayout();
+    QWidget *makeModeButton(const QString &icon, const QString &label,
+                            const QString &id, bool selected = false);
 };

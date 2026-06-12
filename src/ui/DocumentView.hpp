@@ -2,10 +2,9 @@
 
 #include <QScrollArea>
 
-/// The central canvas area that will display PDF pages.
-///
-/// Inherits QScrollArea. Background: #F1F5F9.
-/// Currently empty — content is added once PDF loading is implemented.
+class PagePlaceholder;
+
+/// The central canvas — shows one blank PDF page centred on a gray background.
 class DocumentView : public QScrollArea
 {
     Q_OBJECT
@@ -13,6 +12,12 @@ class DocumentView : public QScrollArea
 public:
     explicit DocumentView(QWidget *parent = nullptr);
 
+    void setZoom(int percent);
+
 private:
-    QWidget *m_container { nullptr };
+    void updatePageSize();
+
+    PagePlaceholder *m_page    { nullptr };
+    QWidget         *m_canvas  { nullptr };
+    int              m_zoom    { 100 };
 };
