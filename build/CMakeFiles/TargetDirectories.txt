@@ -1,9 +1,0 @@
-/home/nullskill_0_0/Projects/OpenPDF-Studio/build/CMakeFiles/OpenPDFStudio.dir
-/home/nullskill_0_0/Projects/OpenPDF-Studio/build/CMakeFiles/edit_cache.dir
-/home/nullskill_0_0/Projects/OpenPDF-Studio/build/CMakeFiles/rebuild_cache.dir
-/home/nullskill_0_0/Projects/OpenPDF-Studio/build/CMakeFiles/list_install_components.dir
-/home/nullskill_0_0/Projects/OpenPDF-Studio/build/CMakeFiles/install.dir
-/home/nullskill_0_0/Projects/OpenPDF-Studio/build/CMakeFiles/install/local.dir
-/home/nullskill_0_0/Projects/OpenPDF-Studio/build/CMakeFiles/install/strip.dir
-/home/nullskill_0_0/Projects/OpenPDF-Studio/build/CMakeFiles/OpenPDFStudio_autogen_timestamp_deps.dir
-/home/nullskill_0_0/Projects/OpenPDF-Studio/build/CMakeFiles/OpenPDFStudio_autogen.dir

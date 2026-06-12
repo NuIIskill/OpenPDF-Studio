@@ -1,2 +1,0 @@
-set(__QT_DEPLOY_TARGET_OpenPDFStudio_FILE /home/nullskill_0_0/Projects/OpenPDF-Studio/build/OpenPDFStudio)
-set(__QT_DEPLOY_TARGET_OpenPDFStudio_TYPE EXECUTABLE)
