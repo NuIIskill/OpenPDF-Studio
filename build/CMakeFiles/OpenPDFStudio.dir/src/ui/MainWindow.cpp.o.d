@@ -372,10 +372,7 @@ CMakeFiles/OpenPDFStudio.dir/src/ui/MainWindow.cpp.o: \
  /usr/include/qt6/QtWidgets/QScrollArea \
  /usr/include/qt6/QtWidgets/qscrollarea.h \
  /usr/include/qt6/QtWidgets/qabstractscrollarea.h \
- /usr/include/qt6/QtWidgets/qframe.h \
- /home/nullskill_0_0/Projects/OpenPDF-Studio/src/ui/RightSidebar.hpp \
- /home/nullskill_0_0/Projects/OpenPDF-Studio/src/ui/StatusBar.hpp \
- /usr/include/qt6/QtWidgets/QSplitter \
+ /usr/include/qt6/QtWidgets/qframe.h /usr/include/qt6/QtWidgets/QSplitter \
  /usr/include/qt6/QtWidgets/qsplitter.h \
  /usr/include/qt6/QtWidgets/QVBoxLayout \
  /usr/include/qt6/QtWidgets/qboxlayout.h \

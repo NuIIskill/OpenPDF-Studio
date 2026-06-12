@@ -2,13 +2,10 @@
 
 #include <QScrollArea>
 
-class PagePlaceholder;
-
-/// The central canvas area that displays page placeholders.
+/// The central canvas area that will display PDF pages.
 ///
-/// Inherits QScrollArea so the content scrolls freely.
-/// Background: #F1F5F9.
-/// Pages are stacked vertically with even spacing and centred horizontally.
+/// Inherits QScrollArea. Background: #F1F5F9.
+/// Currently empty — content is added once PDF loading is implemented.
 class DocumentView : public QScrollArea
 {
     Q_OBJECT
@@ -16,20 +13,6 @@ class DocumentView : public QScrollArea
 public:
     explicit DocumentView(QWidget *parent = nullptr);
 
-    /// Replace the current pages with `count` new placeholder pages.
-    void setPageCount(int count);
-
-    void setZoom(int percent);
-    [[nodiscard]] int zoom() const { return m_zoom; }
-
-Q_SIGNALS:
-    void zoomChanged(int percent);
-
 private:
-    void rebuildPages();
-
-    int  m_pageCount { 3 };
-    int  m_zoom      { 100 };
-
     QWidget *m_container { nullptr };
 };

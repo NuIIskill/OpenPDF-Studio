@@ -42,9 +42,8 @@ template <> constexpr inline auto TopToolbar::qt_create_metaobjectdata<qt_meta_t
         "zoomInRequested",
         "",
         "zoomOutRequested",
-        "toolSelected",
-        "tool",
-        "settingsRequested"
+        "saveRequested",
+        "printRequested"
     };
 
     QtMocHelpers::UintData qt_methods {
@@ -52,12 +51,10 @@ template <> constexpr inline auto TopToolbar::qt_create_metaobjectdata<qt_meta_t
         QtMocHelpers::SignalData<void()>(1, 2, QMC::AccessPublic, QMetaType::Void),
         // Signal 'zoomOutRequested'
         QtMocHelpers::SignalData<void()>(3, 2, QMC::AccessPublic, QMetaType::Void),
-        // Signal 'toolSelected'
-        QtMocHelpers::SignalData<void(const QString &)>(4, 2, QMC::AccessPublic, QMetaType::Void, {{
-            { QMetaType::QString, 5 },
-        }}),
-        // Signal 'settingsRequested'
-        QtMocHelpers::SignalData<void()>(6, 2, QMC::AccessPublic, QMetaType::Void),
+        // Signal 'saveRequested'
+        QtMocHelpers::SignalData<void()>(4, 2, QMC::AccessPublic, QMetaType::Void),
+        // Signal 'printRequested'
+        QtMocHelpers::SignalData<void()>(5, 2, QMC::AccessPublic, QMetaType::Void),
     };
     QtMocHelpers::UintData qt_properties {
     };
@@ -83,8 +80,8 @@ void TopToolbar::qt_static_metacall(QObject *_o, QMetaObject::Call _c, int _id, 
         switch (_id) {
         case 0: _t->zoomInRequested(); break;
         case 1: _t->zoomOutRequested(); break;
-        case 2: _t->toolSelected((*reinterpret_cast<std::add_pointer_t<QString>>(_a[1]))); break;
-        case 3: _t->settingsRequested(); break;
+        case 2: _t->saveRequested(); break;
+        case 3: _t->printRequested(); break;
         default: ;
         }
     }
@@ -93,9 +90,9 @@ void TopToolbar::qt_static_metacall(QObject *_o, QMetaObject::Call _c, int _id, 
             return;
         if (QtMocHelpers::indexOfMethod<void (TopToolbar::*)()>(_a, &TopToolbar::zoomOutRequested, 1))
             return;
-        if (QtMocHelpers::indexOfMethod<void (TopToolbar::*)(const QString & )>(_a, &TopToolbar::toolSelected, 2))
+        if (QtMocHelpers::indexOfMethod<void (TopToolbar::*)()>(_a, &TopToolbar::saveRequested, 2))
             return;
-        if (QtMocHelpers::indexOfMethod<void (TopToolbar::*)()>(_a, &TopToolbar::settingsRequested, 3))
+        if (QtMocHelpers::indexOfMethod<void (TopToolbar::*)()>(_a, &TopToolbar::printRequested, 3))
             return;
     }
 }
@@ -144,13 +141,13 @@ void TopToolbar::zoomOutRequested()
 }
 
 // SIGNAL 2
-void TopToolbar::toolSelected(const QString & _t1)
+void TopToolbar::saveRequested()
 {
-    QMetaObject::activate<void>(this, &staticMetaObject, 2, nullptr, _t1);
+    QMetaObject::activate(this, &staticMetaObject, 2, nullptr);
 }
 
 // SIGNAL 3
-void TopToolbar::settingsRequested()
+void TopToolbar::printRequested()
 {
     QMetaObject::activate(this, &staticMetaObject, 3, nullptr);
 }

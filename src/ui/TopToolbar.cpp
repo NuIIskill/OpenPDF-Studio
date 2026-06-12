@@ -28,10 +28,10 @@ void TopToolbar::setZoom(int percent)
 void TopToolbar::buildLayout()
 {
     auto *layout = new QHBoxLayout(this);
-    layout->setContentsMargins(12, 0, 12, 0);
+    layout->setContentsMargins(16, 0, 16, 0);
     layout->setSpacing(4);
 
-    // ── App name ──────────────────────────────────────────────────────────
+    // ── Left: app name + file name ────────────────────────────────────────
     auto *appName = new QLabel(QStringLiteral("OpenPDF Studio"), this);
     appName->setObjectName(QStringLiteral("AppNameLabel"));
     layout->addWidget(appName);
@@ -39,77 +39,43 @@ void TopToolbar::buildLayout()
     layout->addWidget(makeSeparator());
     layout->addSpacing(4);
 
-    // ── File name ─────────────────────────────────────────────────────────
     m_fileNameLabel = new QLabel(tr("Kein Dokument"), this);
     m_fileNameLabel->setObjectName(QStringLiteral("FileNameLabel"));
     layout->addWidget(m_fileNameLabel);
 
     layout->addStretch(1);
 
+    // ── Right: save + print ───────────────────────────────────────────────
+    m_saveBtn = new IconButton(QStringLiteral("💾"), this);
+    m_saveBtn->setToolTip(tr("Speichern"));
+    connect(m_saveBtn, &QPushButton::clicked, this, &TopToolbar::saveRequested);
+    layout->addWidget(m_saveBtn);
+
+    m_printBtn = new IconButton(QStringLiteral("🖨"), this);
+    m_printBtn->setToolTip(tr("Drucken"));
+    connect(m_printBtn, &QPushButton::clicked, this, &TopToolbar::printRequested);
+    layout->addWidget(m_printBtn);
+
+    layout->addSpacing(4);
+    layout->addWidget(makeSeparator());
+    layout->addSpacing(4);
+
     // ── Zoom controls ─────────────────────────────────────────────────────
     m_zoomOutBtn = new IconButton(QStringLiteral("−"), this);
     m_zoomOutBtn->setToolTip(tr("Verkleinern"));
-    connect(m_zoomOutBtn, &QPushButton::clicked,
-            this, &TopToolbar::zoomOutRequested);
+    connect(m_zoomOutBtn, &QPushButton::clicked, this, &TopToolbar::zoomOutRequested);
+    layout->addWidget(m_zoomOutBtn);
 
     m_zoomLabel = new QLabel(QStringLiteral("100 %"), this);
     m_zoomLabel->setObjectName(QStringLiteral("ZoomLabel"));
     m_zoomLabel->setAlignment(Qt::AlignCenter);
-    m_zoomLabel->setMinimumWidth(52);
+    m_zoomLabel->setMinimumWidth(48);
+    layout->addWidget(m_zoomLabel);
 
     m_zoomInBtn = new IconButton(QStringLiteral("+"), this);
     m_zoomInBtn->setToolTip(tr("Vergrößern"));
-    connect(m_zoomInBtn, &QPushButton::clicked,
-            this, &TopToolbar::zoomInRequested);
-
-    layout->addWidget(m_zoomOutBtn);
-    layout->addWidget(m_zoomLabel);
+    connect(m_zoomInBtn, &QPushButton::clicked, this, &TopToolbar::zoomInRequested);
     layout->addWidget(m_zoomInBtn);
-
-    layout->addSpacing(4);
-    layout->addWidget(makeSeparator());
-    layout->addSpacing(4);
-
-    // ── Tool buttons ──────────────────────────────────────────────────────
-    struct ToolDef { const char *label; const char *tip; const char *id; };
-    const ToolDef tools[] = {
-        { "↖",  "Auswählen",   "cursor"   },
-        { "T",  "Text",        "text"     },
-        { "✎",  "Anmerkung",   "annotate" },
-        { "⊞",  "Formular",    "forms"    },
-    };
-
-    IconButton *toolBtns[4];
-    for (int i = 0; i < 4; ++i) {
-        auto *btn = new IconButton(QString::fromUtf8(tools[i].label), this);
-        btn->setToolTip(tr(tools[i].tip));
-        btn->setToggle(true);
-        btn->setCheckable(true);
-        const QString id = QLatin1String(tools[i].id);
-        connect(btn, &QPushButton::clicked, this, [this, id]() {
-            Q_EMIT toolSelected(id);
-        });
-        layout->addWidget(btn);
-        toolBtns[i] = btn;
-    }
-    m_cursorBtn   = toolBtns[0];
-    m_textBtn     = toolBtns[1];
-    m_annotateBtn = toolBtns[2];
-    m_formsBtn    = toolBtns[3];
-
-    // Default selection: cursor tool
-    m_cursorBtn->setChecked(true);
-
-    layout->addSpacing(4);
-    layout->addWidget(makeSeparator());
-    layout->addSpacing(4);
-
-    // ── Settings button ───────────────────────────────────────────────────
-    m_settingsBtn = new IconButton(QStringLiteral("⚙"), this);
-    m_settingsBtn->setToolTip(tr("Einstellungen"));
-    connect(m_settingsBtn, &QPushButton::clicked,
-            this, &TopToolbar::settingsRequested);
-    layout->addWidget(m_settingsBtn);
 }
 
 QWidget *TopToolbar::makeSeparator()
@@ -120,7 +86,6 @@ QWidget *TopToolbar::makeSeparator()
     sep->setFrameShadow(QFrame::Plain);
     sep->setFixedWidth(1);
     sep->setFixedHeight(24);
-    sep->setStyleSheet(QStringLiteral(
-        "QFrame { background: #E2E8F0; border: none; }"));
+    sep->setStyleSheet(QStringLiteral("QFrame { background: #E2E8F0; border: none; }"));
     return sep;
 }

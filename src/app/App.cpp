@@ -56,13 +56,6 @@ void App::loadSettings()
     if (!state.isEmpty())
         m_mainWindow->restoreState(state);
 
-    const int zoom = m_settings->zoomLevel();
-    if (zoom != 100) {
-        m_mainWindow->documentView()->setZoom(zoom);
-        m_mainWindow->topToolbar()->setZoom(zoom);
-        m_mainWindow->statusBar()->setZoom(zoom);
-    }
-
     qDebug() << "App: settings loaded";
 }
 
@@ -73,7 +66,6 @@ void App::saveSettings()
 
     m_settings->setWindowGeometry(m_mainWindow->saveGeometry());
     m_settings->setWindowState(m_mainWindow->saveState());
-    m_settings->setZoomLevel(m_mainWindow->documentView()->zoom());
     m_settings->sync();
 
     qDebug() << "App: settings saved";

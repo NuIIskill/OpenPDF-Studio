@@ -3,18 +3,12 @@
 #include <QWidget>
 #include <QList>
 
-QT_BEGIN_NAMESPACE
-class QScrollArea;
-class QVBoxLayout;
-QT_END_NAMESPACE
+class IconButton;
 
-class ThumbnailItem;
-
-/// The dark left sidebar showing page thumbnails.
+/// Narrow vertical toolbar on the left edge of the main window.
 ///
-/// Fixed width: 220 px.
-/// Consists of a header ("Seiten") and a scroll area containing
-/// ThumbnailItem widgets, one per document page.
+/// Fixed width: 56 px. Dark background.
+/// Tool buttons at the top, settings button pinned to the bottom.
 class LeftSidebar : public QWidget
 {
     Q_OBJECT
@@ -22,19 +16,14 @@ class LeftSidebar : public QWidget
 public:
     explicit LeftSidebar(QWidget *parent = nullptr);
 
-    /// Replace all thumbnails with `count` placeholder pages.
-    void setPageCount(int count);
-
-    /// Mark the thumbnail at index `page` (1-based) as selected.
-    void setCurrentPage(int page);
+    void setActiveTool(const QString &tool);
 
 Q_SIGNALS:
-    void pageClicked(int pageNumber);
+    void toolSelected(const QString &tool);
+    void settingsRequested();
 
 private:
-    void clearThumbnails();
+    void buildLayout();
 
-    QScrollArea   *m_scrollArea     { nullptr };
-    QVBoxLayout   *m_thumbnailLayout{ nullptr };
-    QList<ThumbnailItem *> m_items;
+    QList<IconButton *> m_toolButtons;
 };

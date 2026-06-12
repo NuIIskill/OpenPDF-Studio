@@ -364,13 +364,4 @@ CMakeFiles/OpenPDFStudio.dir/src/ui/DocumentView.cpp.o: \
  /usr/include/qt6/QtGui/qfontvariableaxis.h \
  /usr/include/qt6/QtWidgets/qsizepolicy.h \
  /usr/include/qt6/QtGui/qcursor.h /usr/include/qt6/QtGui/qbitmap.h \
- /home/nullskill_0_0/Projects/OpenPDF-Studio/src/ui/widgets/PagePlaceholder.hpp \
- /usr/include/qt6/QtWidgets/QWidget \
- /usr/include/qt6/QtWidgets/QVBoxLayout \
- /usr/include/qt6/QtWidgets/qboxlayout.h \
- /usr/include/qt6/QtWidgets/qlayout.h \
- /usr/include/qt6/QtWidgets/qlayoutitem.h \
- /usr/include/qt6/QtWidgets/qgridlayout.h \
- /usr/include/qt6/QtWidgets/QScrollBar \
- /usr/include/qt6/QtWidgets/qscrollbar.h \
- /usr/include/qt6/QtWidgets/qabstractslider.h
+ /usr/include/qt6/QtWidgets/QWidget

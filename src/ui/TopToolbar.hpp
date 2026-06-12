@@ -11,16 +11,8 @@ class IconButton;
 /// The horizontal toolbar strip at the top of the main window.
 ///
 /// Fixed height: 56 px.
-/// Contains (left→right):
-///   - App logo/name
-///   - Separator
-///   - Current file name
-///   - Stretch
-///   - Zoom controls (−, label, +)
-///   - Separator
-///   - Tool buttons (Cursor, Text, Annotate, Forms)
-///   - Separator
-///   - Settings button
+/// Left: app name | separator | file name.
+/// Right: save, print | separator | zoom controls.
 class TopToolbar : public QWidget
 {
     Q_OBJECT
@@ -34,20 +26,17 @@ public:
 Q_SIGNALS:
     void zoomInRequested();
     void zoomOutRequested();
-    void toolSelected(const QString &tool);
-    void settingsRequested();
+    void saveRequested();
+    void printRequested();
 
 private:
     void buildLayout();
     QWidget *makeSeparator();
 
-    QLabel      *m_fileNameLabel { nullptr };
-    QLabel      *m_zoomLabel     { nullptr };
-    IconButton  *m_zoomInBtn     { nullptr };
-    IconButton  *m_zoomOutBtn    { nullptr };
-    IconButton  *m_cursorBtn     { nullptr };
-    IconButton  *m_textBtn       { nullptr };
-    IconButton  *m_annotateBtn   { nullptr };
-    IconButton  *m_formsBtn      { nullptr };
-    IconButton  *m_settingsBtn   { nullptr };
+    QLabel     *m_fileNameLabel { nullptr };
+    QLabel     *m_zoomLabel     { nullptr };
+    IconButton *m_zoomInBtn     { nullptr };
+    IconButton *m_zoomOutBtn    { nullptr };
+    IconButton *m_saveBtn       { nullptr };
+    IconButton *m_printBtn      { nullptr };
 };

@@ -38,17 +38,10 @@ template <> constexpr inline auto DocumentView::qt_create_metaobjectdata<qt_meta
 {
     namespace QMC = QtMocConstants;
     QtMocHelpers::StringRefStorage qt_stringData {
-        "DocumentView",
-        "zoomChanged",
-        "",
-        "percent"
+        "DocumentView"
     };
 
     QtMocHelpers::UintData qt_methods {
-        // Signal 'zoomChanged'
-        QtMocHelpers::SignalData<void(int)>(1, 2, QMC::AccessPublic, QMetaType::Void, {{
-            { QMetaType::Int, 3 },
-        }}),
     };
     QtMocHelpers::UintData qt_properties {
     };
@@ -70,16 +63,10 @@ Q_CONSTINIT const QMetaObject DocumentView::staticMetaObject = { {
 void DocumentView::qt_static_metacall(QObject *_o, QMetaObject::Call _c, int _id, void **_a)
 {
     auto *_t = static_cast<DocumentView *>(_o);
-    if (_c == QMetaObject::InvokeMetaMethod) {
-        switch (_id) {
-        case 0: _t->zoomChanged((*reinterpret_cast<std::add_pointer_t<int>>(_a[1]))); break;
-        default: ;
-        }
-    }
-    if (_c == QMetaObject::IndexOfMethod) {
-        if (QtMocHelpers::indexOfMethod<void (DocumentView::*)(int )>(_a, &DocumentView::zoomChanged, 0))
-            return;
-    }
+    (void)_t;
+    (void)_c;
+    (void)_id;
+    (void)_a;
 }
 
 const QMetaObject *DocumentView::metaObject() const
@@ -98,24 +85,6 @@ void *DocumentView::qt_metacast(const char *_clname)
 int DocumentView::qt_metacall(QMetaObject::Call _c, int _id, void **_a)
 {
     _id = QScrollArea::qt_metacall(_c, _id, _a);
-    if (_id < 0)
-        return _id;
-    if (_c == QMetaObject::InvokeMetaMethod) {
-        if (_id < 1)
-            qt_static_metacall(this, _c, _id, _a);
-        _id -= 1;
-    }
-    if (_c == QMetaObject::RegisterMethodArgumentMetaType) {
-        if (_id < 1)
-            *reinterpret_cast<QMetaType *>(_a[0]) = QMetaType();
-        _id -= 1;
-    }
     return _id;
-}
-
-// SIGNAL 0
-void DocumentView::zoomChanged(int _t1)
-{
-    QMetaObject::activate<void>(this, &staticMetaObject, 0, nullptr, _t1);
 }
 QT_WARNING_POP

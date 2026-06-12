@@ -2100,7 +2100,6 @@ CMakeFiles/OpenPDFStudio.dir/src/main.cpp.o: /home/nullskill_0_0/Projects/OpenPD
 
 CMakeFiles/OpenPDFStudio.dir/src/ui/DocumentView.cpp.o: /home/nullskill_0_0/Projects/OpenPDF-Studio/src/ui/DocumentView.cpp \
   /home/nullskill_0_0/Projects/OpenPDF-Studio/src/ui/DocumentView.hpp \
-  /home/nullskill_0_0/Projects/OpenPDF-Studio/src/ui/widgets/PagePlaceholder.hpp \
   /usr/include/alloca.h \
   /usr/include/asm-generic/bitsperlong.h \
   /usr/include/asm-generic/errno-base.h \
@@ -2586,18 +2585,10 @@ CMakeFiles/OpenPDFStudio.dir/src/ui/DocumentView.cpp.o: /home/nullskill_0_0/Proj
   /usr/include/qt6/QtGui/qtransform.h \
   /usr/include/qt6/QtGui/qwindowdefs.h \
   /usr/include/qt6/QtWidgets/QScrollArea \
-  /usr/include/qt6/QtWidgets/QScrollBar \
-  /usr/include/qt6/QtWidgets/QVBoxLayout \
   /usr/include/qt6/QtWidgets/QWidget \
   /usr/include/qt6/QtWidgets/qabstractscrollarea.h \
-  /usr/include/qt6/QtWidgets/qabstractslider.h \
-  /usr/include/qt6/QtWidgets/qboxlayout.h \
   /usr/include/qt6/QtWidgets/qframe.h \
-  /usr/include/qt6/QtWidgets/qgridlayout.h \
-  /usr/include/qt6/QtWidgets/qlayout.h \
-  /usr/include/qt6/QtWidgets/qlayoutitem.h \
   /usr/include/qt6/QtWidgets/qscrollarea.h \
-  /usr/include/qt6/QtWidgets/qscrollbar.h \
   /usr/include/qt6/QtWidgets/qsizepolicy.h \
   /usr/include/qt6/QtWidgets/qtwidgets-config.h \
   /usr/include/qt6/QtWidgets/qtwidgetsexports.h \
@@ -2626,7 +2617,7 @@ CMakeFiles/OpenPDFStudio.dir/src/ui/DocumentView.cpp.o: /home/nullskill_0_0/Proj
 
 CMakeFiles/OpenPDFStudio.dir/src/ui/LeftSidebar.cpp.o: /home/nullskill_0_0/Projects/OpenPDF-Studio/src/ui/LeftSidebar.cpp \
   /home/nullskill_0_0/Projects/OpenPDF-Studio/src/ui/LeftSidebar.hpp \
-  /home/nullskill_0_0/Projects/OpenPDF-Studio/src/ui/widgets/ThumbnailItem.hpp \
+  /home/nullskill_0_0/Projects/OpenPDF-Studio/src/ui/widgets/IconButton.hpp \
   /usr/include/alloca.h \
   /usr/include/asm-generic/bitsperlong.h \
   /usr/include/asm-generic/errno-base.h \
@@ -2958,6 +2949,7 @@ CMakeFiles/OpenPDFStudio.dir/src/ui/LeftSidebar.cpp.o: /home/nullskill_0_0/Proje
   /usr/include/math.h \
   /usr/include/pthread.h \
   /usr/include/qt6/QtCore/QList \
+  /usr/include/qt6/QtCore/QString \
   /usr/include/qt6/QtCore/q17memory.h \
   /usr/include/qt6/QtCore/q20bit.h \
   /usr/include/qt6/QtCore/q20functional.h \
@@ -3010,7 +3002,6 @@ CMakeFiles/OpenPDFStudio.dir/src/ui/LeftSidebar.cpp.o: /home/nullskill_0_0/Proje
   /usr/include/qt6/QtCore/qglobalstatic.h \
   /usr/include/qt6/QtCore/qhash.h \
   /usr/include/qt6/QtCore/qhashfunctions.h \
-  /usr/include/qt6/QtCore/qiodevice.h \
   /usr/include/qt6/QtCore/qiodevicebase.h \
   /usr/include/qt6/QtCore/qiterable.h \
   /usr/include/qt6/QtCore/qiterator.h \
@@ -3082,7 +3073,6 @@ CMakeFiles/OpenPDFStudio.dir/src/ui/LeftSidebar.cpp.o: /home/nullskill_0_0/Proje
   /usr/include/qt6/QtCore/qtversionchecks.h \
   /usr/include/qt6/QtCore/qtypeinfo.h \
   /usr/include/qt6/QtCore/qtypes.h \
-  /usr/include/qt6/QtCore/qurl.h \
   /usr/include/qt6/QtCore/qutf8stringview.h \
   /usr/include/qt6/QtCore/qvariant.h \
   /usr/include/qt6/QtCore/qvarlengtharray.h \
@@ -3103,31 +3093,26 @@ CMakeFiles/OpenPDFStudio.dir/src/ui/LeftSidebar.cpp.o: /home/nullskill_0_0/Proje
   /usr/include/qt6/QtGui/qkeysequence.h \
   /usr/include/qt6/QtGui/qpaintdevice.h \
   /usr/include/qt6/QtGui/qpalette.h \
-  /usr/include/qt6/QtGui/qpicture.h \
   /usr/include/qt6/QtGui/qpixelformat.h \
   /usr/include/qt6/QtGui/qpixmap.h \
   /usr/include/qt6/QtGui/qpolygon.h \
   /usr/include/qt6/QtGui/qregion.h \
   /usr/include/qt6/QtGui/qrgb.h \
   /usr/include/qt6/QtGui/qrgba64.h \
-  /usr/include/qt6/QtGui/qtextdocument.h \
   /usr/include/qt6/QtGui/qtgui-config.h \
   /usr/include/qt6/QtGui/qtguiexports.h \
   /usr/include/qt6/QtGui/qtguiglobal.h \
   /usr/include/qt6/QtGui/qtransform.h \
   /usr/include/qt6/QtGui/qwindowdefs.h \
-  /usr/include/qt6/QtWidgets/QLabel \
-  /usr/include/qt6/QtWidgets/QScrollArea \
+  /usr/include/qt6/QtWidgets/QPushButton \
   /usr/include/qt6/QtWidgets/QVBoxLayout \
   /usr/include/qt6/QtWidgets/QWidget \
-  /usr/include/qt6/QtWidgets/qabstractscrollarea.h \
+  /usr/include/qt6/QtWidgets/qabstractbutton.h \
   /usr/include/qt6/QtWidgets/qboxlayout.h \
-  /usr/include/qt6/QtWidgets/qframe.h \
   /usr/include/qt6/QtWidgets/qgridlayout.h \
-  /usr/include/qt6/QtWidgets/qlabel.h \
   /usr/include/qt6/QtWidgets/qlayout.h \
   /usr/include/qt6/QtWidgets/qlayoutitem.h \
-  /usr/include/qt6/QtWidgets/qscrollarea.h \
+  /usr/include/qt6/QtWidgets/qpushbutton.h \
   /usr/include/qt6/QtWidgets/qsizepolicy.h \
   /usr/include/qt6/QtWidgets/qtwidgets-config.h \
   /usr/include/qt6/QtWidgets/qtwidgetsexports.h \
@@ -3158,7 +3143,6 @@ CMakeFiles/OpenPDFStudio.dir/src/ui/MainWindow.cpp.o: /home/nullskill_0_0/Projec
   /home/nullskill_0_0/Projects/OpenPDF-Studio/src/ui/DocumentView.hpp \
   /home/nullskill_0_0/Projects/OpenPDF-Studio/src/ui/LeftSidebar.hpp \
   /home/nullskill_0_0/Projects/OpenPDF-Studio/src/ui/MainWindow.hpp \
-  /home/nullskill_0_0/Projects/OpenPDF-Studio/src/ui/RightSidebar.hpp \
   /home/nullskill_0_0/Projects/OpenPDF-Studio/src/ui/StatusBar.hpp \
   /home/nullskill_0_0/Projects/OpenPDF-Studio/src/ui/TopToolbar.hpp \
   /usr/include/alloca.h \
@@ -4216,6 +4200,7 @@ CMakeFiles/OpenPDFStudio.dir/src/ui/RightSidebar.cpp.o: /home/nullskill_0_0/Proj
 
 CMakeFiles/OpenPDFStudio.dir/src/ui/StatusBar.cpp.o: /home/nullskill_0_0/Projects/OpenPDF-Studio/src/ui/StatusBar.cpp \
   /home/nullskill_0_0/Projects/OpenPDF-Studio/src/ui/StatusBar.hpp \
+  /home/nullskill_0_0/Projects/OpenPDF-Studio/src/ui/widgets/IconButton.hpp \
   /usr/include/alloca.h \
   /usr/include/asm-generic/bitsperlong.h \
   /usr/include/asm-generic/errno-base.h \
@@ -4546,6 +4531,7 @@ CMakeFiles/OpenPDFStudio.dir/src/ui/StatusBar.cpp.o: /home/nullskill_0_0/Project
   /usr/include/locale.h \
   /usr/include/math.h \
   /usr/include/pthread.h \
+  /usr/include/qt6/QtCore/QString \
   /usr/include/qt6/QtCore/q17memory.h \
   /usr/include/qt6/QtCore/q20bit.h \
   /usr/include/qt6/QtCore/q20functional.h \
@@ -4704,15 +4690,19 @@ CMakeFiles/OpenPDFStudio.dir/src/ui/StatusBar.cpp.o: /home/nullskill_0_0/Project
   /usr/include/qt6/QtGui/qtguiglobal.h \
   /usr/include/qt6/QtGui/qtransform.h \
   /usr/include/qt6/QtGui/qwindowdefs.h \
+  /usr/include/qt6/QtWidgets/QFrame \
   /usr/include/qt6/QtWidgets/QHBoxLayout \
   /usr/include/qt6/QtWidgets/QLabel \
+  /usr/include/qt6/QtWidgets/QPushButton \
   /usr/include/qt6/QtWidgets/QWidget \
+  /usr/include/qt6/QtWidgets/qabstractbutton.h \
   /usr/include/qt6/QtWidgets/qboxlayout.h \
   /usr/include/qt6/QtWidgets/qframe.h \
   /usr/include/qt6/QtWidgets/qgridlayout.h \
   /usr/include/qt6/QtWidgets/qlabel.h \
   /usr/include/qt6/QtWidgets/qlayout.h \
   /usr/include/qt6/QtWidgets/qlayoutitem.h \
+  /usr/include/qt6/QtWidgets/qpushbutton.h \
   /usr/include/qt6/QtWidgets/qsizepolicy.h \
   /usr/include/qt6/QtWidgets/qtwidgets-config.h \
   /usr/include/qt6/QtWidgets/qtwidgetsexports.h \
@@ -5266,7 +5256,6 @@ CMakeFiles/OpenPDFStudio.dir/src/ui/ToolPanel.cpp.o: /home/nullskill_0_0/Project
 
 CMakeFiles/OpenPDFStudio.dir/src/ui/TopToolbar.cpp.o: /home/nullskill_0_0/Projects/OpenPDF-Studio/src/ui/TopToolbar.cpp \
   /home/nullskill_0_0/Projects/OpenPDF-Studio/src/ui/TopToolbar.hpp \
-  /home/nullskill_0_0/Projects/OpenPDF-Studio/src/ui/widgets/IconButton.hpp \
   /usr/include/alloca.h \
   /usr/include/asm-generic/bitsperlong.h \
   /usr/include/asm-generic/errno-base.h \
@@ -5597,7 +5586,6 @@ CMakeFiles/OpenPDFStudio.dir/src/ui/TopToolbar.cpp.o: /home/nullskill_0_0/Projec
   /usr/include/locale.h \
   /usr/include/math.h \
   /usr/include/pthread.h \
-  /usr/include/qt6/QtCore/QString \
   /usr/include/qt6/QtCore/q17memory.h \
   /usr/include/qt6/QtCore/q20bit.h \
   /usr/include/qt6/QtCore/q20functional.h \
@@ -5759,16 +5747,13 @@ CMakeFiles/OpenPDFStudio.dir/src/ui/TopToolbar.cpp.o: /home/nullskill_0_0/Projec
   /usr/include/qt6/QtWidgets/QFrame \
   /usr/include/qt6/QtWidgets/QHBoxLayout \
   /usr/include/qt6/QtWidgets/QLabel \
-  /usr/include/qt6/QtWidgets/QPushButton \
   /usr/include/qt6/QtWidgets/QWidget \
-  /usr/include/qt6/QtWidgets/qabstractbutton.h \
   /usr/include/qt6/QtWidgets/qboxlayout.h \
   /usr/include/qt6/QtWidgets/qframe.h \
   /usr/include/qt6/QtWidgets/qgridlayout.h \
   /usr/include/qt6/QtWidgets/qlabel.h \
   /usr/include/qt6/QtWidgets/qlayout.h \
   /usr/include/qt6/QtWidgets/qlayoutitem.h \
-  /usr/include/qt6/QtWidgets/qpushbutton.h \
   /usr/include/qt6/QtWidgets/qsizepolicy.h \
   /usr/include/qt6/QtWidgets/qtwidgets-config.h \
   /usr/include/qt6/QtWidgets/qtwidgetsexports.h \
@@ -8111,17 +8096,15 @@ CMakeFiles/OpenPDFStudio.dir/src/app/App.cpp.o:
 
 /home/nullskill_0_0/Projects/OpenPDF-Studio/src/ui/TopToolbar.cpp:
 
-/usr/include/qt6/QtWidgets/qsplitter.h:
-
-/home/nullskill_0_0/Projects/OpenPDF-Studio/src/ui/MainWindow.cpp:
-
 /usr/include/qt6/QtWidgets/qlabel.h:
 
 /usr/include/qt6/QtCore/qurl.h:
 
 /usr/include/qt6/QtCore/qiodevice.h:
 
-/usr/include/qt6/QtWidgets/qscrollbar.h:
+/usr/include/qt6/QtWidgets/qsplitter.h:
+
+/home/nullskill_0_0/Projects/OpenPDF-Studio/src/ui/MainWindow.cpp:
 
 /usr/include/qt6/QtWidgets/qlayoutitem.h:
 
@@ -8837,8 +8820,6 @@ OpenPDFStudio_autogen/YPKJ5OE7LN/moc_TopToolbar.cpp:
 
 /usr/include/bits/timex.h:
 
-/usr/include/qt6/QtWidgets/QScrollBar:
-
 /usr/include/qt6/QtWidgets/QScrollArea:
 
 /usr/include/bits/types.h:
@@ -9340,8 +9321,6 @@ CMakeFiles/OpenPDFStudio.dir/src/ui/LeftSidebar.cpp.o:
 /usr/include/c++/16/bits/nested_exception.h:
 
 /usr/include/qt6/QtCore/qtpreprocessorsupport.h:
-
-/usr/include/qt6/QtWidgets/qabstractslider.h:
 
 /usr/include/c++/16/bit:
 

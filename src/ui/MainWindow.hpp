@@ -5,8 +5,6 @@
 class TopToolbar;
 class LeftSidebar;
 class DocumentView;
-class RightSidebar;
-class StatusBar;
 
 QT_BEGIN_NAMESPACE
 class QSplitter;
@@ -15,11 +13,10 @@ QT_END_NAMESPACE
 /// The application's main window.
 ///
 /// Layout (top→bottom):
-///   TopToolbar  (56 px, fixed)
-///   ─────────────────────────────────────────────────────
-///   QSplitter  (LeftSidebar | DocumentView | RightSidebar)
-///   ─────────────────────────────────────────────────────
-///   StatusBar   (28 px, fixed)
+///   TopToolbar  (56 px) — app name, file name, save, print, zoom
+///   ─────────────────────────────────────────────────────────────
+///   QSplitter  (LeftSidebar | DocumentView)
+///     LeftSidebar: tool buttons top, settings bottom
 ///
 /// Minimum size: 1280×800.
 class MainWindow : public QMainWindow
@@ -33,22 +30,17 @@ public:
     [[nodiscard]] TopToolbar   *topToolbar()   const { return m_topToolbar;   }
     [[nodiscard]] LeftSidebar  *leftSidebar()  const { return m_leftSidebar;  }
     [[nodiscard]] DocumentView *documentView() const { return m_documentView; }
-    [[nodiscard]] RightSidebar *rightSidebar() const { return m_rightSidebar; }
-    [[nodiscard]] StatusBar    *statusBar()    const { return m_statusBar;    }
 
 private:
     void buildUi();
     void connectSignals();
-
+    void onToolSelected(const QString &tool);
     void onZoomIn();
     void onZoomOut();
-    void onToolSelected(const QString &tool);
 
     TopToolbar   *m_topToolbar   { nullptr };
     LeftSidebar  *m_leftSidebar  { nullptr };
     DocumentView *m_documentView { nullptr };
-    RightSidebar *m_rightSidebar { nullptr };
-    StatusBar    *m_statusBar    { nullptr };
     QSplitter    *m_splitter     { nullptr };
 
     int m_zoom { 100 };

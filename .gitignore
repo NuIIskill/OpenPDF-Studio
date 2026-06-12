@@ -1,0 +1,17 @@
+build/
+.cache/
+*.user
+*.pro.user
+.qmake.stash
+CMakeUserPresets.json
+compile_commands.json
+*.o
+*.a
+*.so
+*.so.*
+moc_*.cpp
+qrc_*.cpp
+ui_*.h
+*.autosave
+.DS_Store
+Thumbs.db

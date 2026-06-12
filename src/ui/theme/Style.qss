@@ -101,66 +101,34 @@ QSplitter::handle:hover {
     background: transparent;
 }
 
-/* ── LeftSidebar ─────────────────────────────────────────── */
+/* ── LeftSidebar (vertical tool strip) ───────────────────── */
 #LeftSidebar {
     background-color: #1E293B;
     border-right: 1px solid #0F172A;
 }
 
-#SidebarHeader {
-    color: #94A3B8;
-    font-size: 11px;
-    font-weight: 600;
-    letter-spacing: 0.8px;
-    text-transform: uppercase;
-    padding: 0px 12px;
-}
-
-#SidebarScrollArea {
+#LeftSidebar #IconButton {
     background: transparent;
     border: none;
-}
-
-#SidebarScrollArea QScrollBar:vertical {
-    background: #1E293B;
-    width: 5px;
-    margin: 0px;
-    border-radius: 3px;
-}
-
-#SidebarScrollArea QScrollBar::handle:vertical {
-    background: #475569;
-    border-radius: 3px;
-    min-height: 24px;
-}
-
-#SidebarScrollArea QScrollBar::handle:vertical:hover {
-    background: #64748B;
-}
-
-#SidebarScrollArea QScrollBar::add-line:vertical,
-#SidebarScrollArea QScrollBar::sub-line:vertical {
-    height: 0px;
-}
-
-/* ── ThumbnailItem ───────────────────────────────────────── */
-#ThumbnailItem {
-    background: transparent;
-    border: none;
-}
-
-#ThumbnailItem:hover {
-    background-color: #334155;
-}
-
-#ThumbnailItem[selected="true"] {
-    background-color: #1D4ED8;
-}
-
-#ThumbnailPageLabel {
+    border-radius: 8px;
     color: #94A3B8;
-    font-size: 11px;
-    text-align: center;
+    font-size: 15px;
+}
+
+#LeftSidebar #IconButton:hover {
+    background-color: rgba(255, 255, 255, 0.08);
+    color: #F1F5F9;
+}
+
+#LeftSidebar #IconButton:pressed {
+    background-color: rgba(255, 255, 255, 0.12);
+    color: #FFFFFF;
+}
+
+#LeftSidebar #IconButton:checked {
+    background-color: rgba(37, 99, 235, 0.35);
+    color: #60A5FA;
+    border: 1px solid rgba(96, 165, 250, 0.4);
 }
 
 /* ── DocumentView ────────────────────────────────────────── */

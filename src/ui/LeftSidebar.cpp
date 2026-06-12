@@ -1,85 +1,62 @@
 #include "LeftSidebar.hpp"
 
-#include "ui/widgets/ThumbnailItem.hpp"
+#include "ui/widgets/IconButton.hpp"
 
-#include <QLabel>
-#include <QScrollArea>
 #include <QVBoxLayout>
-#include <QWidget>
 
 LeftSidebar::LeftSidebar(QWidget *parent)
     : QWidget(parent)
 {
     setObjectName(QStringLiteral("LeftSidebar"));
-    setFixedWidth(220);
+    setFixedWidth(56);
     setSizePolicy(QSizePolicy::Fixed, QSizePolicy::Expanding);
-
-    // ── Outer layout ──────────────────────────────────────────────────────
-    auto *outer = new QVBoxLayout(this);
-    outer->setContentsMargins(0, 0, 0, 0);
-    outer->setSpacing(0);
-
-    // ── Header ────────────────────────────────────────────────────────────
-    auto *header = new QLabel(tr("SEITEN"), this);
-    header->setObjectName(QStringLiteral("SidebarHeader"));
-    header->setContentsMargins(12, 14, 12, 10);
-    outer->addWidget(header);
-
-    // ── Scroll area ───────────────────────────────────────────────────────
-    m_scrollArea = new QScrollArea(this);
-    m_scrollArea->setObjectName(QStringLiteral("SidebarScrollArea"));
-    m_scrollArea->setWidgetResizable(true);
-    m_scrollArea->setHorizontalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
-    m_scrollArea->setVerticalScrollBarPolicy(Qt::ScrollBarAsNeeded);
-    m_scrollArea->setFrameShape(QFrame::NoFrame);
-
-    auto *container = new QWidget(m_scrollArea);
-    container->setObjectName(QStringLiteral("SidebarContainer"));
-    container->setStyleSheet(QStringLiteral(
-        "#SidebarContainer { background: transparent; }"));
-
-    m_thumbnailLayout = new QVBoxLayout(container);
-    m_thumbnailLayout->setContentsMargins(0, 0, 0, 8);
-    m_thumbnailLayout->setSpacing(2);
-    m_thumbnailLayout->addStretch(1);
-
-    m_scrollArea->setWidget(container);
-    outer->addWidget(m_scrollArea, 1);
-
-    // Pre-populate with 3 placeholder thumbnails
-    setPageCount(3);
-    if (!m_items.isEmpty())
-        m_items.first()->setSelected(true);
+    buildLayout();
 }
 
-void LeftSidebar::setPageCount(int count)
+void LeftSidebar::buildLayout()
 {
-    clearThumbnails();
-    for (int i = 1; i <= count; ++i) {
-        auto *item = new ThumbnailItem(i, m_scrollArea->widget());
-        connect(item, &ThumbnailItem::clicked,
-                this, &LeftSidebar::pageClicked);
-        connect(item, &ThumbnailItem::clicked, this, [this](int page) {
-            setCurrentPage(page);
+    auto *layout = new QVBoxLayout(this);
+    layout->setContentsMargins(8, 12, 8, 12);
+    layout->setSpacing(4);
+
+    // ── Tool buttons (top) ────────────────────────────────────────────────
+    struct ToolDef { const char *label; const char *tip; const char *id; };
+    const ToolDef tools[] = {
+        { "↖", "Auswählen",  "cursor"   },
+        { "T",  "Text",       "text"     },
+        { "✎", "Anmerkung",  "annotate" },
+        { "⊞", "Formular",   "forms"    },
+    };
+
+    for (const auto &t : tools) {
+        auto *btn = new IconButton(QString::fromUtf8(t.label), this);
+        btn->setToolTip(tr(t.tip));
+        btn->setToggle(true);
+        btn->setCheckable(true);
+        const QString id = QLatin1String(t.id);
+        connect(btn, &QPushButton::clicked, this, [this, id, btn]() {
+            for (auto *b : m_toolButtons) b->setChecked(b == btn);
+            Q_EMIT toolSelected(id);
         });
-        // Insert before the trailing stretch
-        m_thumbnailLayout->insertWidget(m_thumbnailLayout->count() - 1, item);
-        m_items.append(item);
+        layout->addWidget(btn);
+        m_toolButtons.append(btn);
     }
+
+    m_toolButtons.first()->setChecked(true);
+
+    // ── Push settings to bottom ───────────────────────────────────────────
+    layout->addStretch(1);
+
+    auto *settingsBtn = new IconButton(QStringLiteral("⚙"), this);
+    settingsBtn->setToolTip(tr("Einstellungen"));
+    connect(settingsBtn, &QPushButton::clicked, this, &LeftSidebar::settingsRequested);
+    layout->addWidget(settingsBtn);
 }
 
-void LeftSidebar::setCurrentPage(int page)
+void LeftSidebar::setActiveTool(const QString &tool)
 {
-    for (auto *item : m_items) {
-        item->setSelected(item->pageNumber() == page);
-    }
-}
-
-void LeftSidebar::clearThumbnails()
-{
-    for (auto *item : m_items) {
-        m_thumbnailLayout->removeWidget(item);
-        item->deleteLater();
-    }
-    m_items.clear();
+    const QStringList ids = { QStringLiteral("cursor"), QStringLiteral("text"),
+                               QStringLiteral("annotate"), QStringLiteral("forms") };
+    for (int i = 0; i < ids.size() && i < m_toolButtons.size(); ++i)
+        m_toolButtons[i]->setChecked(ids[i] == tool);
 }
