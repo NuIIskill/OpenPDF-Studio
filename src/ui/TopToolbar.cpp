@@ -27,6 +27,19 @@ void TopToolbar::setZoom(int percent)
     m_zoomLabel->setText(QStringLiteral("%1 %").arg(percent));
 }
 
+void TopToolbar::refreshTheme()
+{
+    const QColor nc = Theme::IconNormal;
+    m_saveBtn->setIconName(m_saveBtn->iconName(), nc);
+    m_printBtn->setIconName(m_printBtn->iconName(), nc);
+    m_undoBtn->setIconName(m_undoBtn->iconName(), nc);
+    m_redoBtn->setIconName(m_redoBtn->iconName(), nc);
+    m_zoomOutBtn->setIconName(m_zoomOutBtn->iconName(), nc);
+    m_zoomInBtn->setIconName(m_zoomInBtn->iconName(), nc);
+    m_viewSingleBtn->setIconName(m_viewSingleBtn->iconName(), nc);
+    m_viewGridBtn->setIconName(m_viewGridBtn->iconName(), nc);
+}
+
 void TopToolbar::buildLayout()
 {
     auto *layout = new QHBoxLayout(this);
@@ -160,6 +173,7 @@ QWidget *TopToolbar::makeSeparator()
     sep->setFrameShadow(QFrame::Plain);
     sep->setFixedWidth(1);
     sep->setFixedHeight(22);
-    sep->setStyleSheet(QStringLiteral("QFrame { background: #E5E7EB; border: none; }"));
+    const QString sepColor = Theme::DarkMode ? QStringLiteral("#3A3A3A") : QStringLiteral("#E5E7EB");
+    sep->setStyleSheet(QStringLiteral("QFrame { background: %1; border: none; }").arg(sepColor));
     return sep;
 }

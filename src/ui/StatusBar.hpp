@@ -21,6 +21,7 @@ public:
     explicit StatusBar(QWidget *parent = nullptr);
 
     void setPageInfo(int current, int total);
+    void refreshTheme();
 
 Q_SIGNALS:
     void previousPageRequested();
@@ -33,4 +34,5 @@ private:
     QLineEdit  *m_pageInput  { nullptr };
     IconButton *m_prevBtn    { nullptr };
     IconButton *m_nextBtn    { nullptr };
+    IconButton *m_panelBtn   { nullptr };
 };

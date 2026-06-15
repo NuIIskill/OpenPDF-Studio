@@ -26,7 +26,8 @@ void IconButton::init()
 void IconButton::setIconName(const QString &name, const QColor &normalColor)
 {
     m_iconName    = name;
-    m_normalColor = normalColor;
+    m_normalColor = normalColor.isValid() ? normalColor : Theme::IconNormal;
+    m_hoverColor  = Theme::DarkMode ? QColor(QStringLiteral("#E5E7EB")) : QColor(QStringLiteral("#111827"));
 
     m_normalIcon = Theme::makeIcon(name, normalColor,
                                    Theme::IconChecked, Theme::IconDisabled);

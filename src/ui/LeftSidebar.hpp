@@ -17,6 +17,7 @@ public:
     explicit LeftSidebar(QWidget *parent = nullptr);
 
     void setActiveTool(const QString &tool);
+    void refreshTheme();
 
 Q_SIGNALS:
     void toolSelected(const QString &tool);
@@ -26,4 +27,5 @@ private:
     void buildLayout();
 
     QList<IconButton *> m_toolButtons;
+    IconButton *m_settingsBtn { nullptr };
 };

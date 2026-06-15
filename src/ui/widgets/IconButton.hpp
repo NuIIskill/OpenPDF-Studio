@@ -18,9 +18,11 @@ public:
     explicit IconButton(QWidget *parent = nullptr);
 
     /// Load a Lucide SVG icon from :/icons/<name>.svg.
-    /// normalColor defaults to Theme::IconNormal (#374151).
+    /// Pass QColor{} (default) to use Theme::IconNormal automatically.
     void setIconName(const QString &name,
-                     const QColor  &normalColor = QColor("#374151"));
+                     const QColor  &normalColor = QColor{});
+
+    [[nodiscard]] QString iconName() const { return m_iconName; }
 
     void setToggle(bool on);
 

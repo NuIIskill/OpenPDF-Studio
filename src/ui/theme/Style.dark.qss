@@ -1,18 +1,19 @@
 /* ============================================================
-   OpenPDF Studio — Global Stylesheet
+   OpenPDF Studio — Dark Mode Stylesheet
+   Base: #282828 charcoal gray
    ============================================================ */
 
 /* ── Window & base ───────────────────────────────────────── */
 QMainWindow {
-    background-color: #F3F4F6;
+    background-color: #1A1A1A;
 }
 
 QSplitter {
-    background: #F3F4F6;
+    background: #1A1A1A;
 }
 
 QSplitter::handle {
-    background: #E5E7EB;
+    background: #3A3A3A;
 }
 
 QSplitter::handle:horizontal { width: 1px; }
@@ -20,8 +21,8 @@ QSplitter::handle:vertical   { height: 1px; }
 
 /* ── TopToolbar ──────────────────────────────────────────── */
 #TopToolbar {
-    background-color: #FFFFFF;
-    border-bottom: 1px solid #E5E7EB;
+    background-color: #282828;
+    border-bottom: 1px solid #3A3A3A;
 }
 
 #AppLogo {
@@ -33,20 +34,20 @@ QSplitter::handle:vertical   { height: 1px; }
 }
 
 #AppNameLabel {
-    color: #111827;
+    color: #D0D0D0;
     font-size: 14px;
     font-weight: 700;
     letter-spacing: -0.2px;
 }
 
 #DocTab {
-    background-color: #F3F4F6;
-    border: 1px solid #E5E7EB;
+    background-color: #333333;
+    border: 1px solid #444444;
     border-radius: 6px;
 }
 
 #DocTabLabel {
-    color: #374151;
+    color: #BBBBBB;
     font-size: 13px;
     font-weight: 500;
 }
@@ -55,104 +56,94 @@ QSplitter::handle:vertical   { height: 1px; }
     background: transparent;
     border: none;
     border-radius: 4px;
-    color: #9CA3AF;
+    color: #666666;
     font-size: 14px;
     padding: 0px;
 }
 
 #TabCloseBtn:hover {
-    background: #E5E7EB;
-    color: #374151;
+    background: #444444;
+    color: #BBBBBB;
 }
 
 #NewTabBtn {
     background: transparent;
     border: none;
     border-radius: 6px;
-    color: #9CA3AF;
+    color: #666666;
     font-size: 16px;
     font-weight: 400;
 }
 
 #NewTabBtn:hover {
-    background: #F3F4F6;
-    color: #374151;
+    background: #333333;
+    color: #BBBBBB;
 }
 
 #ZoomLabel {
-    color: #111827;
+    color: #D0D0D0;
     font-size: 13px;
     font-weight: 500;
     min-width: 44px;
     qproperty-alignment: AlignCenter;
 }
 
-/* ── IconButton (toolbar context) ────────────────────────── */
+/* ── IconButton ──────────────────────────────────────────── */
 #IconButton {
     background: transparent;
     border: none;
     border-radius: 7px;
-    color: #374151;
-    font-size: 14px;
-    font-weight: 500;
     padding: 0px;
 }
 
 #IconButton:hover {
-    background-color: #F3F4F6;
-    color: #111827;
+    background-color: #383838;
 }
 
 #IconButton:pressed {
-    background-color: #E5E7EB;
-    color: #111827;
+    background-color: #444444;
 }
 
 #IconButton:checked {
-    background-color: #EFF6FF;
-    color: #2563EB;
+    background-color: #404040;
 }
 
 #IconButton:disabled {
-    color: #D1D5DB;
+    opacity: 0.4;
 }
 
 /* ── LeftSidebar ─────────────────────────────────────────── */
 #LeftSidebar {
-    background-color: #FFFFFF;
-    border-right: 1px solid #E5E7EB;
+    background-color: #282828;
+    border-right: 1px solid #3A3A3A;
 }
 
 #LeftSidebar #IconButton {
     background: transparent;
     border: none;
     border-radius: 8px;
-    color: #6B7280;
-    font-size: 15px;
 }
 
 #LeftSidebar #IconButton:hover {
-    background-color: #F9FAFB;
-    color: #111827;
+    background-color: #383838;
 }
 
 #LeftSidebar #IconButton:pressed {
-    background-color: #F3F4F6;
+    background-color: #444444;
 }
 
 #LeftSidebar #IconButton:checked {
-    background-color: #EFF6FF;
-    color: #2563EB;
+    background-color: #404040;
 }
 
 /* ── DocumentView canvas ─────────────────────────────────── */
 #DocumentView {
-    background-color: #F3F4F6;
+    background-color: #1A1A1A;
     border: none;
 }
 
 #DocumentCanvas {
-    background-color: #F3F4F6;
+    background-color: #1A1A1A;
 }
 
 #DocumentView QScrollBar:vertical {
@@ -162,13 +153,13 @@ QSplitter::handle:vertical   { height: 1px; }
 }
 
 #DocumentView QScrollBar::handle:vertical {
-    background: #D1D5DB;
+    background: #484848;
     border-radius: 3px;
     min-height: 32px;
 }
 
 #DocumentView QScrollBar::handle:vertical:hover {
-    background: #9CA3AF;
+    background: #585858;
 }
 
 #DocumentView QScrollBar::add-line:vertical,
@@ -181,13 +172,13 @@ QSplitter::handle:vertical   { height: 1px; }
 }
 
 #DocumentView QScrollBar::handle:horizontal {
-    background: #D1D5DB;
+    background: #484848;
     border-radius: 3px;
     min-width: 32px;
 }
 
 #DocumentView QScrollBar::handle:horizontal:hover {
-    background: #9CA3AF;
+    background: #585858;
 }
 
 #DocumentView QScrollBar::add-line:horizontal,
@@ -195,8 +186,8 @@ QSplitter::handle:vertical   { height: 1px; }
 
 /* ── RightSidebar ────────────────────────────────────────── */
 #RightSidebar {
-    background-color: #FFFFFF;
-    border-left: 1px solid #E5E7EB;
+    background-color: #282828;
+    border-left: 1px solid #3A3A3A;
 }
 
 #ModeButton {
@@ -207,81 +198,64 @@ QSplitter::handle:vertical   { height: 1px; }
 }
 
 #ModeButton:hover {
-    background-color: #F9FAFB;
+    background-color: #383838;
 }
 
 #ModeButtonSelected {
-    background-color: #F0F9FF;
-    border: 1px solid #BAE6FD;
+    background-color: #404040;
+    border: 1px solid #505050;
     border-radius: 10px;
     text-align: center;
-}
-
-#ModeIcon {
-    font-size: 20px;
-    color: #374151;
-}
-
-#ModeButtonSelected #ModeIcon {
-    color: #2563EB;
 }
 
 #ModeLabel {
     font-size: 11px;
     font-weight: 500;
-    color: #6B7280;
+    color: #666666;
 }
 
-#ModeButtonSelected #ModeLabel {
-    color: #1D4ED8;
+#ModeLabelSelected {
+    font-size: 11px;
+    font-weight: 500;
+    color: #C0C0C0;
 }
 
-/* ── StatusBar (page nav) ────────────────────────────────── */
+/* ── StatusBar ───────────────────────────────────────────── */
 #StatusBar {
-    background-color: #FFFFFF;
-    border-top: 1px solid #E5E7EB;
+    background-color: #282828;
+    border-top: 1px solid #3A3A3A;
 }
 
 #PageInput {
-    background: #F9FAFB;
-    border: 1px solid #E5E7EB;
+    background: #333333;
+    border: 1px solid #484848;
     border-radius: 5px;
-    color: #111827;
+    color: #D0D0D0;
     font-size: 13px;
     font-weight: 500;
     padding: 2px 4px;
-    selection-background-color: #BFDBFE;
+    selection-background-color: #505050;
 }
 
 #PageInput:focus {
-    border-color: #93C5FD;
+    border-color: #888888;
     outline: none;
 }
 
 #PageTotalLabel {
-    color: #6B7280;
+    color: #666666;
     font-size: 13px;
-}
-
-#StatusBar #IconButton {
-    color: #6B7280;
-    font-size: 16px;
-}
-
-#StatusBar #IconButton:hover {
-    background: #F3F4F6;
-    color: #111827;
 }
 
 /* ── Generic QLabel ──────────────────────────────────────── */
 QLabel {
-    color: #111827;
+    color: #D0D0D0;
 }
 
 /* ── Generic QPushButton fallback ────────────────────────── */
 QPushButton {
-    background-color: #2563EB;
-    color: #FFFFFF;
+    background-color: #484848;
+    color: #E8E8E8;
     border: none;
     border-radius: 8px;
     font-size: 13px;
@@ -289,21 +263,21 @@ QPushButton {
     padding: 6px 16px;
 }
 
-QPushButton:hover  { background-color: #1D4ED8; }
-QPushButton:pressed { background-color: #1E40AF; }
-QPushButton:disabled { background-color: #E5E7EB; color: #9CA3AF; }
+QPushButton:hover   { background-color: #585858; }
+QPushButton:pressed { background-color: #383838; }
+QPushButton:disabled { background-color: #333333; color: #666666; }
 
 /* ── ScrollArea viewport ─────────────────────────────────── */
 QScrollArea > QWidget > QWidget { background: transparent; }
 
 /* ── SettingsPanel ───────────────────────────────────────── */
 #SettingsPanel {
-    background-color: #FFFFFF;
-    border: 1px solid #E5E7EB;
+    background-color: #282828;
+    border: 1px solid #444444;
     border-radius: 12px;
 }
 #SettingsPanelTitle {
-    color: #111827;
+    color: #D0D0D0;
     font-size: 13px;
     font-weight: 700;
 }
@@ -311,14 +285,14 @@ QScrollArea > QWidget > QWidget { background: transparent; }
     background: transparent;
     border: none;
     border-radius: 8px;
-    color: #374151;
+    color: #AAAAAA;
     font-size: 13px;
     text-align: left;
     padding: 8px 12px;
 }
-#ThemeOptionBtn:hover { background: #F3F4F6; }
+#ThemeOptionBtn:hover { background: #383838; }
 #ThemeOptionBtn:checked {
-    background: #EFF6FF;
-    color: #2563EB;
+    background: #404040;
+    color: #E8E8E8;
     font-weight: 600;
 }

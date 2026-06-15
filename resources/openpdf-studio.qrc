@@ -1,6 +1,7 @@
 <RCC>
     <qresource prefix="/theme">
-        <file>../src/ui/theme/Style.qss</file>
+        <file alias="Style.qss">../src/ui/theme/Style.qss</file>
+        <file alias="Style.dark.qss">../src/ui/theme/Style.dark.qss</file>
     </qresource>
     <qresource prefix="/">
         <file>icons/mouse-pointer-2.svg</file>

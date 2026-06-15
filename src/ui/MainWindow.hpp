@@ -7,6 +7,8 @@ class LeftSidebar;
 class DocumentView;
 class RightSidebar;
 class StatusBar;
+class AppSettings;
+class SettingsPanel;
 
 QT_BEGIN_NAMESPACE
 class QSplitter;
@@ -24,7 +26,7 @@ class MainWindow : public QMainWindow
     Q_OBJECT
 
 public:
-    explicit MainWindow(QWidget *parent = nullptr);
+    explicit MainWindow(AppSettings *settings, QWidget *parent = nullptr);
     ~MainWindow() override = default;
 
     [[nodiscard]] TopToolbar   *topToolbar()   const { return m_topToolbar;   }
@@ -33,6 +35,9 @@ public:
     [[nodiscard]] RightSidebar *rightSidebar() const { return m_rightSidebar; }
     [[nodiscard]] StatusBar    *statusBar()    const { return m_statusBar;    }
 
+public Q_SLOTS:
+    void applyTheme(const QString &mode);
+
 private:
     void buildUi();
     void connectSignals();
@@ -40,6 +45,7 @@ private:
     void onZoomIn();
     void onZoomOut();
 
+    AppSettings  *m_appSettings  { nullptr };
     TopToolbar   *m_topToolbar   { nullptr };
     LeftSidebar  *m_leftSidebar  { nullptr };
     DocumentView *m_documentView { nullptr };

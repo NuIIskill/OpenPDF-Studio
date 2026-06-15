@@ -66,7 +66,7 @@ void AppSettings::setZoomLevel(int percent)
 
 QString AppSettings::theme() const
 {
-    return settings().value(QLatin1String(kTheme), QStringLiteral("light")).toString();
+    return settings().value(QLatin1String(kTheme), QStringLiteral("system")).toString();
 }
 
 void AppSettings::setTheme(const QString &name)

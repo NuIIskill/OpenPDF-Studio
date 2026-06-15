@@ -15,6 +15,16 @@ RightSidebar::RightSidebar(QWidget *parent)
     buildLayout();
 }
 
+void RightSidebar::refreshTheme()
+{
+    for (auto &m : m_modes) {
+        const QColor color = m.selected ? Theme::IconChecked : Theme::IconNormal;
+        const QPixmap px = Theme::renderSvg(m.iconName, color, 22);
+        if (!px.isNull())
+            m.iconLabel->setPixmap(px);
+    }
+}
+
 void RightSidebar::buildLayout()
 {
     auto *layout = new QVBoxLayout(this);
@@ -62,6 +72,7 @@ QWidget *RightSidebar::makeModeButton(const QString &iconName, const QString &la
     if (!px.isNull())
         iconLabel->setPixmap(px);
     inner->addWidget(iconLabel);
+    m_modes.append({ iconName, iconLabel, selected });
 
     auto *textLabel = new QLabel(label, btn);
     textLabel->setObjectName(QStringLiteral("ModeLabel"));

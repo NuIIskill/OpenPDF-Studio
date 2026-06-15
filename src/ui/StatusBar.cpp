@@ -22,6 +22,15 @@ void StatusBar::setPageInfo(int current, int total)
     m_totalLabel->setText(QStringLiteral("/ %1").arg(total));
 }
 
+void StatusBar::refreshTheme()
+{
+    const QColor mc = Theme::IconMuted;
+    m_prevBtn->setIconName(m_prevBtn->iconName(), mc);
+    m_nextBtn->setIconName(m_nextBtn->iconName(), mc);
+    if (m_panelBtn)
+        m_panelBtn->setIconName(m_panelBtn->iconName(), mc);
+}
+
 void StatusBar::buildLayout()
 {
     auto *layout = new QHBoxLayout(this);
@@ -60,8 +69,8 @@ void StatusBar::buildLayout()
 
     layout->addStretch(1);
 
-    auto *panelBtn = new IconButton(this);
-    panelBtn->setIconName(QStringLiteral("panel-right"), Theme::IconMuted);
-    panelBtn->setToolTip(tr("Panel umschalten"));
-    layout->addWidget(panelBtn);
+    m_panelBtn = new IconButton(this);
+    m_panelBtn->setIconName(QStringLiteral("panel-right"), Theme::IconMuted);
+    m_panelBtn->setToolTip(tr("Panel umschalten"));
+    layout->addWidget(m_panelBtn);
 }

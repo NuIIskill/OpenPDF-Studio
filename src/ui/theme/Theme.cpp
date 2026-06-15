@@ -1,8 +1,12 @@
 #include "Theme.hpp"
 
+#include <QApplication>
 #include <QFile>
+#include <QGuiApplication>
 #include <QImage>
 #include <QDebug>
+#include <QPalette>
+#include <QStyleHints>
 
 // NanoSVG — single-header SVG parser + rasterizer (no Qt::Svg needed)
 #define NANOSVG_IMPLEMENTATION
@@ -12,11 +16,21 @@
 
 namespace Theme {
 
+// ── Mutable color constants (initialized to light theme, overridden at startup)
+bool   DarkMode    = false;
+QColor Primary      { "#2563EB" };
+QColor IconNormal   { "#374151" };
+QColor IconMuted    { "#6B7280" };
+QColor IconChecked  { "#2563EB" };
+QColor IconDisabled { "#D1D5DB" };
+
 QString loadStyleSheet()
 {
-    QFile file(QStringLiteral(":/theme/Style.qss"));
+    const QString path = DarkMode ? QStringLiteral(":/theme/Style.dark.qss")
+                                  : QStringLiteral(":/theme/Style.qss");
+    QFile file(path);
     if (!file.open(QIODevice::ReadOnly | QIODevice::Text)) {
-        qWarning() << "Theme: could not open :/theme/Style.qss";
+        qWarning() << "Theme: could not open" << path;
         return {};
     }
     return QString::fromUtf8(file.readAll());
@@ -42,9 +56,6 @@ QPixmap renderSvg(const QString &name, const QColor &color, int size, qreal dpr)
         qWarning() << "Theme: nsvgParse failed for:" << name;
         return {};
     }
-    qDebug() << "Theme SVG" << name << "size:" << image->width << "x" << image->height
-             << "shapes:" << (image->shapes != nullptr)
-             << "hasStroke:" << (image->shapes ? image->shapes->stroke.type : -1);
 
     const int physSize = qRound(size * dpr);
     // Lucide icons have a 24×24 viewBox — scale to physSize
@@ -59,13 +70,6 @@ QPixmap renderSvg(const QString &name, const QColor &color, int size, qreal dpr)
 
     nsvgDeleteRasterizer(rast);
     nsvgDelete(image);
-
-    // Debug: check if any pixel was written
-    const auto *px = reinterpret_cast<const unsigned char *>(pixels.constData());
-    bool hasContent = false;
-    for (int i = 0; i < physSize * physSize * 4; i += 4)
-        if (px[i+3] > 0) { hasContent = true; break; }
-    qDebug() << "Theme rasterize" << name << physSize << "px — hasContent:" << hasContent;
 
     // NanoSVG outputs RGBA — matches Qt's Format_RGBA8888
     QImage img(reinterpret_cast<const uchar *>(pixels.constData()),
@@ -91,6 +95,65 @@ QIcon makeIcon(const QString &name,
         icon.addPixmap(renderSvg(name, disabled, size, dpr), QIcon::Disabled, QIcon::Off);
     }
     return icon;
+}
+
+void apply(const QString &mode)
+{
+    const bool isDark = (mode == QStringLiteral("dark")) ||
+        (mode != QStringLiteral("light") &&
+         QGuiApplication::styleHints()->colorScheme() == Qt::ColorScheme::Dark);
+
+    DarkMode = isDark;
+    if (isDark) {
+        IconNormal   = QColor(QStringLiteral("#B8B8B8"));
+        IconMuted    = QColor(QStringLiteral("#787878"));
+        IconChecked  = QColor(QStringLiteral("#EEEEEE"));
+        IconDisabled = QColor(QStringLiteral("#484848"));
+    } else {
+        IconNormal   = QColor(QStringLiteral("#374151"));
+        IconMuted    = QColor(QStringLiteral("#6B7280"));
+        IconChecked  = QColor(QStringLiteral("#2563EB"));
+        IconDisabled = QColor(QStringLiteral("#D1D5DB"));
+    }
+
+    QPalette p;
+    if (isDark) {
+        p.setColor(QPalette::Window,          QColor(0x28, 0x28, 0x28));
+        p.setColor(QPalette::WindowText,      QColor(0xD0, 0xD0, 0xD0));
+        p.setColor(QPalette::Base,            QColor(0x1A, 0x1A, 0x1A));
+        p.setColor(QPalette::AlternateBase,   QColor(0x33, 0x33, 0x33));
+        p.setColor(QPalette::Text,            QColor(0xD0, 0xD0, 0xD0));
+        p.setColor(QPalette::BrightText,      QColor(0xF0, 0xF0, 0xF0));
+        p.setColor(QPalette::Button,          QColor(0x28, 0x28, 0x28));
+        p.setColor(QPalette::ButtonText,      QColor(0xD0, 0xD0, 0xD0));
+        p.setColor(QPalette::Highlight,       QColor(0x50, 0x50, 0x50));
+        p.setColor(QPalette::HighlightedText, QColor(0xF0, 0xF0, 0xF0));
+        p.setColor(QPalette::Mid,             QColor(0x38, 0x38, 0x38));
+        p.setColor(QPalette::Dark,            QColor(0x44, 0x44, 0x44));
+        p.setColor(QPalette::Shadow,          QColor(0x10, 0x10, 0x10));
+        p.setColor(QPalette::ToolTipBase,     QColor(0x33, 0x33, 0x33));
+        p.setColor(QPalette::ToolTipText,     QColor(0xD0, 0xD0, 0xD0));
+        p.setColor(QPalette::PlaceholderText, QColor(0x66, 0x66, 0x66));
+    } else {
+        p.setColor(QPalette::Window,          QColor(0xF3, 0xF4, 0xF6));
+        p.setColor(QPalette::WindowText,      QColor(0x11, 0x18, 0x27));
+        p.setColor(QPalette::Base,            Qt::white);
+        p.setColor(QPalette::AlternateBase,   QColor(0xF9, 0xFA, 0xFB));
+        p.setColor(QPalette::Text,            QColor(0x11, 0x18, 0x27));
+        p.setColor(QPalette::BrightText,      Qt::white);
+        p.setColor(QPalette::Button,          Qt::white);
+        p.setColor(QPalette::ButtonText,      QColor(0x11, 0x18, 0x27));
+        p.setColor(QPalette::Highlight,       QColor(0x25, 0x63, 0xEB));
+        p.setColor(QPalette::HighlightedText, Qt::white);
+        p.setColor(QPalette::Mid,             QColor(0xE5, 0xE7, 0xEB));
+        p.setColor(QPalette::Dark,            QColor(0xD1, 0xD5, 0xDB));
+        p.setColor(QPalette::Shadow,          QColor(0x9C, 0xA3, 0xAF));
+        p.setColor(QPalette::ToolTipBase,     Qt::white);
+        p.setColor(QPalette::ToolTipText,     QColor(0x11, 0x18, 0x27));
+        p.setColor(QPalette::PlaceholderText, QColor(0x9C, 0xA3, 0xAF));
+    }
+    QApplication::setPalette(p);
+    qApp->setStyleSheet(loadStyleSheet());
 }
 
 } // namespace Theme

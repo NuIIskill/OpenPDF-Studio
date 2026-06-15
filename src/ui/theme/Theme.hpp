@@ -7,15 +7,22 @@
 
 namespace Theme {
 
-// ── Colors ────────────────────────────────────────────────────────────────
-inline const QColor Primary      { "#2563EB" };
-inline const QColor IconNormal   { "#374151" };
-inline const QColor IconMuted    { "#6B7280" };
-inline const QColor IconChecked  { "#2563EB" };
-inline const QColor IconDisabled { "#D1D5DB" };
+// ── Runtime dark-mode flag (set once from main before any widget is created) ──
+extern bool DarkMode;
+
+// ── Colors (mutable so dark-mode startup can override them) ───────────────
+extern QColor Primary;
+extern QColor IconNormal;
+extern QColor IconMuted;
+extern QColor IconChecked;
+extern QColor IconDisabled;
 
 // ── Stylesheet ────────────────────────────────────────────────────────────
 QString loadStyleSheet();
+
+// ── Theme application ─────────────────────────────────────────────────────
+/// Apply palette + QSS for the given mode ("system"|"light"|"dark").
+void apply(const QString &mode);
 
 // ── SVG icon helpers ──────────────────────────────────────────────────────
 

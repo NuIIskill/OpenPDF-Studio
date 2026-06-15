@@ -21,6 +21,7 @@ public:
 
     void setFileName(const QString &name);
     void setZoom(int percent);
+    void refreshTheme();
 
 Q_SIGNALS:
     void zoomInRequested();

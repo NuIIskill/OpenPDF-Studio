@@ -39,6 +39,8 @@ set(SOURCES
     src/ui/ToolPanel.hpp
     src/ui/StatusBar.cpp
     src/ui/StatusBar.hpp
+    src/ui/SettingsPanel.cpp
+    src/ui/SettingsPanel.hpp
 
     src/ui/widgets/PagePlaceholder.cpp
     src/ui/widgets/PagePlaceholder.hpp

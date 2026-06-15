@@ -52,11 +52,19 @@ void LeftSidebar::buildLayout()
     m_toolButtons.first()->setChecked(true);
     layout->addStretch(1);
 
-    auto *settingsBtn = new IconButton(this);
-    settingsBtn->setIconName(QStringLiteral("settings"), Theme::IconMuted);
-    settingsBtn->setToolTip(tr("Einstellungen"));
-    connect(settingsBtn, &QPushButton::clicked, this, &LeftSidebar::settingsRequested);
-    layout->addWidget(settingsBtn);
+    m_settingsBtn = new IconButton(this);
+    m_settingsBtn->setIconName(QStringLiteral("settings"), Theme::IconMuted);
+    m_settingsBtn->setToolTip(tr("Einstellungen"));
+    connect(m_settingsBtn, &QPushButton::clicked, this, &LeftSidebar::settingsRequested);
+    layout->addWidget(m_settingsBtn);
+}
+
+void LeftSidebar::refreshTheme()
+{
+    for (auto *btn : m_toolButtons)
+        btn->setIconName(btn->iconName(), Theme::IconMuted);
+    if (m_settingsBtn)
+        m_settingsBtn->setIconName(m_settingsBtn->iconName(), Theme::IconMuted);
 }
 
 void LeftSidebar::setActiveTool(const QString &tool)

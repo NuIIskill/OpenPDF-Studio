@@ -21,7 +21,7 @@ App::~App()
 
 void App::startup()
 {
-    m_mainWindow = std::make_unique<MainWindow>();
+    m_mainWindow = std::make_unique<MainWindow>(m_settings.get());
     loadSettings();
     m_mainWindow->show();
 }
