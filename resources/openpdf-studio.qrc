@@ -2,7 +2,33 @@
     <qresource prefix="/theme">
         <file>../src/ui/theme/Style.qss</file>
     </qresource>
-    <qresource prefix="/icons">
-        <!-- SVG icons will be added here -->
+    <qresource prefix="/">
+        <file>icons/mouse-pointer-2.svg</file>
+        <file>icons/hand.svg</file>
+        <file>icons/type.svg</file>
+        <file>icons/message-square.svg</file>
+        <file>icons/pencil.svg</file>
+        <file>icons/image.svg</file>
+        <file>icons/table.svg</file>
+        <file>icons/file.svg</file>
+        <file>icons/bookmark.svg</file>
+        <file>icons/paperclip.svg</file>
+        <file>icons/settings.svg</file>
+        <file>icons/save.svg</file>
+        <file>icons/printer.svg</file>
+        <file>icons/undo-2.svg</file>
+        <file>icons/redo-2.svg</file>
+        <file>icons/zoom-in.svg</file>
+        <file>icons/zoom-out.svg</file>
+        <file>icons/layout-grid.svg</file>
+        <file>icons/square.svg</file>
+        <file>icons/x.svg</file>
+        <file>icons/plus.svg</file>
+        <file>icons/minus.svg</file>
+        <file>icons/chevron-left.svg</file>
+        <file>icons/chevron-right.svg</file>
+        <file>icons/panel-right.svg</file>
+        <file>icons/upload.svg</file>
+        <file>icons/layers.svg</file>
     </qresource>
 </RCC>

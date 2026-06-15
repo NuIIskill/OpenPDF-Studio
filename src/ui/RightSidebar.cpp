@@ -1,14 +1,15 @@
 #include "RightSidebar.hpp"
+#include "ui/theme/Theme.hpp"
 
 #include <QLabel>
 #include <QVBoxLayout>
-#include <QHBoxLayout>
 #include <QPushButton>
 
 RightSidebar::RightSidebar(QWidget *parent)
     : QWidget(parent)
 {
     setObjectName(QStringLiteral("RightSidebar"));
+    setAttribute(Qt::WA_StyledBackground, true);
     setFixedWidth(110);
     setSizePolicy(QSizePolicy::Fixed, QSizePolicy::Expanding);
     buildLayout();
@@ -22,14 +23,14 @@ void RightSidebar::buildLayout()
 
     struct ModeItem { const char *icon; const char *label; const char *id; bool sel; };
     const ModeItem modes[] = {
-        { "✏",  "Bearbeiten", "edit",    true  },
-        { "↑",  "Export",     "export",  false },
-        { "⊞",  "Ordnen",     "organize",false },
+        { "pencil", "Bearbeiten", "edit",     true  },
+        { "upload", "Export",     "export",   false },
+        { "layers", "Ordnen",     "organize", false },
     };
 
     for (const auto &m : modes) {
         layout->addWidget(makeModeButton(
-            QString::fromUtf8(m.icon),
+            QLatin1String(m.icon),
             tr(m.label),
             QLatin1String(m.id),
             m.sel));
@@ -38,7 +39,7 @@ void RightSidebar::buildLayout()
     layout->addStretch(1);
 }
 
-QWidget *RightSidebar::makeModeButton(const QString &icon, const QString &label,
+QWidget *RightSidebar::makeModeButton(const QString &iconName, const QString &label,
                                        const QString &id, bool selected)
 {
     auto *btn = new QPushButton(this);
@@ -49,18 +50,24 @@ QWidget *RightSidebar::makeModeButton(const QString &icon, const QString &label,
     btn->setFlat(true);
 
     auto *inner = new QVBoxLayout(btn);
-    inner->setContentsMargins(0, 12, 0, 12);
+    inner->setContentsMargins(0, 10, 0, 10);
     inner->setSpacing(6);
     inner->setAlignment(Qt::AlignCenter);
 
-    auto *iconLabel = new QLabel(icon, btn);
-    iconLabel->setObjectName(QStringLiteral("ModeIcon"));
+    // Render icon as QLabel with pixmap
+    auto *iconLabel = new QLabel(btn);
     iconLabel->setAlignment(Qt::AlignCenter);
+    const QColor iconColor = selected ? Theme::IconChecked : Theme::IconNormal;
+    const QPixmap px = Theme::renderSvg(iconName, iconColor, 22);
+    if (!px.isNull())
+        iconLabel->setPixmap(px);
     inner->addWidget(iconLabel);
 
     auto *textLabel = new QLabel(label, btn);
     textLabel->setObjectName(QStringLiteral("ModeLabel"));
     textLabel->setAlignment(Qt::AlignCenter);
+    if (selected)
+        textLabel->setObjectName(QStringLiteral("ModeLabelSelected"));
     inner->addWidget(textLabel);
 
     connect(btn, &QPushButton::clicked, this, [this, id]() {

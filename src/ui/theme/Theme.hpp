@@ -1,33 +1,35 @@
 #pragma once
 
 #include <QColor>
+#include <QIcon>
+#include <QPixmap>
 #include <QString>
 
 namespace Theme {
 
-// ── Background & Surface ──────────────────────────────────────────────────
-inline const QColor Background  { "#F8FAFC" };   // main app background
-inline const QColor Surface     { "#FFFFFF" };   // panels / cards
-
-// ── Brand ─────────────────────────────────────────────────────────────────
+// ── Colors ────────────────────────────────────────────────────────────────
 inline const QColor Primary      { "#2563EB" };
-inline const QColor PrimaryHover { "#3B82F6" };
+inline const QColor IconNormal   { "#374151" };
+inline const QColor IconMuted    { "#6B7280" };
+inline const QColor IconChecked  { "#2563EB" };
+inline const QColor IconDisabled { "#D1D5DB" };
 
-// ── Text ──────────────────────────────────────────────────────────────────
-inline const QColor TextPrimary   { "#0F172A" };
-inline const QColor TextSecondary { "#64748B" };
-
-// ── Structural ────────────────────────────────────────────────────────────
-inline const QColor Border { "#E2E8F0" };
-
-// ── Left Sidebar ──────────────────────────────────────────────────────────
-inline const QColor SidebarBg    { "#1E293B" };
-inline const QColor SidebarText  { "#F1F5F9" };
-inline const QColor SidebarHover { "#334155" };
-
-// ── Helpers ───────────────────────────────────────────────────────────────
-
-/// Load the compiled-in QSS stylesheet.
+// ── Stylesheet ────────────────────────────────────────────────────────────
 QString loadStyleSheet();
+
+// ── SVG icon helpers ──────────────────────────────────────────────────────
+
+/// Render a Lucide SVG from Qt resources at the given color and size.
+/// The SVG must be at :/icons/<name>.svg.
+QPixmap renderSvg(const QString &name, const QColor &color,
+                  int size, qreal dpr = 1.0);
+
+/// Build a QIcon with Normal/Off, Normal/On (checked=blue), Disabled states,
+/// at 1× and 2× for HiDPI.
+QIcon makeIcon(const QString &name,
+               const QColor &normal   = IconNormal,
+               const QColor &checked  = IconChecked,
+               const QColor &disabled = IconDisabled,
+               int size = 20);
 
 } // namespace Theme

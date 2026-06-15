@@ -76,6 +76,10 @@ target_link_libraries(OpenPDFStudio PRIVATE
     Qt6::Gui
 )
 
+target_include_directories(OpenPDFStudio PRIVATE
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/3rdparty
+)
+
 # Wayland platform hint (runtime fallback; real override is in main.cpp)
 target_compile_definitions(OpenPDFStudio PRIVATE
     DEFAULT_QPA_PLATFORM="wayland"

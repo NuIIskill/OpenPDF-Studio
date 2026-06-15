@@ -1,4 +1,5 @@
 #include "IconButton.hpp"
+#include "ui/theme/Theme.hpp"
 
 #include <QEnterEvent>
 
@@ -20,13 +21,21 @@ void IconButton::init()
     setFixedSize(36, 36);
     setCursor(Qt::PointingHandCursor);
     setFlat(true);
-    // Stylesheet handles visual states — nothing more needed here.
 }
 
-void IconButton::setIconName(const QString &name)
+void IconButton::setIconName(const QString &name, const QColor &normalColor)
 {
-    m_iconName = name;
-    // TODO: load SVG from :/icons/<name>.svg and call setIcon().
+    m_iconName    = name;
+    m_normalColor = normalColor;
+
+    m_normalIcon = Theme::makeIcon(name, normalColor,
+                                   Theme::IconChecked, Theme::IconDisabled);
+    m_hoverIcon  = Theme::makeIcon(name, m_hoverColor,
+                                   Theme::IconChecked, Theme::IconDisabled);
+
+    setIcon(m_normalIcon);
+    setIconSize(QSize(20, 20));
+    setText(QString());
 }
 
 void IconButton::setToggle(bool on)
@@ -37,10 +46,13 @@ void IconButton::setToggle(bool on)
 void IconButton::enterEvent(QEnterEvent *event)
 {
     QPushButton::enterEvent(event);
-    // Hover styling is driven entirely by QSS :hover pseudo-state.
+    if (!m_iconName.isEmpty() && !isChecked())
+        setIcon(m_hoverIcon);
 }
 
 void IconButton::leaveEvent(QEvent *event)
 {
     QPushButton::leaveEvent(event);
+    if (!m_iconName.isEmpty() && !isChecked())
+        setIcon(m_normalIcon);
 }

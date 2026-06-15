@@ -40,11 +40,11 @@ void ThumbnailItem::paintEvent(QPaintEvent * /*event*/)
     const QRect r = rect();
 
     // ── Background ────────────────────────────────────────────────────────
-    QColor bg = Theme::SidebarBg;
+    QColor bg = QColor("#1E293B");
     if (m_selected)
         bg = QColor("#1D4ED8");
     else if (m_hovered)
-        bg = Theme::SidebarHover;
+        bg = QColor("#334155");
 
     p.fillRect(r, bg);
 

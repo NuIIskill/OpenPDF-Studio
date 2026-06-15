@@ -1,27 +1,27 @@
 #pragma once
 
 #include <QPushButton>
-#include <QString>
+#include <QColor>
+#include <QIcon>
 
-/// A compact square icon button used throughout the toolbar and sidebar.
+/// Compact square icon button (36×36 px) used throughout the UI.
 ///
-/// Fixed 36×36 px, rounded corners (8 px).
-/// Transparent background with a subtle primary-blue hover tint.
-/// Pass `label` as a short text glyph or Unicode symbol; real SVG
-/// loading can be layered on later via setIconName().
+/// Pass a Lucide icon name via setIconName() — it renders the SVG at the
+/// correct color for normal, checked, and disabled states automatically.
+/// Falls back to a text label if no icon name is set.
 class IconButton : public QPushButton
 {
     Q_OBJECT
-    Q_PROPERTY(QString iconName READ iconName WRITE setIconName)
 
 public:
     explicit IconButton(const QString &label, QWidget *parent = nullptr);
     explicit IconButton(QWidget *parent = nullptr);
 
-    [[nodiscard]] QString iconName() const { return m_iconName; }
-    void setIconName(const QString &name);
+    /// Load a Lucide SVG icon from :/icons/<name>.svg.
+    /// normalColor defaults to Theme::IconNormal (#374151).
+    void setIconName(const QString &name,
+                     const QColor  &normalColor = QColor("#374151"));
 
-    // Convenience: mark this button as a toggle (checkable).
     void setToggle(bool on);
 
 protected:
@@ -32,4 +32,8 @@ private:
     void init();
 
     QString m_iconName;
+    QColor  m_normalColor;
+    QColor  m_hoverColor  { "#111827" };
+    QIcon   m_normalIcon;
+    QIcon   m_hoverIcon;
 };

@@ -1,5 +1,6 @@
 #include "TopToolbar.hpp"
 #include "ui/widgets/IconButton.hpp"
+#include "ui/theme/Theme.hpp"
 
 #include <QLabel>
 #include <QHBoxLayout>
@@ -10,6 +11,7 @@ TopToolbar::TopToolbar(QWidget *parent)
     : QWidget(parent)
 {
     setObjectName(QStringLiteral("TopToolbar"));
+    setAttribute(Qt::WA_StyledBackground, true);
     setFixedHeight(56);
     setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Fixed);
     buildLayout();
@@ -59,33 +61,34 @@ void TopToolbar::buildLayout()
     m_tabLabel->setObjectName(QStringLiteral("DocTabLabel"));
     tabLayout->addWidget(m_tabLabel);
 
-    auto *closeBtn = new QPushButton(QStringLiteral("×"), tab);
-    closeBtn->setObjectName(QStringLiteral("TabCloseBtn"));
-    closeBtn->setFixedSize(18, 18);
-    closeBtn->setFlat(true);
-    closeBtn->setCursor(Qt::PointingHandCursor);
+    auto *closeBtn = new IconButton(tab);
+    closeBtn->setIconName(QStringLiteral("x"), QColor("#9CA3AF"));
+    closeBtn->setFixedSize(22, 22);
+    closeBtn->setIconSize(QSize(14, 14));
     tabLayout->addWidget(closeBtn);
 
     layout->addWidget(tab);
     layout->addSpacing(4);
 
     // ── New tab button ────────────────────────────────────────────────────
-    auto *newTabBtn = new QPushButton(QStringLiteral("+"), this);
+    auto *newTabBtn = new IconButton(this);
     newTabBtn->setObjectName(QStringLiteral("NewTabBtn"));
+    newTabBtn->setIconName(QStringLiteral("plus"), QColor("#9CA3AF"));
     newTabBtn->setFixedSize(28, 28);
-    newTabBtn->setFlat(true);
-    newTabBtn->setCursor(Qt::PointingHandCursor);
+    newTabBtn->setIconSize(QSize(16, 16));
     layout->addWidget(newTabBtn);
 
     layout->addStretch(1);
 
     // ── Save / Print ──────────────────────────────────────────────────────
-    m_saveBtn = new IconButton(QStringLiteral("💾"), this);
+    m_saveBtn = new IconButton(this);
+    m_saveBtn->setIconName(QStringLiteral("save"));
     m_saveBtn->setToolTip(tr("Speichern"));
     connect(m_saveBtn, &QPushButton::clicked, this, &TopToolbar::saveRequested);
     layout->addWidget(m_saveBtn);
 
-    m_printBtn = new IconButton(QStringLiteral("🖨"), this);
+    m_printBtn = new IconButton(this);
+    m_printBtn->setIconName(QStringLiteral("printer"));
     m_printBtn->setToolTip(tr("Drucken"));
     connect(m_printBtn, &QPushButton::clicked, this, &TopToolbar::printRequested);
     layout->addWidget(m_printBtn);
@@ -95,12 +98,14 @@ void TopToolbar::buildLayout()
     layout->addSpacing(2);
 
     // ── Undo / Redo ───────────────────────────────────────────────────────
-    m_undoBtn = new IconButton(QStringLiteral("↩"), this);
+    m_undoBtn = new IconButton(this);
+    m_undoBtn->setIconName(QStringLiteral("undo-2"));
     m_undoBtn->setToolTip(tr("Rückgängig"));
     connect(m_undoBtn, &QPushButton::clicked, this, &TopToolbar::undoRequested);
     layout->addWidget(m_undoBtn);
 
-    m_redoBtn = new IconButton(QStringLiteral("↪"), this);
+    m_redoBtn = new IconButton(this);
+    m_redoBtn->setIconName(QStringLiteral("redo-2"));
     m_redoBtn->setToolTip(tr("Wiederherstellen"));
     connect(m_redoBtn, &QPushButton::clicked, this, &TopToolbar::redoRequested);
     layout->addWidget(m_redoBtn);
@@ -110,7 +115,8 @@ void TopToolbar::buildLayout()
     layout->addSpacing(2);
 
     // ── Zoom ──────────────────────────────────────────────────────────────
-    m_zoomOutBtn = new IconButton(QStringLiteral("−"), this);
+    m_zoomOutBtn = new IconButton(this);
+    m_zoomOutBtn->setIconName(QStringLiteral("zoom-out"));
     m_zoomOutBtn->setToolTip(tr("Verkleinern"));
     connect(m_zoomOutBtn, &QPushButton::clicked, this, &TopToolbar::zoomOutRequested);
     layout->addWidget(m_zoomOutBtn);
@@ -121,7 +127,8 @@ void TopToolbar::buildLayout()
     m_zoomLabel->setMinimumWidth(52);
     layout->addWidget(m_zoomLabel);
 
-    m_zoomInBtn = new IconButton(QStringLiteral("+"), this);
+    m_zoomInBtn = new IconButton(this);
+    m_zoomInBtn->setIconName(QStringLiteral("zoom-in"));
     m_zoomInBtn->setToolTip(tr("Vergrößern"));
     connect(m_zoomInBtn, &QPushButton::clicked, this, &TopToolbar::zoomInRequested);
     layout->addWidget(m_zoomInBtn);
@@ -130,14 +137,16 @@ void TopToolbar::buildLayout()
     layout->addWidget(makeSeparator());
     layout->addSpacing(2);
 
-    // ── View mode toggles ─────────────────────────────────────────────────
-    m_viewSingleBtn = new IconButton(QStringLiteral("⊟"), this);
+    // ── View toggles ──────────────────────────────────────────────────────
+    m_viewSingleBtn = new IconButton(this);
+    m_viewSingleBtn->setIconName(QStringLiteral("square"));
     m_viewSingleBtn->setToolTip(tr("Einzelseite"));
     m_viewSingleBtn->setCheckable(true);
     m_viewSingleBtn->setChecked(true);
     layout->addWidget(m_viewSingleBtn);
 
-    m_viewGridBtn = new IconButton(QStringLiteral("⊞"), this);
+    m_viewGridBtn = new IconButton(this);
+    m_viewGridBtn->setIconName(QStringLiteral("layout-grid"));
     m_viewGridBtn->setToolTip(tr("Rasteransicht"));
     m_viewGridBtn->setCheckable(true);
     layout->addWidget(m_viewGridBtn);
@@ -151,6 +160,6 @@ QWidget *TopToolbar::makeSeparator()
     sep->setFrameShadow(QFrame::Plain);
     sep->setFixedWidth(1);
     sep->setFixedHeight(22);
-    sep->setStyleSheet(QStringLiteral("QFrame { background: #E2E8F0; border: none; }"));
+    sep->setStyleSheet(QStringLiteral("QFrame { background: #E5E7EB; border: none; }"));
     return sep;
 }
