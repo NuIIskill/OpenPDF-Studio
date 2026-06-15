@@ -74,6 +74,18 @@ void AppSettings::setTheme(const QString &name)
     settings().setValue(QLatin1String(kTheme), name);
 }
 
+// ── Language ──────────────────────────────────────────────────────────────
+
+QString AppSettings::language() const
+{
+    return settings().value(QLatin1String(kLanguage), QStringLiteral("en")).toString();
+}
+
+void AppSettings::setLanguage(const QString &lang)
+{
+    settings().setValue(QLatin1String(kLanguage), lang);
+}
+
 // ── Sync ──────────────────────────────────────────────────────────────────
 
 void AppSettings::sync()

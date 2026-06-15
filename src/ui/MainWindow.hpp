@@ -1,6 +1,7 @@
 #pragma once
 
 #include <QMainWindow>
+#include <QTranslator>
 
 class TopToolbar;
 class LeftSidebar;
@@ -11,16 +12,10 @@ class AppSettings;
 class SettingsPanel;
 
 QT_BEGIN_NAMESPACE
+class QStackedWidget;
 class QSplitter;
 QT_END_NAMESPACE
 
-/// Application main window.
-///
-///  TopToolbar (56 px)
-///  ──────────────────────────────────────────────────
-///  QSplitter: LeftSidebar(60) | DocumentView | RightSidebar(110)
-///  ──────────────────────────────────────────────────
-///  StatusBar (48 px) — page navigation
 class MainWindow : public QMainWindow
 {
     Q_OBJECT
@@ -31,27 +26,44 @@ public:
 
     [[nodiscard]] TopToolbar   *topToolbar()   const { return m_topToolbar;   }
     [[nodiscard]] LeftSidebar  *leftSidebar()  const { return m_leftSidebar;  }
-    [[nodiscard]] DocumentView *documentView() const { return m_documentView; }
     [[nodiscard]] RightSidebar *rightSidebar() const { return m_rightSidebar; }
     [[nodiscard]] StatusBar    *statusBar()    const { return m_statusBar;    }
 
 public Q_SLOTS:
     void applyTheme(const QString &mode);
+    void applyLanguage(const QString &lang);
 
 private:
     void buildUi();
     void connectSignals();
-    void onToolSelected(const QString &tool);
+
+    DocumentView *addDocView();
+    DocumentView *currentDocView() const;
+
+    void onNewTab();
+    void onTabActivated(int index);
+    void onTabCloseRequested(int index);
+    void onOpenFile();
+    void onSave();
+    void onPrint();
+    void onUndo();
+    void onRedo();
     void onZoomIn();
     void onZoomOut();
+    void onModeSelected(const QString &mode);
+    void onToolSelected(const QString &tool);
 
     AppSettings  *m_appSettings  { nullptr };
     TopToolbar   *m_topToolbar   { nullptr };
     LeftSidebar  *m_leftSidebar  { nullptr };
-    DocumentView *m_documentView { nullptr };
     RightSidebar *m_rightSidebar { nullptr };
     StatusBar    *m_statusBar    { nullptr };
     QSplitter    *m_splitter     { nullptr };
 
-    int m_zoom { 100 };
+    QStackedWidget        *m_docStack  { nullptr };
+    QList<DocumentView *>  m_docViews;
+
+    QTranslator m_translator;
+    int         m_zoom         { 100 };
+    QString     m_activeTool   { QStringLiteral("select") };
 };

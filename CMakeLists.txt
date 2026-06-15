@@ -15,6 +15,7 @@ set(CMAKE_AUTORCC ON)
 set(CMAKE_AUTOUIC OFF)
 
 find_package(Qt6 REQUIRED COMPONENTS Core Widgets Gui)
+find_package(Qt6 OPTIONAL_COMPONENTS Pdf PrintSupport)
 qt_standard_project_setup()
 
 set(SOURCES
@@ -30,6 +31,7 @@ set(SOURCES
     src/ui/DocumentView.cpp
     src/ui/DocumentView.hpp
     src/ui/LeftSidebar.cpp
+    src/ui/LeftSidebar.hpp
     src/ui/LeftSidebar.hpp
     src/ui/RightSidebar.cpp
     src/ui/RightSidebar.hpp
@@ -48,6 +50,17 @@ set(SOURCES
     src/ui/widgets/ThumbnailItem.hpp
     src/ui/widgets/IconButton.cpp
     src/ui/widgets/IconButton.hpp
+
+    src/ui/tools/TextAnnotation.cpp
+    src/ui/tools/TextAnnotation.hpp
+    src/ui/tools/CommentAnnotation.cpp
+    src/ui/tools/CommentAnnotation.hpp
+    src/ui/tools/ImageAnnotation.cpp
+    src/ui/tools/ImageAnnotation.hpp
+    src/ui/tools/UndoCommands.hpp
+
+    src/ui/organizer/PdfOrganizerDialog.cpp
+    src/ui/organizer/PdfOrganizerDialog.hpp
 
     src/ui/theme/Theme.cpp
     src/ui/theme/Theme.hpp
@@ -78,14 +91,27 @@ target_link_libraries(OpenPDFStudio PRIVATE
     Qt6::Gui
 )
 
+if(Qt6Pdf_FOUND)
+    target_compile_definitions(OpenPDFStudio PRIVATE HAVE_QT_PDF)
+    target_link_libraries(OpenPDFStudio PRIVATE Qt6::Pdf)
+endif()
+
+if(Qt6PrintSupport_FOUND)
+    target_compile_definitions(OpenPDFStudio PRIVATE HAVE_QT_PRINT)
+    target_link_libraries(OpenPDFStudio PRIVATE Qt6::PrintSupport)
+endif()
+
 target_include_directories(OpenPDFStudio PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/src/3rdparty
 )
 
-# Wayland platform hint (runtime fallback; real override is in main.cpp)
-target_compile_definitions(OpenPDFStudio PRIVATE
-    DEFAULT_QPA_PLATFORM="wayland"
-)
+if(UNIX AND NOT APPLE)
+    target_compile_definitions(OpenPDFStudio PRIVATE DEFAULT_QPA_PLATFORM="wayland")
+endif()
+
+if(WIN32)
+    set_target_properties(OpenPDFStudio PROPERTIES WIN32_EXECUTABLE TRUE)
+endif()
 
 install(TARGETS OpenPDFStudio
     RUNTIME DESTINATION bin

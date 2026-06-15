@@ -31,6 +31,14 @@ void StatusBar::refreshTheme()
         m_panelBtn->setIconName(m_panelBtn->iconName(), mc);
 }
 
+void StatusBar::retranslateUi()
+{
+    m_prevBtn->setToolTip(tr("Previous Page"));
+    m_nextBtn->setToolTip(tr("Next Page"));
+    if (m_panelBtn)
+        m_panelBtn->setToolTip(tr("Toggle Panel"));
+}
+
 void StatusBar::buildLayout()
 {
     auto *layout = new QHBoxLayout(this);
@@ -41,7 +49,7 @@ void StatusBar::buildLayout()
 
     m_prevBtn = new IconButton(this);
     m_prevBtn->setIconName(QStringLiteral("chevron-left"), Theme::IconMuted);
-    m_prevBtn->setToolTip(tr("Vorherige Seite"));
+    m_prevBtn->setToolTip(tr("Previous Page"));
     connect(m_prevBtn, &QPushButton::clicked, this, &StatusBar::previousPageRequested);
     layout->addWidget(m_prevBtn);
 
@@ -63,7 +71,7 @@ void StatusBar::buildLayout()
 
     m_nextBtn = new IconButton(this);
     m_nextBtn->setIconName(QStringLiteral("chevron-right"), Theme::IconMuted);
-    m_nextBtn->setToolTip(tr("Nächste Seite"));
+    m_nextBtn->setToolTip(tr("Next Page"));
     connect(m_nextBtn, &QPushButton::clicked, this, &StatusBar::nextPageRequested);
     layout->addWidget(m_nextBtn);
 
@@ -71,6 +79,7 @@ void StatusBar::buildLayout()
 
     m_panelBtn = new IconButton(this);
     m_panelBtn->setIconName(QStringLiteral("panel-right"), Theme::IconMuted);
-    m_panelBtn->setToolTip(tr("Panel umschalten"));
+    m_panelBtn->setToolTip(tr("Toggle Panel"));
+    connect(m_panelBtn, &QPushButton::clicked, this, &StatusBar::panelToggleRequested);
     layout->addWidget(m_panelBtn);
 }

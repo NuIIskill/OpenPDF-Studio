@@ -1,17 +1,16 @@
 #pragma once
 
+#include <QList>
 #include <QWidget>
 
 QT_BEGIN_NAMESPACE
+class QHBoxLayout;
 class QLabel;
+class QPushButton;
 QT_END_NAMESPACE
 
 class IconButton;
 
-/// Horizontal top bar — 56 px.
-///
-/// Left:   logo | app name | separator | document tab | + new-tab button
-/// Right:  save | print | sep | undo | redo | sep | zoom-out | zoom% | zoom-in | sep | view-single | view-grid
 class TopToolbar : public QWidget
 {
     Q_OBJECT
@@ -19,11 +18,24 @@ class TopToolbar : public QWidget
 public:
     explicit TopToolbar(QWidget *parent = nullptr);
 
+    // Tab management
+    int  addTab(const QString &label = {});
+    void removeTab(int index);
+    void setTabLabel(int index, const QString &label);
+    void setCurrentTab(int index);
+    int  currentTab()  const { return m_currentTab; }
+    int  tabCount()    const { return m_tabBtns.size(); }
+
     void setFileName(const QString &name);
     void setZoom(int percent);
     void refreshTheme();
+    void retranslateUi();
 
 Q_SIGNALS:
+    void tabActivated(int index);
+    void tabCloseRequested(int index);
+    void newTabRequested();
+    void openFileRequested();
     void zoomInRequested();
     void zoomOutRequested();
     void undoRequested();
@@ -35,7 +47,13 @@ private:
     void buildLayout();
     QWidget *makeSeparator();
 
-    QLabel     *m_tabLabel      { nullptr };
+    QWidget     *m_tabBar    { nullptr };
+    QHBoxLayout *m_tabLayout { nullptr };
+    QList<QPushButton*> m_tabBtns;
+    QList<QLabel*>      m_tabLabels;
+    QList<bool>         m_tabEmpty;
+    int m_currentTab { -1 };
+
     QLabel     *m_zoomLabel     { nullptr };
     IconButton *m_zoomInBtn     { nullptr };
     IconButton *m_zoomOutBtn    { nullptr };

@@ -22,16 +22,16 @@ void LeftSidebar::buildLayout()
 
     struct ToolDef { const char *icon; const char *tip; const char *id; };
     const ToolDef tools[] = {
-        { "mouse-pointer-2", "Auswählen",   "select"   },
-        { "hand",            "Verschieben", "pan"      },
-        { "type",            "Text",        "text"     },
-        { "message-square",  "Kommentar",   "comment"  },
-        { "pencil",          "Zeichnen",    "draw"     },
-        { "image",           "Bild",        "image"    },
-        { "table",           "Tabelle",     "table"    },
-        { "file",            "Seite",       "page"     },
-        { "bookmark",        "Lesezeichen", "bookmark" },
-        { "paperclip",       "Anhang",      "attach"   },
+        { "mouse-pointer-2", QT_TR_NOOP("Select"),     "select"   },
+        { "hand",            QT_TR_NOOP("Pan"),        "pan"      },
+        { "type",            QT_TR_NOOP("Text"),       "text"     },
+        { "message-square",  QT_TR_NOOP("Comment"),   "comment"  },
+        { "pencil",          QT_TR_NOOP("Draw"),       "draw"     },
+        { "image",           QT_TR_NOOP("Image"),      "image"    },
+        { "table",           QT_TR_NOOP("Table"),      "table"    },
+        { "file",            QT_TR_NOOP("Page"),       "page"     },
+        { "bookmark",        QT_TR_NOOP("Bookmark"),   "bookmark" },
+        { "paperclip",       QT_TR_NOOP("Attachment"), "attach"   },
     };
 
     for (const auto &t : tools) {
@@ -40,6 +40,7 @@ void LeftSidebar::buildLayout()
         btn->setToolTip(tr(t.tip));
         btn->setToggle(true);
         btn->setCheckable(true);
+        m_toolTips.append(QLatin1String(t.tip));
         const QString id = QLatin1String(t.id);
         connect(btn, &QPushButton::clicked, this, [this, id, btn]() {
             for (auto *b : m_toolButtons) b->setChecked(b == btn);
@@ -54,7 +55,7 @@ void LeftSidebar::buildLayout()
 
     m_settingsBtn = new IconButton(this);
     m_settingsBtn->setIconName(QStringLiteral("settings"), Theme::IconMuted);
-    m_settingsBtn->setToolTip(tr("Einstellungen"));
+    m_settingsBtn->setToolTip(tr("Settings"));
     connect(m_settingsBtn, &QPushButton::clicked, this, &LeftSidebar::settingsRequested);
     layout->addWidget(m_settingsBtn);
 }
@@ -65,6 +66,14 @@ void LeftSidebar::refreshTheme()
         btn->setIconName(btn->iconName(), Theme::IconMuted);
     if (m_settingsBtn)
         m_settingsBtn->setIconName(m_settingsBtn->iconName(), Theme::IconMuted);
+}
+
+void LeftSidebar::retranslateUi()
+{
+    for (int i = 0; i < m_toolButtons.size() && i < m_toolTips.size(); ++i)
+        m_toolButtons[i]->setToolTip(tr(m_toolTips[i].toUtf8().constData()));
+    if (m_settingsBtn)
+        m_settingsBtn->setToolTip(tr("Settings"));
 }
 
 void LeftSidebar::setActiveTool(const QString &tool)

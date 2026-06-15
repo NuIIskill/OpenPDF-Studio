@@ -9,10 +9,6 @@ QT_END_NAMESPACE
 
 class IconButton;
 
-/// Bottom page-navigation bar — 48 px.
-///
-/// Center: ‹ previous | page input | / total | › next
-/// Right: panel-toggle icon
 class StatusBar : public QWidget
 {
     Q_OBJECT
@@ -22,10 +18,12 @@ public:
 
     void setPageInfo(int current, int total);
     void refreshTheme();
+    void retranslateUi();
 
 Q_SIGNALS:
     void previousPageRequested();
     void nextPageRequested();
+    void panelToggleRequested();
 
 private:
     void buildLayout();

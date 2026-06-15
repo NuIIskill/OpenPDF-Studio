@@ -1,66 +1,115 @@
 #include "SettingsPanel.hpp"
 #include "app/AppSettings.hpp"
-#include "ui/theme/Theme.hpp"
 
 #include <QVBoxLayout>
+#include <QHBoxLayout>
 #include <QLabel>
 #include <QPushButton>
 #include <QButtonGroup>
+#include <QFrame>
+#include <QEvent>
 
 SettingsPanel::SettingsPanel(AppSettings *settings, QWidget *parent)
-    : QDialog(parent, Qt::Dialog | Qt::FramelessWindowHint)
+    : QDialog(parent)
     , m_settings(settings)
 {
     setObjectName(QStringLiteral("SettingsPanel"));
-    setAttribute(Qt::WA_StyledBackground, true);
+    setWindowTitle(tr("Settings"));
+    setAttribute(Qt::WA_DeleteOnClose);
     setModal(true);
-    buildUi(settings->theme());
+    buildUi();
 }
 
-void SettingsPanel::buildUi(const QString &currentMode)
+void SettingsPanel::buildUi()
 {
     auto *root = new QVBoxLayout(this);
-    root->setContentsMargins(16, 14, 16, 14);
-    root->setSpacing(4);
+    root->setContentsMargins(20, 16, 20, 16);
+    root->setSpacing(12);
 
-    auto *title = new QLabel(tr("Erscheinungsbild"), this);
-    title->setObjectName(QStringLiteral("SettingsPanelTitle"));
-    root->addWidget(title);
-    root->addSpacing(6);
+    // ── Theme ─────────────────────────────────────────────────────────────
+    auto *themeTitle = new QLabel(tr("Appearance"), this);
+    themeTitle->setObjectName(QStringLiteral("SettingsSectionTitle"));
+    root->addWidget(themeTitle);
 
-    struct Option { const char *id; const char *label; };
-    const Option opts[] = {
-        { "system", "System (automatisch)" },
-        { "light",  "Hell"   },
-        { "dark",   "Dunkel" },
+    struct ThemeOpt { const char *id; const char *label; };
+    const ThemeOpt themes[] = {
+        { "system", QT_TR_NOOP("System (auto)") },
+        { "light",  QT_TR_NOOP("Light")         },
+        { "dark",   QT_TR_NOOP("Dark")          },
     };
 
-    auto *group = new QButtonGroup(this);
-    for (const auto &opt : opts) {
+    const QString curTheme = m_settings->theme();
+    auto *themeGroup = new QButtonGroup(this);
+    for (const auto &opt : themes) {
         auto *btn = new QPushButton(tr(opt.label), this);
         btn->setObjectName(QStringLiteral("ThemeOptionBtn"));
         btn->setCheckable(true);
-        btn->setChecked(QLatin1String(opt.id) == currentMode);
+        btn->setChecked(QLatin1String(opt.id) == curTheme);
         btn->setFlat(true);
-        group->addButton(btn);
+        themeGroup->addButton(btn);
         const QString id = QLatin1String(opt.id);
         connect(btn, &QPushButton::clicked, this, [this, id]() {
             m_settings->setTheme(id);
             m_settings->sync();
             Q_EMIT themeChangeRequested(id);
-            accept();
         });
         root->addWidget(btn);
     }
-    setFixedWidth(220);
+
+    // ── Separator ──────────────────────────────────────────────────────────
+    auto *sep = new QFrame(this);
+    sep->setFrameShape(QFrame::HLine);
+    sep->setFrameShadow(QFrame::Sunken);
+    root->addWidget(sep);
+
+    // ── Language ───────────────────────────────────────────────────────────
+    auto *langTitle = new QLabel(tr("Language"), this);
+    langTitle->setObjectName(QStringLiteral("SettingsSectionTitle"));
+    root->addWidget(langTitle);
+
+    struct LangOpt { const char *id; const char *label; };
+    const LangOpt langs[] = {
+        { "en", QT_TR_NOOP("English") },
+        { "de", QT_TR_NOOP("German")  },
+    };
+
+    const QString curLang = m_settings->language();
+    auto *langGroup = new QButtonGroup(this);
+    for (const auto &opt : langs) {
+        auto *btn = new QPushButton(tr(opt.label), this);
+        btn->setObjectName(QStringLiteral("LangOptionBtn"));
+        btn->setCheckable(true);
+        btn->setChecked(QLatin1String(opt.id) == curLang);
+        btn->setFlat(true);
+        langGroup->addButton(btn);
+        const QString id = QLatin1String(opt.id);
+        connect(btn, &QPushButton::clicked, this, [this, id]() {
+            m_settings->setLanguage(id);
+            m_settings->sync();
+            Q_EMIT languageChangeRequested(id);
+        });
+        root->addWidget(btn);
+    }
+
+    // ── Close ──────────────────────────────────────────────────────────────
+    root->addSpacing(8);
+    auto *closeBtn = new QPushButton(tr("Close"), this);
+    closeBtn->setDefault(true);
+    connect(closeBtn, &QPushButton::clicked, this, &QDialog::accept);
+    root->addWidget(closeBtn);
+
+    setFixedWidth(260);
     adjustSize();
 }
 
-void SettingsPanel::showNear(QWidget *anchor)
+void SettingsPanel::retranslateUi()
 {
-    adjustSize();
-    const QPoint globalAnchor = anchor->mapToGlobal(QPoint(0, 0));
-    move(globalAnchor.x() + anchor->width() + 8,
-         globalAnchor.y() - height() + anchor->height());
-    exec();
+    setWindowTitle(tr("Settings"));
+}
+
+void SettingsPanel::changeEvent(QEvent *e)
+{
+    if (e->type() == QEvent::LanguageChange)
+        retranslateUi();
+    QDialog::changeEvent(e);
 }

@@ -25,6 +25,12 @@ void RightSidebar::refreshTheme()
     }
 }
 
+void RightSidebar::retranslateUi()
+{
+    for (auto &m : m_modes)
+        m.textLabel->setText(tr(m.tipKey.toUtf8().constData()));
+}
+
 void RightSidebar::buildLayout()
 {
     auto *layout = new QVBoxLayout(this);
@@ -33,9 +39,9 @@ void RightSidebar::buildLayout()
 
     struct ModeItem { const char *icon; const char *label; const char *id; bool sel; };
     const ModeItem modes[] = {
-        { "pencil", "Bearbeiten", "edit",     true  },
-        { "upload", "Export",     "export",   false },
-        { "layers", "Ordnen",     "organize", false },
+        { "pencil", QT_TR_NOOP("Edit"),     "edit",     true  },
+        { "upload", QT_TR_NOOP("Export"),   "export",   false },
+        { "layers", QT_TR_NOOP("Organize"), "organize", false },
     };
 
     for (const auto &m : modes) {
@@ -44,6 +50,7 @@ void RightSidebar::buildLayout()
             tr(m.label),
             QLatin1String(m.id),
             m.sel));
+        m_modes.back().tipKey = QLatin1String(m.label);
     }
 
     layout->addStretch(1);
@@ -64,7 +71,6 @@ QWidget *RightSidebar::makeModeButton(const QString &iconName, const QString &la
     inner->setSpacing(6);
     inner->setAlignment(Qt::AlignCenter);
 
-    // Render icon as QLabel with pixmap
     auto *iconLabel = new QLabel(btn);
     iconLabel->setAlignment(Qt::AlignCenter);
     const QColor iconColor = selected ? Theme::IconChecked : Theme::IconNormal;
@@ -72,14 +78,14 @@ QWidget *RightSidebar::makeModeButton(const QString &iconName, const QString &la
     if (!px.isNull())
         iconLabel->setPixmap(px);
     inner->addWidget(iconLabel);
-    m_modes.append({ iconName, iconLabel, selected });
 
     auto *textLabel = new QLabel(label, btn);
-    textLabel->setObjectName(QStringLiteral("ModeLabel"));
+    textLabel->setObjectName(selected ? QStringLiteral("ModeLabelSelected")
+                                      : QStringLiteral("ModeLabel"));
     textLabel->setAlignment(Qt::AlignCenter);
-    if (selected)
-        textLabel->setObjectName(QStringLiteral("ModeLabelSelected"));
     inner->addWidget(textLabel);
+
+    m_modes.append({ iconName, iconLabel, textLabel, label, selected });
 
     connect(btn, &QPushButton::clicked, this, [this, id]() {
         Q_EMIT modeSelected(id);

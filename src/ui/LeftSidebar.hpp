@@ -5,10 +5,6 @@
 
 class IconButton;
 
-/// Narrow vertical tool strip — light background, left edge of window.
-///
-/// Fixed width: 60 px. Tools at top, settings pinned to bottom.
-/// Selected tool shown with rounded blue-tinted background.
 class LeftSidebar : public QWidget
 {
     Q_OBJECT
@@ -18,6 +14,7 @@ public:
 
     void setActiveTool(const QString &tool);
     void refreshTheme();
+    void retranslateUi();
 
 Q_SIGNALS:
     void toolSelected(const QString &tool);
@@ -27,5 +24,6 @@ private:
     void buildLayout();
 
     QList<IconButton *> m_toolButtons;
-    IconButton *m_settingsBtn { nullptr };
+    QList<QString>      m_toolTips;
+    IconButton         *m_settingsBtn { nullptr };
 };

@@ -4,10 +4,6 @@
 #include <QByteArray>
 #include <QString>
 
-/// Thin wrapper around QSettings for persistent application preferences.
-///
-/// All keys are centralised here to avoid magic strings scattered across
-/// the codebase.
 class AppSettings : public QObject
 {
     Q_OBJECT
@@ -34,14 +30,16 @@ public:
     [[nodiscard]] QString theme() const;
     void setTheme(const QString &name);
 
-    /// Persist all settings to disk immediately.
+    [[nodiscard]] QString language() const;
+    void setLanguage(const QString &lang);
+
     void sync();
 
 private:
-    // Key constants
     static constexpr auto kWindowGeometry = "window/geometry";
     static constexpr auto kWindowState    = "window/state";
     static constexpr auto kLastOpenedFile = "document/lastOpenedFile";
     static constexpr auto kZoomLevel      = "view/zoomLevel";
     static constexpr auto kTheme          = "appearance/theme";
+    static constexpr auto kLanguage       = "appearance/language";
 };
