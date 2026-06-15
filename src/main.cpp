@@ -3,7 +3,10 @@
 
 #include <QApplication>
 #include <QFontDatabase>
+#include <QIcon>
 #include <QLocale>
+#include <QPainter>
+#include <QPixmap>
 #include <QSettings>
 #include <QTranslator>
 #include <cstdlib>
@@ -56,6 +59,31 @@ int main(int argc, char *argv[])
             qapp.installTranslator(&translator);
             break;
         }
+    }
+
+    // ── App icon (blue rounded square + white "O") ────────────────────────
+    {
+        QIcon appIcon;
+        for (const int sz : { 16, 24, 32, 48, 64, 128, 256 }) {
+            QPixmap px(sz, sz);
+            px.fill(Qt::transparent);
+            QPainter p(&px);
+            p.setRenderHint(QPainter::Antialiasing);
+            p.setPen(Qt::NoPen);
+            p.setBrush(QColor(QStringLiteral("#2563EB")));
+            const qreal r = sz * 0.22;
+            p.drawRoundedRect(QRectF(0, 0, sz, sz), r, r);
+            p.setPen(Qt::white);
+            QFont f;
+            f.setBold(true);
+            f.setPixelSize(qRound(sz * 0.56));
+            f.setFamily(QStringLiteral("Inter"));
+            p.setFont(f);
+            p.drawText(QRect(0, 0, sz, sz), Qt::AlignCenter, QStringLiteral("O"));
+            p.end();
+            appIcon.addPixmap(px);
+        }
+        qapp.setWindowIcon(appIcon);
     }
 
     // ── Application controller ────────────────────────────────────────────

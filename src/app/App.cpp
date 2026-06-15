@@ -24,6 +24,8 @@ void App::startup()
     m_mainWindow = std::make_unique<MainWindow>(m_settings.get());
     loadSettings();
     m_mainWindow->show();
+    // Re-apply theme after widgets are visible so refreshTheme() + unpolish/polish take effect
+    m_mainWindow->applyTheme(m_settings->theme());
 }
 
 void App::shutdown()
