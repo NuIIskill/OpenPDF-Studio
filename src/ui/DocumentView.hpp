@@ -9,14 +9,19 @@ class QVBoxLayout;
 class QRubberBand;
 QT_END_NAMESPACE
 
-#ifdef HAVE_QT_PDF
-#include <QPdfDocument>
-#include "engine/view/PdfRenderer.hpp"
-#include "engine/edit/PdfTextExtractor.hpp"
-#include "engine/edit/EditSession.hpp"
-#include "engine/edit/InlineEditor.hpp"
-#include "engine/edit/TextBoxFrame.hpp"
-#include "engine/edit/TextBlock.hpp"
+#ifdef HAVE_PDF_RENDERING
+#  include "engine/view/PdfRenderer.hpp"
+#  ifdef HAVE_QT_PDF
+#    include <QPdfDocument>
+#    include "engine/edit/PdfTextExtractor.hpp"
+#    include "engine/edit/EditSession.hpp"
+#    include "engine/edit/InlineEditor.hpp"
+#    include "engine/edit/TextBoxFrame.hpp"
+#    include "engine/edit/TextBlock.hpp"
+#  elif defined(HAVE_POPPLER)
+#    include <memory>
+#    include <poppler/qt6/poppler-qt6.h>
+#  endif
 #endif
 
 class DocumentView : public QScrollArea
@@ -94,12 +99,16 @@ private:
 
     QUndoStack *m_undoStack { nullptr };
 
-#ifdef HAVE_QT_PDF
+#ifdef HAVE_PDF_RENDERING
+    PdfRenderer *m_renderer { nullptr };
+#  ifdef HAVE_QT_PDF
     QPdfDocument      *m_document    { nullptr };
-    PdfRenderer       *m_renderer    { nullptr };
     PdfTextExtractor  *m_extractor   { nullptr };
     EditSession       *m_session     { nullptr };
     InlineEditor      *m_editor      { nullptr };
     TextBoxFrame      *m_editorFrame { nullptr };
+#  elif defined(HAVE_POPPLER)
+    std::unique_ptr<Poppler::Document> m_popplerDoc;
+#  endif
 #endif
 };

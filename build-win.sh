@@ -59,7 +59,12 @@ if [[ -d "$QT_BIN" ]]; then
     done
 
     # Qt6 core DLLs
-    for dll in Qt6Core.dll Qt6Gui.dll Qt6Widgets.dll Qt6PrintSupport.dll Qt6Svg.dll Qt6SvgWidgets.dll; do
+    for dll in Qt6Core.dll Qt6Gui.dll Qt6Widgets.dll Qt6PrintSupport.dll Qt6Svg.dll Qt6SvgWidgets.dll Qt6Pdf.dll; do
+        [[ -f "${QT_BIN}/${dll}" ]] && cp -u "${QT_BIN}/${dll}" "${BUILD_DIR}/"
+    done
+
+    # Poppler PDF backend (used when Qt6Pdf is unavailable)
+    for dll in libpoppler-qt6-3.dll libpoppler-156.dll liblcms2-2.dll libjpeg-62.dll; do
         [[ -f "${QT_BIN}/${dll}" ]] && cp -u "${QT_BIN}/${dll}" "${BUILD_DIR}/"
     done
 

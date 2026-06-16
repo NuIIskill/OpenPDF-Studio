@@ -40,6 +40,7 @@ DocumentView::DocumentView(QWidget *parent)
     setWidget(m_canvas);
     viewport()->installEventFilter(this);
     m_rubberBand = new QRubberBand(QRubberBand::Rectangle, viewport());
+    retranslateUi();
 
 #ifdef HAVE_QT_PDF
     m_document  = new QPdfDocument(this);
@@ -54,6 +55,7 @@ DocumentView::DocumentView(QWidget *parent)
 
     m_editorFrame = new TextBoxFrame(m_canvas);
 #endif
+    // HAVE_POPPLER: m_renderer and m_popplerDoc are created per-file in openFile()
 }
 
 DocumentView::~DocumentView()
@@ -62,6 +64,9 @@ DocumentView::~DocumentView()
     delete m_renderer;
     delete m_extractor;
     delete m_session;
+#elif defined(HAVE_POPPLER)
+    delete m_renderer;
+    // m_popplerDoc (unique_ptr) cleaned up automatically
 #endif
 }
 
@@ -73,6 +78,10 @@ void DocumentView::clearDocument()
 #ifdef HAVE_QT_PDF
     m_session->clear();
     m_document->close();
+#elif defined(HAVE_POPPLER)
+    delete m_renderer;
+    m_renderer = nullptr;
+    m_popplerDoc.reset();
 #endif
     m_filePath.clear();
     m_pageCount = 0;
@@ -97,15 +106,35 @@ bool DocumentView::openFile(const QString &path)
     if (err != QPdfDocument::Error::None) return false;
     m_filePath  = path;
     m_pageCount = m_document->pageCount();
-#else
-    m_filePath  = path;
-    m_pageCount = 1;
-#endif
-
     buildPages();
     Q_EMIT fileOpened(m_filePath, m_pageCount);
     Q_EMIT pageChanged(1, m_pageCount);
     return true;
+
+#elif defined(HAVE_POPPLER)
+    auto doc = Poppler::Document::load(path);
+    if (!doc || doc->isLocked()) return false;
+    doc->setRenderHint(Poppler::Document::Antialiasing);
+    doc->setRenderHint(Poppler::Document::TextAntialiasing);
+    delete m_renderer;
+    m_popplerDoc = std::move(doc);
+    m_renderer   = new PdfRenderer(m_popplerDoc.get());
+    m_filePath   = path;
+    m_pageCount  = m_popplerDoc->numPages();
+    buildPages();
+    Q_EMIT fileOpened(m_filePath, m_pageCount);
+    Q_EMIT pageChanged(1, m_pageCount);
+    return true;
+
+#else
+    m_filePath  = path;
+    m_pageCount = 1;
+    m_dropHint->show();
+    retranslateUi();
+    Q_EMIT fileOpened(m_filePath, m_pageCount);
+    Q_EMIT pageChanged(1, m_pageCount);
+    return true;
+#endif
 }
 
 // ── Zoom / Tool / Edit mode ───────────────────────────────────────────────────
@@ -158,7 +187,7 @@ bool DocumentView::hasUnsavedEdits() const
 
 bool DocumentView::pdfRenderingAvailable() const
 {
-#ifdef HAVE_QT_PDF
+#ifdef HAVE_PDF_RENDERING
     return true;
 #else
     return false;
@@ -167,7 +196,7 @@ bool DocumentView::pdfRenderingAvailable() const
 
 void DocumentView::retranslateUi()
 {
-#ifdef HAVE_QT_PDF
+#ifdef HAVE_PDF_RENDERING
     m_dropHint->setText(tr("Drop a PDF here or click a tab to open"));
 #else
     m_dropHint->setText(tr(
@@ -214,28 +243,37 @@ void DocumentView::buildPages()
 
 void DocumentView::rerenderAll()
 {
-#ifdef HAVE_QT_PDF
+#ifdef HAVE_PDF_RENDERING
+    if (!m_renderer) return;
+    const qreal dpr   = devicePixelRatioF();
+    const qreal scale = PdfRenderer::screenScale(m_zoom);
     for (int i = 0; i < m_pageLabels.size(); ++i) {
         const QSize sz = m_renderer->pageDisplaySize(i, m_zoom);
         m_pageLabels[i]->setFixedSize(sz);
-        const qreal scale = PdfRenderer::screenScale(m_zoom);
-        QImage img = m_renderer->renderPage(i, scale);
-        m_session->applyToImage(i, img, scale);
+        QImage img = m_renderer->renderPage(i, scale * dpr);
+        img.setDevicePixelRatio(dpr);
+#ifdef HAVE_QT_PDF
+        m_session->applyToImage(i, img, scale * dpr);
+#endif
         if (!img.isNull())
-            m_pageLabels[i]->setPixmap(QPixmap::fromImage(img));
+            m_pageLabels[i]->setPixmap(QPixmap::fromImage(std::move(img)));
     }
 #endif
 }
 
 void DocumentView::rerenderPage(int page)
 {
-#ifdef HAVE_QT_PDF
-    if (page < 0 || page >= m_pageLabels.size()) return;
+#ifdef HAVE_PDF_RENDERING
+    if (!m_renderer || page < 0 || page >= m_pageLabels.size()) return;
+    const qreal dpr   = devicePixelRatioF();
     const qreal scale = PdfRenderer::screenScale(m_zoom);
-    QImage img = m_renderer->renderPage(page, scale);
-    m_session->applyToImage(page, img, scale);
+    QImage img = m_renderer->renderPage(page, scale * dpr);
+    img.setDevicePixelRatio(dpr);
+#ifdef HAVE_QT_PDF
+    m_session->applyToImage(page, img, scale * dpr);
+#endif
     if (!img.isNull())
-        m_pageLabels[page]->setPixmap(QPixmap::fromImage(img));
+        m_pageLabels[page]->setPixmap(QPixmap::fromImage(std::move(img)));
 #endif
 }
 
