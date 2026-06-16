@@ -38,5 +38,6 @@
         <file>icons/info.svg</file>
         <file>icons/play-circle.svg</file>
         <file>icons/sliders.svg</file>
+        <file>icons/folder-open.svg</file>
     </qresource>
 </RCC>

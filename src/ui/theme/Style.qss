@@ -297,28 +297,80 @@ QPushButton:disabled { background-color: #E5E7EB; color: #9CA3AF; }
 QScrollArea > QWidget > QWidget { background: transparent; }
 
 /* ── SettingsPanel ───────────────────────────────────────── */
-#SettingsPanel {
-    background-color: #FFFFFF;
-    border: 1px solid #E5E7EB;
-    border-radius: 12px;
+QDialog#SettingsPanel {
+    background: #FFFFFF;
 }
-#SettingsPanelTitle {
-    color: #111827;
-    font-size: 13px;
-    font-weight: 700;
+
+QWidget#SettingsSidebar {
+    background: #F9FAFB;
+    border-right: 1px solid #E5E7EB;
 }
-#ThemeOptionBtn {
-    background: transparent;
+
+QStackedWidget#SettingsPages,
+QScrollArea#SettingsScroll,
+QWidget#SettingsScrollContent,
+QWidget#SettingsAboutPage {
+    background: #FFFFFF;
     border: none;
-    border-radius: 8px;
-    color: #374151;
+}
+
+/* Override the global "transparent" scroll viewport rule */
+QScrollArea#SettingsScroll > QWidget > QWidget {
+    background: #FFFFFF;
+}
+
+QLabel#SettingsSectionTitle {
+    font-size: 14px;
+    font-weight: 700;
+    color: #111827;
+}
+
+QLabel#SettingsSectionDesc {
+    font-size: 12px;
+    color: #6B7280;
+}
+
+QFrame#SettingsSeparator {
+    color: #E5E7EB;
+    background: #E5E7EB;
+    border: none;
+    max-height: 1px;
+}
+
+QComboBox#SettingsLangCombo {
+    background: #FFFFFF;
+    border: 1px solid #E5E7EB;
+    border-radius: 6px;
+    padding: 6px 10px;
     font-size: 13px;
-    text-align: left;
-    padding: 8px 12px;
+    color: #111827;
 }
-#ThemeOptionBtn:hover { background: #F3F4F6; }
-#ThemeOptionBtn:checked {
-    background: #EFF6FF;
-    color: #2563EB;
-    font-weight: 600;
+QComboBox#SettingsLangCombo::drop-down { border: none; width: 20px; }
+QComboBox#SettingsLangCombo QAbstractItemView {
+    background: #FFFFFF;
+    border: 1px solid #E5E7EB;
+    color: #111827;
 }
+
+QPushButton#SettingsSaveBtn {
+    background: #2563EB;
+    color: white;
+    border: none;
+}
+QPushButton#SettingsSaveBtn:hover { background: #1D4ED8; }
+
+QPushButton#SettingsResetBtn {
+    background: transparent;
+    color: #374151;
+    border: 1px solid #E5E7EB;
+    border-radius: 8px;
+}
+QPushButton#SettingsResetBtn:hover { background: #F3F4F6; }
+
+QPushButton#SettingsCancelBtn {
+    background: white;
+    color: #374151;
+    border: 1px solid #E5E7EB;
+    border-radius: 8px;
+}
+QPushButton#SettingsCancelBtn:hover { background: #F3F4F6; }

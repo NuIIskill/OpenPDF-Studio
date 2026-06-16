@@ -1,10 +1,15 @@
 #pragma once
 
 #include <QDialog>
+#include <QList>
 
 QT_BEGIN_NAMESPACE
 class QStackedWidget;
+class QScrollArea;
 class QComboBox;
+class QPushButton;
+class QLabel;
+class QVBoxLayout;
 QT_END_NAMESPACE
 
 class AppSettings;
@@ -27,24 +32,63 @@ protected:
 
 private:
     void buildUi();
-    QWidget *buildNavItem(const QString &iconName, const QString &label, int pageIndex);
-    QWidget *buildGeneralPage();
-    QWidget *buildPlaceholderPage(const QString &title);
-    QWidget *buildAboutPage();
-    QWidget *buildThemeCard(const QString &icon, const QString &title,
-                            const QString &desc, const QString &id);
-    void     selectThemeCard(const QString &id);
-    void     applyAndClose();
+    void buildNav(QWidget *parent, QVBoxLayout *layout);
 
-    AppSettings    *m_settings    { nullptr };
-    QStackedWidget *m_pages       { nullptr };
-    QComboBox      *m_langCombo   { nullptr };
+    // navIndex: which sidebar item to highlight
+    // anchorIndex: -1=About page, 0=top, 1=Language, 2=Media, 3=Advanced
+    void selectPage(int navIndex, int anchorIndex, bool scrollToAnchor = false);
+    void applyNavItemStyle(int i, bool selected);
+    void refreshThemeColors();
+
+    // Section builders
+    void buildSection_Appearance(QWidget *parent, QVBoxLayout *layout);
+    void buildSection_Language(QWidget *parent, QVBoxLayout *layout);
+    void buildSection_MediaPlayback(QWidget *parent, QVBoxLayout *layout);
+    void buildSection_Advanced(QWidget *parent, QVBoxLayout *layout);
+    QWidget *buildAboutPage();
+
+    // Helpers
+    QLabel *makeSectionTitle(QWidget *parent, QVBoxLayout *layout, const QString &text);
+    void    makeSectionDesc(QWidget *parent, QVBoxLayout *layout, const QString &text);
+    void    makeSeparator(QWidget *parent, QVBoxLayout *layout);
+
+    QWidget *buildOptionCard(const QString &icon, const QString &title,
+                             const QString &desc,  const QString &id,
+                             QList<QWidget*> &group, QList<QString> &ids,
+                             bool isThemeGroup);
+    void selectCardGroup(const QString &id,
+                         QList<QWidget*> &cards, QList<QString> &ids);
+
+    void applyAndClose();
+
+    AppSettings    *m_settings      { nullptr };
+    QStackedWidget *m_pages         { nullptr };
+    QScrollArea    *m_generalScroll { nullptr };
+    QComboBox      *m_langCombo     { nullptr };
+
+    // Scroll-to anchors
+    QLabel *m_langAnchor  { nullptr };
+    QLabel *m_mediaAnchor { nullptr };
+    QLabel *m_advAnchor   { nullptr };
+
+    struct NavItem {
+        QPushButton *btn;
+        QLabel      *iconLabel;
+        QLabel      *textLabel;
+        QString      iconName;
+        int          anchorIndex; // scroll target (-1 = About page)
+    };
+    QList<NavItem> m_navItems;
+    int m_currentNav { 0 };
+
+    QList<QWidget *> m_themeCards;
+    QList<QString>   m_themeIds;
+
+    QList<QWidget *> m_mediaCards;
+    QList<QString>   m_mediaIds;
 
     QString m_pendingTheme;
     QString m_pendingLang;
     QString m_originalTheme;
     QString m_originalLang;
-
-    QList<QWidget *> m_themeCards;
-    QList<QString>   m_themeIds;
 };

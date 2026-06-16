@@ -7,6 +7,7 @@ QT_BEGIN_NAMESPACE
 class QHBoxLayout;
 class QLabel;
 class QPushButton;
+class QScrollArea;
 QT_END_NAMESPACE
 
 class IconButton;
@@ -44,11 +45,16 @@ Q_SIGNALS:
     void printRequested();
 
 private:
-    void buildLayout();
+    void     buildLayout();
     QWidget *makeSeparator();
+    void     syncTabBarWidth();
+    void     scrollToTab(int index);
 
+    QScrollArea *m_tabScroll { nullptr };
     QWidget     *m_tabBar    { nullptr };
     QHBoxLayout *m_tabLayout { nullptr };
+    IconButton  *m_newTabBtn { nullptr };
+
     QList<QPushButton*> m_tabBtns;
     QList<QLabel*>      m_tabLabels;
     QList<bool>         m_tabEmpty;

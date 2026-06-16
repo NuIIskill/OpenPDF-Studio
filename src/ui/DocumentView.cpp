@@ -56,6 +56,32 @@ DocumentView::~DocumentView() = default;
 
 // ── File loading ──────────────────────────────────────────────────────────────
 
+void DocumentView::clearDocument()
+{
+#ifdef HAVE_QT_PDF
+    m_document->close();
+#endif
+    m_filePath.clear();
+    m_pageCount = 0;
+
+    m_undoStack->clear();
+
+    // Delete annotation widgets
+    const auto children = m_canvas->findChildren<QWidget *>(QString(), Qt::FindDirectChildrenOnly);
+    for (QWidget *w : children) {
+        if (w == m_dropHint) continue;
+        if (m_pageLabels.contains(qobject_cast<QLabel *>(w))) continue;
+        delete w;
+    }
+
+    for (QLabel *lbl : m_pageLabels) {
+        m_layout->removeWidget(lbl);
+        delete lbl;
+    }
+    m_pageLabels.clear();
+    m_dropHint->show();
+}
+
 bool DocumentView::openFile(const QString &path)
 {
     if (path.isEmpty()) return false;

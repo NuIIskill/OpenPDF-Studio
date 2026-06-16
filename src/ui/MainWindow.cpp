@@ -161,7 +161,13 @@ void MainWindow::onTabActivated(int index)
 
 void MainWindow::onTabCloseRequested(int index)
 {
-    if (m_docViews.size() <= 1) return; // keep at least one tab
+    if (m_docViews.size() <= 1) {
+        // Last tab: reset to empty state instead of closing
+        m_docViews[0]->clearDocument();
+        m_topToolbar->setTabLabel(0, {});
+        m_statusBar->setPageInfo(1, 1);
+        return;
+    }
 
     DocumentView *dv = m_docViews.takeAt(index);
     m_docStack->removeWidget(dv);

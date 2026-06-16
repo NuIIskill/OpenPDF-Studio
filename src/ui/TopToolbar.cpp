@@ -6,6 +6,8 @@
 #include <QLabel>
 #include <QFrame>
 #include <QPushButton>
+#include <QScrollArea>
+#include <QScrollBar>
 
 TopToolbar::TopToolbar(QWidget *parent)
     : QWidget(parent)
@@ -55,16 +57,17 @@ void TopToolbar::retranslateUi()
                 qMax(100, m_tabBtns[i]->fontMetrics().horizontalAdvance(text) + 46));
         }
     }
+    syncTabBarWidth();
 }
 
 // ── Tab management ────────────────────────────────────────────────────────────
 
 int TopToolbar::addTab(const QString &label)
 {
-    const int idx   = m_tabBtns.size();
+    const int idx    = m_tabBtns.size();
     const bool empty = label.isEmpty();
 
-    auto *btn = new QPushButton(this);
+    auto *btn = new QPushButton(m_tabBar);
     btn->setObjectName(QStringLiteral("DocTab"));
     btn->setFixedHeight(34);
     btn->setFocusPolicy(Qt::NoFocus);
@@ -89,10 +92,8 @@ int TopToolbar::addTab(const QString &label)
     closeBtn->setFocusPolicy(Qt::NoFocus);
     inner->addWidget(closeBtn);
 
-    // Width based on text content
     btn->setFixedWidth(qMax(100, btn->fontMetrics().horizontalAdvance(tabText) + 46));
 
-    // Tab click → activate or open file
     connect(btn, &QPushButton::clicked, this, [this, btn]() {
         for (int i = 0; i < m_tabBtns.size(); ++i) {
             if (m_tabBtns[i] == btn) {
@@ -103,7 +104,6 @@ int TopToolbar::addTab(const QString &label)
         }
     });
 
-    // X click → close
     connect(closeBtn, &QPushButton::clicked, this, [this, closeBtn](bool) {
         for (int i = 0; i < m_tabBtns.size(); ++i) {
             if (m_tabBtns[i]->layout()->indexOf(closeBtn) >= 0) {
@@ -117,10 +117,12 @@ int TopToolbar::addTab(const QString &label)
     m_tabLabels.append(lbl);
     m_tabEmpty.append(empty);
 
-    // Insert before "+" button — keeps "+" to the right
+    // Insert BEFORE "+" — keeps "+" to the right of all tabs
     m_tabLayout->insertWidget(m_tabBtns.size() - 1, btn);
 
+    syncTabBarWidth();
     setCurrentTab(idx);
+    scrollToTab(idx);
     return idx;
 }
 
@@ -133,10 +135,15 @@ void TopToolbar::removeTab(int index)
     m_tabLayout->removeWidget(btn);
     btn->deleteLater();
 
-    if (!m_tabBtns.isEmpty())
-        setCurrentTab(qMin(index, m_tabBtns.size() - 1));
-    else
+    syncTabBarWidth();
+
+    if (!m_tabBtns.isEmpty()) {
+        const int next = qMin(index, m_tabBtns.size() - 1);
+        setCurrentTab(next);
+        scrollToTab(next);
+    } else {
         m_currentTab = -1;
+    }
 }
 
 void TopToolbar::setTabLabel(int index, const QString &label)
@@ -148,6 +155,7 @@ void TopToolbar::setTabLabel(int index, const QString &label)
     m_tabLabels[index]->setText(text);
     m_tabBtns[index]->setFixedWidth(
         qMax(100, m_tabBtns[index]->fontMetrics().horizontalAdvance(text) + 46));
+    syncTabBarWidth();
 }
 
 void TopToolbar::setCurrentTab(int index)
@@ -156,6 +164,30 @@ void TopToolbar::setCurrentTab(int index)
     m_currentTab = index;
     for (int i = 0; i < m_tabBtns.size(); ++i)
         m_tabBtns[i]->setChecked(i == index);
+}
+
+// ── Private helpers ───────────────────────────────────────────────────────────
+
+void TopToolbar::syncTabBarWidth()
+{
+    int total = 2;
+    for (auto *btn : m_tabBtns)
+        total += btn->width() + m_tabLayout->spacing();
+    total += 32 + 4; // "+" button + margin
+    m_tabBar->setFixedWidth(qMax(total, 2));
+}
+
+void TopToolbar::scrollToTab(int index)
+{
+    if (!m_tabScroll || index < 0 || index >= m_tabBtns.size()) return;
+    QScrollBar *hbar = m_tabScroll->horizontalScrollBar();
+    const int btnX = m_tabBtns[index]->x();
+    const int btnW = m_tabBtns[index]->width();
+    const int vpW  = m_tabScroll->viewport()->width();
+    if (btnX < hbar->value())
+        hbar->setValue(btnX);
+    else if (btnX + btnW > hbar->value() + vpW)
+        hbar->setValue(btnX + btnW - vpW);
 }
 
 // ── Layout ────────────────────────────────────────────────────────────────────
@@ -182,25 +214,39 @@ void TopToolbar::buildLayout()
     layout->addWidget(makeSeparator());
     layout->addSpacing(8);
 
-    // Tab bar
-    m_tabBar = new QWidget(this);
-    m_tabBar->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Preferred);
+    // ── Scrollable tab area ────────────────────────────────────────────────
+    m_tabScroll = new QScrollArea(this);
+    m_tabScroll->setHorizontalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
+    m_tabScroll->setVerticalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
+    m_tabScroll->setFrameShape(QFrame::NoFrame);
+    m_tabScroll->setFixedHeight(42);
+    m_tabScroll->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Fixed);
+    m_tabScroll->setAlignment(Qt::AlignLeft | Qt::AlignVCenter);
+    m_tabScroll->setStyleSheet(QStringLiteral("background:transparent;"));
+
+    m_tabBar = new QWidget;
+    m_tabBar->setObjectName(QStringLiteral("TabBarInner"));
+    m_tabBar->setAttribute(Qt::WA_StyledBackground, false);
+
     m_tabLayout = new QHBoxLayout(m_tabBar);
-    m_tabLayout->setContentsMargins(0, 0, 0, 0);
+    m_tabLayout->setContentsMargins(0, 4, 0, 4);
     m_tabLayout->setSpacing(2);
 
-    // "+" button always rightmost
-    auto *newTabBtn = new IconButton(m_tabBar);
-    newTabBtn->setObjectName(QStringLiteral("NewTabBtn"));
-    newTabBtn->setIconName(QStringLiteral("plus"), QColor("#9CA3AF"));
-    newTabBtn->setFixedSize(28, 28);
-    newTabBtn->setIconSize(QSize(16, 16));
-    newTabBtn->setFocusPolicy(Qt::NoFocus);
-    connect(newTabBtn, &QPushButton::clicked, this, &TopToolbar::newTabRequested);
-    m_tabLayout->addWidget(newTabBtn);
-    m_tabLayout->addStretch(1);
+    // "+" button – stays as the first/only item initially; tabs insert before it
+    m_newTabBtn = new IconButton(m_tabBar);
+    m_newTabBtn->setObjectName(QStringLiteral("NewTabBtn"));
+    m_newTabBtn->setIconName(QStringLiteral("plus"), QColor("#9CA3AF"));
+    m_newTabBtn->setFixedSize(28, 28);
+    m_newTabBtn->setIconSize(QSize(16, 16));
+    m_newTabBtn->setFocusPolicy(Qt::NoFocus);
+    connect(m_newTabBtn, &QPushButton::clicked, this, &TopToolbar::newTabRequested);
+    m_tabLayout->addWidget(m_newTabBtn);
 
-    layout->addWidget(m_tabBar, 1);
+    m_tabBar->setFixedHeight(38);
+    m_tabBar->setFixedWidth(60);
+    m_tabScroll->setWidget(m_tabBar);
+
+    layout->addWidget(m_tabScroll, 1);
 
     layout->addSpacing(4);
     layout->addWidget(makeSeparator());
@@ -277,8 +323,7 @@ void TopToolbar::buildLayout()
     m_viewGridBtn->setCheckable(true);
     layout->addWidget(m_viewGridBtn);
 
-    // Initial empty tab
-    addTab();
+    // Tabs are added by MainWindow after construction
 }
 
 QWidget *TopToolbar::makeSeparator()

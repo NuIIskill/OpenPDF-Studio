@@ -118,22 +118,23 @@ void apply(const QString &mode)
 
     QPalette p;
     if (isDark) {
-        p.setColor(QPalette::Window,          QColor(0x28, 0x28, 0x28));
-        p.setColor(QPalette::WindowText,      QColor(0xD0, 0xD0, 0xD0));
-        p.setColor(QPalette::Base,            QColor(0x1A, 0x1A, 0x1A));
-        p.setColor(QPalette::AlternateBase,   QColor(0x33, 0x33, 0x33));
-        p.setColor(QPalette::Text,            QColor(0xD0, 0xD0, 0xD0));
+        // Base: #353535 panels, #2B2B2B canvas
+        p.setColor(QPalette::Window,          QColor(0x35, 0x35, 0x35));
+        p.setColor(QPalette::WindowText,      QColor(0xD8, 0xD8, 0xD8));
+        p.setColor(QPalette::Base,            QColor(0x2B, 0x2B, 0x2B));
+        p.setColor(QPalette::AlternateBase,   QColor(0x3E, 0x3E, 0x3E));
+        p.setColor(QPalette::Text,            QColor(0xD8, 0xD8, 0xD8));
         p.setColor(QPalette::BrightText,      QColor(0xF0, 0xF0, 0xF0));
-        p.setColor(QPalette::Button,          QColor(0x28, 0x28, 0x28));
-        p.setColor(QPalette::ButtonText,      QColor(0xD0, 0xD0, 0xD0));
-        p.setColor(QPalette::Highlight,       QColor(0x50, 0x50, 0x50));
-        p.setColor(QPalette::HighlightedText, QColor(0xF0, 0xF0, 0xF0));
-        p.setColor(QPalette::Mid,             QColor(0x38, 0x38, 0x38));
-        p.setColor(QPalette::Dark,            QColor(0x44, 0x44, 0x44));
-        p.setColor(QPalette::Shadow,          QColor(0x10, 0x10, 0x10));
-        p.setColor(QPalette::ToolTipBase,     QColor(0x33, 0x33, 0x33));
-        p.setColor(QPalette::ToolTipText,     QColor(0xD0, 0xD0, 0xD0));
-        p.setColor(QPalette::PlaceholderText, QColor(0x66, 0x66, 0x66));
+        p.setColor(QPalette::Button,          QColor(0x35, 0x35, 0x35));
+        p.setColor(QPalette::ButtonText,      QColor(0xD8, 0xD8, 0xD8));
+        p.setColor(QPalette::Highlight,       QColor(0x25, 0x63, 0xEB));
+        p.setColor(QPalette::HighlightedText, QColor(0xFF, 0xFF, 0xFF));
+        p.setColor(QPalette::Mid,             QColor(0x48, 0x48, 0x48));
+        p.setColor(QPalette::Dark,            QColor(0x55, 0x55, 0x55));
+        p.setColor(QPalette::Shadow,          QColor(0x1A, 0x1A, 0x1A));
+        p.setColor(QPalette::ToolTipBase,     QColor(0x3E, 0x3E, 0x3E));
+        p.setColor(QPalette::ToolTipText,     QColor(0xD8, 0xD8, 0xD8));
+        p.setColor(QPalette::PlaceholderText, QColor(0x77, 0x77, 0x77));
     } else {
         p.setColor(QPalette::Window,          QColor(0xF3, 0xF4, 0xF6));
         p.setColor(QPalette::WindowText,      QColor(0x11, 0x18, 0x27));

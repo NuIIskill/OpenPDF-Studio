@@ -24,6 +24,7 @@ public:
     ~DocumentView() override;
 
     bool   openFile(const QString &path);
+    void   clearDocument();
     void   setZoom(int percent);
     void   setTool(Tool tool);
     void   retranslateUi();
