@@ -241,17 +241,17 @@
     <context>
         <name>RightSidebar</name>
         <message>
-            <location filename="../../src/ui/RightSidebar.cpp" line="42" />
+            <location filename="../../src/ui/RightSidebar.cpp" line="43" />
             <source>Edit</source>
             <translation>Редактировать</translation>
         </message>
         <message>
-            <location filename="../../src/ui/RightSidebar.cpp" line="43" />
+            <location filename="../../src/ui/RightSidebar.cpp" line="44" />
             <source>Export</source>
             <translation>Экспорт</translation>
         </message>
         <message>
-            <location filename="../../src/ui/RightSidebar.cpp" line="44" />
+            <location filename="../../src/ui/RightSidebar.cpp" line="45" />
             <source>Organize</source>
             <translation>Организовать</translation>
         </message>

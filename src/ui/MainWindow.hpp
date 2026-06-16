@@ -70,4 +70,5 @@ private:
     QTranslator m_translator;
     int         m_zoom         { 100 };
     QString     m_activeTool   { QStringLiteral("select") };
+    bool        m_editMode     { false };
 };

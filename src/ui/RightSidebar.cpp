@@ -2,6 +2,7 @@
 #include "ui/theme/Theme.hpp"
 
 #include <QLabel>
+#include <QStyle>
 #include <QVBoxLayout>
 #include <QPushButton>
 
@@ -39,9 +40,9 @@ void RightSidebar::buildLayout()
 
     struct ModeItem { const char *icon; const char *label; const char *id; bool sel; };
     const ModeItem modes[] = {
-        { "pencil", QT_TR_NOOP("Edit"),     "edit",     true  },
-        { "upload", QT_TR_NOOP("Export"),   "export",   false },
-        { "layers", QT_TR_NOOP("Organize"), "organize", false },
+        { "pencil",  QT_TR_NOOP("Edit"),     "edit",     false },
+        { "upload",  QT_TR_NOOP("Export"),   "export",   false },
+        { "layers",  QT_TR_NOOP("Organize"), "organize", false },
     };
 
     for (const auto &m : modes) {
@@ -85,11 +86,45 @@ QWidget *RightSidebar::makeModeButton(const QString &iconName, const QString &la
     textLabel->setAlignment(Qt::AlignCenter);
     inner->addWidget(textLabel);
 
-    m_modes.append({ iconName, iconLabel, textLabel, label, selected });
+    m_modes.append({ iconName, iconLabel, textLabel, btn, label, selected });
 
-    connect(btn, &QPushButton::clicked, this, [this, id]() {
+    const bool isEdit = (id == QLatin1String("edit"));
+    connect(btn, &QPushButton::clicked, this, [this, id, isEdit]() {
+        if (isEdit) {
+            // Toggle: flip current selection state
+            const bool nowOn = !m_modes[0].selected;
+            applyModeStyle(0, nowOn);
+        }
         Q_EMIT modeSelected(id);
     });
 
     return btn;
+}
+
+void RightSidebar::applyModeStyle(int i, bool selected)
+{
+    auto &m = m_modes[i];
+    m.selected = selected;
+
+    m.btn->setObjectName(selected ? QStringLiteral("ModeButtonSelected")
+                                  : QStringLiteral("ModeButton"));
+    m.btn->style()->unpolish(m.btn);
+    m.btn->style()->polish(m.btn);
+
+    m.textLabel->setObjectName(selected ? QStringLiteral("ModeLabelSelected")
+                                        : QStringLiteral("ModeLabel"));
+    m.textLabel->style()->unpolish(m.textLabel);
+    m.textLabel->style()->polish(m.textLabel);
+
+    const QColor iconColor = selected ? Theme::IconChecked : Theme::IconNormal;
+    const QPixmap px = Theme::renderSvg(m.iconName, iconColor, 22);
+    if (!px.isNull())
+        m.iconLabel->setPixmap(px);
+}
+
+void RightSidebar::setMode(const QString &id)
+{
+    // Only Edit (index 0) has a persistent toggle state.
+    // "edit" = activate, anything else (e.g. "") = deactivate.
+    applyModeStyle(0, id == QLatin1String("edit"));
 }

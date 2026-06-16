@@ -26,6 +26,17 @@ set(SOURCES
     src/app/AppSettings.cpp
     src/app/AppSettings.hpp
 
+    src/engine/view/PdfRenderer.cpp
+    src/engine/view/PdfRenderer.hpp
+
+    src/engine/edit/TextBlock.hpp
+    src/engine/edit/PdfTextExtractor.cpp
+    src/engine/edit/PdfTextExtractor.hpp
+    src/engine/edit/InlineEditor.cpp
+    src/engine/edit/InlineEditor.hpp
+    src/engine/edit/EditSession.cpp
+    src/engine/edit/EditSession.hpp
+
     src/ui/MainWindow.cpp
     src/ui/MainWindow.hpp
     src/ui/DocumentView.cpp

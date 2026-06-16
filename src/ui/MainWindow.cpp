@@ -74,7 +74,6 @@ void MainWindow::buildUi()
     m_statusBar = new StatusBar(central);
     root->addWidget(m_statusBar);
 
-    // Create first tab
     addDocView();
 }
 
@@ -204,8 +203,9 @@ void MainWindow::onSave()
 
     const QString path = QFileDialog::getSaveFileName(
         this, tr("Save PDF As"), dv->currentFile(), tr("PDF files (*.pdf)"));
-    Q_UNUSED(path)
-    // Full PDF save (flatten annotations) is a future enhancement
+    if (path.isEmpty()) return;
+
+    dv->saveToFile(path);
 }
 
 void MainWindow::onPrint()
@@ -251,7 +251,12 @@ void MainWindow::onZoomOut()
 
 void MainWindow::onModeSelected(const QString &mode)
 {
-    if (mode == QLatin1String("organize")) {
+    if (mode == QLatin1String("edit")) {
+        m_editMode = !m_editMode;
+        m_rightSidebar->setMode(m_editMode ? QStringLiteral("edit") : QString{});
+        for (DocumentView *dv : m_docViews)
+            dv->setEditMode(m_editMode);
+    } else if (mode == QLatin1String("organize")) {
         DocumentView *dv = currentDocView();
         const QString file = dv ? dv->currentFile() : QString{};
         auto *dlg = new PdfOrganizerDialog(file, this);
@@ -270,12 +275,6 @@ void MainWindow::onToolSelected(const QString &tool)
         dv->setTool(DocumentView::Tool::Select);
     else if (tool == QLatin1String("pan"))
         dv->setTool(DocumentView::Tool::Pan);
-    else if (tool == QLatin1String("text"))
-        dv->setTool(DocumentView::Tool::Text);
-    else if (tool == QLatin1String("comment"))
-        dv->setTool(DocumentView::Tool::Comment);
-    else if (tool == QLatin1String("image"))
-        dv->setTool(DocumentView::Tool::Image);
 }
 
 // ── Theme / Language ──────────────────────────────────────────────────────────

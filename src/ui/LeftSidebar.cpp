@@ -83,3 +83,8 @@ void LeftSidebar::setActiveTool(const QString &tool)
     for (int i = 0; i < ids.size() && i < m_toolButtons.size(); ++i)
         m_toolButtons[i]->setChecked(ids[i] == tool);
 }
+
+void LeftSidebar::setEditMode(bool)
+{
+    // Tools are always enabled regardless of mode.
+}

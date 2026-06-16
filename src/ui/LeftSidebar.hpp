@@ -13,6 +13,7 @@ public:
     explicit LeftSidebar(QWidget *parent = nullptr);
 
     void setActiveTool(const QString &tool);
+    void setEditMode(bool on);
     void refreshTheme();
     void retranslateUi();
 
