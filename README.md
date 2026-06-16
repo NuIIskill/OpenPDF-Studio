@@ -1,6 +1,6 @@
 # OpenPDF Studio
 
-OpenPDF Studio is a free and open-source PDF editor for Linux.
+OpenPDF Studio is a free and open-source PDF editor for Linux and Windows.
 
 The goal of the project is to provide a modern, easy-to-use PDF suite for everyday work: viewing, editing, organizing, annotating and exporting PDF files in one application.
 
