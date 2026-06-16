@@ -1,16 +1,16 @@
 <RCC>
     <qresource prefix="/i18n">
-        <file>i18n/openpdf_de.qm</file>
-        <file>i18n/openpdf_fr.qm</file>
-        <file>i18n/openpdf_es.qm</file>
-        <file>i18n/openpdf_it.qm</file>
-        <file>i18n/openpdf_pt.qm</file>
-        <file>i18n/openpdf_nl.qm</file>
-        <file>i18n/openpdf_pl.qm</file>
-        <file>i18n/openpdf_ru.qm</file>
-        <file>i18n/openpdf_zh.qm</file>
-        <file>i18n/openpdf_ja.qm</file>
-        <file>i18n/openpdf_ko.qm</file>
+        <file alias="openpdf_de.qm">i18n/openpdf_de.qm</file>
+        <file alias="openpdf_fr.qm">i18n/openpdf_fr.qm</file>
+        <file alias="openpdf_es.qm">i18n/openpdf_es.qm</file>
+        <file alias="openpdf_it.qm">i18n/openpdf_it.qm</file>
+        <file alias="openpdf_pt.qm">i18n/openpdf_pt.qm</file>
+        <file alias="openpdf_nl.qm">i18n/openpdf_nl.qm</file>
+        <file alias="openpdf_pl.qm">i18n/openpdf_pl.qm</file>
+        <file alias="openpdf_ru.qm">i18n/openpdf_ru.qm</file>
+        <file alias="openpdf_zh.qm">i18n/openpdf_zh.qm</file>
+        <file alias="openpdf_ja.qm">i18n/openpdf_ja.qm</file>
+        <file alias="openpdf_ko.qm">i18n/openpdf_ko.qm</file>
     </qresource>
     <qresource prefix="/theme">
         <file alias="Style.qss">../src/ui/theme/Style.qss</file>

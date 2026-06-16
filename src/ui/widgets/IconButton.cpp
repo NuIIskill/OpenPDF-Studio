@@ -42,6 +42,15 @@ void IconButton::setIconName(const QString &name, const QColor &normalColor)
 void IconButton::setToggle(bool on)
 {
     setCheckable(on);
+    if (on)
+        connect(this, &QPushButton::toggled, this, &IconButton::onToggled,
+                Qt::UniqueConnection);
+}
+
+void IconButton::onToggled(bool checked)
+{
+    if (!m_iconName.isEmpty() && !checked)
+        setIcon(m_normalIcon);
 }
 
 void IconButton::enterEvent(QEnterEvent *event)

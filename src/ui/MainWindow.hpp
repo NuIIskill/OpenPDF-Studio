@@ -33,7 +33,11 @@ public Q_SLOTS:
     void applyTheme(const QString &mode);
     void applyLanguage(const QString &lang);
 
+protected:
+    void changeEvent(QEvent *e) override;
+
 private:
+    void retranslateUi();
     void buildUi();
     void connectSignals();
 

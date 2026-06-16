@@ -713,6 +713,16 @@ void SettingsPanel::applyAndClose()
 void SettingsPanel::retranslateUi()
 {
     setWindowTitle(tr("Settings - OpenPDF Studio"));
+
+    static const char *navKeys[] = {
+        QT_TR_NOOP("Appearance"),
+        QT_TR_NOOP("Language"),
+        QT_TR_NOOP("Media Playback"),
+        QT_TR_NOOP("Advanced"),
+        QT_TR_NOOP("About"),
+    };
+    for (int i = 0; i < m_navItems.size() && i < 5; ++i)
+        m_navItems[i].textLabel->setText(tr(navKeys[i]));
 }
 
 void SettingsPanel::changeEvent(QEvent *e)

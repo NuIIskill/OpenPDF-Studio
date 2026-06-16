@@ -297,18 +297,30 @@ void MainWindow::applyLanguage(const QString &lang)
     QApplication::removeTranslator(&m_translator);
 
     if (lang != QLatin1String("en")) {
-        if (m_translator.load(QStringLiteral(":/i18n/openpdf_%1.qm").arg(lang)))
+        const QString path = QStringLiteral(":/i18n/openpdf_%1.qm").arg(lang);
+        if (m_translator.load(path))
             QApplication::installTranslator(&m_translator);
     }
 
     m_appSettings->setLanguage(lang);
     m_appSettings->sync();
 
-    // Propagate retranslate to all widgets
+    retranslateUi();
+}
+
+void MainWindow::retranslateUi()
+{
     m_topToolbar->retranslateUi();
     m_leftSidebar->retranslateUi();
     m_rightSidebar->retranslateUi();
     m_statusBar->retranslateUi();
     for (DocumentView *dv : m_docViews)
         dv->retranslateUi();
+}
+
+void MainWindow::changeEvent(QEvent *e)
+{
+    if (e->type() == QEvent::LanguageChange)
+        retranslateUi();
+    QMainWindow::changeEvent(e);
 }

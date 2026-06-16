@@ -32,6 +32,7 @@ protected:
 
 private:
     void init();
+    void onToggled(bool checked);
 
     QString m_iconName;
     QColor  m_normalColor;
