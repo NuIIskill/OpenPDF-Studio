@@ -13,8 +13,9 @@
 
 int main(int argc, char *argv[])
 {
-    // ── Wayland-only: must be set before QApplication is constructed ──────
-    qputenv("QT_QPA_PLATFORM", "wayland");
+#ifdef DEFAULT_QPA_PLATFORM
+    qputenv("QT_QPA_PLATFORM", DEFAULT_QPA_PLATFORM);
+#endif
 
     // Opt in to high-DPI scaling (default in Qt 6, but explicit for clarity)
     QApplication::setHighDpiScaleFactorRoundingPolicy(

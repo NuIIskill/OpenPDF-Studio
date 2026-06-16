@@ -6,7 +6,6 @@
 #include <QHBoxLayout>
 #include <QLabel>
 #include <QPushButton>
-#include <QComboBox>
 #include <QStackedWidget>
 #include <QScrollArea>
 #include <QScrollBar>
@@ -120,6 +119,86 @@ private:
     bool    m_selected   { false };
 };
 
+// ── LangRow ───────────────────────────────────────────────────────────────────
+
+class LangRow : public QFrame
+{
+    Q_OBJECT
+public:
+    explicit LangRow(const QString &code, const QString &displayName,
+                     QWidget *parent = nullptr)
+        : QFrame(parent), m_code(code)
+    {
+        setFixedHeight(48);
+        setCursor(Qt::PointingHandCursor);
+        setAttribute(Qt::WA_StyledBackground, true);
+
+        auto *row = new QHBoxLayout(this);
+        row->setContentsMargins(20, 0, 20, 0);
+        row->setSpacing(12);
+
+        m_nameLabel = new QLabel(displayName, this);
+        m_nameLabel->setAttribute(Qt::WA_TransparentForMouseEvents);
+        row->addWidget(m_nameLabel, 1);
+
+        m_checkLabel = new QLabel(QStringLiteral("✓"), this);
+        m_checkLabel->setFixedWidth(24);
+        m_checkLabel->setAlignment(Qt::AlignCenter);
+        m_checkLabel->setAttribute(Qt::WA_TransparentForMouseEvents);
+        row->addWidget(m_checkLabel);
+
+        applyStyle(false);
+    }
+
+    QString code() const { return m_code; }
+    bool isSelected() const { return m_selected; }
+
+    void setSelected(bool v)
+    {
+        m_selected = v;
+        m_checkLabel->setVisible(v);
+        applyStyle(v);
+    }
+
+Q_SIGNALS:
+    void clicked();
+
+protected:
+    void mousePressEvent(QMouseEvent *e) override
+    {
+        if (e->button() == Qt::LeftButton) Q_EMIT clicked();
+    }
+
+private:
+    void applyStyle(bool sel)
+    {
+        const bool dk = Theme::DarkMode;
+        const QString selBg = dk ? "#1E3A5F" : "#EFF6FF";
+        const QString hovBg = dk ? "#3E3E3E" : "#F3F4F6";
+        const QString txtSel = dk ? "#93C5FD" : "#1D4ED8";
+        const QString txtNor = dk ? "#D8D8D8" : "#111827";
+        const QString chkClr = dk ? "#93C5FD" : "#2563EB";
+
+        setStyleSheet(sel
+            ? QStringLiteral("LangRow { background:%1; border:none; }"
+                              "LangRow:hover { background:%1; }").arg(selBg)
+            : QStringLiteral("LangRow { background:transparent; border:none; }"
+                              "LangRow:hover { background:%1; }").arg(hovBg));
+
+        m_nameLabel->setStyleSheet(QStringLiteral(
+            "font-size:14px; color:%1; font-weight:%2;")
+            .arg(sel ? txtSel : txtNor, sel ? QLatin1String("600") : QLatin1String("400")));
+
+        m_checkLabel->setStyleSheet(QStringLiteral(
+            "font-size:14px; font-weight:700; color:%1;").arg(chkClr));
+    }
+
+    QLabel *m_nameLabel  { nullptr };
+    QLabel *m_checkLabel { nullptr };
+    QString m_code;
+    bool    m_selected   { false };
+};
+
 #include "SettingsPanel.moc"
 
 // ── SettingsPanel ─────────────────────────────────────────────────────────────
@@ -146,7 +225,7 @@ SettingsPanel::SettingsPanel(AppSettings *settings, QWidget *parent)
     });
 }
 
-// ── UI ────────────────────────────────────────────────────────────────────────
+// ── UI skeleton ───────────────────────────────────────────────────────────────
 
 void SettingsPanel::buildUi()
 {
@@ -158,7 +237,7 @@ void SettingsPanel::buildUi()
     contentRow->setContentsMargins(0, 0, 0, 0);
     contentRow->setSpacing(0);
 
-    // ── Left sidebar ──────────────────────────────────────────────────────
+    // ── Sidebar ───────────────────────────────────────────────────────────
     auto *sidebar = new QWidget(this);
     sidebar->setObjectName(QStringLiteral("SettingsSidebar"));
     sidebar->setFixedWidth(190);
@@ -168,36 +247,14 @@ void SettingsPanel::buildUi()
     buildNav(sidebar, sideLayout);
     contentRow->addWidget(sidebar);
 
-    // ── Right: stacked pages ──────────────────────────────────────────────
+    // ── Pages ─────────────────────────────────────────────────────────────
     m_pages = new QStackedWidget(this);
     m_pages->setObjectName(QStringLiteral("SettingsPages"));
-
-    // Page 0: scrollable settings
-    m_generalScroll = new QScrollArea(this);
-    m_generalScroll->setObjectName(QStringLiteral("SettingsScroll"));
-    m_generalScroll->setFrameShape(QFrame::NoFrame);
-    m_generalScroll->setWidgetResizable(true);
-    m_generalScroll->setHorizontalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
-    m_generalScroll->setVerticalScrollBarPolicy(Qt::ScrollBarAsNeeded);
-
-    auto *scrollContent = new QWidget;
-    scrollContent->setObjectName(QStringLiteral("SettingsScrollContent"));
-    auto *scrollLayout = new QVBoxLayout(scrollContent);
-    scrollLayout->setContentsMargins(28, 24, 28, 32);
-    scrollLayout->setSpacing(0);
-
-    buildSection_Appearance(scrollContent, scrollLayout);
-    makeSeparator(scrollContent, scrollLayout);
-    buildSection_Language(scrollContent, scrollLayout);
-    makeSeparator(scrollContent, scrollLayout);
-    buildSection_MediaPlayback(scrollContent, scrollLayout);
-    makeSeparator(scrollContent, scrollLayout);
-    buildSection_Advanced(scrollContent, scrollLayout);
-    scrollLayout->addStretch(1);
-
-    m_generalScroll->setWidget(scrollContent);
-    m_pages->addWidget(m_generalScroll);    // page 0
-    m_pages->addWidget(buildAboutPage());   // page 1
+    m_pages->addWidget(buildAppearancePage());  // 0
+    m_pages->addWidget(buildLanguagePage());    // 1
+    m_pages->addWidget(buildMediaPage());       // 2
+    m_pages->addWidget(buildAdvancedPage());    // 3
+    m_pages->addWidget(buildAboutPage());       // 4
 
     contentRow->addWidget(m_pages, 1);
     root->addLayout(contentRow, 1);
@@ -216,13 +273,11 @@ void SettingsPanel::buildUi()
     resetBtn->setObjectName(QStringLiteral("SettingsResetBtn"));
     connect(resetBtn, &QPushButton::clicked, this, [this]() {
         m_pendingTheme = QStringLiteral("system");
-        m_pendingLang  = QStringLiteral("en");
         selectCardGroup(m_pendingTheme, m_themeCards, m_themeIds);
         Q_EMIT themeChangeRequested(m_pendingTheme);
-        if (m_langCombo) {
-            const int idx = m_langCombo->findData(m_pendingLang);
-            if (idx >= 0) m_langCombo->setCurrentIndex(idx);
-        }
+
+        m_pendingLang = QStringLiteral("en");
+        selectLangCode(m_pendingLang);
     });
     bar->addWidget(resetBtn);
     bar->addStretch(1);
@@ -240,25 +295,22 @@ void SettingsPanel::buildUi()
 
     root->addLayout(bar);
 
-    selectPage(0, 0);
+    selectPage(0);
 }
 
 // ── Nav ───────────────────────────────────────────────────────────────────────
 
 void SettingsPanel::buildNav(QWidget *, QVBoxLayout *layout)
 {
-    struct Item { const char *icon; const char *label; int anchor; };
-    // anchor: 0=top(Appearance), 1=Language, 2=Media, 3=Advanced
+    struct Item { const char *icon; const char *label; };
     const Item items[] = {
-        { "settings",    QT_TR_NOOP("General"),        0 },
-        { "monitor",     QT_TR_NOOP("Appearance"),     0 },
-        { "globe",       QT_TR_NOOP("Language"),       1 },
-        { "play-circle", QT_TR_NOOP("Media Playback"), 2 },
-        { "sliders",     QT_TR_NOOP("Advanced"),       3 },
+        { "monitor",     QT_TR_NOOP("Appearance")     },
+        { "globe",       QT_TR_NOOP("Language")       },
+        { "play-circle", QT_TR_NOOP("Media Playback") },
+        { "sliders",     QT_TR_NOOP("Advanced")       },
     };
 
-    for (int i = 0; i < 5; ++i) {
-        const auto &item = items[i];
+    for (int i = 0; i < 4; ++i) {
         auto *btn = new QPushButton(this);
         btn->setFixedHeight(38);
         btn->setFlat(true);
@@ -274,23 +326,20 @@ void SettingsPanel::buildNav(QWidget *, QVBoxLayout *layout)
         iconLbl->setAttribute(Qt::WA_TransparentForMouseEvents);
         row->addWidget(iconLbl);
 
-        auto *textLbl = new QLabel(tr(item.label), btn);
+        auto *textLbl = new QLabel(tr(items[i].label), btn);
         textLbl->setAttribute(Qt::WA_TransparentForMouseEvents);
         row->addWidget(textLbl, 1);
 
-        m_navItems.append({ btn, iconLbl, textLbl, QLatin1String(item.icon), item.anchor });
+        m_navItems.append({ btn, iconLbl, textLbl, QLatin1String(items[i].icon) });
 
         const int navIdx = i;
-        const int anchor = item.anchor;
-        connect(btn, &QPushButton::clicked, this, [this, navIdx, anchor]() {
-            selectPage(navIdx, anchor, true);
-        });
+        connect(btn, &QPushButton::clicked, this, [this, navIdx]() { selectPage(navIdx); });
         layout->addWidget(btn);
     }
 
     layout->addStretch(1);
 
-    // About (navIdx 5)
+    // About — pinned to bottom
     auto *aboutBtn = new QPushButton(this);
     aboutBtn->setFixedHeight(38);
     aboutBtn->setFlat(true);
@@ -305,12 +354,10 @@ void SettingsPanel::buildNav(QWidget *, QVBoxLayout *layout)
     auto *atext = new QLabel(tr("About"), aboutBtn);
     atext->setAttribute(Qt::WA_TransparentForMouseEvents);
     arow->addWidget(atext, 1);
-    m_navItems.append({ aboutBtn, aicon, atext, QStringLiteral("info"), -1 });
-    connect(aboutBtn, &QPushButton::clicked, this, [this]() { selectPage(5, -1, false); });
+    m_navItems.append({ aboutBtn, aicon, atext, QStringLiteral("info") });
+    connect(aboutBtn, &QPushButton::clicked, this, [this]() { selectPage(4); });
     layout->addWidget(aboutBtn);
 }
-
-// ── Nav highlight ─────────────────────────────────────────────────────────────
 
 void SettingsPanel::applyNavItemStyle(int i, bool sel)
 {
@@ -323,10 +370,9 @@ void SettingsPanel::applyNavItemStyle(int i, bool sel)
     const QString norHov = dk ? "#3E3E3E" : "#F3F4F6";
     const QString selTxt = dk ? "#93C5FD" : "#1D4ED8";
     const QString norTxt = dk ? "#C8C8C8" : "#374151";
-    const QString selIc  = dk ? "#93C5FD" : "#3B82F6";
-    const QString norIc  = dk ? "#888888" : "#6B7280";
 
-    const QPixmap px = Theme::renderSvg(ni.iconName, QColor(sel ? selIc : norIc), 16);
+    const QPixmap px = Theme::renderSvg(ni.iconName,
+        QColor(sel ? (dk ? "#93C5FD" : "#3B82F6") : (dk ? "#888888" : "#6B7280")), 16);
     if (!px.isNull()) ni.iconLabel->setPixmap(px);
 
     ni.textLabel->setStyleSheet(sel
@@ -342,77 +388,48 @@ void SettingsPanel::applyNavItemStyle(int i, bool sel)
             "QPushButton:hover { background:%1; }").arg(norHov));
 }
 
-void SettingsPanel::selectPage(int navIndex, int anchorIndex, bool scrollToAnchor)
+void SettingsPanel::selectPage(int navIndex)
 {
     m_currentNav = navIndex;
-    const bool isAbout = (anchorIndex < 0);
-    m_pages->setCurrentIndex(isAbout ? 1 : 0);
-
+    m_pages->setCurrentIndex(navIndex);
     for (int i = 0; i < m_navItems.size(); ++i)
         applyNavItemStyle(i, i == navIndex);
-
-    if (scrollToAnchor && !isAbout && m_generalScroll) {
-        switch (anchorIndex) {
-        case 0: m_generalScroll->verticalScrollBar()->setValue(0); break;
-        case 1: if (m_langAnchor)  m_generalScroll->ensureWidgetVisible(m_langAnchor,  0, 8); break;
-        case 2: if (m_mediaAnchor) m_generalScroll->ensureWidgetVisible(m_mediaAnchor, 0, 8); break;
-        case 3: if (m_advAnchor)   m_generalScroll->ensureWidgetVisible(m_advAnchor,   0, 8); break;
-        }
-    }
 }
 
 void SettingsPanel::refreshThemeColors()
 {
-    // Re-apply nav button colors with current theme
     for (int i = 0; i < m_navItems.size(); ++i)
         applyNavItemStyle(i, i == m_currentNav);
-
-    // Re-render OptionCards (they read Theme::DarkMode in applyStyle)
     for (auto *w : m_themeCards)
         if (auto *c = qobject_cast<OptionCard*>(w)) c->setSelected(c->isSelected());
     for (auto *w : m_mediaCards)
         if (auto *c = qobject_cast<OptionCard*>(w)) c->setSelected(c->isSelected());
+    for (auto *w : m_langRows)
+        if (auto *r = qobject_cast<LangRow*>(w)) r->setSelected(r->isSelected());
 }
 
-// ── Section helpers ───────────────────────────────────────────────────────────
+// ── Page builders ─────────────────────────────────────────────────────────────
 
-QLabel *SettingsPanel::makeSectionTitle(QWidget *parent, QVBoxLayout *layout,
-                                         const QString &text)
+QWidget *SettingsPanel::buildAppearancePage()
 {
-    auto *lbl = new QLabel(text, parent);
-    lbl->setObjectName(QStringLiteral("SettingsSectionTitle"));
-    layout->addWidget(lbl);
-    return lbl;
-}
+    auto *page = new QWidget(this);
+    page->setObjectName(QStringLiteral("SettingsScrollContent"));
+    auto *vbox = new QVBoxLayout(page);
+    vbox->setContentsMargins(32, 28, 32, 32);
+    vbox->setSpacing(0);
 
-void SettingsPanel::makeSectionDesc(QWidget *parent, QVBoxLayout *layout,
-                                     const QString &text)
-{
-    auto *lbl = new QLabel(text, parent);
-    lbl->setObjectName(QStringLiteral("SettingsSectionDesc"));
-    layout->addWidget(lbl);
-    layout->addSpacing(14);
-}
+    auto *title = new QLabel(tr("Appearance"), page);
+    title->setObjectName(QStringLiteral("SettingsSectionTitle"));
+    vbox->addWidget(title);
+    vbox->addSpacing(6);
 
-void SettingsPanel::makeSeparator(QWidget *parent, QVBoxLayout *layout)
-{
-    layout->addSpacing(8);
-    auto *sep = new QFrame(parent);
-    sep->setObjectName(QStringLiteral("SettingsSeparator"));
-    sep->setFrameShape(QFrame::HLine);
-    layout->addWidget(sep);
-    layout->addSpacing(20);
-}
-
-// ── Sections ──────────────────────────────────────────────────────────────────
-
-void SettingsPanel::buildSection_Appearance(QWidget *parent, QVBoxLayout *layout)
-{
-    makeSectionTitle(parent, layout, tr("Appearance"));
-    makeSectionDesc(parent, layout, tr("Choose how OpenPDF Studio is displayed."));
+    auto *desc = new QLabel(tr("Choose how OpenPDF Studio is displayed."), page);
+    desc->setObjectName(QStringLiteral("SettingsSectionDesc"));
+    vbox->addWidget(desc);
+    vbox->addSpacing(24);
 
     auto *row = new QHBoxLayout;
-    row->setSpacing(12);
+    row->setSpacing(14);
     row->setAlignment(Qt::AlignLeft);
 
     struct T { const char *icon, *id, *title, *desc; };
@@ -426,36 +443,108 @@ void SettingsPanel::buildSection_Appearance(QWidget *parent, QVBoxLayout *layout
             QLatin1String(t.icon), tr(t.title), tr(t.desc),
             QLatin1String(t.id), m_themeCards, m_themeIds, true));
     row->addStretch(1);
-    layout->addLayout(row);
+    vbox->addLayout(row);
+    vbox->addStretch(1);
+    return page;
 }
 
-void SettingsPanel::buildSection_Language(QWidget *parent, QVBoxLayout *layout)
+QWidget *SettingsPanel::buildLanguagePage()
 {
-    m_langAnchor = makeSectionTitle(parent, layout, tr("Language"));
-    makeSectionDesc(parent, layout, tr("Choose your preferred language."));
+    auto *page = new QWidget(this);
+    page->setObjectName(QStringLiteral("SettingsScrollContent"));
+    auto *vbox = new QVBoxLayout(page);
+    vbox->setContentsMargins(0, 28, 0, 0);
+    vbox->setSpacing(0);
 
-    m_langCombo = new QComboBox(parent);
-    m_langCombo->setObjectName(QStringLiteral("SettingsLangCombo"));
-    m_langCombo->setFixedWidth(240);
-    m_langCombo->addItem(tr("English"), QStringLiteral("en"));
-    m_langCombo->addItem(tr("German"),  QStringLiteral("de"));
-    {
-        const int idx = m_langCombo->findData(m_pendingLang);
-        if (idx >= 0) m_langCombo->setCurrentIndex(idx);
+    auto *titleWrap = new QWidget(page);
+    titleWrap->setObjectName(QStringLiteral("SettingsScrollContent"));
+    auto *twl = new QVBoxLayout(titleWrap);
+    twl->setContentsMargins(32, 0, 32, 0);
+    twl->setSpacing(6);
+
+    auto *title = new QLabel(tr("Language"), titleWrap);
+    title->setObjectName(QStringLiteral("SettingsSectionTitle"));
+    twl->addWidget(title);
+
+    auto *desc = new QLabel(tr("Choose your preferred interface language."), titleWrap);
+    desc->setObjectName(QStringLiteral("SettingsSectionDesc"));
+    twl->addWidget(desc);
+
+    vbox->addWidget(titleWrap);
+    vbox->addSpacing(16);
+
+    // ── Scrollable language list ──────────────────────────────────────────
+    auto *scroll = new QScrollArea(page);
+    scroll->setObjectName(QStringLiteral("SettingsScroll"));
+    scroll->setFrameShape(QFrame::NoFrame);
+    scroll->setHorizontalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
+    scroll->setVerticalScrollBarPolicy(Qt::ScrollBarAsNeeded);
+    scroll->setWidgetResizable(true);
+
+    auto *listWidget = new QWidget;
+    listWidget->setObjectName(QStringLiteral("SettingsScrollContent"));
+    auto *listLayout = new QVBoxLayout(listWidget);
+    listLayout->setContentsMargins(0, 0, 0, 0);
+    listLayout->setSpacing(0);
+
+    // English first, then separator, then alphabetical by display name
+    struct L { const char *code; const char *display; };
+    const L langs[] = {
+        { "en", "English"    },
+        { nullptr, nullptr   },  // separator
+        { "de", "Deutsch"    },
+        { "fr", "Français"   },
+        { "es", "Español"    },
+        { "it", "Italiano"   },
+        { "pt", "Português"  },
+        { "nl", "Nederlands" },
+        { "pl", "Polski"     },
+        { "ru", "Русский"    },
+        { "zh", "中文"        },
+        { "ja", "日本語"      },
+        { "ko", "한국어"      },
+    };
+
+    for (const auto &l : langs) {
+        if (!l.code) {
+            // Separator between English and other languages
+            auto *sep = new QFrame(listWidget);
+            sep->setObjectName(QStringLiteral("SettingsSeparator"));
+            sep->setFrameShape(QFrame::HLine);
+            sep->setFixedHeight(1);
+            listLayout->addWidget(sep);
+        } else {
+            addLangRow(listWidget, listLayout, QLatin1String(l.code),
+                       QString::fromUtf8(l.display));
+        }
     }
-    connect(m_langCombo, &QComboBox::currentIndexChanged, this, [this](int i) {
-        m_pendingLang = m_langCombo->itemData(i).toString();
-    });
-    layout->addWidget(m_langCombo);
+
+    listLayout->addStretch(1);
+    scroll->setWidget(listWidget);
+    vbox->addWidget(scroll, 1);
+    return page;
 }
 
-void SettingsPanel::buildSection_MediaPlayback(QWidget *parent, QVBoxLayout *layout)
+QWidget *SettingsPanel::buildMediaPage()
 {
-    m_mediaAnchor = makeSectionTitle(parent, layout, tr("Media Playback"));
-    makeSectionDesc(parent, layout, tr("Choose how media is played in OpenPDF Studio."));
+    auto *page = new QWidget(this);
+    page->setObjectName(QStringLiteral("SettingsScrollContent"));
+    auto *vbox = new QVBoxLayout(page);
+    vbox->setContentsMargins(32, 28, 32, 32);
+    vbox->setSpacing(0);
+
+    auto *title = new QLabel(tr("Media Playback"), page);
+    title->setObjectName(QStringLiteral("SettingsSectionTitle"));
+    vbox->addWidget(title);
+    vbox->addSpacing(6);
+
+    auto *desc = new QLabel(tr("Choose how media is played in OpenPDF Studio."), page);
+    desc->setObjectName(QStringLiteral("SettingsSectionDesc"));
+    vbox->addWidget(desc);
+    vbox->addSpacing(24);
 
     auto *row = new QHBoxLayout;
-    row->setSpacing(12);
+    row->setSpacing(14);
     row->setAlignment(Qt::AlignLeft);
 
     struct M { const char *icon, *id, *title, *desc; };
@@ -468,15 +557,30 @@ void SettingsPanel::buildSection_MediaPlayback(QWidget *parent, QVBoxLayout *lay
             QLatin1String(m.icon), tr(m.title), tr(m.desc),
             QLatin1String(m.id), m_mediaCards, m_mediaIds, false));
     row->addStretch(1);
-    layout->addLayout(row);
+    vbox->addLayout(row);
+    vbox->addStretch(1);
+    return page;
 }
 
-void SettingsPanel::buildSection_Advanced(QWidget *parent, QVBoxLayout *layout)
+QWidget *SettingsPanel::buildAdvancedPage()
 {
-    m_advAnchor = makeSectionTitle(parent, layout, tr("Advanced"));
-    makeSectionDesc(parent, layout, tr("Advanced settings for OpenPDF Studio."));
+    auto *page = new QWidget(this);
+    page->setObjectName(QStringLiteral("SettingsScrollContent"));
+    auto *vbox = new QVBoxLayout(page);
+    vbox->setContentsMargins(32, 28, 32, 32);
+    vbox->setSpacing(0);
 
-    auto *resetAllBtn = new QPushButton(tr("Reset All Settings to Defaults"), parent);
+    auto *title = new QLabel(tr("Advanced"), page);
+    title->setObjectName(QStringLiteral("SettingsSectionTitle"));
+    vbox->addWidget(title);
+    vbox->addSpacing(6);
+
+    auto *desc = new QLabel(tr("Advanced settings for OpenPDF Studio."), page);
+    desc->setObjectName(QStringLiteral("SettingsSectionDesc"));
+    vbox->addWidget(desc);
+    vbox->addSpacing(24);
+
+    auto *resetAllBtn = new QPushButton(tr("Reset All Settings to Defaults"), page);
     resetAllBtn->setFixedWidth(280);
     resetAllBtn->setStyleSheet(Theme::DarkMode
         ? QStringLiteral(
@@ -489,18 +593,53 @@ void SettingsPanel::buildSection_Advanced(QWidget *parent, QVBoxLayout *layout)
             "QPushButton:hover { background:#FEE2E2; }"));
     connect(resetAllBtn, &QPushButton::clicked, this, [this]() {
         m_pendingTheme = QStringLiteral("system");
-        m_pendingLang  = QStringLiteral("en");
         selectCardGroup(m_pendingTheme, m_themeCards, m_themeIds);
         Q_EMIT themeChangeRequested(m_pendingTheme);
-        if (m_langCombo) {
-            const int idx = m_langCombo->findData(m_pendingLang);
-            if (idx >= 0) m_langCombo->setCurrentIndex(idx);
-        }
+        m_pendingLang = QStringLiteral("en");
+        selectLangCode(m_pendingLang);
     });
-    layout->addWidget(resetAllBtn);
+    vbox->addWidget(resetAllBtn);
+    vbox->addStretch(1);
+    return page;
 }
 
-// ── Option card ───────────────────────────────────────────────────────────────
+QWidget *SettingsPanel::buildAboutPage()
+{
+    auto *page = new QWidget(this);
+    page->setObjectName(QStringLiteral("SettingsScrollContent"));
+    auto *vbox = new QVBoxLayout(page);
+    vbox->setContentsMargins(32, 32, 32, 32);
+    vbox->setSpacing(10);
+    vbox->setAlignment(Qt::AlignCenter);
+
+    auto *logo = new QLabel(QStringLiteral("O"), page);
+    logo->setObjectName(QStringLiteral("AppLogo"));
+    logo->setFixedSize(56, 56);
+    logo->setAlignment(Qt::AlignCenter);
+    vbox->addWidget(logo, 0, Qt::AlignHCenter);
+    vbox->addSpacing(8);
+
+    auto *appName = new QLabel(QStringLiteral("OpenPDF Studio"), page);
+    appName->setObjectName(QStringLiteral("SettingsSectionTitle"));
+    appName->setAlignment(Qt::AlignCenter);
+    vbox->addWidget(appName, 0, Qt::AlignHCenter);
+
+    auto *ver = new QLabel(
+        QStringLiteral("Version %1").arg(QLatin1String(APP_VERSION)), page);
+    ver->setObjectName(QStringLiteral("SettingsSectionDesc"));
+    ver->setAlignment(Qt::AlignCenter);
+    vbox->addWidget(ver, 0, Qt::AlignHCenter);
+    vbox->addSpacing(16);
+
+    auto *tagline = new QLabel(
+        tr("A modern, open-source PDF editor built with Qt."), page);
+    tagline->setObjectName(QStringLiteral("SettingsSectionDesc"));
+    tagline->setAlignment(Qt::AlignCenter);
+    vbox->addWidget(tagline, 0, Qt::AlignHCenter);
+    return page;
+}
+
+// ── Option cards ──────────────────────────────────────────────────────────────
 
 QWidget *SettingsPanel::buildOptionCard(const QString &icon, const QString &title,
                                          const QString &desc,  const QString &id,
@@ -524,7 +663,6 @@ QWidget *SettingsPanel::buildOptionCard(const QString &icon, const QString &titl
             Q_EMIT themeChangeRequested(id);
         }
     });
-
     return card;
 }
 
@@ -535,46 +673,30 @@ void SettingsPanel::selectCardGroup(const QString &id,
         qobject_cast<OptionCard *>(cards[i])->setSelected(ids[i] == id);
 }
 
-// ── About page ────────────────────────────────────────────────────────────────
+// ── Language rows ─────────────────────────────────────────────────────────────
 
-QWidget *SettingsPanel::buildAboutPage()
+void SettingsPanel::addLangRow(QWidget *parent, QVBoxLayout *layout,
+                                const QString &code, const QString &display)
 {
-    auto *w = new QWidget(this);
-    w->setObjectName(QStringLiteral("SettingsAboutPage"));
-    auto *vbox = new QVBoxLayout(w);
-    vbox->setContentsMargins(32, 32, 32, 32);
-    vbox->setSpacing(10);
-    vbox->setAlignment(Qt::AlignCenter);
+    auto *row = new LangRow(code, display, parent);
+    row->setSelected(code == m_pendingLang);
+    m_langRows.append(row);
+    m_langCodes.append(code);
 
-    auto *logo = new QLabel(QStringLiteral("O"), w);
-    logo->setObjectName(QStringLiteral("AppLogo"));
-    logo->setFixedSize(52, 52);
-    logo->setAlignment(Qt::AlignCenter);
-    vbox->addWidget(logo, 0, Qt::AlignHCenter);
-
-    vbox->addSpacing(4);
-
-    auto *title = new QLabel(QStringLiteral("OpenPDF Studio"), w);
-    title->setObjectName(QStringLiteral("SettingsSectionTitle"));
-    title->setAlignment(Qt::AlignCenter);
-    vbox->addWidget(title, 0, Qt::AlignHCenter);
-
-    auto *ver = new QLabel(QStringLiteral("Version %1").arg(QLatin1String(APP_VERSION)), w);
-    ver->setObjectName(QStringLiteral("SettingsSectionDesc"));
-    ver->setAlignment(Qt::AlignCenter);
-    vbox->addWidget(ver, 0, Qt::AlignHCenter);
-
-    vbox->addSpacing(16);
-
-    auto *desc = new QLabel(tr("A modern, open-source PDF editor built with Qt."), w);
-    desc->setObjectName(QStringLiteral("SettingsSectionDesc"));
-    desc->setAlignment(Qt::AlignCenter);
-    vbox->addWidget(desc, 0, Qt::AlignHCenter);
-
-    return w;
+    connect(row, &LangRow::clicked, this, [this, code]() {
+        selectLangCode(code);
+        m_pendingLang = code;
+    });
+    layout->addWidget(row);
 }
 
-// ── Apply & misc ──────────────────────────────────────────────────────────────
+void SettingsPanel::selectLangCode(const QString &code)
+{
+    for (int i = 0; i < m_langRows.size(); ++i)
+        qobject_cast<LangRow *>(m_langRows[i])->setSelected(m_langCodes[i] == code);
+}
+
+// ── Misc ──────────────────────────────────────────────────────────────────────
 
 void SettingsPanel::applyAndClose()
 {

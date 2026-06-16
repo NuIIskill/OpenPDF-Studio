@@ -175,6 +175,12 @@ QSplitter::handle:vertical   { height: 1px; }
 #DocumentView QScrollBar::add-line:horizontal,
 #DocumentView QScrollBar::sub-line:horizontal { width: 0px; }
 
+/* ── PDF page labels — always white paper ────────────────── */
+QLabel#PageLabel {
+    background: #FFFFFF;
+    border: 1px solid #D0D0D0;
+}
+
 /* ── DropHint ─────────────────────────────────────────────── */
 #DropHint {
     color: #888888;

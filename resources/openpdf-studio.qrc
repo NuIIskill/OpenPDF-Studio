@@ -1,4 +1,17 @@
 <RCC>
+    <qresource prefix="/i18n">
+        <file>i18n/openpdf_de.qm</file>
+        <file>i18n/openpdf_fr.qm</file>
+        <file>i18n/openpdf_es.qm</file>
+        <file>i18n/openpdf_it.qm</file>
+        <file>i18n/openpdf_pt.qm</file>
+        <file>i18n/openpdf_nl.qm</file>
+        <file>i18n/openpdf_pl.qm</file>
+        <file>i18n/openpdf_ru.qm</file>
+        <file>i18n/openpdf_zh.qm</file>
+        <file>i18n/openpdf_ja.qm</file>
+        <file>i18n/openpdf_ko.qm</file>
+    </qresource>
     <qresource prefix="/theme">
         <file alias="Style.qss">../src/ui/theme/Style.qss</file>
         <file alias="Style.dark.qss">../src/ui/theme/Style.dark.qss</file>

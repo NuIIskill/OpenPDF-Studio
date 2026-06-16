@@ -17,6 +17,7 @@
 #include <QClipboard>
 #include <QMouseEvent>
 #include <QFrame>
+#include <QPalette>
 
 DocumentView::DocumentView(QWidget *parent)
     : QScrollArea(parent)
@@ -165,8 +166,13 @@ void DocumentView::buildPages()
         lbl->setAlignment(Qt::AlignCenter);
         lbl->setFrameStyle(QFrame::Box | QFrame::Plain);
         lbl->setLineWidth(1);
+        // Force white background — PDF pages are always shown on white paper
+        lbl->setAutoFillBackground(true);
+        QPalette p = lbl->palette();
+        p.setColor(QPalette::Window, Qt::white);
+        p.setColor(QPalette::WindowText, Qt::black);
+        lbl->setPalette(p);
         const QSize sz = pageDisplaySize();
-        lbl->setFixedSize(sz);
         m_layout->addWidget(lbl, 0, Qt::AlignHCenter);
         m_pageLabels.append(lbl);
     }

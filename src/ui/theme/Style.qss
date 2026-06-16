@@ -155,6 +155,12 @@ QSplitter::handle:vertical   { height: 1px; }
     background-color: #F3F4F6;
 }
 
+/* PDF page labels — always white paper */
+QLabel#PageLabel {
+    background: #FFFFFF;
+    border: 1px solid #D1D5DB;
+}
+
 #DocumentView QScrollBar:vertical {
     background: transparent;
     width: 6px;

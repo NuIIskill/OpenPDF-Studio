@@ -15,7 +15,7 @@ set(CMAKE_AUTORCC ON)
 set(CMAKE_AUTOUIC OFF)
 
 find_package(Qt6 REQUIRED COMPONENTS Core Widgets Gui)
-find_package(Qt6 OPTIONAL_COMPONENTS Pdf PrintSupport)
+find_package(Qt6 OPTIONAL_COMPONENTS Pdf PrintSupport LinguistTools)
 qt_standard_project_setup()
 
 set(SOURCES
@@ -121,3 +121,27 @@ install(FILES packaging/appimage/README.md
     DESTINATION share/doc/OpenPDFStudio
     OPTIONAL
 )
+
+# Translation update helper — run: cmake --build . --target update_translations
+# Pre-compiled .qm files are already embedded via resources/openpdf-studio.qrc.
+# This target only updates the .ts source files for translators.
+if(Qt6LinguistTools_FOUND AND NOT CMAKE_CROSSCOMPILING)
+    set(TS_FILES
+        ${CMAKE_CURRENT_SOURCE_DIR}/resources/i18n/openpdf_de.ts
+        ${CMAKE_CURRENT_SOURCE_DIR}/resources/i18n/openpdf_fr.ts
+        ${CMAKE_CURRENT_SOURCE_DIR}/resources/i18n/openpdf_es.ts
+        ${CMAKE_CURRENT_SOURCE_DIR}/resources/i18n/openpdf_it.ts
+        ${CMAKE_CURRENT_SOURCE_DIR}/resources/i18n/openpdf_pt.ts
+        ${CMAKE_CURRENT_SOURCE_DIR}/resources/i18n/openpdf_nl.ts
+        ${CMAKE_CURRENT_SOURCE_DIR}/resources/i18n/openpdf_pl.ts
+        ${CMAKE_CURRENT_SOURCE_DIR}/resources/i18n/openpdf_ru.ts
+        ${CMAKE_CURRENT_SOURCE_DIR}/resources/i18n/openpdf_zh.ts
+        ${CMAKE_CURRENT_SOURCE_DIR}/resources/i18n/openpdf_ja.ts
+        ${CMAKE_CURRENT_SOURCE_DIR}/resources/i18n/openpdf_ko.ts
+    )
+    qt_add_lupdate(OpenPDFStudio
+        TS_FILES ${TS_FILES}
+        LUPDATE_TARGET update_translations
+        NO_GLOBAL_TARGET
+    )
+endif()

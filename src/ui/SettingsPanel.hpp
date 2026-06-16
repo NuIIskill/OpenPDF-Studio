@@ -6,7 +6,6 @@
 QT_BEGIN_NAMESPACE
 class QStackedWidget;
 class QScrollArea;
-class QComboBox;
 class QPushButton;
 class QLabel;
 class QVBoxLayout;
@@ -34,24 +33,18 @@ private:
     void buildUi();
     void buildNav(QWidget *parent, QVBoxLayout *layout);
 
-    // navIndex: which sidebar item to highlight
-    // anchorIndex: -1=About page, 0=top, 1=Language, 2=Media, 3=Advanced
-    void selectPage(int navIndex, int anchorIndex, bool scrollToAnchor = false);
+    void selectPage(int navIndex);
     void applyNavItemStyle(int i, bool selected);
     void refreshThemeColors();
 
-    // Section builders
-    void buildSection_Appearance(QWidget *parent, QVBoxLayout *layout);
-    void buildSection_Language(QWidget *parent, QVBoxLayout *layout);
-    void buildSection_MediaPlayback(QWidget *parent, QVBoxLayout *layout);
-    void buildSection_Advanced(QWidget *parent, QVBoxLayout *layout);
+    // One widget per nav page
+    QWidget *buildAppearancePage();
+    QWidget *buildLanguagePage();
+    QWidget *buildMediaPage();
+    QWidget *buildAdvancedPage();
     QWidget *buildAboutPage();
 
-    // Helpers
-    QLabel *makeSectionTitle(QWidget *parent, QVBoxLayout *layout, const QString &text);
-    void    makeSectionDesc(QWidget *parent, QVBoxLayout *layout, const QString &text);
-    void    makeSeparator(QWidget *parent, QVBoxLayout *layout);
-
+    // Card helpers
     QWidget *buildOptionCard(const QString &icon, const QString &title,
                              const QString &desc,  const QString &id,
                              QList<QWidget*> &group, QList<QString> &ids,
@@ -59,24 +52,21 @@ private:
     void selectCardGroup(const QString &id,
                          QList<QWidget*> &cards, QList<QString> &ids);
 
+    // Language row helpers
+    void addLangRow(QWidget *parent, QVBoxLayout *layout,
+                    const QString &code, const QString &display);
+    void selectLangCode(const QString &code);
+
     void applyAndClose();
 
-    AppSettings    *m_settings      { nullptr };
-    QStackedWidget *m_pages         { nullptr };
-    QScrollArea    *m_generalScroll { nullptr };
-    QComboBox      *m_langCombo     { nullptr };
-
-    // Scroll-to anchors
-    QLabel *m_langAnchor  { nullptr };
-    QLabel *m_mediaAnchor { nullptr };
-    QLabel *m_advAnchor   { nullptr };
+    AppSettings    *m_settings  { nullptr };
+    QStackedWidget *m_pages     { nullptr };
 
     struct NavItem {
         QPushButton *btn;
         QLabel      *iconLabel;
         QLabel      *textLabel;
         QString      iconName;
-        int          anchorIndex; // scroll target (-1 = About page)
     };
     QList<NavItem> m_navItems;
     int m_currentNav { 0 };
@@ -86,6 +76,9 @@ private:
 
     QList<QWidget *> m_mediaCards;
     QList<QString>   m_mediaIds;
+
+    QList<QWidget *> m_langRows;   // LangRow* cast to QWidget*
+    QList<QString>   m_langCodes;
 
     QString m_pendingTheme;
     QString m_pendingLang;
