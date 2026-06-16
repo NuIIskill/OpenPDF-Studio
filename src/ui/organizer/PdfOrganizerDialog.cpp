@@ -261,11 +261,11 @@ QWidget *PdfOrganizerDialog::buildToolbar()
     // Add PDF (menu button)
     m_addPdfBtn = new QToolButton(bar);
     m_addPdfBtn->setObjectName(QStringLiteral("OrgAddBtn"));
-    m_addPdfBtn->setText(tr("PDF hinzufügen"));
+    m_addPdfBtn->setText(tr("Add PDF"));
     m_addPdfBtn->setToolButtonStyle(Qt::ToolButtonTextBesideIcon);
     m_addPdfBtn->setPopupMode(QToolButton::MenuButtonPopup);
     auto *addMenu = new QMenu(m_addPdfBtn);
-    addMenu->addAction(tr("PDF-Datei öffnen…"), this, [this]() {
+    addMenu->addAction(tr("Open PDF file…"), this, [this]() {
         const QString p = QFileDialog::getOpenFileName(
             this, tr("Open PDF"), {}, tr("PDF files (*.pdf)"));
         if (!p.isEmpty()) addPdfPages(p);
@@ -279,7 +279,7 @@ QWidget *PdfOrganizerDialog::buildToolbar()
     h->addWidget(m_addPdfBtn);
 
     // Add blank page
-    m_addBlankBtn = new QPushButton(tr("Leere Seite"), bar);
+    m_addBlankBtn = new QPushButton(tr("Blank Page"), bar);
     m_addBlankBtn->setObjectName(QStringLiteral("OrgBtn"));
     connect(m_addBlankBtn, &QPushButton::clicked, this, &PdfOrganizerDialog::addBlankPage);
     h->addWidget(m_addBlankBtn);
@@ -305,15 +305,15 @@ QWidget *PdfOrganizerDialog::buildToolbar()
         return b;
     };
 
-    m_moveLeftBtn  = makeBtn(QStringLiteral("← ") + tr("Nach links"),  tr("Move page left"));
-    m_moveRightBtn = makeBtn(QStringLiteral("→ ") + tr("Nach rechts"), tr("Move page right"));
+    m_moveLeftBtn  = makeBtn(QStringLiteral("← ") + tr("Move left"),   tr("Move page left"));
+    m_moveRightBtn = makeBtn(QStringLiteral("→ ") + tr("Move right"),  tr("Move page right"));
     makeSep();
 
-    m_rotLeftBtn   = makeBtn(QStringLiteral("↺ ") + tr("Links drehen"),  tr("Rotate left 90°"));
-    m_rotRightBtn  = makeBtn(QStringLiteral("↻ ") + tr("Rechts drehen"), tr("Rotate right 90°"));
+    m_rotLeftBtn   = makeBtn(QStringLiteral("↺ ") + tr("Rotate left"),  tr("Rotate left 90°"));
+    m_rotRightBtn  = makeBtn(QStringLiteral("↻ ") + tr("Rotate right"), tr("Rotate right 90°"));
     makeSep();
 
-    m_deleteBtn = new QPushButton(QStringLiteral("🗑 ") + tr("Seite löschen"), bar);
+    m_deleteBtn = new QPushButton(QStringLiteral("🗑 ") + tr("Delete page"), bar);
     m_deleteBtn->setObjectName(QStringLiteral("OrgDeleteBtn"));
     m_deleteBtn->setEnabled(false);
     h->addWidget(m_deleteBtn);
@@ -350,7 +350,7 @@ QWidget *PdfOrganizerDialog::buildInfoBar()
     ico->setStyleSheet(QStringLiteral("color:#2563EB; font-size:16px;"));
     h->addWidget(ico);
 
-    auto *txt = new QLabel(tr("Seiten per Drag & Drop verschieben"), m_infoBar);
+    auto *txt = new QLabel(tr("Drag & drop pages to reorder"), m_infoBar);
     txt->setStyleSheet(QStringLiteral("color:#1D4ED8; font-size:13px;"));
     h->addWidget(txt, 1);
 
@@ -375,22 +375,22 @@ QWidget *PdfOrganizerDialog::buildFooter()
     h->setContentsMargins(20, 0, 20, 0);
     h->setSpacing(8);
 
-    m_countLabel = new QLabel(QStringLiteral("📄 0 ") + tr("Seiten"), footer);
+    m_countLabel = new QLabel(QStringLiteral("📄 0 ") + tr("Pages"), footer);
     m_countLabel->setStyleSheet(QStringLiteral("color:#374151; font-size:13px;"));
     h->addWidget(m_countLabel);
     h->addStretch(1);
 
-    m_cancelBtn = new QPushButton(tr("Abbrechen"), footer);
+    m_cancelBtn = new QPushButton(tr("Cancel"), footer);
     m_cancelBtn->setObjectName(QStringLiteral("OrgBtn"));
     connect(m_cancelBtn, &QPushButton::clicked, this, &QDialog::reject);
     h->addWidget(m_cancelBtn);
 
-    m_saveAsBtn = new QPushButton(tr("Speichern als"), footer);
+    m_saveAsBtn = new QPushButton(tr("Save as"), footer);
     m_saveAsBtn->setObjectName(QStringLiteral("OrgBtn"));
     connect(m_saveAsBtn, &QPushButton::clicked, this, &PdfOrganizerDialog::saveAs);
     h->addWidget(m_saveAsBtn);
 
-    m_saveBtn = new QPushButton(tr("Speichern"), footer);
+    m_saveBtn = new QPushButton(tr("Save"), footer);
     m_saveBtn->setObjectName(QStringLiteral("OrgSaveBtn"));
     m_saveBtn->setDefault(true);
     connect(m_saveBtn, &QPushButton::clicked, this, &PdfOrganizerDialog::save);
@@ -563,14 +563,14 @@ void PdfOrganizerDialog::relayout()
 void PdfOrganizerDialog::updatePageLabels()
 {
     for (int i = 0; i < m_cards.size(); ++i)
-        m_cards[i]->setPageLabel(tr("Seite %1").arg(i + 1));
+        m_cards[i]->setPageLabel(tr("Page %1").arg(i + 1));
     for (int i = 0; i < m_cards.size(); ++i)
         m_cards[i]->setIndex(i);
 }
 
 void PdfOrganizerDialog::updateFooterCount()
 {
-    m_countLabel->setText(QStringLiteral("📄 %1 ").arg(m_pages.size()) + tr("Seiten"));
+    m_countLabel->setText(QStringLiteral("📄 %1 ").arg(m_pages.size()) + tr("Pages"));
 }
 
 void PdfOrganizerDialog::updateSelectionButtons()

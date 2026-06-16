@@ -34,11 +34,15 @@ set(SOURCES
     src/engine/edit/PdfTextExtractor.hpp
     src/engine/edit/InlineEditor.cpp
     src/engine/edit/InlineEditor.hpp
+    src/engine/edit/TextBoxFrame.cpp
+    src/engine/edit/TextBoxFrame.hpp
     src/engine/edit/EditSession.cpp
     src/engine/edit/EditSession.hpp
 
     src/ui/MainWindow.cpp
     src/ui/MainWindow.hpp
+    src/ui/FormatBar.cpp
+    src/ui/FormatBar.hpp
     src/ui/DocumentView.cpp
     src/ui/DocumentView.hpp
     src/ui/LeftSidebar.cpp
@@ -46,6 +50,8 @@ set(SOURCES
     src/ui/LeftSidebar.hpp
     src/ui/RightSidebar.cpp
     src/ui/RightSidebar.hpp
+    src/ui/TextPropertiesPanel.cpp
+    src/ui/TextPropertiesPanel.hpp
     src/ui/TopToolbar.cpp
     src/ui/TopToolbar.hpp
     src/ui/ToolPanel.cpp

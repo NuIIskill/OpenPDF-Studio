@@ -19,13 +19,12 @@ InlineEditor::InlineEditor(QWidget *parent)
 void InlineEditor::present(const QString &text, const QRectF &canvasBounds,
                             int pixelFontSize)
 {
-    // Style: white background, blue outline, matching font size
     setStyleSheet(QString(
         "QTextEdit#InlineEditor {"
-        "  background: #FFFDE7;"
-        "  border: 2px solid #3B82F6;"
+        "  background: white;"
+        "  border: none;"
         "  font-size: %1px;"
-        "  padding: 0px 3px;"
+        "  padding: 2px 4px;"
         "  color: #111;"
         "}").arg(qMax(8, pixelFontSize)));
 

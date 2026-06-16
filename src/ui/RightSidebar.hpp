@@ -3,11 +3,8 @@
 #include <QWidget>
 #include <QList>
 
-class IconButton;
-
 QT_BEGIN_NAMESPACE
-class QLabel;
-class QPushButton;
+class QToolButton;
 QT_END_NAMESPACE
 
 class RightSidebar : public QWidget
@@ -15,6 +12,8 @@ class RightSidebar : public QWidget
     Q_OBJECT
 
 public:
+    static constexpr int kWidth = 110;
+
     explicit RightSidebar(QWidget *parent = nullptr);
 
     void refreshTheme();
@@ -25,16 +24,9 @@ Q_SIGNALS:
     void modeSelected(const QString &mode);
 
 private:
-    void buildLayout();
-    QWidget *makeModeButton(const QString &icon, const QString &label,
-                            const QString &id, bool selected = false);
-    void applyModeStyle(int i, bool selected);
-
     struct ModeData {
         QString      iconName;
-        QLabel      *iconLabel;
-        QLabel      *textLabel;
-        QPushButton *btn;
+        QToolButton *btn;
         QString      tipKey;
         bool         selected;
     };

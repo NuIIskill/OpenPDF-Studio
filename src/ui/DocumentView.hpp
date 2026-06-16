@@ -15,6 +15,7 @@ QT_END_NAMESPACE
 #include "engine/edit/PdfTextExtractor.hpp"
 #include "engine/edit/EditSession.hpp"
 #include "engine/edit/InlineEditor.hpp"
+#include "engine/edit/TextBoxFrame.hpp"
 #include "engine/edit/TextBlock.hpp"
 #endif
 
@@ -36,9 +37,11 @@ public:
     bool   saveToFile(const QString &path);
     void   retranslateUi();
 
-    QString     currentFile() const { return m_filePath; }
-    int         pageCount()   const { return m_pageCount; }
-    QUndoStack *undoStack()   const { return m_undoStack; }
+    QString     currentFile()      const { return m_filePath; }
+    int         pageCount()        const { return m_pageCount; }
+    QUndoStack *undoStack()        const { return m_undoStack; }
+    bool        hasUnsavedEdits()  const;
+    bool        pdfRenderingAvailable() const;
 
 Q_SIGNALS:
     void fileOpened(const QString &path, int pageCount);
@@ -92,10 +95,11 @@ private:
     QUndoStack *m_undoStack { nullptr };
 
 #ifdef HAVE_QT_PDF
-    QPdfDocument      *m_document  { nullptr };
-    PdfRenderer       *m_renderer  { nullptr };
-    PdfTextExtractor  *m_extractor { nullptr };
-    EditSession       *m_session   { nullptr };
-    InlineEditor      *m_editor    { nullptr };
+    QPdfDocument      *m_document    { nullptr };
+    PdfRenderer       *m_renderer    { nullptr };
+    PdfTextExtractor  *m_extractor   { nullptr };
+    EditSession       *m_session     { nullptr };
+    InlineEditor      *m_editor      { nullptr };
+    TextBoxFrame      *m_editorFrame { nullptr };
 #endif
 };

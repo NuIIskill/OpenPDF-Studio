@@ -51,6 +51,8 @@ DocumentView::DocumentView(QWidget *parent)
     m_editor->hide();
     connect(m_editor, &InlineEditor::committed, this, &DocumentView::commitCurrentEdit);
     connect(m_editor, &InlineEditor::cancelled,  this, &DocumentView::cancelCurrentEdit);
+
+    m_editorFrame = new TextBoxFrame(m_canvas);
 #endif
 }
 
@@ -118,9 +120,9 @@ void DocumentView::setZoom(int percent)
 void DocumentView::setTool(Tool tool)
 {
     m_tool = tool;
-    if (m_editMode) return;
     switch (tool) {
     case Tool::Pan:    viewport()->setCursor(Qt::OpenHandCursor); break;
+    case Tool::Text:   viewport()->setCursor(Qt::IBeamCursor);    break;
     case Tool::Select: viewport()->setCursor(Qt::CrossCursor);    break;
     default:           viewport()->setCursor(Qt::ArrowCursor);    break;
     }
@@ -131,7 +133,7 @@ void DocumentView::setEditMode(bool on)
     if (m_editMode == on) return;
     cancelCurrentEdit();
     m_editMode = on;
-    viewport()->setCursor(on ? Qt::IBeamCursor : Qt::ArrowCursor);
+    if (!on) setTool(m_tool); // restore tool cursor when leaving edit mode
 }
 
 bool DocumentView::saveToFile(const QString &path)
@@ -145,9 +147,34 @@ bool DocumentView::saveToFile(const QString &path)
 #endif
 }
 
+bool DocumentView::hasUnsavedEdits() const
+{
+#ifdef HAVE_QT_PDF
+    return m_session->hasAnyEdits();
+#else
+    return false;
+#endif
+}
+
+bool DocumentView::pdfRenderingAvailable() const
+{
+#ifdef HAVE_QT_PDF
+    return true;
+#else
+    return false;
+#endif
+}
+
 void DocumentView::retranslateUi()
 {
+#ifdef HAVE_QT_PDF
     m_dropHint->setText(tr("Drop a PDF here or click a tab to open"));
+#else
+    m_dropHint->setText(tr(
+        "PDF rendering is not available in this build.\n"
+        "Please use a build that includes Qt6::Pdf support.\n"
+        "(See build-win.sh for instructions.)"));
+#endif
 }
 
 void DocumentView::changeEvent(QEvent *e)
@@ -250,6 +277,7 @@ void DocumentView::handleEditClick(const QPoint &canvasPos)
     const int fontSize = qMax(8, int(block.pdfBounds.height() * scale * 0.78));
     m_editor->resetCommitGuard();
     m_editor->present(block.text, canvasBounds, fontSize);
+    m_editorFrame->presentAround(canvasBounds);
 #endif
 }
 
@@ -257,6 +285,7 @@ void DocumentView::commitCurrentEdit(const QString &newText)
 {
 #ifdef HAVE_QT_PDF
     m_editor->hide();
+    m_editorFrame->hide();
 
     if (m_activeEditPage < 0) return;
 
@@ -278,6 +307,7 @@ void DocumentView::cancelCurrentEdit()
 {
 #ifdef HAVE_QT_PDF
     m_editor->hide();
+    m_editorFrame->hide();
 #endif
     m_activeEditPage = -1;
 }
@@ -293,7 +323,7 @@ bool DocumentView::eventFilter(QObject *obj, QEvent *e)
         if (me->button() == Qt::LeftButton) {
             const QPoint canvas = me->pos() + QPoint(horizontalScrollBar()->value(),
                                                      verticalScrollBar()->value());
-            if (m_editMode) {
+            if (m_editMode && m_tool == Tool::Text) {
 #ifdef HAVE_QT_PDF
                 if (m_editor->isVisible() &&
                     m_editor->geometry().contains(canvas))

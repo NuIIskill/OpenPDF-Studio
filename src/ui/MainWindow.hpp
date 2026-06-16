@@ -7,6 +7,8 @@ class TopToolbar;
 class LeftSidebar;
 class DocumentView;
 class RightSidebar;
+class TextPropertiesPanel;
+class FormatBar;
 class StatusBar;
 class AppSettings;
 class SettingsPanel;
@@ -35,6 +37,7 @@ public Q_SLOTS:
 
 protected:
     void changeEvent(QEvent *e) override;
+    void closeEvent(QCloseEvent *e) override;
 
 private:
     void retranslateUi();
@@ -57,18 +60,26 @@ private:
     void onModeSelected(const QString &mode);
     void onToolSelected(const QString &tool);
 
-    AppSettings  *m_appSettings  { nullptr };
-    TopToolbar   *m_topToolbar   { nullptr };
-    LeftSidebar  *m_leftSidebar  { nullptr };
-    RightSidebar *m_rightSidebar { nullptr };
-    StatusBar    *m_statusBar    { nullptr };
-    QSplitter    *m_splitter     { nullptr };
+    bool confirmAndSave(DocumentView *dv);
+    void openTextPanel();
+    void closeTextPanel();
+
+    AppSettings          *m_appSettings  { nullptr };
+    TopToolbar           *m_topToolbar   { nullptr };
+    FormatBar            *m_formatBar    { nullptr };
+    LeftSidebar          *m_leftSidebar  { nullptr };
+    TextPropertiesPanel  *m_textPanel    { nullptr };
+    RightSidebar         *m_rightSidebar { nullptr };
+    StatusBar            *m_statusBar    { nullptr };
+    QSplitter            *m_splitter     { nullptr };
 
     QStackedWidget        *m_docStack  { nullptr };
     QList<DocumentView *>  m_docViews;
 
     QTranslator m_translator;
-    int         m_zoom         { 100 };
-    QString     m_activeTool   { QStringLiteral("select") };
-    bool        m_editMode     { false };
+    int         m_zoom                   { 100 };
+    QString     m_activeTool             { QStringLiteral("select") };
+    bool        m_editMode               { false };
+    bool        m_textPanelOpen          { false };
+    bool        m_rightSidebarCollapsed  { false };
 };
