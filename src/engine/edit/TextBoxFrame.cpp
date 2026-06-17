@@ -165,15 +165,6 @@ void TextBoxFrame::mouseMoveEvent(QMouseEvent *e)
     if (m_drag == Handle::S || m_drag == Handle::SW || m_drag == Handle::SE)
         geo.setBottom(qMax(geo.bottom() + d.y(), geo.top() + minH));
 
-    // Prevent overlapping other text zones: reject the drag if it would collide.
-    const QRect inner = geo.adjusted(kPad, kPad, -kPad, -kPad);
-    for (const QRect &fz : m_forbidden) {
-        if (inner.intersects(fz)) {
-            e->accept();
-            return;   // keep current geometry unchanged
-        }
-    }
-
     setGeometry(geo);
     e->accept();
 }
