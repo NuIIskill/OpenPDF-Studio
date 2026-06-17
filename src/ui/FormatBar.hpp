@@ -13,6 +13,10 @@ class FormatBar : public QFrame
 public:
     explicit FormatBar(QWidget *parent = nullptr);
     void retranslateUi();
+    void setFontSize(int ptSize);
+
+Q_SIGNALS:
+    void fontSizeChanged(int ptSize);
 
 private:
     static QFrame      *makeSep(QWidget *parent);

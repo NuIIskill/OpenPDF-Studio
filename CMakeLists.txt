@@ -21,6 +21,9 @@ qt_standard_project_setup()
 set(SOURCES
     src/main.cpp
 
+    src/engine/ocr/OcrEngine.cpp
+    src/engine/ocr/OcrEngine.hpp
+
     src/app/App.cpp
     src/app/App.hpp
     src/app/AppSettings.cpp
@@ -132,6 +135,39 @@ endif()
 target_include_directories(OpenPDFStudio PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/src/3rdparty
 )
+
+# ── qpdf: vector PDF content-stream overlay (true text replacement) ───────────
+find_package(qpdf QUIET CONFIG)
+if(qpdf_FOUND)
+    message(STATUS "qpdf ${qpdf_VERSION}: vector PDF save enabled")
+    target_compile_definitions(OpenPDFStudio PRIVATE HAVE_QPDF)
+    target_link_libraries(OpenPDFStudio PRIVATE qpdf)
+elseif(PkgConfig_FOUND)
+    pkg_check_modules(QPDF QUIET libqpdf)
+    if(QPDF_FOUND)
+        message(STATUS "qpdf (pkg-config): vector PDF save enabled")
+        target_compile_definitions(OpenPDFStudio PRIVATE HAVE_QPDF)
+        target_include_directories(OpenPDFStudio PRIVATE ${QPDF_INCLUDE_DIRS})
+        target_link_libraries(OpenPDFStudio PRIVATE ${QPDF_LIBRARIES})
+    else()
+        message(STATUS "qpdf: not found — sudo dnf install qpdf-devel for vector PDF output")
+    endif()
+endif()
+
+# ── OCR via Tesseract ─────────────────────────────────────────────────────────
+# Optional dependency: install tesseract-devel and tesseract-langpack-deu|eng
+find_package(PkgConfig QUIET)
+if(PkgConfig_FOUND)
+    pkg_check_modules(TESSERACT QUIET tesseract)
+endif()
+if(TESSERACT_FOUND)
+    message(STATUS "OCR backend: Tesseract ${TESSERACT_VERSION}")
+    target_compile_definitions(OpenPDFStudio PRIVATE HAVE_TESSERACT)
+    target_include_directories(OpenPDFStudio PRIVATE ${TESSERACT_INCLUDE_DIRS})
+    target_link_libraries(OpenPDFStudio PRIVATE ${TESSERACT_LIBRARIES})
+else()
+    message(STATUS "OCR backend: none  (sudo dnf install tesseract-devel tesseract-langpack-deu)")
+endif()
 
 if(UNIX AND NOT APPLE)
     target_compile_definitions(OpenPDFStudio PRIVATE DEFAULT_QPA_PLATFORM="wayland")

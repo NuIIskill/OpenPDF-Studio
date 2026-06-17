@@ -1,5 +1,6 @@
 #include "InlineEditor.hpp"
 
+#include <QApplication>
 #include <QKeyEvent>
 #include <QFocusEvent>
 
@@ -10,35 +11,35 @@ InlineEditor::InlineEditor(QWidget *parent)
     setFrameShape(QFrame::NoFrame);
     setVerticalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
     setHorizontalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
-    setWordWrapMode(QTextOption::NoWrap);
-    setLineWrapMode(QTextEdit::NoWrap);
+    setWordWrapMode(QTextOption::WrapAtWordBoundaryOrAnywhere);
+    setLineWrapMode(QTextEdit::WidgetWidth);
     setAttribute(Qt::WA_DeleteOnClose, false);
     setContextMenuPolicy(Qt::NoContextMenu);
 }
 
-void InlineEditor::present(const QString &text, const QRectF &canvasBounds,
-                            int pixelFontSize)
+static QString editorStyleSheet(int pixelFontSize)
 {
-    setStyleSheet(QString(
+    return QString(
         "QTextEdit#InlineEditor {"
-        "  background: white;"
+        "  background: transparent;"
         "  border: none;"
         "  font-size: %1px;"
         "  padding: 2px 4px;"
         "  color: #111;"
-        "}").arg(qMax(8, pixelFontSize)));
+        "}").arg(qMax(8, pixelFontSize));
+}
 
-    // Make at least as wide as the original text run
-    QRect geo = canvasBounds.toAlignedRect();
-    geo.setWidth(qMax(geo.width(), 120));
-    geo.adjust(-2, -2, 2, 2);
-    setGeometry(geo);
-
+void InlineEditor::present(const QString &text, int pixelFontSize)
+{
+    setStyleSheet(editorStyleSheet(pixelFontSize));
     setPlainText(text);
     selectAll();
     show();
-    raise();
-    setFocus();
+}
+
+void InlineEditor::setFontSize(int pixelFontSize)
+{
+    setStyleSheet(editorStyleSheet(pixelFontSize));
 }
 
 void InlineEditor::keyPressEvent(QKeyEvent *e)
@@ -47,7 +48,7 @@ void InlineEditor::keyPressEvent(QKeyEvent *e)
         Q_EMIT cancelled();
         return;
     }
-    // Enter without Shift commits; Shift+Enter inserts a newline
+    // Enter without Shift commits; Shift+Enter inserts a newline.
     if ((e->key() == Qt::Key_Return || e->key() == Qt::Key_Enter)
         && !(e->modifiers() & Qt::ShiftModifier)) {
         if (!m_committing) {
@@ -61,6 +62,16 @@ void InlineEditor::keyPressEvent(QKeyEvent *e)
 
 void InlineEditor::focusOutEvent(QFocusEvent *e)
 {
+    QWidget *newFocus = qApp->focusWidget();
+    qWarning() << "[IE] focusOutEvent reason=" << (int)e->reason()
+               << "suppress=" << m_suppressFocusOut
+               << "newFocus=" << (newFocus ? newFocus->metaObject()->className() : "null")
+               << (newFocus ? newFocus->objectName() : "");
+    if (m_suppressFocusOut) {
+        m_suppressFocusOut = false;
+        QTextEdit::focusOutEvent(e);
+        return;   // spurious/transient focus loss — don't commit
+    }
     QTextEdit::focusOutEvent(e);
     if (!m_committing) {
         m_committing = true;

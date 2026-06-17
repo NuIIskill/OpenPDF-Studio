@@ -96,6 +96,11 @@ FormatBar::FormatBar(QWidget *parent) : QFrame(parent)
         "  padding:0 6px; font-size:13px; background:white; }"
         "QComboBox::drop-down { border:none; width:20px; }"));
     h->addWidget(m_fontSize);
+    connect(m_fontSize, &QComboBox::currentTextChanged, this, [this](const QString &t) {
+        bool ok; int pt = t.toInt(&ok);
+        if (ok && pt >= 4 && pt <= 400)
+            Q_EMIT fontSizeChanged(pt);
+    });
 
     h->addWidget(makeSep(this));
 
@@ -174,6 +179,15 @@ FormatBar::FormatBar(QWidget *parent) : QFrame(parent)
         "  font-size:16px; color:#374151; letter-spacing:2px; }"
         "QPushButton:hover { background:#F3F4F6; }"));
     h->addWidget(moreBtn);
+}
+
+void FormatBar::setFontSize(int ptSize)
+{
+    const QString s = QString::number(ptSize);
+    if (m_fontSize->currentText() != s) {
+        QSignalBlocker blocker(m_fontSize);  // don't re-emit fontSizeChanged for programmatic set
+        m_fontSize->setCurrentText(s);
+    }
 }
 
 void FormatBar::retranslateUi()

@@ -9,13 +9,15 @@ class QVBoxLayout;
 class QRubberBand;
 QT_END_NAMESPACE
 
+#include "engine/ocr/OcrEngine.hpp"
+
 #ifdef HAVE_PDF_RENDERING
 #  include "engine/view/PdfRenderer.hpp"
 #  ifdef HAVE_QT_PDF
 #    include <QPdfDocument>
+#    include <QHash>
 #    include "engine/edit/PdfTextExtractor.hpp"
 #    include "engine/edit/EditSession.hpp"
-#    include "engine/edit/InlineEditor.hpp"
 #    include "engine/edit/TextBoxFrame.hpp"
 #    include "engine/edit/TextBlock.hpp"
 #  elif defined(HAVE_POPPLER)
@@ -41,6 +43,8 @@ public:
     void   setEditMode(bool on);
     bool   saveToFile(const QString &path);
     void   retranslateUi();
+    // Called by MainWindow when the user changes the font size in the FormatBar.
+    void   setEditorFontSize(int ptSize);
 
     QString     currentFile()      const { return m_filePath; }
     int         pageCount()        const { return m_pageCount; }
@@ -51,6 +55,8 @@ public:
 Q_SIGNALS:
     void fileOpened(const QString &path, int pageCount);
     void pageChanged(int current, int total);
+    // Emitted when an editor opens so the FormatBar can show the correct font size.
+    void editorFontSizeChanged(int ptSize);
 
 protected:
     bool eventFilter(QObject *obj, QEvent *e) override;
@@ -64,9 +70,11 @@ private:
     void   buildPages();
     void   rerenderAll();
     void   rerenderPage(int page);
+    void   rerenderPageWithBlank(int page, const QRectF &pdfBoundsPts);
 
-    // Edit-mode hit testing
+    // Edit-mode interaction
     void   handleEditClick(const QPoint &canvasPos);
+    void   createTextFrame(const QRect &viewportDragRect);
     void   commitCurrentEdit(const QString &newText);
     void   cancelCurrentEdit();
 
@@ -92,12 +100,20 @@ private:
     QPoint m_panScrollOrigin;
     QPoint m_selectStart;
 
+    // Text-tool drag-to-create state (viewport coords)
+    bool   m_textTracking { false };
+    bool   m_textDragging { false };
+    QPoint m_textDragStart;
+
     // Edit-mode state
     int     m_activeEditPage { -1 };
     QRectF  m_activeEditBounds;
     QString m_activeEditOriginalText;
+    int     m_currentEditorFontSizePt { 12 };  // tracks font size set via FormatBar
 
     QUndoStack *m_undoStack { nullptr };
+
+    OcrEngine *m_ocrEngine { nullptr };
 
 #ifdef HAVE_PDF_RENDERING
     PdfRenderer *m_renderer { nullptr };
@@ -105,8 +121,8 @@ private:
     QPdfDocument      *m_document    { nullptr };
     PdfTextExtractor  *m_extractor   { nullptr };
     EditSession       *m_session     { nullptr };
-    InlineEditor      *m_editor      { nullptr };
     TextBoxFrame      *m_editorFrame { nullptr };
+    QHash<int, QList<OcrEngine::Block>> m_ocrCache;
 #  elif defined(HAVE_POPPLER)
     std::unique_ptr<Poppler::Document> m_popplerDoc;
 #  endif

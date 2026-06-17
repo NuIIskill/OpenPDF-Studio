@@ -9,27 +9,46 @@
 #include <QPdfDocument>
 #endif
 
-// Stores all pending text edits for one document.
-// Knows how to apply them to a QImage and how to write a final PDF.
+// Stores all pending text edits for one document session.
+// Knows how to apply them to a QImage (live view) and to save a final PDF.
+// When qpdf is available (HAVE_QPDF), saveToFile uses a hybrid approach:
+//   unedited pages are copied as-is (full vector quality); edited pages are
+//   rasterised at 300 DPI so the original text is truly gone, not overlaid.
+// Without qpdf, falls back to raster rendering (QPdfWriter + QPainter).
 class EditSession
 {
 public:
     EditSession() = default;
 
-    void addEdit(int page, const QRectF &pdfBounds, const QString &newText);
+    // fontSizePt=0 means "auto-detect from content stream or bound-height"
+    void addEdit(int page, const QRectF &pdfBounds, const QString &newText,
+                 double fontSizePt = 0.0);
     void removeEdit(int page, const QRectF &pdfBounds);
     void clear();
 
-    bool hasEditsOnPage(int page) const;
-    bool hasAnyEdits()            const { return !m_edits.isEmpty(); }
+    bool    hasEditsOnPage(int page) const;
+    bool    hasAnyEdits()            const { return !m_edits.isEmpty(); }
 
-    // Paint replacements onto an already-rendered QImage.
+    // Returns current edited text at (page, pdfBounds), or null QString if none.
+    QString editTextAt(int page, const QRectF &pdfBounds) const;
+
+    // Paint replacements onto an already-rendered QImage (used for live view).
     // scale = PDF-point-to-pixel factor used when rendering.
     void applyToImage(int page, QImage &img, qreal scale) const;
 
-#ifdef HAVE_QT_PDF
-    // Write the full document (with edits) to a PDF file.
-    bool saveToFile(const QString &path, QPdfDocument *doc, int pageCount) const;
+    // Write the document with all edits to outputPath.
+    //   sourcePath  — original PDF file on disk; enables vector output via qpdf.
+    //   doc         — Qt PDF document; used for raster fallback only.
+    //   pageCount   — total page count from the reader.
+#if defined(HAVE_QT_PDF)
+    bool saveToFile(const QString &outputPath,
+                    QPdfDocument  *doc,
+                    int            pageCount,
+                    const QString &sourcePath = QString()) const;
+#elif defined(HAVE_QPDF)
+    bool saveToFile(const QString &outputPath,
+                    int            pageCount,
+                    const QString &sourcePath) const;
 #endif
 
 private:
@@ -37,9 +56,20 @@ private:
         int     page;
         QRectF  pdfBounds;
         QString newText;
+        double  fontSizePt { 0.0 };  // 0 = derive from content stream / bound height
     };
 
     static void paintEdit(QPainter &p, const Edit &e, qreal scale);
+
+#ifdef HAVE_QPDF
+    // Hybrid: unedited pages copied as vector, edited pages rasterised at 300 DPI.
+    bool saveVector(const QString &sourcePath, const QString &outputPath,
+                    QPdfDocument *doc, int pageCount) const;
+#endif
+
+#ifdef HAVE_QT_PDF
+    bool saveRaster(const QString &outputPath, QPdfDocument *doc, int pageCount) const;
+#endif
 
     QList<Edit> m_edits;
 };

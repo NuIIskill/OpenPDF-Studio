@@ -131,6 +131,12 @@ void MainWindow::connectSignals()
         m_rightSidebar->setMode(QString{});
     });
 
+    // FormatBar font size → active editor live update
+    connect(m_formatBar, &FormatBar::fontSizeChanged, this, [this](int pt) {
+        if (DocumentView *dv = currentDocView())
+            dv->setEditorFontSize(pt);
+    });
+
     // Ctrl+S shortcut
     auto *saveShortcut = new QShortcut(QKeySequence::Save, this);
     connect(saveShortcut, &QShortcut::activated, this, &MainWindow::onSave);
@@ -168,6 +174,10 @@ DocumentView *MainWindow::addDocView()
         }
         m_statusBar->setPageInfo(1, pages);
     });
+
+    // Sync FormatBar font size ↔ active editor
+    connect(dv, &DocumentView::editorFontSizeChanged,
+            m_formatBar, &FormatBar::setFontSize);
 
     m_docStack->setCurrentWidget(dv);
     m_topToolbar->setCurrentTab(idx);

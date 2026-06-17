@@ -1,20 +1,19 @@
 #pragma once
-
 #include <QTextEdit>
 
-// A frameless inline text editor that sits directly over a PDF text run.
-// Pressing Enter commits; Escape cancels; focus loss commits.
+// Frameless text editor living inside TextBoxFrame.
+// TextBoxFrame owns geometry; this widget only handles text and keyboard input.
+// Enter commits, Escape cancels, focus-loss commits.
 class InlineEditor : public QTextEdit
 {
     Q_OBJECT
-
 public:
     explicit InlineEditor(QWidget *parent = nullptr);
 
-    // Position and size the editor over a canvas-coordinate rect.
-    // pixelFontSize is estimated from the text run's rendered height.
-    void present(const QString &text, const QRectF &canvasBounds,
-                 int pixelFontSize);
+    // Set content and font size, then grab focus.
+    void present(const QString &text, int pixelFontSize);
+    // Change font size live without resetting content.
+    void setFontSize(int pixelFontSize);
 
 Q_SIGNALS:
     void committed(const QString &text);
@@ -25,8 +24,10 @@ protected:
     void focusOutEvent(QFocusEvent *e) override;
 
 public:
-    void resetCommitGuard() { m_committing = false; }
+    void resetCommitGuard()    { m_committing = false; }
+    void suppressNextFocusOut() { m_suppressFocusOut = true; }
 
 private:
-    bool m_committing { false };
+    bool m_committing     { false };
+    bool m_suppressFocusOut { false };
 };

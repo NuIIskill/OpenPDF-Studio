@@ -12,6 +12,8 @@
 #include <QFrame>
 #include <QPalette>
 #include <QPainter>
+#include <QApplication>
+#include <QDebug>
 
 DocumentView::DocumentView(QWidget *parent)
     : QScrollArea(parent)
@@ -39,6 +41,7 @@ DocumentView::DocumentView(QWidget *parent)
 
     setWidget(m_canvas);
     viewport()->installEventFilter(this);
+    m_canvas->installEventFilter(this);     // also catch events on the canvas itself
     m_rubberBand = new QRubberBand(QRubberBand::Rectangle, viewport());
     retranslateUi();
 
@@ -48,18 +51,27 @@ DocumentView::DocumentView(QWidget *parent)
     m_extractor = new PdfTextExtractor(m_document);
     m_session   = new EditSession();
 
-    m_editor = new InlineEditor(m_canvas);
-    m_editor->hide();
-    connect(m_editor, &InlineEditor::committed, this, &DocumentView::commitCurrentEdit);
-    connect(m_editor, &InlineEditor::cancelled,  this, &DocumentView::cancelCurrentEdit);
-
     m_editorFrame = new TextBoxFrame(m_canvas);
+    connect(m_editorFrame, &TextBoxFrame::committed, this, &DocumentView::commitCurrentEdit);
+    connect(m_editorFrame, &TextBoxFrame::cancelled,  this, &DocumentView::cancelCurrentEdit);
+    connect(m_editorFrame, &TextBoxFrame::boundsChanged, this, [this](const QRectF &inner) {
+        if (m_activeEditPage < 0) return;
+        const QLabel *lbl = m_pageLabels.value(m_activeEditPage, nullptr);
+        if (!lbl) return;
+        const qreal scale = PdfRenderer::screenScale(m_zoom);
+        m_activeEditBounds = QRectF(
+            (inner.topLeft() - QPointF(lbl->pos())) / scale,
+            inner.size() / scale);
+    });
 #endif
     // HAVE_POPPLER: m_renderer and m_popplerDoc are created per-file in openFile()
+
+    m_ocrEngine = new OcrEngine();
 }
 
 DocumentView::~DocumentView()
 {
+    delete m_ocrEngine;
 #ifdef HAVE_QT_PDF
     delete m_renderer;
     delete m_extractor;
@@ -78,6 +90,7 @@ void DocumentView::clearDocument()
 #ifdef HAVE_QT_PDF
     m_session->clear();
     m_document->close();
+    m_ocrCache.clear();
 #elif defined(HAVE_POPPLER)
     delete m_renderer;
     m_renderer = nullptr;
@@ -169,7 +182,17 @@ bool DocumentView::saveToFile(const QString &path)
 {
 #ifdef HAVE_QT_PDF
     cancelCurrentEdit();
-    return m_session->saveToFile(path, m_document, m_pageCount);
+    if (!m_session->saveToFile(path, m_document, m_pageCount, m_filePath))
+        return false;
+
+    // Reload from the saved file so subsequent saves and re-edits work on
+    // the updated PDF (with our Helvetica replacement text) rather than the original.
+    m_session->clear();
+    m_filePath = path;
+    m_document->close();
+    m_document->load(path);
+    rerenderAll();
+    return true;
 #else
     Q_UNUSED(path)
     return false;
@@ -182,6 +205,20 @@ bool DocumentView::hasUnsavedEdits() const
     return m_session->hasAnyEdits();
 #else
     return false;
+#endif
+}
+
+void DocumentView::setEditorFontSize(int ptSize)
+{
+#ifdef HAVE_QT_PDF
+    if (ptSize < 4 || ptSize > 400) return;
+    m_currentEditorFontSizePt = ptSize;
+    if (m_activeEditPage >= 0 && m_editorFrame->isVisible()) {
+        const qreal scale = PdfRenderer::screenScale(m_zoom);
+        m_editorFrame->setFontSize(qMax(6, qRound(ptSize * scale)));
+    }
+#else
+    Q_UNUSED(ptSize)
 #endif
 }
 
@@ -234,6 +271,7 @@ void DocumentView::buildPages()
         QPalette p = lbl->palette();
         p.setColor(QPalette::Window, Qt::white);
         lbl->setPalette(p);
+        lbl->setAttribute(Qt::WA_TransparentForMouseEvents, true);
         m_layout->addWidget(lbl, 0, Qt::AlignHCenter);
         m_pageLabels.append(lbl);
     }
@@ -277,6 +315,30 @@ void DocumentView::rerenderPage(int page)
 #endif
 }
 
+// Re-renders the page normally then paints a white blank over pdfBoundsPts.
+// Called when starting an edit so the original text disappears from view —
+// the editor widget sits over a clean white area instead of over the old text.
+void DocumentView::rerenderPageWithBlank(int page, const QRectF &pdfBoundsPts)
+{
+#ifdef HAVE_PDF_RENDERING
+    if (!m_renderer || page < 0 || page >= m_pageLabels.size()) return;
+    const qreal dpr   = devicePixelRatioF();
+    const qreal scale = PdfRenderer::screenScale(m_zoom);
+    QImage img = m_renderer->renderPage(page, scale * dpr);
+    img.setDevicePixelRatio(dpr);
+#ifdef HAVE_QT_PDF
+    m_session->applyToImage(page, img, scale * dpr);
+    // Erase the active-edit region so the editor sits over a blank area.
+    QPainter p(&img);
+    const QRectF px(pdfBoundsPts.topLeft() * scale * dpr,
+                    pdfBoundsPts.size()    * scale * dpr);
+    p.fillRect(px.adjusted(-3, -3, 3, 3).toAlignedRect(), Qt::white);
+#endif
+    if (!img.isNull())
+        m_pageLabels[page]->setPixmap(QPixmap::fromImage(std::move(img)));
+#endif
+}
+
 // ── Edit mode ─────────────────────────────────────────────────────────────────
 
 std::pair<int, QLabel *> DocumentView::pageAtCanvasPos(const QPoint &canvasPos) const
@@ -290,16 +352,44 @@ std::pair<int, QLabel *> DocumentView::pageAtCanvasPos(const QPoint &canvasPos) 
 void DocumentView::handleEditClick(const QPoint &canvasPos)
 {
 #ifdef HAVE_QT_PDF
+    qWarning() << "[EDIT] handleEditClick canvasPos=" << canvasPos;
     auto [pageIdx, pageLbl] = pageAtCanvasPos(canvasPos);
+    qWarning() << "[EDIT] pageIdx=" << pageIdx;
     if (pageIdx < 0) return;
 
-    // Convert canvas position to PDF-point view coordinates
+    // Convert canvas position to PDF-point coordinates
     const QPointF pageLocal = QPointF(canvasPos - pageLbl->pos());
     const qreal   scale     = PdfRenderer::screenScale(m_zoom);
     const QPointF pdfPt     = pageLocal / scale;
     const QSizeF  pageSize  = m_renderer->pageSizePts(pageIdx);
 
-    const TextBlock block = m_extractor->textAt(pageIdx, pdfPt, pageSize);
+    // Try native PDF text first (vector PDFs)
+    TextBlock block = m_extractor->textAt(pageIdx, pdfPt, pageSize);
+
+    // If no native text found (scanned / image PDF), fall back to OCR
+    if (!block.isValid() && m_ocrEngine && m_ocrEngine->isReady()) {
+        if (!m_ocrCache.contains(pageIdx)) {
+            // Render at ≥300 DPI for reliable OCR accuracy
+            const qreal ocrScale = qMax(scale * devicePixelRatioF(), 300.0 / 72.0);
+            QApplication::setOverrideCursor(Qt::WaitCursor);
+            QApplication::processEvents(QEventLoop::ExcludeUserInputEvents);
+            const QImage pageImg = m_renderer->renderPage(pageIdx, ocrScale);
+            qWarning() << "[OCR] renderPage" << pageIdx << "at scale" << ocrScale
+                     << "→ image" << pageImg.size() << "(null:" << pageImg.isNull() << ")";
+            m_ocrCache[pageIdx] = m_ocrEngine->recognizePage(pageImg, pageSize, ocrScale);
+            QApplication::restoreOverrideCursor();
+        }
+
+        qWarning() << "[OCR] cache for page" << pageIdx << "has" << m_ocrCache[pageIdx].size() << "lines";
+        qWarning() << "[OCR] click pdfPt:" << pdfPt << "pageSize:" << pageSize;
+        const OcrEngine::Block ocr = OcrEngine::blockAt(m_ocrCache[pageIdx], pdfPt);
+        qWarning() << "[OCR] blockAt result: valid=" << ocr.isValid()
+                 << "bounds=" << ocr.pdfBounds << "text=" << ocr.text.left(60);
+        if (ocr.isValid())
+            block = TextBlock{ pageIdx, ocr.pdfBounds, ocr.text };
+    }
+
+    qWarning() << "[EDIT] block valid=" << block.isValid() << "text=" << block.text.left(40);
     if (!block.isValid()) return;
 
     // Convert block bounds back to canvas coordinates for the overlay
@@ -308,33 +398,53 @@ void DocumentView::handleEditClick(const QPoint &canvasPos)
         block.pdfBounds.size() * scale
     );
 
+    // If there's already an edit at this location (user re-clicks on edited text),
+    // load the current edited text rather than the original PDF text.
+    const QString existing = m_session->editTextAt(block.page, block.pdfBounds);
+    const QString displayText = existing.isNull() ? block.text : existing;
+
     m_activeEditPage         = block.page;
     m_activeEditBounds       = block.pdfBounds;
-    m_activeEditOriginalText = block.text;
+    m_activeEditOriginalText = displayText;
 
-    const int fontSize = qMax(8, int(block.pdfBounds.height() * scale * 0.78));
-    m_editor->resetCommitGuard();
-    m_editor->present(block.text, canvasBounds, fontSize);
-    m_editorFrame->presentAround(canvasBounds);
+    // Font size: derive from single-line height (pdfBounds spans whole paragraph).
+    // We store it in pt so the FormatBar and saveVector use the same value.
+    const int lineCount = qMax(1, block.text.count(u'\n') + 1);
+    m_currentEditorFontSizePt = qMax(4, int(block.pdfBounds.height() / lineCount * 0.78));
+    Q_EMIT editorFontSizeChanged(m_currentEditorFontSizePt);
+
+    const int fontSize = qMax(6, qRound(m_currentEditorFontSizePt * scale));
+    m_editorFrame->setDecorations(true);
+    m_editorFrame->resetCommitGuard();
+    m_editorFrame->present(displayText, canvasBounds, fontSize);
+    // Erase original text from page render so the editor isn't floating over it.
+    rerenderPageWithBlank(block.page, block.pdfBounds);
 #endif
 }
 
 void DocumentView::commitCurrentEdit(const QString &newText)
 {
 #ifdef HAVE_QT_PDF
-    m_editor->hide();
-    m_editorFrame->hide();
-
     if (m_activeEditPage < 0) return;
 
+    // Capture page/bounds/original before hide() — hide() can trigger
+    // a recursive focusOut→committed→commitCurrentEdit call, which exits
+    // early because m_activeEditPage is already -1.
+    const int    page     = m_activeEditPage;
+    const QRectF bounds   = m_activeEditBounds;
+    const QString origText = m_activeEditOriginalText;
+    m_activeEditPage = -1;
+
+    m_editorFrame->hide();  // may trigger recursive commit, which exits early ↑
+
+    qWarning() << "[COMMIT] page=" << page << "new=" << newText.left(40);
+
     const QString trimNew = newText.trimmed();
-    const QString trimOld = m_activeEditOriginalText.trimmed();
+    const QString trimOld = origText.trimmed();
 
     if (trimNew != trimOld && !trimNew.isEmpty())
-        m_session->addEdit(m_activeEditPage, m_activeEditBounds, newText);
+        m_session->addEdit(page, bounds, newText, m_currentEditorFontSizePt);
 
-    const int page = m_activeEditPage;
-    m_activeEditPage = -1;
     rerenderPage(page);
 #else
     Q_UNUSED(newText)
@@ -344,42 +454,87 @@ void DocumentView::commitCurrentEdit(const QString &newText)
 void DocumentView::cancelCurrentEdit()
 {
 #ifdef HAVE_QT_PDF
-    m_editor->hide();
-    m_editorFrame->hide();
-#endif
+    const int page = m_activeEditPage;
     m_activeEditPage = -1;
+    m_editorFrame->hide();
+    if (page >= 0)
+        rerenderPage(page);  // restore original text after cancel
+#else
+    m_activeEditPage = -1;
+#endif
+}
+
+// ── Drag-to-create text frame ─────────────────────────────────────────────────
+
+void DocumentView::createTextFrame(const QRect &viewportDragRect)
+{
+#ifdef HAVE_QT_PDF
+    const QPoint scroll(horizontalScrollBar()->value(), verticalScrollBar()->value());
+    const QRect canvasRect = viewportDragRect.translated(scroll);
+
+    auto [pageIdx, pageLbl] = pageAtCanvasPos(canvasRect.center());
+    if (pageIdx < 0) return;
+
+    const qreal scale = PdfRenderer::screenScale(m_zoom);
+    m_activeEditPage         = pageIdx;
+    m_activeEditBounds       = QRectF(
+        (QPointF(canvasRect.topLeft()) - QPointF(pageLbl->pos())) / scale,
+        QSizeF(canvasRect.size()) / scale);
+    m_activeEditOriginalText = QString();
+
+    const int fontSize = qMax(8, qRound(12.0 * scale));
+    m_editorFrame->setDecorations(true);  // new text box: show border + handles
+    m_editorFrame->resetCommitGuard();
+    m_editorFrame->present(QString(), QRectF(canvasRect), fontSize);
+#else
+    Q_UNUSED(viewportDragRect)
+#endif
 }
 
 // ── Event filter ──────────────────────────────────────────────────────────────
 
 bool DocumentView::eventFilter(QObject *obj, QEvent *e)
 {
-    if (obj != viewport()) return QScrollArea::eventFilter(obj, e);
+    // Page labels have WA_TransparentForMouseEvents so all clicks fall through to
+    // m_canvas (their parent). We also handle viewport() for clicks in the margins.
+    const bool fromCanvas   = (obj == m_canvas);
+    const bool fromViewport = (obj == viewport());
+    if (!fromCanvas && !fromViewport)
+        return QScrollArea::eventFilter(obj, e);
+
+    // Helpers: m_canvas coords are the canonical space; rubber band lives in viewport.
+    const QPoint scroll(horizontalScrollBar()->value(), verticalScrollBar()->value());
+    auto toCanvas   = [&](const QPoint &p) { return fromCanvas ? p : p + scroll; };
+    auto toViewport = [&](const QPoint &p) { return fromCanvas ? p - scroll : p; };
 
     if (e->type() == QEvent::MouseButtonPress) {
         auto *me = static_cast<QMouseEvent *>(e);
         if (me->button() == Qt::LeftButton) {
-            const QPoint canvas = me->pos() + QPoint(horizontalScrollBar()->value(),
-                                                     verticalScrollBar()->value());
+            const QPoint cvsPos = toCanvas(me->pos());
+            const QPoint vpPos  = toViewport(me->pos());
+
             if (m_editMode && m_tool == Tool::Text) {
 #ifdef HAVE_QT_PDF
-                if (m_editor->isVisible() &&
-                    m_editor->geometry().contains(canvas))
+                // Let TextBoxFrame/InlineEditor handle clicks inside the active frame.
+                if (m_editorFrame->isVisible() && m_editorFrame->geometry().contains(cvsPos))
                     return QScrollArea::eventFilter(obj, e);
 #endif
                 cancelCurrentEdit();
-                handleEditClick(canvas);
+                m_textDragStart = cvsPos;   // stored in canvas coords
+                m_textTracking  = true;
+                m_textDragging  = false;
+                qWarning() << "[EF] text press cvsPos=" << cvsPos << "editMode=" << m_editMode;
                 return true;
             }
 
             switch (m_tool) {
             case Tool::Select:
-                m_selectStart = me->pos();
-                m_rubberBand->setGeometry(QRect(me->pos(), QSize()));
+                m_selectStart = vpPos;
+                m_rubberBand->setGeometry(QRect(vpPos, QSize()));
                 m_rubberBand->show();
                 break;
             case Tool::Pan:
-                m_panStart        = me->pos();
+                m_panStart        = vpPos;
                 m_panScrollOrigin = { horizontalScrollBar()->value(),
                                      verticalScrollBar()->value() };
                 viewport()->setCursor(Qt::ClosedHandCursor);
@@ -389,15 +544,27 @@ bool DocumentView::eventFilter(QObject *obj, QEvent *e)
         }
     } else if (e->type() == QEvent::MouseMove) {
         auto *me = static_cast<QMouseEvent *>(e);
+        if (m_editMode && m_tool == Tool::Text && m_textTracking) {
+            const QPoint cvsPos = toCanvas(me->pos());
+            if (!m_textDragging && (cvsPos - m_textDragStart).manhattanLength() > 6)
+                m_textDragging = true;
+            if (m_textDragging) {
+                m_rubberBand->setGeometry(
+                    QRect(toViewport(m_textDragStart), toViewport(cvsPos)).normalized());
+                m_rubberBand->show();
+            }
+            return true;
+        }
         if (!m_editMode) {
+            const QPoint vpPos = toViewport(me->pos());
             switch (m_tool) {
             case Tool::Select:
                 if (me->buttons() & Qt::LeftButton)
-                    m_rubberBand->setGeometry(QRect(m_selectStart, me->pos()).normalized());
+                    m_rubberBand->setGeometry(QRect(m_selectStart, vpPos).normalized());
                 break;
             case Tool::Pan:
                 if (me->buttons() & Qt::LeftButton) {
-                    const QPoint d = me->pos() - m_panStart;
+                    const QPoint d = vpPos - m_panStart;
                     horizontalScrollBar()->setValue(m_panScrollOrigin.x() - d.x());
                     verticalScrollBar()->setValue(m_panScrollOrigin.y() - d.y());
                 }
@@ -407,11 +574,26 @@ bool DocumentView::eventFilter(QObject *obj, QEvent *e)
         }
     } else if (e->type() == QEvent::MouseButtonRelease) {
         auto *me = static_cast<QMouseEvent *>(e);
-        if (me->button() == Qt::LeftButton && !m_editMode) {
-            switch (m_tool) {
-            case Tool::Select: m_rubberBand->hide();                        break;
-            case Tool::Pan:    viewport()->setCursor(Qt::OpenHandCursor);   break;
-            default: break;
+        if (me->button() == Qt::LeftButton) {
+            if (m_editMode && m_tool == Tool::Text && m_textTracking) {
+                m_textTracking = false;
+                if (m_textDragging) {
+                    m_textDragging = false;
+                    const QRect band = m_rubberBand->geometry();   // viewport coords
+                    m_rubberBand->hide();
+                    if (band.width() > 30 && band.height() > 15)
+                        createTextFrame(band);                       // expects viewport rect ✓
+                } else {
+                    handleEditClick(m_textDragStart);                // canvas coords ✓
+                }
+                return true;
+            }
+            if (!m_editMode) {
+                switch (m_tool) {
+                case Tool::Select: m_rubberBand->hide();                        break;
+                case Tool::Pan:    viewport()->setCursor(Qt::OpenHandCursor);   break;
+                default: break;
+                }
             }
         }
     }
