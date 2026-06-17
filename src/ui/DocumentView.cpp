@@ -415,18 +415,8 @@ void DocumentView::handleEditClick(const QPoint &canvasPos)
 
     const int fontSize = qMax(6, qRound(m_currentEditorFontSizePt * scale));
 
-    // Build forbidden zones: all text blocks on this page except the active one.
-    QList<QRect> forbidden;
-    const QList<TextBlock> allBlocks = m_extractor->allBlocks(pageIdx);
-    for (const TextBlock &b : allBlocks) {
-        if (b.pdfBounds == block.pdfBounds) continue;
-        const QRectF cz(b.pdfBounds.topLeft() * scale + QPointF(pageLbl->pos()),
-                        b.pdfBounds.size() * scale);
-        forbidden.append(cz.toAlignedRect());
-    }
-
     m_editorFrame->setDecorations(true);
-    m_editorFrame->setForbiddenZones(forbidden);
+    m_editorFrame->setForbiddenZones({});
     m_editorFrame->resetCommitGuard();
     m_editorFrame->present(displayText, canvasBounds, fontSize);
     // Erase original text from page render so the editor isn't floating over it.
