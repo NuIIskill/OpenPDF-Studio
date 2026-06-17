@@ -6,7 +6,10 @@
 #include <QString>
 
 #ifdef HAVE_QT_PDF
-#include <QPdfDocument>
+#  include <QPdfDocument>
+#endif
+#ifdef HAVE_POPPLER
+#  include <poppler/qt6/poppler-qt6.h>
 #endif
 
 // Stores all pending text edits for one document.
@@ -27,9 +30,11 @@ public:
     // scale = PDF-point-to-pixel factor used when rendering.
     void applyToImage(int page, QImage &img, qreal scale) const;
 
-#ifdef HAVE_QT_PDF
-    // Write the full document (with edits) to a PDF file.
+#if defined(HAVE_QT_PDF) && defined(HAVE_QT_PRINT)
     bool saveToFile(const QString &path, QPdfDocument *doc, int pageCount) const;
+#endif
+#if defined(HAVE_POPPLER) && defined(HAVE_QT_PRINT)
+    bool saveToFile(const QString &path, Poppler::Document *doc, int pageCount) const;
 #endif
 
 private:

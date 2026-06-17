@@ -5,25 +5,16 @@
 
 PdfTextExtractor::PdfTextExtractor(QPdfDocument *doc)
     : m_doc(doc)
-{
-}
-
-// ── Public ────────────────────────────────────────────────────────────────────
+{}
 
 TextBlock PdfTextExtractor::textAt(int page, const QPointF &pdfPt,
                                    const QSizeF &pageSizePts) const
 {
-    // Strategy: getAllText gives us the actual text-run bounding polygons.
-    // We find which polygon the click fell in, then use getSelection with
-    // those exact bounds to retrieve the text.  This is far more reliable
-    // than guessing a wide horizontal band upfront.
-
     const QPdfSelection all = m_doc->getAllText(page);
     if (!all.isValid()) return {};
 
     const QList<QPolygonF> &polys = all.bounds();
 
-    // Pass 1: strict containment (exact hit inside a text run)
     for (const QPolygonF &poly : polys) {
         const QRectF r = poly.boundingRect();
         if (r.contains(pdfPt)) {
@@ -32,8 +23,6 @@ TextBlock PdfTextExtractor::textAt(int page, const QPointF &pdfPt,
         }
     }
 
-    // Pass 2: expanded tolerance (+/- 4 pts vertically) for clicks
-    //         between tightly-spaced lines or in thin descenders.
     for (const QPolygonF &poly : polys) {
         const QRectF r = poly.boundingRect().adjusted(0, -4, 0, 4);
         if (r.contains(pdfPt)) {
@@ -42,9 +31,8 @@ TextBlock PdfTextExtractor::textAt(int page, const QPointF &pdfPt,
         }
     }
 
-    // Pass 3: closest block by Y distance (if click is in a gap between lines)
     const QPolygonF *best = nullptr;
-    qreal bestDist = 12.0; // max 12 pts gap to snap to
+    qreal bestDist = 12.0;
     for (const QPolygonF &poly : polys) {
         const QRectF r = poly.boundingRect();
         const qreal dy = (pdfPt.y() < r.top())   ? r.top()    - pdfPt.y()
@@ -74,19 +62,12 @@ QList<TextBlock> PdfTextExtractor::allBlocks(int page) const
     return result;
 }
 
-// ── Private ───────────────────────────────────────────────────────────────────
-
 TextBlock PdfTextExtractor::fetchBlock(int page, const QRectF &r,
                                        const QSizeF & /*pageSizePts*/) const
 {
-    // Use the polygon's own top-left / bottom-right as the selection range.
-    // getSelection snaps to the nearest characters at those two positions,
-    // so passing the exact text-run corners reliably returns that run's text.
     const QPdfSelection sel = m_doc->getSelection(page, r.topLeft(), r.bottomRight());
     if (!sel.isValid() || sel.text().trimmed().isEmpty()) return {};
 
-    // Prefer the bounds Qt reports for the selection (may be slightly wider
-    // than our polygon bound if glyphs extend past their logical bounds).
     QRectF bounds = r;
     if (!sel.bounds().isEmpty())
         bounds = sel.bounds().first().boundingRect();
@@ -94,4 +75,101 @@ TextBlock PdfTextExtractor::fetchBlock(int page, const QRectF &r,
     return { page, bounds, sel.text() };
 }
 
-#endif // HAVE_QT_PDF
+#elif defined(HAVE_POPPLER)
+
+#include "PdfTextExtractor.hpp"
+#include <algorithm>
+
+PdfTextExtractor::PdfTextExtractor(Poppler::Document *doc)
+    : m_doc(doc)
+{}
+
+// Poppler text boxes use PDF native coordinates: origin bottom-left, Y upward.
+// We convert them to screen coordinates (top-left, Y downward) to match
+// the click positions our callers pass in.
+QList<TextBlock> PdfTextExtractor::buildBlocks(int page) const
+{
+    auto p = m_doc->page(page);
+    if (!p) return {};
+
+    const qreal pageH = p->pageSizeF().height();
+    auto words = p->textList();
+
+    // Convert each word to screen coords and store with its original word info
+    struct Word {
+        QRectF  screenBox;
+        QString text;
+        bool    spaceAfter;
+    };
+    std::vector<Word> screenWords;
+    screenWords.reserve(words.size());
+    for (const auto &w : words) {
+        const QRectF b = w->boundingBox();
+        // PDF→screen: flip Y (PDF origin is bottom-left, Y up)
+        const QRectF sBox(b.x(), pageH - b.y() - b.height(), b.width(), b.height());
+        screenWords.push_back({ sBox, w->text(), w->hasSpaceAfter() });
+    }
+
+    // Sort top-to-bottom, left-to-right
+    std::sort(screenWords.begin(), screenWords.end(), [](const Word &a, const Word &b) {
+        if (qAbs(a.screenBox.top() - b.screenBox.top()) > 2.0)
+            return a.screenBox.top() < b.screenBox.top();
+        return a.screenBox.left() < b.screenBox.left();
+    });
+
+    // Group words with overlapping Y-ranges into line blocks
+    QList<TextBlock> blocks;
+    int i = 0;
+    while (i < (int)screenWords.size()) {
+        QRectF  lineBox  = screenWords[i].screenBox;
+        QString lineText = screenWords[i].text;
+        int j = i + 1;
+        while (j < (int)screenWords.size()) {
+            const QRectF &next = screenWords[j].screenBox;
+            if (next.top() < lineBox.bottom() + 2.0) {
+                if (screenWords[j - 1].spaceAfter)
+                    lineText += QLatin1Char(' ');
+                lineText += screenWords[j].text;
+                lineBox = lineBox.united(next);
+                ++j;
+            } else {
+                break;
+            }
+        }
+        if (!lineText.trimmed().isEmpty())
+            blocks.append({ page, lineBox, lineText.trimmed() });
+        i = j;
+    }
+    return blocks;
+}
+
+TextBlock PdfTextExtractor::textAt(int page, const QPointF &pdfPt,
+                                   const QSizeF & /*pageSizePts*/) const
+{
+    const QList<TextBlock> blocks = buildBlocks(page);
+
+    for (const TextBlock &blk : blocks)
+        if (blk.pdfBounds.contains(pdfPt)) return blk;
+
+    for (const TextBlock &blk : blocks)
+        if (blk.pdfBounds.adjusted(0, -4, 0, 4).contains(pdfPt)) return blk;
+
+    const TextBlock *best = nullptr;
+    qreal bestDist = 12.0;
+    for (const TextBlock &blk : blocks) {
+        const qreal dy = (pdfPt.y() < blk.pdfBounds.top())    ? blk.pdfBounds.top()    - pdfPt.y()
+                       : (pdfPt.y() > blk.pdfBounds.bottom())  ? pdfPt.y() - blk.pdfBounds.bottom()
+                       : 0;
+        if (dy < bestDist) { bestDist = dy; best = &blk; }
+    }
+    if (best) return *best;
+
+    return {};
+}
+
+QList<TextBlock> PdfTextExtractor::allBlocks(int page) const
+{
+    return buildBlocks(page);
+}
+
+#endif // HAVE_QT_PDF / HAVE_POPPLER

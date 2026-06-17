@@ -11,13 +11,13 @@ QT_END_NAMESPACE
 
 #ifdef HAVE_PDF_RENDERING
 #  include "engine/view/PdfRenderer.hpp"
+#  include "engine/edit/PdfTextExtractor.hpp"
+#  include "engine/edit/EditSession.hpp"
+#  include "engine/edit/InlineEditor.hpp"
+#  include "engine/edit/TextBoxFrame.hpp"
+#  include "engine/edit/TextBlock.hpp"
 #  ifdef HAVE_QT_PDF
 #    include <QPdfDocument>
-#    include "engine/edit/PdfTextExtractor.hpp"
-#    include "engine/edit/EditSession.hpp"
-#    include "engine/edit/InlineEditor.hpp"
-#    include "engine/edit/TextBoxFrame.hpp"
-#    include "engine/edit/TextBlock.hpp"
 #  elif defined(HAVE_POPPLER)
 #    include <memory>
 #    include <poppler/qt6/poppler-qt6.h>
@@ -60,17 +60,14 @@ protected:
     void changeEvent(QEvent *e) override;
 
 private:
-    // Page rendering
-    void   buildPages();
-    void   rerenderAll();
-    void   rerenderPage(int page);
+    void buildPages();
+    void rerenderAll();
+    void rerenderPage(int page);
 
-    // Edit-mode hit testing
-    void   handleEditClick(const QPoint &canvasPos);
-    void   commitCurrentEdit(const QString &newText);
-    void   cancelCurrentEdit();
+    void handleEditClick(const QPoint &canvasPos);
+    void commitCurrentEdit(const QString &newText);
+    void cancelCurrentEdit();
 
-    // Canvas helpers
     std::pair<int, QLabel *> pageAtCanvasPos(const QPoint &canvasPos) const;
 
     // Widgets
@@ -100,13 +97,13 @@ private:
     QUndoStack *m_undoStack { nullptr };
 
 #ifdef HAVE_PDF_RENDERING
-    PdfRenderer *m_renderer { nullptr };
+    PdfRenderer      *m_renderer    { nullptr };
+    PdfTextExtractor *m_extractor   { nullptr };
+    EditSession      *m_session     { nullptr };
+    InlineEditor     *m_editor      { nullptr };
+    TextBoxFrame     *m_editorFrame { nullptr };
 #  ifdef HAVE_QT_PDF
-    QPdfDocument      *m_document    { nullptr };
-    PdfTextExtractor  *m_extractor   { nullptr };
-    EditSession       *m_session     { nullptr };
-    InlineEditor      *m_editor      { nullptr };
-    TextBoxFrame      *m_editorFrame { nullptr };
+    QPdfDocument *m_document { nullptr };
 #  elif defined(HAVE_POPPLER)
     std::unique_ptr<Poppler::Document> m_popplerDoc;
 #  endif

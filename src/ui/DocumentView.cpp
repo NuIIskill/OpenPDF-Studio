@@ -31,7 +31,7 @@ DocumentView::DocumentView(QWidget *parent)
     m_layout->setContentsMargins(40, 40, 40, 40);
     m_layout->setSpacing(20);
 
-    m_dropHint = new QLabel(tr("Drop a PDF here or click a tab to open"), m_canvas);
+    m_dropHint = new QLabel(m_canvas);
     m_dropHint->setObjectName(QStringLiteral("DropHint"));
     m_dropHint->setAlignment(Qt::AlignCenter);
     m_dropHint->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
@@ -40,33 +40,32 @@ DocumentView::DocumentView(QWidget *parent)
     setWidget(m_canvas);
     viewport()->installEventFilter(this);
     m_rubberBand = new QRubberBand(QRubberBand::Rectangle, viewport());
-    retranslateUi();
 
-#ifdef HAVE_QT_PDF
-    m_document  = new QPdfDocument(this);
-    m_renderer  = new PdfRenderer(m_document);
-    m_extractor = new PdfTextExtractor(m_document);
-    m_session   = new EditSession();
-
-    m_editor = new InlineEditor(m_canvas);
+#ifdef HAVE_PDF_RENDERING
+    m_session     = new EditSession();
+    m_editor      = new InlineEditor(m_canvas);
     m_editor->hide();
     connect(m_editor, &InlineEditor::committed, this, &DocumentView::commitCurrentEdit);
     connect(m_editor, &InlineEditor::cancelled,  this, &DocumentView::cancelCurrentEdit);
-
     m_editorFrame = new TextBoxFrame(m_canvas);
+
+#  ifdef HAVE_QT_PDF
+    m_document  = new QPdfDocument(this);
+    m_renderer  = new PdfRenderer(m_document);
+    m_extractor = new PdfTextExtractor(m_document);
+#  endif
+    // HAVE_POPPLER: m_renderer + m_extractor are created per-file in openFile()
 #endif
-    // HAVE_POPPLER: m_renderer and m_popplerDoc are created per-file in openFile()
+
+    retranslateUi();
 }
 
 DocumentView::~DocumentView()
 {
-#ifdef HAVE_QT_PDF
+#ifdef HAVE_PDF_RENDERING
     delete m_renderer;
     delete m_extractor;
     delete m_session;
-#elif defined(HAVE_POPPLER)
-    delete m_renderer;
-    // m_popplerDoc (unique_ptr) cleaned up automatically
 #endif
 }
 
@@ -79,8 +78,9 @@ void DocumentView::clearDocument()
     m_session->clear();
     m_document->close();
 #elif defined(HAVE_POPPLER)
-    delete m_renderer;
-    m_renderer = nullptr;
+    m_session->clear();
+    delete m_renderer;  m_renderer  = nullptr;
+    delete m_extractor; m_extractor = nullptr;
     m_popplerDoc.reset();
 #endif
     m_filePath.clear();
@@ -116,9 +116,10 @@ bool DocumentView::openFile(const QString &path)
     if (!doc || doc->isLocked()) return false;
     doc->setRenderHint(Poppler::Document::Antialiasing);
     doc->setRenderHint(Poppler::Document::TextAntialiasing);
-    delete m_renderer;
+    m_session->clear();
+    delete m_renderer;  m_renderer  = new PdfRenderer(doc.get());
+    delete m_extractor; m_extractor = new PdfTextExtractor(doc.get());
     m_popplerDoc = std::move(doc);
-    m_renderer   = new PdfRenderer(m_popplerDoc.get());
     m_filePath   = path;
     m_pageCount  = m_popplerDoc->numPages();
     buildPages();
@@ -162,14 +163,16 @@ void DocumentView::setEditMode(bool on)
     if (m_editMode == on) return;
     cancelCurrentEdit();
     m_editMode = on;
-    if (!on) setTool(m_tool); // restore tool cursor when leaving edit mode
+    if (!on) setTool(m_tool);
 }
 
 bool DocumentView::saveToFile(const QString &path)
 {
-#ifdef HAVE_QT_PDF
     cancelCurrentEdit();
+#if defined(HAVE_QT_PDF) && defined(HAVE_QT_PRINT)
     return m_session->saveToFile(path, m_document, m_pageCount);
+#elif defined(HAVE_POPPLER) && defined(HAVE_QT_PRINT)
+    return m_session->saveToFile(path, m_popplerDoc.get(), m_pageCount);
 #else
     Q_UNUSED(path)
     return false;
@@ -178,7 +181,7 @@ bool DocumentView::saveToFile(const QString &path)
 
 bool DocumentView::hasUnsavedEdits() const
 {
-#ifdef HAVE_QT_PDF
+#ifdef HAVE_PDF_RENDERING
     return m_session->hasAnyEdits();
 #else
     return false;
@@ -252,9 +255,11 @@ void DocumentView::rerenderAll()
         m_pageLabels[i]->setFixedSize(sz);
         QImage img = m_renderer->renderPage(i, scale * dpr);
         img.setDevicePixelRatio(dpr);
-#ifdef HAVE_QT_PDF
+#  ifdef HAVE_QT_PDF
         m_session->applyToImage(i, img, scale * dpr);
-#endif
+#  else
+        m_session->applyToImage(i, img, scale);
+#  endif
         if (!img.isNull())
             m_pageLabels[i]->setPixmap(QPixmap::fromImage(std::move(img)));
     }
@@ -269,9 +274,11 @@ void DocumentView::rerenderPage(int page)
     const qreal scale = PdfRenderer::screenScale(m_zoom);
     QImage img = m_renderer->renderPage(page, scale * dpr);
     img.setDevicePixelRatio(dpr);
-#ifdef HAVE_QT_PDF
+#  ifdef HAVE_QT_PDF
     m_session->applyToImage(page, img, scale * dpr);
-#endif
+#  else
+    m_session->applyToImage(page, img, scale);
+#  endif
     if (!img.isNull())
         m_pageLabels[page]->setPixmap(QPixmap::fromImage(std::move(img)));
 #endif
@@ -289,11 +296,11 @@ std::pair<int, QLabel *> DocumentView::pageAtCanvasPos(const QPoint &canvasPos) 
 
 void DocumentView::handleEditClick(const QPoint &canvasPos)
 {
-#ifdef HAVE_QT_PDF
+#ifdef HAVE_PDF_RENDERING
+    if (!m_extractor) return;
     auto [pageIdx, pageLbl] = pageAtCanvasPos(canvasPos);
     if (pageIdx < 0) return;
 
-    // Convert canvas position to PDF-point view coordinates
     const QPointF pageLocal = QPointF(canvasPos - pageLbl->pos());
     const qreal   scale     = PdfRenderer::screenScale(m_zoom);
     const QPointF pdfPt     = pageLocal / scale;
@@ -302,7 +309,6 @@ void DocumentView::handleEditClick(const QPoint &canvasPos)
     const TextBlock block = m_extractor->textAt(pageIdx, pdfPt, pageSize);
     if (!block.isValid()) return;
 
-    // Convert block bounds back to canvas coordinates for the overlay
     const QRectF canvasBounds(
         block.pdfBounds.topLeft() * scale + QPointF(pageLbl->pos()),
         block.pdfBounds.size() * scale
@@ -321,7 +327,7 @@ void DocumentView::handleEditClick(const QPoint &canvasPos)
 
 void DocumentView::commitCurrentEdit(const QString &newText)
 {
-#ifdef HAVE_QT_PDF
+#ifdef HAVE_PDF_RENDERING
     m_editor->hide();
     m_editorFrame->hide();
 
@@ -343,7 +349,7 @@ void DocumentView::commitCurrentEdit(const QString &newText)
 
 void DocumentView::cancelCurrentEdit()
 {
-#ifdef HAVE_QT_PDF
+#ifdef HAVE_PDF_RENDERING
     m_editor->hide();
     m_editorFrame->hide();
 #endif
@@ -362,7 +368,7 @@ bool DocumentView::eventFilter(QObject *obj, QEvent *e)
             const QPoint canvas = me->pos() + QPoint(horizontalScrollBar()->value(),
                                                      verticalScrollBar()->value());
             if (m_editMode && m_tool == Tool::Text) {
-#ifdef HAVE_QT_PDF
+#ifdef HAVE_PDF_RENDERING
                 if (m_editor->isVisible() &&
                     m_editor->geometry().contains(canvas))
                     return QScrollArea::eventFilter(obj, e);

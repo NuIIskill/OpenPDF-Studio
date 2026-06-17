@@ -64,7 +64,11 @@ if [[ -d "$QT_BIN" ]]; then
     done
 
     # Poppler PDF backend (used when Qt6Pdf is unavailable)
-    for dll in libpoppler-qt6-3.dll libpoppler-156.dll liblcms2-2.dll libjpeg-62.dll; do
+    for dll in libpoppler-qt6-3.dll libpoppler-156.dll \
+               liblcms2-2.dll libjpeg-62.dll libopenjp2.dll libtiff-6.dll \
+               libcurl-4.dll libssh2-1.dll \
+               libssl-3-x64.dll libcrypto-3-x64.dll \
+               libpsl-5.dll libidn2-0.dll libunistring-2.dll; do
         [[ -f "${QT_BIN}/${dll}" ]] && cp -u "${QT_BIN}/${dll}" "${BUILD_DIR}/"
     done
 
