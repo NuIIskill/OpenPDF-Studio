@@ -17,6 +17,7 @@
         <file alias="Style.dark.qss">../src/ui/theme/Style.dark.qss</file>
     </qresource>
     <qresource prefix="/">
+        <file alias="app-icon.png">icons/openpdf-studio.png</file>
         <file>icons/mouse-pointer-2.svg</file>
         <file>icons/hand.svg</file>
         <file>icons/type.svg</file>

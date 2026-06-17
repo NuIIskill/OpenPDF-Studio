@@ -9,12 +9,12 @@
 #include <QPixmap>
 #include <QSettings>
 #include <QTranslator>
-#include <cstdlib>
 
 int main(int argc, char *argv[])
 {
-#ifdef DEFAULT_QPA_PLATFORM
-    qputenv("QT_QPA_PLATFORM", DEFAULT_QPA_PLATFORM);
+#ifdef Q_OS_LINUX
+    if (qEnvironmentVariableIsEmpty("QT_QPA_PLATFORM"))
+        qputenv("QT_QPA_PLATFORM", "wayland;xcb");
 #endif
 
     // Opt in to high-DPI scaling (default in Qt 6, but explicit for clarity)
@@ -62,7 +62,6 @@ int main(int argc, char *argv[])
         }
     }
 
-    // ── App icon (blue rounded square + white "O") ────────────────────────
     {
         QIcon appIcon;
         for (const int sz : { 16, 24, 32, 48, 64, 128, 256 }) {
@@ -72,13 +71,11 @@ int main(int argc, char *argv[])
             p.setRenderHint(QPainter::Antialiasing);
             p.setPen(Qt::NoPen);
             p.setBrush(QColor(QStringLiteral("#2563EB")));
-            const qreal r = sz * 0.22;
-            p.drawRoundedRect(QRectF(0, 0, sz, sz), r, r);
+            p.drawRoundedRect(QRectF(0, 0, sz, sz), sz * 0.18, sz * 0.18);
             p.setPen(Qt::white);
             QFont f;
             f.setBold(true);
-            f.setPixelSize(qRound(sz * 0.56));
-            f.setFamily(QStringLiteral("Inter"));
+            f.setPixelSize(qRound(sz * 0.58));
             p.setFont(f);
             p.drawText(QRect(0, 0, sz, sz), Qt::AlignCenter, QStringLiteral("O"));
             p.end();

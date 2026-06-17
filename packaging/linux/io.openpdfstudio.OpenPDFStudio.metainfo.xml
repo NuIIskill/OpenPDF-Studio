@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<component type="desktop-application">
+  <id>io.openpdfstudio.OpenPDFStudio</id>
+  <metadata_license>CC0-1.0</metadata_license>
+  <project_license>GPL-2.0-or-later</project_license>
+  <name>OpenPDF Studio</name>
+  <summary>View and edit PDF documents</summary>
+  <description>
+    <p>OpenPDF Studio is a modern, cross-platform PDF editor built with Qt6.
+       It allows you to open, view, annotate and edit text in PDF documents.</p>
+    <ul>
+      <li>Open and view multi-page PDF documents</li>
+      <li>Edit text content inline</li>
+      <li>Zoom and navigate pages</li>
+      <li>Export and organise pages</li>
+      <li>Available in multiple languages</li>
+    </ul>
+  </description>
+  <launchable type="desktop-id">openpdf-studio.desktop</launchable>
+  <url type="homepage">https://github.com/NuIIskill/OpenPDF-Studio</url>
+  <provides>
+    <binary>OpenPDFStudio</binary>
+  </provides>
+  <releases>
+    <release version="0.1.0" date="2026-06-17">
+      <description>
+        <p>Initial release.</p>
+      </description>
+    </release>
+  </releases>
+  <content_rating type="oars-1.1"/>
+  <categories>
+    <category>Office</category>
+    <category>Viewer</category>
+  </categories>
+  <keywords>
+    <keyword>pdf</keyword>
+    <keyword>editor</keyword>
+    <keyword>viewer</keyword>
+    <keyword>document</keyword>
+  </keywords>
+</component>

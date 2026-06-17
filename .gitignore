@@ -1,6 +1,7 @@
 build/
 build-win
 .cache/
+dist/
 *.user
 *.pro.user
 .qmake.stash

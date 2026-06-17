@@ -1,7 +1,10 @@
 cmake_minimum_required(VERSION 3.20)
 
+file(READ "${CMAKE_CURRENT_SOURCE_DIR}/version.txt" _ver)
+string(STRIP "${_ver}" _ver)
+
 project(OpenPDFStudio
-    VERSION 0.1.0
+    VERSION ${_ver}
     DESCRIPTION "OpenPDF Studio - Modern PDF Editor"
     LANGUAGES CXX
 )
@@ -133,9 +136,6 @@ target_include_directories(OpenPDFStudio PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/src/3rdparty
 )
 
-if(UNIX AND NOT APPLE)
-    target_compile_definitions(OpenPDFStudio PRIVATE DEFAULT_QPA_PLATFORM="wayland")
-endif()
 
 if(WIN32)
     set_target_properties(OpenPDFStudio PROPERTIES WIN32_EXECUTABLE TRUE)
@@ -143,6 +143,19 @@ endif()
 
 install(TARGETS OpenPDFStudio
     RUNTIME DESTINATION bin
+)
+
+if(UNIX AND NOT APPLE)
+    install(FILES packaging/linux/openpdf-studio.desktop
+        DESTINATION share/applications)
+    install(FILES packaging/linux/icons/256/openpdf-studio.png
+        DESTINATION share/icons/hicolor/256x256/apps)
+    install(FILES packaging/linux/io.openpdfstudio.OpenPDFStudio.metainfo.xml
+        DESTINATION share/metainfo)
+endif()
+
+install(FILES LICENSE
+    DESTINATION share/doc/OpenPDFStudio
 )
 
 install(FILES packaging/appimage/README.md

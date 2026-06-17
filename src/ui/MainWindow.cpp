@@ -14,6 +14,7 @@
 
 #include <QApplication>
 #include <QDebug>
+#include <QElapsedTimer>
 #include <QFileDialog>
 #include <QFileInfo>
 #include <QMessageBox>
@@ -116,10 +117,13 @@ void MainWindow::connectSignals()
     // Left sidebar
     connect(m_leftSidebar, &LeftSidebar::toolSelected,        this, &MainWindow::onToolSelected);
     connect(m_leftSidebar, &LeftSidebar::settingsRequested,   this, [this]() {
+        QElapsedTimer t; t.start();
         auto *panel = new SettingsPanel(m_appSettings, this);
+        qDebug() << "[TIMING] SettingsPanel ctor:" << t.elapsed() << "ms";
         connect(panel, &SettingsPanel::themeChangeRequested,    this, &MainWindow::applyTheme);
         connect(panel, &SettingsPanel::languageChangeRequested, this, &MainWindow::applyLanguage);
         panel->open();
+        qDebug() << "[TIMING] after open():" << t.elapsed() << "ms";
     });
 
     // Right sidebar
