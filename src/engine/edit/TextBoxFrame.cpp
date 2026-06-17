@@ -6,6 +6,7 @@
 #include <QMouseEvent>
 #include <QTimer>
 #include <QDebug>
+#include <QFontMetrics>
 
 // ── Construction ──────────────────────────────────────────────────────────────
 
@@ -35,13 +36,26 @@ void TextBoxFrame::setDecorations(bool on)
 
 void TextBoxFrame::present(const QString &text, const QRectF &canvasBounds, int fontSize)
 {
-    qWarning() << "[TBF] present() called, bounds=" << canvasBounds << "fontSize=" << fontSize;
     QRect outer = canvasBounds.toAlignedRect();
     if (m_decorations) {
         outer = outer.adjusted(-kPad, -kPad, kPad, kPad);
         outer.setWidth(qMax(outer.width(),  120 + 2 * kPad));
         outer.setHeight(qMax(outer.height(),  20 + 2 * kPad));
     }
+
+    // Expand height if the text doesn't fit at the given font size.
+    // QFontMetrics gives us the wrapped text height for the inner width.
+    {
+        QFont f; f.setPixelSize(qMax(8, fontSize));
+        QFontMetrics fm(f);
+        const int innerW = qMax(1, outer.width() - (m_decorations ? 2 * kPad : 0) - 8);
+        const QRect needed = fm.boundingRect(QRect(0, 0, innerW, 9999),
+                                              Qt::TextWordWrap | Qt::AlignLeft, text);
+        const int minOuterH = needed.height() + (m_decorations ? 2 * kPad : 0) + 8;
+        if (outer.height() < minOuterH)
+            outer.setHeight(minOuterH);
+    }
+
     setGeometry(outer);
     m_editor->setGeometry(innerRect());
     m_editor->present(text, fontSize);  // sets text/style/show — setFocus skipped until parent visible
@@ -62,6 +76,7 @@ void TextBoxFrame::present(const QString &text, const QRectF &canvasBounds, int 
 }
 
 void TextBoxFrame::setFontSize(int pixelFontSize) { m_editor->setFontSize(pixelFontSize); }
+void TextBoxFrame::setForbiddenZones(const QList<QRect> &zones) { m_forbidden = zones; }
 void TextBoxFrame::resetCommitGuard() { m_editor->resetCommitGuard(); }
 
 // ── Resize event ─────────────────────────────────────────────────────────────
@@ -149,6 +164,15 @@ void TextBoxFrame::mouseMoveEvent(QMouseEvent *e)
         geo.setTop(qMin(geo.top() + d.y(), geo.bottom() - minH));
     if (m_drag == Handle::S || m_drag == Handle::SW || m_drag == Handle::SE)
         geo.setBottom(qMax(geo.bottom() + d.y(), geo.top() + minH));
+
+    // Prevent overlapping other text zones: reject the drag if it would collide.
+    const QRect inner = geo.adjusted(kPad, kPad, -kPad, -kPad);
+    for (const QRect &fz : m_forbidden) {
+        if (inner.intersects(fz)) {
+            e->accept();
+            return;   // keep current geometry unchanged
+        }
+    }
 
     setGeometry(geo);
     e->accept();

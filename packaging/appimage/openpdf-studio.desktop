@@ -1,0 +1,12 @@
+[Desktop Entry]
+Type=Application
+Name=OpenPDF Studio
+GenericName=PDF Editor
+Comment=View and edit PDF documents
+Exec=OpenPDFStudio %F
+Icon=openpdf-studio
+Categories=Office;Viewer;
+MimeType=application/pdf;
+Keywords=PDF;viewer;editor;document;
+StartupNotify=true
+StartupWMClass=OpenPDFStudio

@@ -14,7 +14,8 @@
 int main(int argc, char *argv[])
 {
 #ifdef DEFAULT_QPA_PLATFORM
-    qputenv("QT_QPA_PLATFORM", DEFAULT_QPA_PLATFORM);
+    if (qgetenv("QT_QPA_PLATFORM").isEmpty())
+        qputenv("QT_QPA_PLATFORM", "wayland");
 #endif
 
     // Opt in to high-DPI scaling (default in Qt 6, but explicit for clarity)

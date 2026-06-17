@@ -170,7 +170,8 @@ else()
 endif()
 
 if(UNIX AND NOT APPLE)
-    target_compile_definitions(OpenPDFStudio PRIVATE DEFAULT_QPA_PLATFORM="wayland")
+    # Value is hardcoded in main.cpp to avoid CMake semicolon-as-list-separator issues.
+    target_compile_definitions(OpenPDFStudio PRIVATE DEFAULT_QPA_PLATFORM)
 endif()
 
 if(WIN32)
@@ -179,6 +180,16 @@ endif()
 
 install(TARGETS OpenPDFStudio
     RUNTIME DESTINATION bin
+)
+
+install(FILES packaging/appimage/openpdf-studio.desktop
+    DESTINATION share/applications
+    OPTIONAL
+)
+
+install(FILES resources/icons/openpdf-studio.png
+    DESTINATION share/icons/hicolor/256x256/apps
+    OPTIONAL
 )
 
 install(FILES packaging/appimage/README.md

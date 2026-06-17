@@ -1,4 +1,6 @@
 #pragma once
+#include <QList>
+#include <QRect>
 #include <QWidget>
 
 class InlineEditor;
@@ -20,6 +22,8 @@ public:
     void present(const QString &text, const QRectF &canvasBounds, int fontSize);
     // Live font size update (called while editor is active).
     void setFontSize(int pixelFontSize);
+    // Rects (canvas coords) the frame must not overlap during resize/drag.
+    void setForbiddenZones(const QList<QRect> &zones);
     void resetCommitGuard();
 
 Q_SIGNALS:
@@ -51,5 +55,6 @@ private:
     Handle        m_drag          { Handle::None };
     QPoint        m_dragOrigin;
     QRect         m_dragStartGeo;
-    bool          m_decorations   { true };  // false = direct-edit mode, no border/handles
+    bool          m_decorations   { true };
+    QList<QRect>  m_forbidden;   // canvas-coord rects the frame must not overlap
 };
