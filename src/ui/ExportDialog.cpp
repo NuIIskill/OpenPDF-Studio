@@ -148,12 +148,8 @@ void ExportDialog::onExport()
         return;
     }
 
-    if (m_selectedFormat == QLatin1String("word")) {
-        if (m_currentFile.isEmpty()) {
-            QMessageBox::warning(this, tr("No document"), tr("Open a PDF first."));
-            return;
-        }
-        accept();
+    if (m_currentFile.isEmpty()) {
+        QMessageBox::warning(this, tr("No document"), tr("Please open a PDF document first."));
         return;
     }
 

@@ -52,5 +52,6 @@
         <file>icons/play-circle.svg</file>
         <file>icons/sliders.svg</file>
         <file>icons/folder-open.svg</file>
+        <file>icons/keyboard.svg</file>
     </qresource>
 </RCC>

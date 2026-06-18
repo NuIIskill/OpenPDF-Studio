@@ -79,6 +79,8 @@ static QString xmlEsc(const QString &s)
         else if (u == '>')  r += QLatin1String("&gt;");
         else if (u == '"')  r += QLatin1String("&quot;");
         else if (u < 32 && u != '\n' && u != '\r' && u != '\t') { /* skip */ }
+        else if (u >= 0xD800 && u <= 0xDFFF) { /* surrogates: invalid in XML 1.0 */ }
+        else if (u == 0xFFFE || u == 0xFFFF)  { /* non-characters: invalid in XML 1.0 */ }
         else                r += c;
     }
     return r;
@@ -126,6 +128,8 @@ bool DocxExporter::exportToDocx(const QString &outputPath,
         "<Default Extension=\"xml\" ContentType=\"application/xml\"/>"
         "<Override PartName=\"/word/document.xml\""
         " ContentType=\"application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml\"/>"
+        "<Override PartName=\"/word/styles.xml\""
+        " ContentType=\"application/vnd.openxmlformats-officedocument.wordprocessingml.styles+xml\"/>"
         "</Types>";
 
     static const char kRels[] =
@@ -136,14 +140,33 @@ bool DocxExporter::exportToDocx(const QString &outputPath,
         " Target=\"word/document.xml\"/>"
         "</Relationships>";
 
+    // References styles.xml so Word/LibreOffice find the style definitions
     static const char kDocRels[] =
         "<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"yes\"?>"
-        "<Relationships xmlns=\"http://schemas.openxmlformats.org/package/2006/relationships\"/>";
+        "<Relationships xmlns=\"http://schemas.openxmlformats.org/package/2006/relationships\">"
+        "<Relationship Id=\"rId1\""
+        " Type=\"http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles\""
+        " Target=\"styles.xml\"/>"
+        "</Relationships>";
+
+    static const char kStyles[] =
+        "<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"yes\"?>"
+        "<w:styles xmlns:w=\"http://schemas.openxmlformats.org/wordprocessingml/2006/main\">"
+        "<w:style w:type=\"paragraph\" w:default=\"1\" w:styleId=\"Normal\">"
+        "<w:name w:val=\"Normal\"/>"
+        "</w:style>"
+        "<w:style w:type=\"paragraph\" w:styleId=\"Heading1\">"
+        "<w:name w:val=\"heading 1\"/>"
+        "<w:basedOn w:val=\"Normal\"/>"
+        "<w:rPr><w:b/><w:sz w:val=\"32\"/></w:rPr>"
+        "</w:style>"
+        "</w:styles>";
 
     QList<ZEntry> entries;
     entries.append({"[Content_Types].xml",          QByteArray(kCT),      0, 0});
     entries.append({"_rels/.rels",                  QByteArray(kRels),    0, 0});
     entries.append({"word/_rels/document.xml.rels", QByteArray(kDocRels), 0, 0});
+    entries.append({"word/styles.xml",              QByteArray(kStyles),  0, 0});
     entries.append({"word/document.xml",            buildDocument(pageTexts, title), 0, 0});
 
     QByteArray zip;

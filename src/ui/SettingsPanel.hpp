@@ -12,6 +12,7 @@ class QVBoxLayout;
 QT_END_NAMESPACE
 
 class AppSettings;
+class ShortcutRow;
 
 class SettingsPanel : public QDialog
 {
@@ -41,6 +42,7 @@ private:
     QWidget *buildAppearancePage();
     QWidget *buildLanguagePage();
     QWidget *buildMediaPage();
+    QWidget *buildShortcutsPage();
     QWidget *buildAdvancedPage();
     QWidget *buildAboutPage();
 
@@ -77,8 +79,10 @@ private:
     QList<QWidget *> m_mediaCards;
     QList<QString>   m_mediaIds;
 
-    QList<QWidget *> m_langRows;   // LangRow* cast to QWidget*
-    QList<QString>   m_langCodes;
+    QList<QWidget *>   m_langRows;   // LangRow* cast to QWidget*
+    QList<QString>     m_langCodes;
+
+    QList<ShortcutRow*> m_shortcutRows;
 
     QString m_pendingTheme;
     QString m_pendingLang;

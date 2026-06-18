@@ -328,11 +328,19 @@ void MainWindow::onModeSelected(const QString &mode)
                 if (format == QLatin1String("word")) {
                     const QList<QString> texts = dv->allPageTexts();
                     const QString title = QFileInfo(dv->currentFile()).completeBaseName();
-                    if (!DocxExporter::exportToDocx(path, texts, title))
+                    if (DocxExporter::exportToDocx(path, texts, title))
+                        QMessageBox::information(this, tr("Export successful"),
+                            tr("Document exported to \"%1\".").arg(QFileInfo(path).fileName()));
+                    else
                         QMessageBox::warning(this, tr("Export failed"),
                             tr("Could not write to \"%1\".").arg(path));
                 } else {
-                    dv->saveToFile(path);
+                    if (dv->saveToFile(path))
+                        QMessageBox::information(this, tr("Export successful"),
+                            tr("Document exported to \"%1\".").arg(QFileInfo(path).fileName()));
+                    else
+                        QMessageBox::warning(this, tr("Export failed"),
+                            tr("Could not write to \"%1\".").arg(path));
                 }
             }
         }

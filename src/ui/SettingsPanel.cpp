@@ -13,6 +13,10 @@
 #include <QEvent>
 #include <QMouseEvent>
 #include <QApplication>
+#include <QCheckBox>
+#include <QKeyEvent>
+#include <QKeySequence>
+#include <QLineEdit>
 
 // ── OptionCard ────────────────────────────────────────────────────────────────
 
@@ -199,6 +203,200 @@ private:
     bool    m_selected   { false };
 };
 
+// ── KeyCaptureEdit ────────────────────────────────────────────────────────────
+
+class KeyCaptureEdit : public QLineEdit
+{
+    Q_OBJECT
+public:
+    explicit KeyCaptureEdit(QWidget *parent = nullptr) : QLineEdit(parent)
+    {
+        setReadOnly(true);
+        setPlaceholderText(QStringLiteral("..."));
+    }
+
+    QKeySequence capturedSequence() const { return m_seq; }
+
+    void setSequence(const QKeySequence &seq)
+    {
+        m_seq = seq;
+        if (seq.isEmpty()) clear();
+        else setText(seq.toString(QKeySequence::NativeText));
+    }
+
+protected:
+    void keyPressEvent(QKeyEvent *e) override
+    {
+        const int key = e->key();
+        if (key == Qt::Key_unknown || key == 0
+            || key == Qt::Key_Control || key == Qt::Key_Shift
+            || key == Qt::Key_Alt    || key == Qt::Key_Meta)
+            return;
+        if (key == Qt::Key_Escape) { QLineEdit::keyPressEvent(e); return; }
+        m_seq = QKeySequence(QKeyCombination(e->modifiers(), static_cast<Qt::Key>(key)));
+        setText(m_seq.toString(QKeySequence::NativeText));
+        e->accept();
+    }
+
+private:
+    QKeySequence m_seq;
+};
+
+// ── ShortcutRow ───────────────────────────────────────────────────────────────
+
+class ShortcutRow : public QFrame
+{
+    Q_OBJECT
+public:
+    ShortcutRow(const QString &action, const QKeySequence &defaultSeq,
+                QWidget *parent = nullptr)
+        : QFrame(parent), m_defaultSeq(defaultSeq), m_currentSeq(defaultSeq)
+    {
+        setObjectName(QStringLiteral("ShortcutRowFrame"));
+        setFrameShape(QFrame::NoFrame);
+        setFixedHeight(46);
+        buildUi(action);
+    }
+
+    bool matchesFilter(const QString &text) const
+    {
+        return text.isEmpty()
+            || m_actionLabel->text().contains(text, Qt::CaseInsensitive);
+    }
+
+    bool isEditing() const { return m_editing; }
+
+    void cancelIfEditing() { if (m_editing) exitEdit(false); }
+
+Q_SIGNALS:
+    void editStarted();
+
+private:
+    void buildUi(const QString &action)
+    {
+        auto *hl = new QHBoxLayout(this);
+        hl->setContentsMargins(16, 0, 16, 0);
+        hl->setSpacing(8);
+
+        m_actionLabel = new QLabel(action, this);
+        m_actionLabel->setFixedWidth(260);
+        m_actionLabel->setObjectName(QStringLiteral("ShortcutAction"));
+        hl->addWidget(m_actionLabel);
+
+        m_seqDisplay = new QLabel(m_currentSeq.toString(QKeySequence::NativeText), this);
+        m_seqDisplay->setObjectName(QStringLiteral("ShortcutDisplay"));
+        m_seqDisplay->setAlignment(Qt::AlignCenter);
+        m_seqDisplay->setCursor(Qt::PointingHandCursor);
+        m_seqDisplay->installEventFilter(this);
+        hl->addWidget(m_seqDisplay, 1);
+
+        m_editArea = new QWidget(this);
+        m_editArea->hide();
+        {
+            auto *ehl = new QHBoxLayout(m_editArea);
+            ehl->setContentsMargins(0, 0, 0, 0);
+            ehl->setSpacing(4);
+            m_captureEdit = new KeyCaptureEdit(m_editArea);
+            m_captureEdit->setObjectName(QStringLiteral("ShortcutCapture"));
+            m_captureEdit->setFixedHeight(32);
+            ehl->addWidget(m_captureEdit, 1);
+            m_clearBtn = new QPushButton(QStringLiteral("✕"), m_editArea);
+            m_clearBtn->setObjectName(QStringLiteral("ShortcutClearBtn"));
+            m_clearBtn->setFixedSize(28, 28);
+            m_clearBtn->setCursor(Qt::PointingHandCursor);
+            connect(m_clearBtn, &QPushButton::clicked, this, [this]() { m_captureEdit->clear(); });
+            ehl->addWidget(m_clearBtn);
+        }
+        hl->addWidget(m_editArea, 1);
+
+        m_resetBtn = new QPushButton(QStringLiteral("↺"), this);
+        m_resetBtn->setObjectName(QStringLiteral("ShortcutResetBtn"));
+        m_resetBtn->setFixedSize(32, 32);
+        m_resetBtn->setCursor(Qt::PointingHandCursor);
+        m_resetBtn->setToolTip(tr("Reset to default"));
+        connect(m_resetBtn, &QPushButton::clicked, this, [this]() {
+            m_currentSeq = m_defaultSeq;
+            m_seqDisplay->setText(m_defaultSeq.toString(QKeySequence::NativeText));
+            if (m_editing) m_captureEdit->setSequence(m_defaultSeq);
+        });
+        hl->addWidget(m_resetBtn);
+
+        m_editBtn = new QPushButton(tr("Edit"), this);
+        m_editBtn->setObjectName(QStringLiteral("ShortcutEditBtn"));
+        m_editBtn->setFixedSize(90, 32);
+        m_editBtn->setCursor(Qt::PointingHandCursor);
+        connect(m_editBtn, &QPushButton::clicked, this, &ShortcutRow::enterEdit);
+        hl->addWidget(m_editBtn);
+
+        m_saveBtn = new QPushButton(tr("Save"), this);
+        m_saveBtn->setObjectName(QStringLiteral("ShortcutSaveBtn"));
+        m_saveBtn->setFixedSize(90, 32);
+        m_saveBtn->hide();
+        m_saveBtn->setCursor(Qt::PointingHandCursor);
+        connect(m_saveBtn, &QPushButton::clicked, this, [this]() { exitEdit(true); });
+        hl->addWidget(m_saveBtn);
+
+        m_cancelBtn = new QPushButton(tr("Cancel"), this);
+        m_cancelBtn->setObjectName(QStringLiteral("ShortcutCancelBtn"));
+        m_cancelBtn->setFixedSize(90, 32);
+        m_cancelBtn->hide();
+        m_cancelBtn->setCursor(Qt::PointingHandCursor);
+        connect(m_cancelBtn, &QPushButton::clicked, this, [this]() { exitEdit(false); });
+        hl->addWidget(m_cancelBtn);
+    }
+
+    bool eventFilter(QObject *obj, QEvent *e) override
+    {
+        if (obj == m_seqDisplay && e->type() == QEvent::MouseButtonDblClick) {
+            enterEdit();
+            return true;
+        }
+        return QFrame::eventFilter(obj, e);
+    }
+
+    void enterEdit()
+    {
+        m_editing = true;
+        m_captureEdit->setSequence(m_currentSeq);
+        m_seqDisplay->hide();
+        m_editArea->show();
+        m_editBtn->hide();
+        m_saveBtn->show();
+        m_cancelBtn->show();
+        m_actionLabel->setStyleSheet(QStringLiteral("font-size:13px;font-weight:700;"));
+        m_captureEdit->setFocus();
+        Q_EMIT editStarted();
+    }
+
+    void exitEdit(bool save)
+    {
+        if (save && !m_captureEdit->text().trimmed().isEmpty())
+            m_currentSeq = m_captureEdit->capturedSequence();
+        m_editing = false;
+        m_seqDisplay->setText(m_currentSeq.toString(QKeySequence::NativeText));
+        m_editArea->hide();
+        m_seqDisplay->show();
+        m_saveBtn->hide();
+        m_cancelBtn->hide();
+        m_editBtn->show();
+        m_actionLabel->setStyleSheet(QStringLiteral("font-size:13px;"));
+    }
+
+    bool           m_editing    { false };
+    QKeySequence   m_defaultSeq;
+    QKeySequence   m_currentSeq;
+
+    QLabel         *m_actionLabel { nullptr };
+    QLabel         *m_seqDisplay  { nullptr };
+    QWidget        *m_editArea    { nullptr };
+    KeyCaptureEdit *m_captureEdit { nullptr };
+    QPushButton    *m_clearBtn    { nullptr };
+    QPushButton    *m_resetBtn    { nullptr };
+    QPushButton    *m_editBtn     { nullptr };
+    QPushButton    *m_saveBtn     { nullptr };
+    QPushButton    *m_cancelBtn   { nullptr };
+};
+
 #include "SettingsPanel.moc"
 
 // ── SettingsPanel ─────────────────────────────────────────────────────────────
@@ -215,7 +413,7 @@ SettingsPanel::SettingsPanel(AppSettings *settings, QWidget *parent)
     setWindowTitle(tr("Settings - OpenPDF Studio"));
     setAttribute(Qt::WA_DeleteOnClose);
     setModal(true);
-    setFixedSize(820, 580);
+    setFixedSize(900, 660);
 
     buildUi();
 
@@ -253,8 +451,9 @@ void SettingsPanel::buildUi()
     m_pages->addWidget(buildAppearancePage());  // 0
     m_pages->addWidget(buildLanguagePage());    // 1
     m_pages->addWidget(buildMediaPage());       // 2
-    m_pages->addWidget(buildAdvancedPage());    // 3
-    m_pages->addWidget(buildAboutPage());       // 4
+    m_pages->addWidget(buildShortcutsPage());   // 3
+    m_pages->addWidget(buildAdvancedPage());    // 4
+    m_pages->addWidget(buildAboutPage());       // 5
 
     contentRow->addWidget(m_pages, 1);
     root->addLayout(contentRow, 1);
@@ -269,17 +468,6 @@ void SettingsPanel::buildUi()
     bar->setContentsMargins(16, 10, 16, 10);
     bar->setSpacing(8);
 
-    auto *resetBtn = new QPushButton(tr("Reset"), this);
-    resetBtn->setObjectName(QStringLiteral("SettingsResetBtn"));
-    connect(resetBtn, &QPushButton::clicked, this, [this]() {
-        m_pendingTheme = QStringLiteral("system");
-        selectCardGroup(m_pendingTheme, m_themeCards, m_themeIds);
-        Q_EMIT themeChangeRequested(m_pendingTheme);
-
-        m_pendingLang = QStringLiteral("en");
-        selectLangCode(m_pendingLang);
-    });
-    bar->addWidget(resetBtn);
     bar->addStretch(1);
 
     auto *cancelBtn = new QPushButton(tr("Cancel"), this);
@@ -307,10 +495,11 @@ void SettingsPanel::buildNav(QWidget *, QVBoxLayout *layout)
         { "monitor",     QT_TR_NOOP("Appearance")     },
         { "globe",       QT_TR_NOOP("Language")       },
         { "play-circle", QT_TR_NOOP("Media Playback") },
+        { "keyboard",    QT_TR_NOOP("Shortcuts")      },
         { "sliders",     QT_TR_NOOP("Advanced")       },
     };
 
-    for (int i = 0; i < 4; ++i) {
+    for (int i = 0; i < 5; ++i) {
         auto *btn = new QPushButton(this);
         btn->setFixedHeight(38);
         btn->setFlat(true);
@@ -355,7 +544,7 @@ void SettingsPanel::buildNav(QWidget *, QVBoxLayout *layout)
     atext->setAttribute(Qt::WA_TransparentForMouseEvents);
     arow->addWidget(atext, 1);
     m_navItems.append({ aboutBtn, aicon, atext, QStringLiteral("info") });
-    connect(aboutBtn, &QPushButton::clicked, this, [this]() { selectPage(4); });
+    connect(aboutBtn, &QPushButton::clicked, this, [this]() { selectPage(5); });
     layout->addWidget(aboutBtn);
 }
 
@@ -562,6 +751,158 @@ QWidget *SettingsPanel::buildMediaPage()
     return page;
 }
 
+QWidget *SettingsPanel::buildShortcutsPage()
+{
+    auto *page = new QWidget(this);
+    page->setObjectName(QStringLiteral("SettingsScrollContent"));
+    auto *outer = new QVBoxLayout(page);
+    outer->setContentsMargins(0, 0, 0, 0);
+    outer->setSpacing(0);
+
+    // Header
+    {
+        auto *hdr = new QWidget(page);
+        hdr->setObjectName(QStringLiteral("SettingsScrollContent"));
+        auto *vl = new QVBoxLayout(hdr);
+        vl->setContentsMargins(32, 28, 32, 16);
+        vl->setSpacing(6);
+        auto *title = new QLabel(tr("Keyboard Shortcuts"), hdr);
+        title->setObjectName(QStringLiteral("SettingsSectionTitle"));
+        vl->addWidget(title);
+        auto *desc = new QLabel(tr("Configure keyboard shortcuts for frequent actions."), hdr);
+        desc->setObjectName(QStringLiteral("SettingsSectionDesc"));
+        vl->addWidget(desc);
+        outer->addWidget(hdr);
+    }
+
+    // Search row
+    {
+        auto *row = new QWidget(page);
+        row->setObjectName(QStringLiteral("SettingsScrollContent"));
+        auto *hl = new QHBoxLayout(row);
+        hl->setContentsMargins(32, 0, 32, 12);
+        hl->setSpacing(12);
+        auto *searchEdit = new QLineEdit(row);
+        searchEdit->setObjectName(QStringLiteral("ShortcutSearch"));
+        searchEdit->setPlaceholderText(tr("Search action"));
+        searchEdit->setFixedHeight(34);
+        hl->addWidget(searchEdit, 1);
+        auto *globalChk = new QCheckBox(tr("Show only global default shortcuts"), row);
+        globalChk->setObjectName(QStringLiteral("ShortcutGlobalChk"));
+        hl->addWidget(globalChk);
+        outer->addWidget(row);
+
+        // Search filter wired after m_shortcutRows is populated below
+        connect(searchEdit, &QLineEdit::textChanged, this, [this](const QString &text) {
+            for (ShortcutRow *r : m_shortcutRows)
+                r->setVisible(r->matchesFilter(text));
+        });
+    }
+
+    // Column headers
+    {
+        auto *hdr = new QWidget(page);
+        hdr->setObjectName(QStringLiteral("ShortcutTableHeader"));
+        hdr->setFixedHeight(30);
+        auto *hl = new QHBoxLayout(hdr);
+        hl->setContentsMargins(16, 0, 16, 0);
+        hl->setSpacing(8);
+        auto *colAction = new QLabel(tr("Action"), hdr);
+        colAction->setObjectName(QStringLiteral("ShortcutColHeader"));
+        colAction->setFixedWidth(260);
+        hl->addWidget(colAction);
+        auto *colKey = new QLabel(tr("Key Combination"), hdr);
+        colKey->setObjectName(QStringLiteral("ShortcutColHeader"));
+        hl->addWidget(colKey, 1);
+        outer->addWidget(hdr);
+    }
+
+    // Separator
+    {
+        auto *sep = new QFrame(page);
+        sep->setObjectName(QStringLiteral("SettingsSeparator"));
+        sep->setFrameShape(QFrame::HLine);
+        outer->addWidget(sep);
+    }
+
+    // Scrollable list
+    {
+        auto *scroll = new QScrollArea(page);
+        scroll->setObjectName(QStringLiteral("SettingsScroll"));
+        scroll->setFrameShape(QFrame::NoFrame);
+        scroll->setHorizontalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
+        scroll->setWidgetResizable(true);
+
+        auto *listW = new QWidget;
+        listW->setObjectName(QStringLiteral("SettingsScrollContent"));
+        auto *vl = new QVBoxLayout(listW);
+        vl->setContentsMargins(0, 0, 0, 0);
+        vl->setSpacing(0);
+
+        struct Def { const char *label; const char *seq; };
+        static const Def kDefs[] = {
+            { QT_TR_NOOP("Save"),          "Ctrl+S"       },
+            { QT_TR_NOOP("Save As"),       "Ctrl+Shift+S" },
+            { QT_TR_NOOP("Print"),         "Ctrl+P"       },
+            { QT_TR_NOOP("Open"),          "Ctrl+O"       },
+            { QT_TR_NOOP("Undo"),          "Ctrl+Z"       },
+            { QT_TR_NOOP("Redo"),          "Ctrl+Y"       },
+            { QT_TR_NOOP("Find"),          "Ctrl+F"       },
+            { QT_TR_NOOP("Text Tool"),     "T"            },
+            { QT_TR_NOOP("Add Comment"),   "C"            },
+            { QT_TR_NOOP("Zoom In"),       "Ctrl++"       },
+            { QT_TR_NOOP("Zoom Out"),      "Ctrl+-"       },
+        };
+
+        m_shortcutRows.clear();
+        bool first = true;
+        for (const auto &def : kDefs) {
+            if (!first) {
+                auto *sep = new QFrame(listW);
+                sep->setObjectName(QStringLiteral("SettingsSeparator"));
+                sep->setFrameShape(QFrame::HLine);
+                vl->addWidget(sep);
+            }
+            first = false;
+
+            auto *srow = new ShortcutRow(
+                tr(def.label),
+                QKeySequence::fromString(QLatin1String(def.seq), QKeySequence::PortableText),
+                listW);
+            m_shortcutRows.append(srow);
+
+            connect(srow, &ShortcutRow::editStarted, this, [this, srow]() {
+                for (ShortcutRow *r : m_shortcutRows)
+                    if (r != srow) r->cancelIfEditing();
+            });
+            vl->addWidget(srow);
+        }
+        vl->addStretch(1);
+        scroll->setWidget(listW);
+        outer->addWidget(scroll, 1);
+    }
+
+    // Info bar
+    {
+        auto *bar = new QFrame(page);
+        bar->setObjectName(QStringLiteral("ShortcutInfoBar"));
+        bar->setFrameShape(QFrame::NoFrame);
+        bar->setFixedHeight(42);
+        auto *hl = new QHBoxLayout(bar);
+        hl->setContentsMargins(20, 0, 20, 0);
+        hl->setSpacing(8);
+        auto *icon = new QLabel(QStringLiteral("ℹ"), bar);
+        icon->setObjectName(QStringLiteral("ShortcutInfoIcon"));
+        hl->addWidget(icon);
+        auto *text = new QLabel(tr("Double-click on a key combination to change it."), bar);
+        text->setObjectName(QStringLiteral("ShortcutInfoText"));
+        hl->addWidget(text, 1);
+        outer->addWidget(bar);
+    }
+
+    return page;
+}
+
 QWidget *SettingsPanel::buildAdvancedPage()
 {
     auto *page = new QWidget(this);
@@ -718,10 +1059,11 @@ void SettingsPanel::retranslateUi()
         QT_TR_NOOP("Appearance"),
         QT_TR_NOOP("Language"),
         QT_TR_NOOP("Media Playback"),
+        QT_TR_NOOP("Shortcuts"),
         QT_TR_NOOP("Advanced"),
         QT_TR_NOOP("About"),
     };
-    for (int i = 0; i < m_navItems.size() && i < 5; ++i)
+    for (int i = 0; i < m_navItems.size() && i < 6; ++i)
         m_navItems[i].textLabel->setText(tr(navKeys[i]));
 }
 

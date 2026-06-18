@@ -355,3 +355,95 @@ QPushButton#SettingsCancelBtn {
     border-radius: 8px;
 }
 QPushButton#SettingsCancelBtn:hover { background: #484848; }
+
+/* ── Keyboard Shortcuts page ─────────────────────────────── */
+QLineEdit#ShortcutSearch {
+    border: 1px solid #555555;
+    border-radius: 6px;
+    padding: 4px 10px;
+    background: #404040;
+    color: #D8D8D8;
+    font-size: 13px;
+}
+
+QWidget#ShortcutTableHeader {
+    background: #2E2E2E;
+}
+
+QLabel#ShortcutColHeader {
+    font-size: 11px;
+    font-weight: 600;
+    color: #9CA3AF;
+}
+
+QLabel#ShortcutDisplay {
+    border: 1px solid #555555;
+    border-radius: 6px;
+    padding: 2px 12px;
+    background: #2E2E2E;
+    font-size: 13px;
+    color: #C8C8C8;
+}
+
+QLineEdit#ShortcutCapture {
+    border: 2px solid #3B82F6;
+    border-radius: 6px;
+    padding: 2px 10px;
+    background: #404040;
+    font-size: 13px;
+    color: #E5E5E5;
+}
+
+QPushButton#ShortcutResetBtn {
+    border: 1px solid #555555;
+    border-radius: 6px;
+    background: transparent;
+    color: #9CA3AF;
+    font-size: 15px;
+}
+QPushButton#ShortcutResetBtn:hover { background: #484848; color: #D8D8D8; }
+
+QPushButton#ShortcutEditBtn {
+    border: 1px solid #555555;
+    border-radius: 6px;
+    background: #404040;
+    color: #D8D8D8;
+    font-size: 12px;
+    font-weight: 500;
+}
+QPushButton#ShortcutEditBtn:hover { background: #484848; }
+
+QPushButton#ShortcutSaveBtn {
+    border: none;
+    border-radius: 6px;
+    background: #2563EB;
+    color: white;
+    font-size: 12px;
+    font-weight: 600;
+}
+QPushButton#ShortcutSaveBtn:hover { background: #1D4ED8; }
+
+QPushButton#ShortcutCancelBtn {
+    border: 1px solid #555555;
+    border-radius: 6px;
+    background: #404040;
+    color: #D8D8D8;
+    font-size: 12px;
+}
+QPushButton#ShortcutCancelBtn:hover { background: #484848; }
+
+QPushButton#ShortcutClearBtn {
+    border: 1px solid #555555;
+    border-radius: 4px;
+    background: transparent;
+    color: #9CA3AF;
+    font-size: 11px;
+}
+QPushButton#ShortcutClearBtn:hover { background: #4D2020; color: #F87171; border-color: #7F1D1D; }
+
+QFrame#ShortcutInfoBar {
+    background: #1E3358;
+    border-top: 1px solid #2D4A7A;
+}
+QLabel#ShortcutInfoIcon { color: #60A5FA; font-size: 14px; font-weight: 700; }
+QLabel#ShortcutInfoText { color: #93C5FD; font-size: 12px; }
