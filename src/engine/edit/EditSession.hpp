@@ -1,6 +1,7 @@
 #pragma once
 
 #include "TextBlock.hpp"
+#include <QColor>
 #include <QList>
 #include <QImage>
 #include <QString>
@@ -22,7 +23,7 @@ public:
 
     // fontSizePt=0 means "auto-detect from content stream or bound-height"
     void addEdit(int page, const QRectF &pdfBounds, const QString &newText,
-                 double fontSizePt = 0.0);
+                 double fontSizePt = 0.0, const QColor &color = QColor());
     void removeEdit(int page, const QRectF &pdfBounds);
     void clear();
 
@@ -31,6 +32,16 @@ public:
 
     // Returns current edited text at (page, pdfBounds), or null QString if none.
     QString editTextAt(int page, const QRectF &pdfBounds) const;
+    // Returns stored text color for the edit intersecting pdfBounds, or invalid QColor.
+    QColor  editColorAt(int page, const QRectF &pdfBounds) const;
+
+    // Finds the first session edit whose bounds contain pdfPt.
+    // Returns true and writes bounds/text/fontSizePt/color if found; out-params may be null.
+    bool findEditAt(int page, const QPointF &pdfPt,
+                    QRectF  *outBounds     = nullptr,
+                    QString *outText       = nullptr,
+                    double  *outFontSizePt = nullptr,
+                    QColor  *outColor      = nullptr) const;
 
     // Paint replacements onto an already-rendered QImage (used for live view).
     // scale = PDF-point-to-pixel factor used when rendering.
@@ -57,9 +68,11 @@ private:
         QRectF  pdfBounds;
         QString newText;
         double  fontSizePt { 0.0 };  // 0 = derive from content stream / bound height
+        QColor  textColor;           // invalid = use default (near-black)
     };
 
-    static void paintEdit(QPainter &p, const Edit &e, qreal scale);
+    static void paintTextEdit(QPainter &p, const Edit &e, qreal scale);
+    static void paintBlankEdit(QPainter &p, const QImage &snapshot, const Edit &e, qreal scale);
 
 #ifdef HAVE_QPDF
     // Hybrid: unedited pages copied as vector, edited pages rasterised at 300 DPI.

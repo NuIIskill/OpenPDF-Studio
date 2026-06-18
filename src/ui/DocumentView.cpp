@@ -13,12 +13,20 @@
 #include <QPalette>
 #include <QPainter>
 #include <QApplication>
+#include <QTimer>
 #include <QDebug>
+#include <QMap>
 
 DocumentView::DocumentView(QWidget *parent)
     : QScrollArea(parent)
     , m_undoStack(new QUndoStack(this))
+    , m_liveTimer(new QTimer(this))
 {
+    m_liveTimer->setSingleShot(true);
+    m_liveTimer->setInterval(400);   // ms debounce — rerender 400ms after last keystroke
+    connect(m_liveTimer, &QTimer::timeout, this, [this]() {
+        liveUpdateCurrentEdit(m_livePendingText);
+    });
     setObjectName(QStringLiteral("DocumentView"));
     setFrameShape(QFrame::NoFrame);
     setWidgetResizable(true);
@@ -54,6 +62,18 @@ DocumentView::DocumentView(QWidget *parent)
     m_editorFrame = new TextBoxFrame(m_canvas);
     connect(m_editorFrame, &TextBoxFrame::committed, this, &DocumentView::commitCurrentEdit);
     connect(m_editorFrame, &TextBoxFrame::cancelled,  this, &DocumentView::cancelCurrentEdit);
+    connect(m_editorFrame, &TextBoxFrame::changed, this, [this](const QString &text) {
+        m_livePendingText = text;
+        m_liveTimer->start();  // restart debounce window
+    });
+    connect(m_editorFrame, &TextBoxFrame::dragEnded, this, [this]() {
+        m_liveTimer->stop();
+        liveUpdateCurrentEdit(m_editorFrame->currentText());
+        // Re-render page so the blank follows the box to its new position.
+        // liveUpdateCurrentEdit updates the session but doesn't repaint.
+        if (m_activeEditPage >= 0)
+            rerenderPageWithBlank(m_activeEditPage, m_activeEditBounds);
+    });
     connect(m_editorFrame, &TextBoxFrame::boundsChanged, this, [this](const QRectF &inner) {
         if (m_activeEditPage < 0) return;
         const QLabel *lbl = m_pageLabels.value(m_activeEditPage, nullptr);
@@ -62,6 +82,7 @@ DocumentView::DocumentView(QWidget *parent)
         m_activeEditBounds = QRectF(
             (inner.topLeft() - QPointF(lbl->pos())) / scale,
             inner.size() / scale);
+        qWarning() << "[BOUNDS] activeEditBounds=" << m_activeEditBounds;
     });
 #endif
     // HAVE_POPPLER: m_renderer and m_popplerDoc are created per-file in openFile()
@@ -173,7 +194,12 @@ void DocumentView::setTool(Tool tool)
 void DocumentView::setEditMode(bool on)
 {
     if (m_editMode == on) return;
+#ifdef HAVE_QT_PDF
+    m_liveTimer->stop();
+    commitCurrentEdit(m_editorFrame->currentText());
+#else
     cancelCurrentEdit();
+#endif
     m_editMode = on;
     if (!on) setTool(m_tool); // restore tool cursor when leaving edit mode
 }
@@ -181,7 +207,8 @@ void DocumentView::setEditMode(bool on)
 bool DocumentView::saveToFile(const QString &path)
 {
 #ifdef HAVE_QT_PDF
-    cancelCurrentEdit();
+    m_liveTimer->stop();
+    commitCurrentEdit(m_editorFrame->currentText());
     if (!m_session->saveToFile(path, m_document, m_pageCount, m_filePath))
         return false;
 
@@ -328,11 +355,15 @@ void DocumentView::rerenderPageWithBlank(int page, const QRectF &pdfBoundsPts)
     img.setDevicePixelRatio(dpr);
 #ifdef HAVE_QT_PDF
     m_session->applyToImage(page, img, scale * dpr);
-    // Erase the active-edit region so the editor sits over a blank area.
-    QPainter p(&img);
-    const QRectF px(pdfBoundsPts.topLeft() * scale * dpr,
-                    pdfBoundsPts.size()    * scale * dpr);
-    p.fillRect(px.adjusted(-3, -3, 3, 3).toAlignedRect(), Qt::white);
+    {
+        const QRectF px(pdfBoundsPts.topLeft() * scale * dpr,
+                        pdfBoundsPts.size()    * scale * dpr);
+        // 2 px padding covers anti-aliased glyph edges without reaching
+        // adjacent lines at standard leading (gap ≥ 2–3 pt at 100 % zoom).
+        const QRect eraseRect = px.adjusted(-2, -2, 2, 2).toAlignedRect();
+        QPainter p(&img);
+        p.fillRect(eraseRect, Qt::white);
+    }
 #endif
     if (!img.isNull())
         m_pageLabels[page]->setPixmap(QPixmap::fromImage(std::move(img)));
@@ -349,6 +380,31 @@ std::pair<int, QLabel *> DocumentView::pageAtCanvasPos(const QPoint &canvasPos) 
     return { -1, nullptr };
 }
 
+// Sample the most common non-white pixel color in a region of a rendered page image.
+// Returns a fallback near-black if nothing non-white is found.
+static QColor sampleDominantColor(const QImage &img, const QRect &region)
+{
+    const QRect sr = region.intersected(img.rect());
+    if (sr.isEmpty()) return QColor(0x11, 0x11, 0x11);
+
+    QMap<QRgb, int> counts;
+    const int stepX = qMax(1, sr.width()  / 60);
+    const int stepY = qMax(1, sr.height() / 30);
+    for (int y = sr.top(); y < sr.bottom(); y += stepY) {
+        for (int x = sr.left(); x < sr.right(); x += stepX) {
+            const QColor c = QColor::fromRgb(img.pixel(x, y));
+            if (c.red() < 230 || c.green() < 230 || c.blue() < 230)
+                counts[c.rgb()]++;
+        }
+    }
+    if (counts.isEmpty()) return QColor(0x11, 0x11, 0x11);
+
+    QRgb best = 0; int bestN = 0;
+    for (auto it = counts.cbegin(); it != counts.cend(); ++it)
+        if (it.value() > bestN) { bestN = it.value(); best = it.key(); }
+    return QColor::fromRgb(best);
+}
+
 void DocumentView::handleEditClick(const QPoint &canvasPos)
 {
 #ifdef HAVE_QT_PDF
@@ -358,8 +414,8 @@ void DocumentView::handleEditClick(const QPoint &canvasPos)
     if (pageIdx < 0) return;
 
     // Convert canvas position to PDF-point coordinates
-    const QPointF pageLocal = QPointF(canvasPos - pageLbl->pos());
     const qreal   scale     = PdfRenderer::screenScale(m_zoom);
+    const QPointF pageLocal = QPointF(canvasPos - pageLbl->pos());
     const QPointF pdfPt     = pageLocal / scale;
     const QSizeF  pageSize  = m_renderer->pageSizePts(pageIdx);
 
@@ -390,7 +446,32 @@ void DocumentView::handleEditClick(const QPoint &canvasPos)
     }
 
     qWarning() << "[EDIT] block valid=" << block.isValid() << "text=" << block.text.left(40);
-    if (!block.isValid()) return;
+
+    // If no native/OCR text found, check for a floating session edit at this point
+    // (e.g., text that was moved from another position into a blank area).
+    double sessionFontPt = 0.0;
+    QColor sessionColor;
+    bool   isSessionEdit = false;
+    if (!block.isValid()) {
+        QRectF  editBounds;
+        QString editText;
+        if (m_session->findEditAt(pageIdx, pdfPt, &editBounds, &editText, &sessionFontPt, &sessionColor)) {
+            block        = TextBlock{ pageIdx, editBounds, editText };
+            isSessionEdit = true;
+        } else {
+            return;
+        }
+    }
+
+    // If this click was the release of a press that committed an edit on this
+    // same block, don't re-open — that would call rerenderPageWithBlank and
+    // erase the text we just committed.
+    if (block.page == m_lastCommittedPage &&
+        block.pdfBounds.intersects(m_lastCommittedOrigBounds)) {
+        m_lastCommittedPage = -1;
+        return;
+    }
+    m_lastCommittedPage = -1;
 
     // Convert block bounds back to canvas coordinates for the overlay
     const QRectF canvasBounds(
@@ -398,27 +479,51 @@ void DocumentView::handleEditClick(const QPoint &canvasPos)
         block.pdfBounds.size() * scale
     );
 
-    // If there's already an edit at this location (user re-clicks on edited text),
-    // load the current edited text rather than the original PDF text.
-    const QString existing = m_session->editTextAt(block.page, block.pdfBounds);
-    const QString displayText = existing.isNull() ? block.text : existing;
+    // If there's already an edit at this location, load the current text + stored color.
+    const QString existing     = m_session->editTextAt(block.page, block.pdfBounds);
+    const QString displayText  = existing.isNull() ? block.text : existing;
+    const QColor  storedColor  = m_session->editColorAt(block.page, block.pdfBounds);
 
-    m_activeEditPage         = block.page;
-    m_activeEditBounds       = block.pdfBounds;
-    m_activeEditOriginalText = displayText;
+    m_activeEditPage          = block.page;
+    m_activeEditBounds        = block.pdfBounds;
+    m_activeEditOriginalBounds = block.pdfBounds;
+    m_activeEditOriginalText  = displayText;
+    m_hasLiveEdit             = false;
 
-    // Font size: derive from single-line height (pdfBounds spans whole paragraph).
-    // We store it in pt so the FormatBar and saveVector use the same value.
-    const int lineCount = qMax(1, block.text.count(u'\n') + 1);
-    m_currentEditorFontSizePt = qMax(4, int(block.pdfBounds.height() / lineCount * 0.78));
+    // Font size: use stored value for session edits; derive from block height otherwise.
+    if (isSessionEdit && sessionFontPt > 0.0) {
+        m_currentEditorFontSizePt = qMax(4, int(sessionFontPt));
+    } else {
+        const int lineCount = qMax(1, block.text.count(u'\n') + 1);
+        m_currentEditorFontSizePt = qMax(4, int(block.pdfBounds.height() / lineCount * 0.78));
+    }
     Q_EMIT editorFontSizeChanged(m_currentEditorFontSizePt);
+
+    // Text color: use stored session color on re-edits; otherwise sample the
+    // rendered page.  Render at 1 pt=1 px so coordinates are unambiguous (no
+    // device-pixel-ratio complications with the label's pixmap).
+    if (storedColor.isValid()) {
+        m_currentEditorColor = storedColor;
+    } else if (isSessionEdit && sessionColor.isValid()) {
+        m_currentEditorColor = sessionColor;
+    } else {
+        const QImage sampImg = m_renderer->renderPage(block.page, 1.0);
+        if (!sampImg.isNull()) {
+            const QRect sr = block.pdfBounds.toAlignedRect().intersected(sampImg.rect());
+            m_currentEditorColor = sampleDominantColor(sampImg, sr);
+            qWarning() << "[COLOR] pdfBounds=" << block.pdfBounds
+                       << "sr=" << sr << "imgSize=" << sampImg.size()
+                       << "detected=" << m_currentEditorColor;
+        }
+    }
 
     const int fontSize = qMax(6, qRound(m_currentEditorFontSizePt * scale));
 
     m_editorFrame->setDecorations(true);
     m_editorFrame->setForbiddenZones({});
+    m_editorFrame->setPageRect(pageLbl->geometry());
     m_editorFrame->resetCommitGuard();
-    m_editorFrame->present(displayText, canvasBounds, fontSize);
+    m_editorFrame->present(displayText, canvasBounds, fontSize, m_currentEditorColor);
     // Erase original text from page render so the editor isn't floating over it.
     rerenderPageWithBlank(block.page, block.pdfBounds);
 #endif
@@ -428,26 +533,56 @@ void DocumentView::commitCurrentEdit(const QString &newText)
 {
 #ifdef HAVE_QT_PDF
     if (m_activeEditPage < 0) return;
+    m_liveTimer->stop();
 
-    // Capture page/bounds/original before hide() — hide() can trigger
-    // a recursive focusOut→committed→commitCurrentEdit call, which exits
-    // early because m_activeEditPage is already -1.
-    const int    page     = m_activeEditPage;
-    const QRectF bounds   = m_activeEditBounds;
-    const QString origText = m_activeEditOriginalText;
+    // Capture all state before hide() — hide() can trigger a recursive
+    // focusOut→committed→commitCurrentEdit call, which exits early because
+    // m_activeEditPage is already -1.
+    const int    page       = m_activeEditPage;
+    const QRectF bounds     = m_activeEditBounds;
+    const QRectF origBounds = m_activeEditOriginalBounds;
+    const QRectF liveBounds = m_lastLiveEditBounds;
+    const bool   hadLive    = m_hasLiveEdit;
     m_activeEditPage = -1;
+    m_hasLiveEdit    = false;
 
     m_editorFrame->hide();  // may trigger recursive commit, which exits early ↑
 
     qWarning() << "[COMMIT] page=" << page << "new=" << newText.left(40);
 
     const QString trimNew = newText.trimmed();
-    const QString trimOld = origText.trimmed();
 
-    if (trimNew != trimOld && !trimNew.isEmpty())
-        m_session->addEdit(page, bounds, newText, m_currentEditorFontSizePt);
+    // Remove the original edit (if re-editing previously committed text) and
+    // the last live-update edit (tracked precisely to avoid touching other boxes).
+    m_session->removeEdit(page, origBounds);
+    if (hadLive) m_session->removeEdit(page, liveBounds);
 
-    rerenderPage(page);
+    if (!trimNew.isEmpty())
+        m_session->addEdit(page, bounds, newText, m_currentEditorFontSizePt, m_currentEditorColor);
+
+    // Always blank origBounds if:
+    //   • the box was moved/shrunk (origBounds no longer covered by new bounds), OR
+    //   • the user deleted all text (nothing to paint over the original).
+    const bool needBlank = !bounds.contains(origBounds) || trimNew.isEmpty();
+    if (needBlank) {
+        m_session->addEdit(page, origBounds, QString(), m_currentEditorFontSizePt);
+        qWarning() << "[COMMIT] blank added origBounds=" << origBounds
+                   << "bounds=" << bounds << "textEmpty=" << trimNew.isEmpty();
+    }
+
+    // Remember the original PDF block bounds so that the mouseRelease handler
+    // for THIS SAME CLICK can avoid re-opening an editor for the block we just
+    // committed — doing so would call rerenderPageWithBlank and blank the text.
+    m_lastCommittedPage       = page;
+    m_lastCommittedOrigBounds = origBounds;
+
+    // When blanking is needed, rerenderPageWithBlank ensures origBounds is
+    // cleared via BOTH applyToImage (session blank edit) and the explicit fill —
+    // belt-and-suspenders so the original text definitely disappears.
+    if (needBlank)
+        rerenderPageWithBlank(page, origBounds);
+    else
+        rerenderPage(page);
 #else
     Q_UNUSED(newText)
 #endif
@@ -458,11 +593,48 @@ void DocumentView::cancelCurrentEdit()
 #ifdef HAVE_QT_PDF
     const int page = m_activeEditPage;
     m_activeEditPage = -1;
+    m_liveTimer->stop();
+    if (m_hasLiveEdit) {
+        if (page >= 0) m_session->removeEdit(page, m_lastLiveEditBounds);
+        m_hasLiveEdit = false;
+    }
     m_editorFrame->hide();
     if (page >= 0)
-        rerenderPage(page);  // restore original text after cancel
+        rerenderPage(page);
 #else
     m_activeEditPage = -1;
+#endif
+}
+
+void DocumentView::liveUpdateCurrentEdit(const QString &text)
+{
+#ifdef HAVE_QT_PDF
+    if (m_activeEditPage < 0) return;
+    qWarning() << "[LIVE] page=" << m_activeEditPage
+               << "orig=" << m_activeEditOriginalBounds
+               << "active=" << m_activeEditBounds
+               << "hasLive=" << m_hasLiveEdit
+               << "lastLive=" << m_lastLiveEditBounds
+               << "text=" << text.left(20);
+    // Remove the PREVIOUS live edit using the exact bounds it was placed at.
+    // Never use m_activeEditBounds here — the box may have moved on top of
+    // another box's edit, and we must not touch that other box.
+    if (m_hasLiveEdit) {
+        m_session->removeEdit(m_activeEditPage, m_lastLiveEditBounds);
+        m_hasLiveEdit = false;
+    }
+    // Remove the original edit at its original position (handles re-editing
+    // previously committed text and the case where the box is being moved).
+    m_session->removeEdit(m_activeEditPage, m_activeEditOriginalBounds);
+
+    if (!text.trimmed().isEmpty()) {
+        m_session->addEdit(m_activeEditPage, m_activeEditBounds, text,
+                           m_currentEditorFontSizePt, m_currentEditorColor);
+        m_lastLiveEditBounds = m_activeEditBounds;
+        m_hasLiveEdit        = true;
+    }
+#else
+    Q_UNUSED(text)
 #endif
 }
 
@@ -478,16 +650,20 @@ void DocumentView::createTextFrame(const QRect &viewportDragRect)
     if (pageIdx < 0) return;
 
     const qreal scale = PdfRenderer::screenScale(m_zoom);
-    m_activeEditPage         = pageIdx;
-    m_activeEditBounds       = QRectF(
+    m_activeEditPage          = pageIdx;
+    m_activeEditBounds        = QRectF(
         (QPointF(canvasRect.topLeft()) - QPointF(pageLbl->pos())) / scale,
         QSizeF(canvasRect.size()) / scale);
-    m_activeEditOriginalText = QString();
+    m_activeEditOriginalBounds = m_activeEditBounds;
+    m_activeEditOriginalText  = QString();
+    m_hasLiveEdit             = false;
 
+    m_currentEditorColor = QColor(0x11, 0x11, 0x11);  // new box: no original to sample
     const int fontSize = qMax(8, qRound(12.0 * scale));
     m_editorFrame->setDecorations(true);  // new text box: show border + handles
+    m_editorFrame->setPageRect(pageLbl->geometry());
     m_editorFrame->resetCommitGuard();
-    m_editorFrame->present(QString(), QRectF(canvasRect), fontSize);
+    m_editorFrame->present(QString(), QRectF(canvasRect), fontSize, m_currentEditorColor);
 #else
     Q_UNUSED(viewportDragRect)
 #endif
@@ -520,8 +696,12 @@ bool DocumentView::eventFilter(QObject *obj, QEvent *e)
                 // Let TextBoxFrame/InlineEditor handle clicks inside the active frame.
                 if (m_editorFrame->isVisible() && m_editorFrame->geometry().contains(cvsPos))
                     return QScrollArea::eventFilter(obj, e);
+                // Commit the active edit before starting a new one.
+                // cancelCurrentEdit must NOT be used here — it removes the live edit,
+                // so the user's typed text would disappear.
+                m_liveTimer->stop();
+                commitCurrentEdit(m_editorFrame->currentText());
 #endif
-                cancelCurrentEdit();
                 m_textDragStart = cvsPos;   // stored in canvas coords
                 m_textTracking  = true;
                 m_textDragging  = false;

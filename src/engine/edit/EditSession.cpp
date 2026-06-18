@@ -366,10 +366,10 @@ bool EditSession::saveVector(const QString &sourcePath, const QString &outputPat
 // ── Mutation ──────────────────────────────────────────────────────────────────
 
 void EditSession::addEdit(int page, const QRectF &pdfBounds, const QString &newText,
-                          double fontSizePt)
+                          double fontSizePt, const QColor &color)
 {
     removeEdit(page, pdfBounds);
-    m_edits.append({ page, pdfBounds, newText, fontSizePt });
+    m_edits.append({ page, pdfBounds, newText, fontSizePt, color });
 }
 
 void EditSession::removeEdit(int page, const QRectF &pdfBounds)
@@ -401,20 +401,76 @@ QString EditSession::editTextAt(int page, const QRectF &pdfBounds) const
     return QString(); // null = no existing edit
 }
 
+QColor EditSession::editColorAt(int page, const QRectF &pdfBounds) const
+{
+    for (const auto &e : m_edits)
+        if (e.page == page && e.pdfBounds.intersects(pdfBounds))
+            return e.textColor;
+    return QColor(); // invalid = no stored color
+}
+
+bool EditSession::findEditAt(int page, const QPointF &pdfPt,
+                             QRectF *outBounds, QString *outText,
+                             double *outFontSizePt, QColor *outColor) const
+{
+    for (const auto &e : m_edits) {
+        if (e.page == page && e.pdfBounds.contains(pdfPt)) {
+            if (outBounds)     *outBounds     = e.pdfBounds;
+            if (outText)       *outText       = e.newText;
+            if (outFontSizePt) *outFontSizePt = e.fontSizePt;
+            if (outColor)      *outColor      = e.textColor;
+            return true;
+        }
+    }
+    return false;
+}
+
 // ── Live-view raster rendering (QImage overlay) ───────────────────────────────
 
 void EditSession::applyToImage(int page, QImage &img, qreal scale) const
 {
     if (img.isNull() || !hasEditsOnPage(page)) return;
+
+    // Snapshot the unmodified render so blank edits can pixel-scan for
+    // the actual dark-pixel extent of the original PDF text.
+    const QImage snapshot = img;
+
     QPainter p(&img);
-    for (const auto &e : m_edits)
-        if (e.page == page) paintEdit(p, e, scale);
+    for (const auto &e : m_edits) {
+        if (e.page != page) continue;
+        if (e.newText.isEmpty())
+            paintBlankEdit(p, snapshot, e, scale);
+        else
+            paintTextEdit(p, e, scale);
+    }
 }
 
-void EditSession::paintEdit(QPainter &p, const Edit &e, qreal scale)
+// Blank edit: erase the original PDF text at this position with white.
+// Uses the same simple fill computation that rerenderPageWithBlank uses
+// so the two mechanisms stay consistent.
+void EditSession::paintBlankEdit(QPainter &p, const QImage & /*snapshot*/,
+                                  const Edit &e, qreal scale)
 {
     const QRectF px(e.pdfBounds.topLeft() * scale, e.pdfBounds.size() * scale);
-    p.fillRect(px.adjusted(-3, -3, 3, 3), Qt::white);
+    // Use the same tight 2 px fill as rerenderPageWithBlank so both paths
+    // are consistent.  The extra fill in rerenderPageWithBlank is the
+    // belt-and-suspenders that ensures coverage even if bounds are off by a pixel.
+    const QRect eraseRect = px.adjusted(-2, -2, 2, 2).toAlignedRect();
+    qWarning() << "[BLANK] pdfBounds=" << e.pdfBounds << "px=" << px
+               << "eraseRect=" << eraseRect;
+    p.fillRect(eraseRect, Qt::white);
+}
+
+void EditSession::paintTextEdit(QPainter &p, const Edit &e, qreal scale)
+{
+    const QRectF px(e.pdfBounds.topLeft() * scale, e.pdfBounds.size() * scale);
+    // 2 px covers anti-aliased glyph edges without touching adjacent lines.
+    p.fillRect(px.adjusted(-2, -2, 2, 2), Qt::white);
+
+    qWarning() << "[PAINT] page=" << e.page
+               << "pdfBounds=" << e.pdfBounds
+               << "px=" << px
+               << "color=" << e.textColor;
 
     int pixelSize;
     if (e.fontSizePt > 0.0) {
@@ -426,7 +482,7 @@ void EditSession::paintEdit(QPainter &p, const Edit &e, qreal scale)
     QFont f = p.font();
     f.setPixelSize(pixelSize);
     p.setFont(f);
-    p.setPen(Qt::black);
+    p.setPen(e.textColor.isValid() ? e.textColor : QColor(0x11, 0x11, 0x11));
     p.drawText(px.toRect(),
                Qt::AlignLeft | Qt::AlignTop | Qt::TextWordWrap,
                e.newText);

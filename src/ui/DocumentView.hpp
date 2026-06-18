@@ -77,6 +77,7 @@ private:
     void   createTextFrame(const QRect &viewportDragRect);
     void   commitCurrentEdit(const QString &newText);
     void   cancelCurrentEdit();
+    void   liveUpdateCurrentEdit(const QString &text);
 
     // Canvas helpers
     std::pair<int, QLabel *> pageAtCanvasPos(const QPoint &canvasPos) const;
@@ -108,10 +109,21 @@ private:
     // Edit-mode state
     int     m_activeEditPage { -1 };
     QRectF  m_activeEditBounds;
+    QRectF  m_activeEditOriginalBounds;  // bounds when the edit was first opened
+    QRectF  m_lastLiveEditBounds;        // bounds where the last live edit was placed
+    bool    m_hasLiveEdit     { false }; // whether a live edit is currently in the session
     QString m_activeEditOriginalText;
     int     m_currentEditorFontSizePt { 12 };  // tracks font size set via FormatBar
+    QColor  m_currentEditorColor     { 0x11, 0x11, 0x11 };  // sampled from page render
 
-    QUndoStack *m_undoStack { nullptr };
+    // After a commit, the press+release that triggered it must not re-open
+    // an editor for the same block — that would blank the just-committed text.
+    int    m_lastCommittedPage { -1 };
+    QRectF m_lastCommittedOrigBounds;
+
+    QUndoStack *m_undoStack      { nullptr };
+    QTimer     *m_liveTimer      { nullptr };
+    QString     m_livePendingText;
 
     OcrEngine *m_ocrEngine { nullptr };
 
