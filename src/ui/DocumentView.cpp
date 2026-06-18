@@ -258,6 +258,17 @@ bool DocumentView::pdfRenderingAvailable() const
 #endif
 }
 
+QList<QString> DocumentView::allPageTexts() const
+{
+    QList<QString> result;
+#if defined(HAVE_QT_PDF)
+    if (!m_document) return result;
+    for (int i = 0; i < m_pageCount; ++i)
+        result << m_document->getAllText(i).text();
+#endif
+    return result;
+}
+
 void DocumentView::retranslateUi()
 {
 #ifdef HAVE_PDF_RENDERING

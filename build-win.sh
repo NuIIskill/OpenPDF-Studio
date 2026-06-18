@@ -53,30 +53,18 @@ PLUGIN_DIR="/usr/x86_64-w64-mingw32/sys-root/mingw/lib/qt6/plugins"
 if [[ -d "$QT_BIN" ]]; then
     echo "==> Deploying runtime DLLs → ${BUILD_DIR}/"
 
-    # MinGW runtime
-    for dll in libgcc_s_seh-1.dll libstdc++-6.dll libwinpthread-1.dll; do
-        [[ -f "${QT_BIN}/${dll}" ]] && cp -u "${QT_BIN}/${dll}" "${BUILD_DIR}/"
-    done
-
-    # Qt6 core DLLs
-    for dll in Qt6Core.dll Qt6Gui.dll Qt6Widgets.dll Qt6PrintSupport.dll Qt6Svg.dll Qt6SvgWidgets.dll Qt6Pdf.dll; do
-        [[ -f "${QT_BIN}/${dll}" ]] && cp -u "${QT_BIN}/${dll}" "${BUILD_DIR}/"
-    done
-
-    # Poppler PDF backend (used when Qt6Pdf is unavailable)
-    for dll in libpoppler-qt6-3.dll libpoppler-156.dll liblcms2-2.dll libjpeg-62.dll; do
-        [[ -f "${QT_BIN}/${dll}" ]] && cp -u "${QT_BIN}/${dll}" "${BUILD_DIR}/"
-    done
-
-    # Qt6Core transitive deps: ICU + PCRE2 + zlib
-    for dll in icui18n77.dll icuuc77.dll icudata77.dll libpcre2-16-0.dll zlib1.dll; do
-        [[ -f "${QT_BIN}/${dll}" ]] && cp -u "${QT_BIN}/${dll}" "${BUILD_DIR}/"
-    done
-
-    # Qt6Gui transitive deps: font stack
-    for dll in libfontconfig-1.dll libfreetype-6.dll libharfbuzz-0.dll libpng16-16.dll \
-               libexpat-1.dll libbz2-1.dll libglib-2.0-0.dll libintl-8.dll libpcre2-8-0.dll \
-               iconv.dll; do
+    # All runtime DLLs (full recursive dep tree of OpenPDFStudio.exe)
+    for dll in \
+        libgcc_s_seh-1.dll libstdc++-6.dll libwinpthread-1.dll \
+        Qt6Core.dll Qt6Gui.dll Qt6Widgets.dll Qt6PrintSupport.dll Qt6Svg.dll Qt6SvgWidgets.dll Qt6Pdf.dll \
+        libpoppler-qt6-3.dll libpoppler-156.dll liblcms2-2.dll libjpeg-62.dll \
+        libcurl-4.dll libopenjp2.dll libtiff-6.dll \
+        libcrypto-3-x64.dll libssl-3-x64.dll libssh2-1.dll \
+        libidn2-0.dll libpsl-5.dll libunistring-2.dll \
+        icui18n77.dll icuuc77.dll icudata77.dll libpcre2-16-0.dll zlib1.dll \
+        libfontconfig-1.dll libfreetype-6.dll libharfbuzz-0.dll libpng16-16.dll \
+        libexpat-1.dll libbz2-1.dll libglib-2.0-0.dll libintl-8.dll libpcre2-8-0.dll \
+        iconv.dll; do
         [[ -f "${QT_BIN}/${dll}" ]] && cp -u "${QT_BIN}/${dll}" "${BUILD_DIR}/"
     done
 

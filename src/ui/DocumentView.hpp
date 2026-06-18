@@ -51,6 +51,7 @@ public:
     QUndoStack *undoStack()        const { return m_undoStack; }
     bool        hasUnsavedEdits()  const;
     bool        pdfRenderingAvailable() const;
+    QList<QString> allPageTexts() const;
 
 Q_SIGNALS:
     void fileOpened(const QString &path, int pageCount);

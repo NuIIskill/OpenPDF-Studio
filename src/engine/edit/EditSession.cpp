@@ -3,6 +3,7 @@
 #include <QPainter>
 #include <QFont>
 #include <QBuffer>
+#include <QDebug>
 
 #ifdef HAVE_QT_PDF
 #include <QPdfWriter>

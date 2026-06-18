@@ -9,6 +9,8 @@
 #include "StatusBar.hpp"
 #include "SettingsPanel.hpp"
 #include "ui/organizer/PdfOrganizerDialog.hpp"
+#include "ui/ExportDialog.hpp"
+#include "engine/edit/DocxExporter.hpp"
 #include "ui/theme/Theme.hpp"
 #include "app/AppSettings.hpp"
 
@@ -313,6 +315,26 @@ void MainWindow::onModeSelected(const QString &mode)
         if (!m_editMode) {
             closeTextPanel();
             m_formatBar->hide();
+        }
+    } else if (mode == QLatin1String("export")) {
+        DocumentView *dv   = currentDocView();
+        const QString file = dv ? dv->currentFile() : QString{};
+        const int pages    = dv ? dv->pageCount() : 1;
+        ExportDialog dlg(file, pages, this);
+        if (dlg.exec() == QDialog::Accepted && dv) {
+            const QString path   = dlg.selectedPath();
+            const QString format = dlg.selectedFormat();
+            if (!path.isEmpty()) {
+                if (format == QLatin1String("word")) {
+                    const QList<QString> texts = dv->allPageTexts();
+                    const QString title = QFileInfo(dv->currentFile()).completeBaseName();
+                    if (!DocxExporter::exportToDocx(path, texts, title))
+                        QMessageBox::warning(this, tr("Export failed"),
+                            tr("Could not write to \"%1\".").arg(path));
+                } else {
+                    dv->saveToFile(path);
+                }
+            }
         }
     } else if (mode == QLatin1String("organize")) {
         DocumentView *dv = currentDocView();

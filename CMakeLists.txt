@@ -39,6 +39,9 @@ set(SOURCES
     src/engine/edit/InlineEditor.hpp
     src/engine/edit/TextBoxFrame.cpp
     src/engine/edit/TextBoxFrame.hpp
+    src/engine/edit/DocxExporter.cpp
+    src/engine/edit/DocxExporter.hpp
+
     src/engine/edit/EditSession.cpp
     src/engine/edit/EditSession.hpp
 
@@ -78,6 +81,9 @@ set(SOURCES
     src/ui/tools/ImageAnnotation.cpp
     src/ui/tools/ImageAnnotation.hpp
     src/ui/tools/UndoCommands.hpp
+
+    src/ui/ExportDialog.cpp
+    src/ui/ExportDialog.hpp
 
     src/ui/organizer/PdfOrganizerDialog.cpp
     src/ui/organizer/PdfOrganizerDialog.hpp
@@ -136,6 +142,13 @@ target_include_directories(OpenPDFStudio PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/src/3rdparty
 )
 
+# PkgConfig is used as a fallback for qpdf and Tesseract on native builds only.
+# Cross-compilation must not use host pkg-config — it returns Linux headers that
+# conflict with the Windows sysroot (e.g. /usr/include/stdint.h vs MinGW types).
+if(NOT CMAKE_CROSSCOMPILING)
+    find_package(PkgConfig QUIET)
+endif()
+
 # ── qpdf: vector PDF content-stream overlay (true text replacement) ───────────
 find_package(qpdf QUIET CONFIG)
 if(qpdf_FOUND)
@@ -156,7 +169,6 @@ endif()
 
 # ── OCR via Tesseract ─────────────────────────────────────────────────────────
 # Optional dependency: install tesseract-devel and tesseract-langpack-deu|eng
-find_package(PkgConfig QUIET)
 if(PkgConfig_FOUND)
     pkg_check_modules(TESSERACT QUIET tesseract)
 endif()
@@ -176,6 +188,14 @@ endif()
 
 if(WIN32)
     set_target_properties(OpenPDFStudio PROPERTIES WIN32_EXECUTABLE TRUE)
+endif()
+
+if(MINGW)
+    # MinGW <ratio>/<chrono_io.h> system headers use 'long int' (32-bit, Windows LLP64)
+    # for ratio template params, but atto/femto/pico/tera/peta/exa need 64-bit values.
+    # GCC reports this as [-Wnarrowing]/[-Wtemplate-body] errors in C++20. Our code is
+    # fine — suppress only these system-header diagnostics.
+    target_compile_options(OpenPDFStudio PRIVATE -Wno-narrowing -Wno-template-body)
 endif()
 
 install(TARGETS OpenPDFStudio
