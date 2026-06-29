@@ -39,6 +39,8 @@ public:
     bool   openFile(const QString &path);
     void   clearDocument();
     void   setZoom(int percent);
+    void   setZoomSettings(int step, bool ctrlWheel, bool toPointer,
+                           const QString &wheelAction);
     void   setTool(Tool tool);
     void   setEditMode(bool on);
     bool   saveToFile(const QString &path);
@@ -65,6 +67,7 @@ protected:
     void dragMoveEvent(QDragMoveEvent *e) override;
     void dropEvent(QDropEvent *e) override;
     void changeEvent(QEvent *e) override;
+    void wheelEvent(QWheelEvent *e) override;
 
 private:
     // Page rendering
@@ -96,6 +99,12 @@ private:
     int     m_pageCount { 0 };
     Tool    m_tool      { Tool::Select };
     bool    m_editMode  { false };
+
+    // Zoom settings (from AppSettings via MainWindow)
+    int     m_zoomStep          { 10 };
+    bool    m_ctrlWheelEnabled  { true };
+    bool    m_zoomToPointer     { true };
+    QString m_wheelAction       { QStringLiteral("scroll") };
 
     // View-mode interaction
     QPoint m_panStart;

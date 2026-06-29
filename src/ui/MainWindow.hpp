@@ -1,6 +1,7 @@
 #pragma once
 
 #include <QMainWindow>
+#include <QMap>
 #include <QTranslator>
 
 class TopToolbar;
@@ -14,6 +15,7 @@ class AppSettings;
 class SettingsPanel;
 
 QT_BEGIN_NAMESPACE
+class QShortcut;
 class QStackedWidget;
 class QSplitter;
 QT_END_NAMESPACE
@@ -52,6 +54,7 @@ private:
     void onTabCloseRequested(int index);
     void onOpenFile();
     void onSave();
+    void onSaveAs();
     void onPrint();
     void onUndo();
     void onRedo();
@@ -63,6 +66,8 @@ private:
     bool confirmAndSave(DocumentView *dv);
     void openTextPanel();
     void closeTextPanel();
+    void loadShortcuts();
+    void loadZoomSettings();
 
     AppSettings          *m_appSettings  { nullptr };
     TopToolbar           *m_topToolbar   { nullptr };
@@ -76,6 +81,7 @@ private:
     QStackedWidget        *m_docStack  { nullptr };
     QList<DocumentView *>  m_docViews;
 
+    QMap<QString, QShortcut *> m_shortcuts;
     QTranslator m_translator;
     int         m_zoom                   { 100 };
     QString     m_activeTool             { QStringLiteral("select") };

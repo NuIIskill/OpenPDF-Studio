@@ -13,10 +13,14 @@
 #include <QEvent>
 #include <QMouseEvent>
 #include <QApplication>
+#include <QAbstractButton>
 #include <QCheckBox>
+#include <QComboBox>
 #include <QKeyEvent>
 #include <QKeySequence>
 #include <QLineEdit>
+#include <QPainter>
+#include <QSpinBox>
 
 // ── OptionCard ────────────────────────────────────────────────────────────────
 
@@ -265,8 +269,15 @@ public:
     }
 
     bool isEditing() const { return m_editing; }
-
     void cancelIfEditing() { if (m_editing) exitEdit(false); }
+
+    QKeySequence currentSequence() const { return m_currentSeq; }
+    void setCurrentSequence(const QKeySequence &seq)
+    {
+        m_currentSeq = seq;
+        m_seqDisplay->setText(seq.isEmpty() ? QString{}
+                                             : seq.toString(QKeySequence::NativeText));
+    }
 
 Q_SIGNALS:
     void editStarted();
@@ -300,20 +311,28 @@ private:
             m_captureEdit->setObjectName(QStringLiteral("ShortcutCapture"));
             m_captureEdit->setFixedHeight(32);
             ehl->addWidget(m_captureEdit, 1);
-            m_clearBtn = new QPushButton(QStringLiteral("✕"), m_editArea);
+            m_clearBtn = new QPushButton(m_editArea);
+            m_clearBtn->setFlat(true);
             m_clearBtn->setObjectName(QStringLiteral("ShortcutClearBtn"));
             m_clearBtn->setFixedSize(28, 28);
             m_clearBtn->setCursor(Qt::PointingHandCursor);
+            m_clearBtn->setIcon(Theme::makeIcon(QStringLiteral("x"),
+                                                QColor(QStringLiteral("#6B7280")),
+                                                QColor(QStringLiteral("#DC2626")),
+                                                Theme::IconDisabled, 12));
             connect(m_clearBtn, &QPushButton::clicked, this, [this]() { m_captureEdit->clear(); });
             ehl->addWidget(m_clearBtn);
         }
         hl->addWidget(m_editArea, 1);
 
-        m_resetBtn = new QPushButton(QStringLiteral("↺"), this);
+        m_resetBtn = new QPushButton(this);
         m_resetBtn->setObjectName(QStringLiteral("ShortcutResetBtn"));
         m_resetBtn->setFixedSize(32, 32);
         m_resetBtn->setCursor(Qt::PointingHandCursor);
         m_resetBtn->setToolTip(tr("Reset to default"));
+        m_resetBtn->setIcon(Theme::makeIcon(QStringLiteral("undo-2"),
+                                            Theme::IconMuted, Theme::IconChecked,
+                                            Theme::IconDisabled, 14));
         connect(m_resetBtn, &QPushButton::clicked, this, [this]() {
             m_currentSeq = m_defaultSeq;
             m_seqDisplay->setText(m_defaultSeq.toString(QKeySequence::NativeText));
@@ -325,6 +344,9 @@ private:
         m_editBtn->setObjectName(QStringLiteral("ShortcutEditBtn"));
         m_editBtn->setFixedSize(90, 32);
         m_editBtn->setCursor(Qt::PointingHandCursor);
+        m_editBtn->setIcon(Theme::makeIcon(QStringLiteral("pencil"),
+                                           Theme::IconNormal, Theme::IconChecked,
+                                           Theme::IconDisabled, 13));
         connect(m_editBtn, &QPushButton::clicked, this, &ShortcutRow::enterEdit);
         hl->addWidget(m_editBtn);
 
@@ -365,11 +387,13 @@ private:
         m_cancelBtn->show();
         m_actionLabel->setStyleSheet(QStringLiteral("font-size:13px;font-weight:700;"));
         m_captureEdit->setFocus();
+        m_captureEdit->grabKeyboard(); // grab all keys so the modal dialog can't intercept them
         Q_EMIT editStarted();
     }
 
     void exitEdit(bool save)
     {
+        m_captureEdit->releaseKeyboard();
         if (save && !m_captureEdit->text().trimmed().isEmpty())
             m_currentSeq = m_captureEdit->capturedSequence();
         m_editing = false;
@@ -395,6 +419,43 @@ private:
     QPushButton    *m_editBtn     { nullptr };
     QPushButton    *m_saveBtn     { nullptr };
     QPushButton    *m_cancelBtn   { nullptr };
+};
+
+// ── ToggleSwitch ──────────────────────────────────────────────────────────────
+
+class ToggleSwitch : public QAbstractButton
+{
+    Q_OBJECT
+public:
+    explicit ToggleSwitch(QWidget *parent = nullptr)
+        : QAbstractButton(parent)
+    {
+        setCheckable(true);
+        setFixedSize(44, 26);
+        setCursor(Qt::PointingHandCursor);
+    }
+
+protected:
+    void paintEvent(QPaintEvent *) override
+    {
+        const bool on = isChecked();
+        const bool dk = Theme::DarkMode;
+
+        QPainter p(this);
+        p.setRenderHint(QPainter::Antialiasing);
+
+        p.setPen(Qt::NoPen);
+        p.setBrush(on ? QColor(QStringLiteral("#2563EB"))
+                      : QColor(dk ? QStringLiteral("#555555")
+                                  : QStringLiteral("#D1D5DB")));
+        p.drawRoundedRect(rect(), 13, 13);
+
+        p.setBrush(Qt::white);
+        const int kd = 20;
+        const int ky = (height() - kd) / 2;
+        const int kx = on ? (width() - kd - 2) : 2;
+        p.drawEllipse(kx, ky, kd, kd);
+    }
 };
 
 #include "SettingsPanel.moc"
@@ -452,8 +513,9 @@ void SettingsPanel::buildUi()
     m_pages->addWidget(buildLanguagePage());    // 1
     m_pages->addWidget(buildMediaPage());       // 2
     m_pages->addWidget(buildShortcutsPage());   // 3
-    m_pages->addWidget(buildAdvancedPage());    // 4
-    m_pages->addWidget(buildAboutPage());       // 5
+    m_pages->addWidget(buildZoomPage());        // 4
+    m_pages->addWidget(buildAdvancedPage());    // 5
+    m_pages->addWidget(buildAboutPage());       // 6
 
     contentRow->addWidget(m_pages, 1);
     root->addLayout(contentRow, 1);
@@ -496,10 +558,11 @@ void SettingsPanel::buildNav(QWidget *, QVBoxLayout *layout)
         { "globe",       QT_TR_NOOP("Language")       },
         { "play-circle", QT_TR_NOOP("Media Playback") },
         { "keyboard",    QT_TR_NOOP("Shortcuts")      },
+        { "zoom-in",     QT_TR_NOOP("Zoom")           },
         { "sliders",     QT_TR_NOOP("Advanced")       },
     };
 
-    for (int i = 0; i < 5; ++i) {
+    for (int i = 0; i < 6; ++i) {
         auto *btn = new QPushButton(this);
         btn->setFixedHeight(38);
         btn->setFlat(true);
@@ -544,7 +607,7 @@ void SettingsPanel::buildNav(QWidget *, QVBoxLayout *layout)
     atext->setAttribute(Qt::WA_TransparentForMouseEvents);
     arow->addWidget(atext, 1);
     m_navItems.append({ aboutBtn, aicon, atext, QStringLiteral("info") });
-    connect(aboutBtn, &QPushButton::clicked, this, [this]() { selectPage(5); });
+    connect(aboutBtn, &QPushButton::clicked, this, [this]() { selectPage(6); });
     layout->addWidget(aboutBtn);
 }
 
@@ -839,22 +902,23 @@ QWidget *SettingsPanel::buildShortcutsPage()
         vl->setContentsMargins(0, 0, 0, 0);
         vl->setSpacing(0);
 
-        struct Def { const char *label; const char *seq; };
+        struct Def { const char *label; const char *key; const char *seq; };
         static const Def kDefs[] = {
-            { QT_TR_NOOP("Save"),          "Ctrl+S"       },
-            { QT_TR_NOOP("Save As"),       "Ctrl+Shift+S" },
-            { QT_TR_NOOP("Print"),         "Ctrl+P"       },
-            { QT_TR_NOOP("Open"),          "Ctrl+O"       },
-            { QT_TR_NOOP("Undo"),          "Ctrl+Z"       },
-            { QT_TR_NOOP("Redo"),          "Ctrl+Y"       },
-            { QT_TR_NOOP("Find"),          "Ctrl+F"       },
-            { QT_TR_NOOP("Text Tool"),     "T"            },
-            { QT_TR_NOOP("Add Comment"),   "C"            },
-            { QT_TR_NOOP("Zoom In"),       "Ctrl++"       },
-            { QT_TR_NOOP("Zoom Out"),      "Ctrl+-"       },
+            { QT_TR_NOOP("Save"),          "save",     "Ctrl+S"       },
+            { QT_TR_NOOP("Save As"),       "saveas",   "Ctrl+Shift+S" },
+            { QT_TR_NOOP("Print"),         "print",    "Ctrl+P"       },
+            { QT_TR_NOOP("Open"),          "open",     "Ctrl+O"       },
+            { QT_TR_NOOP("Undo"),          "undo",     "Ctrl+Z"       },
+            { QT_TR_NOOP("Redo"),          "redo",     "Ctrl+Y"       },
+            { QT_TR_NOOP("Find"),          "find",     "Ctrl+F"       },
+            { QT_TR_NOOP("Text Tool"),     "texttool", "T"            },
+            { QT_TR_NOOP("Add Comment"),   "comment",  "C"            },
+            { QT_TR_NOOP("Zoom In"),       "zoomin",   "Ctrl++"       },
+            { QT_TR_NOOP("Zoom Out"),      "zoomout",  "Ctrl+-"       },
         };
 
         m_shortcutRows.clear();
+        m_shortcutKeys.clear();
         bool first = true;
         for (const auto &def : kDefs) {
             if (!first) {
@@ -865,11 +929,16 @@ QWidget *SettingsPanel::buildShortcutsPage()
             }
             first = false;
 
-            auto *srow = new ShortcutRow(
-                tr(def.label),
-                QKeySequence::fromString(QLatin1String(def.seq), QKeySequence::PortableText),
-                listW);
+            const QKeySequence appDefault = QKeySequence::fromString(
+                QLatin1String(def.seq), QKeySequence::PortableText);
+            const QKeySequence saved = m_settings->shortcut(
+                QLatin1String(def.key), appDefault);
+
+            auto *srow = new ShortcutRow(tr(def.label), appDefault, listW);
+            srow->setCurrentSequence(saved);
+
             m_shortcutRows.append(srow);
+            m_shortcutKeys.append(QLatin1String(def.key));
 
             connect(srow, &ShortcutRow::editStarted, this, [this, srow]() {
                 for (ShortcutRow *r : m_shortcutRows)
@@ -899,6 +968,156 @@ QWidget *SettingsPanel::buildShortcutsPage()
         hl->addWidget(text, 1);
         outer->addWidget(bar);
     }
+
+    return page;
+}
+
+QWidget *SettingsPanel::buildZoomPage()
+{
+    auto *page = new QWidget(this);
+    page->setObjectName(QStringLiteral("SettingsScrollContent"));
+    auto *outerLayout = new QVBoxLayout(page);
+    outerLayout->setContentsMargins(0, 0, 0, 0);
+    outerLayout->setSpacing(0);
+
+    auto *scroll = new QScrollArea(page);
+    scroll->setObjectName(QStringLiteral("SettingsScroll"));
+    scroll->setFrameShape(QFrame::NoFrame);
+    scroll->setHorizontalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
+    scroll->setWidgetResizable(true);
+
+    auto *content = new QWidget;
+    content->setObjectName(QStringLiteral("SettingsScrollContent"));
+    auto *vl = new QVBoxLayout(content);
+    vl->setContentsMargins(32, 28, 32, 32);
+    vl->setSpacing(12);
+
+    auto *title = new QLabel(tr("Zoom"), content);
+    title->setObjectName(QStringLiteral("SettingsSectionTitle"));
+    vl->addWidget(title);
+    vl->addSpacing(4);
+    auto *desc = new QLabel(tr("Configure how zoom works with the mouse wheel."), content);
+    desc->setObjectName(QStringLiteral("SettingsSectionDesc"));
+    vl->addWidget(desc);
+    vl->addSpacing(16);
+
+    // Helper: single-row card with a toggle switch
+    const auto makeToggleCard = [&](const QString &label, bool checked,
+                                     QAbstractButton **out) -> QFrame * {
+        auto *card = new QFrame(content);
+        card->setObjectName(QStringLiteral("ZoomCard"));
+        card->setAttribute(Qt::WA_StyledBackground, true);
+        auto *hl = new QHBoxLayout(card);
+        hl->setContentsMargins(16, 14, 16, 14);
+        hl->setSpacing(12);
+        auto *lbl = new QLabel(label, card);
+        lbl->setObjectName(QStringLiteral("ZoomRowLabel"));
+        hl->addWidget(lbl, 1);
+        auto *toggle = new ToggleSwitch(card);
+        toggle->setChecked(checked);
+        hl->addWidget(toggle);
+        if (out) *out = toggle;
+        return card;
+    };
+
+    // ── Card 1: Mouse wheel zoom step ────────────────────────────────────────
+    {
+        auto *card = new QFrame(content);
+        card->setObjectName(QStringLiteral("ZoomCard"));
+        card->setAttribute(Qt::WA_StyledBackground, true);
+        auto *cl = new QVBoxLayout(card);
+        cl->setContentsMargins(16, 16, 16, 16);
+        cl->setSpacing(10);
+
+        auto *cardTitle = new QLabel(tr("Mouse Wheel Zoom Step"), card);
+        cardTitle->setObjectName(QStringLiteral("ZoomCardTitle"));
+        cl->addWidget(cardTitle);
+
+        auto *stepRow = new QHBoxLayout;
+        stepRow->setSpacing(12);
+        auto *stepLbl = new QLabel(tr("Zoom step with Ctrl + Mouse Wheel"), card);
+        stepLbl->setObjectName(QStringLiteral("ZoomRowLabel"));
+        stepRow->addWidget(stepLbl, 1);
+        m_zoomStepSpin = new QSpinBox(card);
+        m_zoomStepSpin->setObjectName(QStringLiteral("ZoomStepSpin"));
+        m_zoomStepSpin->setRange(1, 50);
+        m_zoomStepSpin->setValue(m_settings->zoomStep());
+        m_zoomStepSpin->setSuffix(QStringLiteral(" %"));
+        m_zoomStepSpin->setFixedWidth(88);
+        stepRow->addWidget(m_zoomStepSpin);
+        cl->addLayout(stepRow);
+
+        auto *stepDesc = new QLabel(tr("Sets how much is zoomed per mouse wheel movement."), card);
+        stepDesc->setObjectName(QStringLiteral("ZoomRowDesc"));
+        cl->addWidget(stepDesc);
+
+        auto *exBox = new QFrame(card);
+        exBox->setObjectName(QStringLiteral("ZoomExampleBox"));
+        exBox->setAttribute(Qt::WA_StyledBackground, true);
+        auto *exRow = new QHBoxLayout(exBox);
+        exRow->setContentsMargins(10, 8, 10, 8);
+        exRow->setSpacing(6);
+        auto *exIcon = new QLabel(QStringLiteral("↗"), exBox);
+        exIcon->setObjectName(QStringLiteral("ZoomExampleIcon"));
+        exRow->addWidget(exIcon);
+        m_zoomExampleLabel = new QLabel(exBox);
+        m_zoomExampleLabel->setObjectName(QStringLiteral("ZoomExampleText"));
+        exRow->addWidget(m_zoomExampleLabel, 1);
+        cl->addWidget(exBox);
+
+        vl->addWidget(card);
+    }
+
+    // ── Card 2: Ctrl+Wheel toggle ─────────────────────────────────────────────
+    vl->addWidget(makeToggleCard(
+        tr("Zoom with Ctrl + Mouse Wheel"),
+        m_settings->ctrlWheelZoom(),
+        &m_ctrlWheelToggle));
+
+    // ── Card 3: Zoom to pointer toggle ────────────────────────────────────────
+    vl->addWidget(makeToggleCard(
+        tr("Zoom to Mouse Pointer"),
+        m_settings->zoomToPointer(),
+        &m_zoomPtrToggle));
+
+    // ── Card 4: Wheel action combo ────────────────────────────────────────────
+    {
+        auto *card = new QFrame(content);
+        card->setObjectName(QStringLiteral("ZoomCard"));
+        card->setAttribute(Qt::WA_StyledBackground, true);
+        auto *hl = new QHBoxLayout(card);
+        hl->setContentsMargins(16, 14, 16, 14);
+        hl->setSpacing(12);
+        auto *lbl = new QLabel(tr("Action without Ctrl"), card);
+        lbl->setObjectName(QStringLiteral("ZoomRowLabel"));
+        hl->addWidget(lbl, 1);
+        m_wheelActionCombo = new QComboBox(card);
+        m_wheelActionCombo->setObjectName(QStringLiteral("ZoomActionCombo"));
+        m_wheelActionCombo->addItem(tr("Scroll"), QStringLiteral("scroll"));
+        m_wheelActionCombo->addItem(tr("Zoom"),   QStringLiteral("zoom"));
+        const QString act = m_settings->wheelAction();
+        for (int i = 0; i < m_wheelActionCombo->count(); ++i) {
+            if (m_wheelActionCombo->itemData(i).toString() == act) {
+                m_wheelActionCombo->setCurrentIndex(i);
+                break;
+            }
+        }
+        hl->addWidget(m_wheelActionCombo);
+        vl->addWidget(card);
+    }
+
+    vl->addStretch(1);
+    scroll->setWidget(content);
+    outerLayout->addWidget(scroll);
+
+    // Update example label whenever the step changes
+    const auto updateExample = [this]() {
+        m_zoomExampleLabel->setText(
+            tr("Example: 100 % → %1 %").arg(100 + m_zoomStepSpin->value()));
+    };
+    updateExample();
+    connect(m_zoomStepSpin, QOverload<int>::of(&QSpinBox::valueChanged),
+            this, updateExample);
 
     return page;
 }
@@ -1043,10 +1262,30 @@ void SettingsPanel::applyAndClose()
 {
     m_settings->setTheme(m_pendingTheme);
     m_settings->setLanguage(m_pendingLang);
+
+    // Flush any open shortcut edit before saving
+    for (ShortcutRow *r : m_shortcutRows) r->cancelIfEditing();
+
+    // Persist all shortcuts and apply them immediately
+    for (int i = 0; i < m_shortcutRows.size() && i < m_shortcutKeys.size(); ++i)
+        m_settings->setShortcut(m_shortcutKeys[i], m_shortcutRows[i]->currentSequence());
+
+    // Save zoom settings
+    if (m_zoomStepSpin) {
+        m_settings->setZoomStep(m_zoomStepSpin->value());
+        m_settings->setCtrlWheelZoom(m_ctrlWheelToggle && m_ctrlWheelToggle->isChecked());
+        m_settings->setZoomToPointer(m_zoomPtrToggle && m_zoomPtrToggle->isChecked());
+        if (m_wheelActionCombo)
+            m_settings->setWheelAction(m_wheelActionCombo->currentData().toString());
+    }
+
     m_settings->sync();
 
     if (m_pendingLang != m_originalLang)
         Q_EMIT languageChangeRequested(m_pendingLang);
+
+    Q_EMIT shortcutsChanged();      // always reload shortcuts in MainWindow
+    Q_EMIT zoomSettingsChanged();   // always reload zoom settings in MainWindow
 
     accept();
 }
@@ -1060,10 +1299,11 @@ void SettingsPanel::retranslateUi()
         QT_TR_NOOP("Language"),
         QT_TR_NOOP("Media Playback"),
         QT_TR_NOOP("Shortcuts"),
+        QT_TR_NOOP("Zoom"),
         QT_TR_NOOP("Advanced"),
         QT_TR_NOOP("About"),
     };
-    for (int i = 0; i < m_navItems.size() && i < 6; ++i)
+    for (int i = 0; i < m_navItems.size() && i < 7; ++i)
         m_navItems[i].textLabel->setText(tr(navKeys[i]));
 }
 

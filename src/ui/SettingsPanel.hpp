@@ -4,6 +4,9 @@
 #include <QList>
 
 QT_BEGIN_NAMESPACE
+class QAbstractButton;
+class QComboBox;
+class QSpinBox;
 class QStackedWidget;
 class QScrollArea;
 class QPushButton;
@@ -26,6 +29,8 @@ public:
 Q_SIGNALS:
     void themeChangeRequested(const QString &mode);
     void languageChangeRequested(const QString &lang);
+    void shortcutsChanged();
+    void zoomSettingsChanged();
 
 protected:
     void changeEvent(QEvent *e) override;
@@ -43,6 +48,7 @@ private:
     QWidget *buildLanguagePage();
     QWidget *buildMediaPage();
     QWidget *buildShortcutsPage();
+    QWidget *buildZoomPage();
     QWidget *buildAdvancedPage();
     QWidget *buildAboutPage();
 
@@ -83,6 +89,14 @@ private:
     QList<QString>     m_langCodes;
 
     QList<ShortcutRow*> m_shortcutRows;
+    QList<QString>      m_shortcutKeys;  // parallel to m_shortcutRows
+
+    // Zoom page widgets
+    QSpinBox        *m_zoomStepSpin     { nullptr };
+    QAbstractButton *m_ctrlWheelToggle  { nullptr };
+    QAbstractButton *m_zoomPtrToggle    { nullptr };
+    QComboBox       *m_wheelActionCombo { nullptr };
+    QLabel          *m_zoomExampleLabel { nullptr };
 
     QString m_pendingTheme;
     QString m_pendingLang;

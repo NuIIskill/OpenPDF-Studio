@@ -86,6 +86,62 @@ void AppSettings::setLanguage(const QString &lang)
     settings().setValue(QLatin1String(kLanguage), lang);
 }
 
+// ── Shortcuts ─────────────────────────────────────────────────────────────
+
+QKeySequence AppSettings::shortcut(const QString &actionKey,
+                                    const QKeySequence &defaultSeq) const
+{
+    const QString raw = settings().value(QStringLiteral("shortcuts/") + actionKey).toString();
+    if (raw.isEmpty()) return defaultSeq;
+    const QKeySequence seq = QKeySequence::fromString(raw, QKeySequence::PortableText);
+    return seq.isEmpty() ? defaultSeq : seq;
+}
+
+void AppSettings::setShortcut(const QString &actionKey, const QKeySequence &seq)
+{
+    settings().setValue(QStringLiteral("shortcuts/") + actionKey,
+                        seq.toString(QKeySequence::PortableText));
+}
+
+// ── Zoom ──────────────────────────────────────────────────────────────────
+
+int AppSettings::zoomStep() const
+{
+    return settings().value(QStringLiteral("zoom/step"), 10).toInt();
+}
+void AppSettings::setZoomStep(int step)
+{
+    settings().setValue(QStringLiteral("zoom/step"), step);
+}
+
+bool AppSettings::ctrlWheelZoom() const
+{
+    return settings().value(QStringLiteral("zoom/ctrlWheel"), true).toBool();
+}
+void AppSettings::setCtrlWheelZoom(bool v)
+{
+    settings().setValue(QStringLiteral("zoom/ctrlWheel"), v);
+}
+
+bool AppSettings::zoomToPointer() const
+{
+    return settings().value(QStringLiteral("zoom/toPointer"), true).toBool();
+}
+void AppSettings::setZoomToPointer(bool v)
+{
+    settings().setValue(QStringLiteral("zoom/toPointer"), v);
+}
+
+QString AppSettings::wheelAction() const
+{
+    return settings().value(QStringLiteral("zoom/wheelAction"),
+                            QStringLiteral("scroll")).toString();
+}
+void AppSettings::setWheelAction(const QString &a)
+{
+    settings().setValue(QStringLiteral("zoom/wheelAction"), a);
+}
+
 // ── Sync ──────────────────────────────────────────────────────────────────
 
 void AppSettings::sync()

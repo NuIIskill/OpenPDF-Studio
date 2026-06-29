@@ -121,6 +121,8 @@ void MainWindow::connectSignals()
         auto *panel = new SettingsPanel(m_appSettings, this);
         connect(panel, &SettingsPanel::themeChangeRequested,    this, &MainWindow::applyTheme);
         connect(panel, &SettingsPanel::languageChangeRequested, this, &MainWindow::applyLanguage);
+        connect(panel, &SettingsPanel::shortcutsChanged,     this, &MainWindow::loadShortcuts);
+        connect(panel, &SettingsPanel::zoomSettingsChanged, this, &MainWindow::loadZoomSettings);
         panel->open();
     });
 
@@ -139,9 +141,34 @@ void MainWindow::connectSignals()
             dv->setEditorFontSize(pt);
     });
 
-    // Ctrl+S shortcut
-    auto *saveShortcut = new QShortcut(QKeySequence::Save, this);
-    connect(saveShortcut, &QShortcut::activated, this, &MainWindow::onSave);
+    // All keyboard shortcuts — created once here, sequences updated by loadShortcuts()
+    struct Def { const char *key; void (MainWindow::*slot)(); };
+    const Def defs[] = {
+        { "save",   &MainWindow::onSave     },
+        { "saveas", &MainWindow::onSaveAs   },
+        { "print",  &MainWindow::onPrint    },
+        { "open",   &MainWindow::onOpenFile },
+        { "undo",   &MainWindow::onUndo     },
+        { "redo",   &MainWindow::onRedo     },
+        { "zoomin", &MainWindow::onZoomIn   },
+        { "zoomout",&MainWindow::onZoomOut  },
+    };
+    for (const auto &d : defs) {
+        auto *sc = new QShortcut(QKeySequence{}, this);
+        connect(sc, &QShortcut::activated, this, d.slot);
+        m_shortcuts.insert(QLatin1String(d.key), sc);
+    }
+    // Lambda-based shortcuts
+    const auto addLambda = [&](const char *key, auto fn) {
+        auto *sc = new QShortcut(QKeySequence{}, this);
+        connect(sc, &QShortcut::activated, this, fn);
+        m_shortcuts.insert(QLatin1String(key), sc);
+    };
+    addLambda("find",     [this]() { /* TODO: open find dialog */ });
+    addLambda("texttool", [this]() { onToolSelected(QStringLiteral("text")); });
+    addLambda("comment",  [this]() { onToolSelected(QStringLiteral("comment")); });
+    loadShortcuts();     // apply sequences from AppSettings (or defaults)
+    loadZoomSettings();  // apply zoom settings from AppSettings (or defaults)
 
     // Status bar
     connect(m_statusBar, &StatusBar::previousPageRequested, this, [this]() {});
@@ -163,6 +190,8 @@ void MainWindow::connectSignals()
 DocumentView *MainWindow::addDocView()
 {
     auto *dv = new DocumentView(m_docStack);
+    dv->setZoomSettings(m_appSettings->zoomStep(), m_appSettings->ctrlWheelZoom(),
+                        m_appSettings->zoomToPointer(), m_appSettings->wheelAction());
     m_docViews.append(dv);
     m_docStack->addWidget(dv);
 
@@ -264,6 +293,16 @@ void MainWindow::onSave()
     }
 }
 
+void MainWindow::onSaveAs()
+{
+    DocumentView *dv = currentDocView();
+    if (!dv) return;
+    const QString path = QFileDialog::getSaveFileName(
+        this, tr("Save PDF As"), {}, tr("PDF files (*.pdf)"));
+    if (!path.isEmpty())
+        dv->saveToFile(path);
+}
+
 void MainWindow::onPrint()
 {
 #ifdef HAVE_QT_PRINT
@@ -301,6 +340,38 @@ void MainWindow::onZoomOut()
     m_topToolbar->setZoom(m_zoom);
     if (DocumentView *dv = currentDocView())
         dv->setZoom(m_zoom);
+}
+
+void MainWindow::loadShortcuts()
+{
+    struct Def { const char *key; const char *defaultSeq; };
+    static const Def kDefs[] = {
+        { "save",     "Ctrl+S"       },
+        { "saveas",   "Ctrl+Shift+S" },
+        { "print",    "Ctrl+P"       },
+        { "open",     "Ctrl+O"       },
+        { "undo",     "Ctrl+Z"       },
+        { "redo",     "Ctrl+Y"       },
+        { "find",     "Ctrl+F"       },
+        { "texttool", "T"            },
+        { "comment",  "C"            },
+        { "zoomin",   "Ctrl++"       },
+        { "zoomout",  "Ctrl+-"       },
+    };
+    for (const auto &def : kDefs) {
+        const QString k = QLatin1String(def.key);
+        if (!m_shortcuts.contains(k)) continue;
+        const QKeySequence dflt = QKeySequence::fromString(
+            QLatin1String(def.defaultSeq), QKeySequence::PortableText);
+        m_shortcuts[k]->setKey(m_appSettings->shortcut(k, dflt));
+    }
+}
+
+void MainWindow::loadZoomSettings()
+{
+    for (DocumentView *dv : m_docViews)
+        dv->setZoomSettings(m_appSettings->zoomStep(), m_appSettings->ctrlWheelZoom(),
+                            m_appSettings->zoomToPointer(), m_appSettings->wheelAction());
 }
 
 // ── Mode / Tool selection ─────────────────────────────────────────────────────

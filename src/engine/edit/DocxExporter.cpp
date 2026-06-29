@@ -104,11 +104,27 @@ static QByteArray buildDocument(const QList<QString> &pageTexts, const QString &
         if (pg > 0)
             x += QStringLiteral("<w:p><w:r><w:br w:type=\"page\"/></w:r></w:p>");
 
-        for (const QString &line : pageTexts[pg].split(QLatin1Char('\n'))) {
+        // Group consecutive non-blank lines into paragraphs;
+        // blank lines act as paragraph separators (like in a word processor).
+        QString para;
+        const auto emit = [&]() {
+            if (para.isEmpty()) return;
             x += QStringLiteral("<w:p><w:r><w:t xml:space=\"preserve\">");
-            x += xmlEsc(line);
+            x += xmlEsc(para);
             x += QStringLiteral("</w:t></w:r></w:p>");
+            para.clear();
+        };
+
+        for (const QString &line : pageTexts[pg].split(QLatin1Char('\n'))) {
+            const QString trimmed = line.trimmed();
+            if (trimmed.isEmpty()) {
+                emit();                          // flush accumulated paragraph
+            } else {
+                if (!para.isEmpty()) para += QLatin1Char(' ');
+                para += trimmed;
+            }
         }
+        emit(); // flush last paragraph
     }
 
     x += QStringLiteral("<w:sectPr/></w:body></w:document>");

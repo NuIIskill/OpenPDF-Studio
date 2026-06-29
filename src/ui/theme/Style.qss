@@ -472,3 +472,52 @@ QFrame#ShortcutInfoBar {
 }
 QLabel#ShortcutInfoIcon { color: #2563EB; font-size: 14px; font-weight: 700; }
 QLabel#ShortcutInfoText { color: #1D4ED8; font-size: 12px; }
+
+/* ── Zoom settings page ───────────────────────────────────── */
+QFrame#ZoomCard {
+    border: 1px solid #E5E7EB;
+    border-radius: 10px;
+    background: #FFFFFF;
+}
+QLabel#ZoomCardTitle {
+    font-size: 13px;
+    font-weight: 700;
+    color: #111827;
+}
+QLabel#ZoomRowLabel {
+    font-size: 13px;
+    color: #111827;
+}
+QLabel#ZoomRowDesc {
+    font-size: 12px;
+    color: #6B7280;
+}
+QFrame#ZoomExampleBox {
+    background: #EFF6FF;
+    border: 1px solid #BFDBFE;
+    border-radius: 6px;
+}
+QLabel#ZoomExampleIcon { color: #2563EB; font-size: 14px; }
+QLabel#ZoomExampleText { font-size: 12px; color: #1D4ED8; }
+QSpinBox#ZoomStepSpin {
+    border: 1px solid #E5E7EB;
+    border-radius: 6px;
+    padding: 4px 8px;
+    background: #FFFFFF;
+    font-size: 13px;
+    color: #111827;
+}
+QSpinBox#ZoomStepSpin::up-button, QSpinBox#ZoomStepSpin::down-button {
+    width: 20px;
+    border: none;
+}
+QComboBox#ZoomActionCombo {
+    border: 1px solid #E5E7EB;
+    border-radius: 6px;
+    padding: 6px 10px;
+    background: #FFFFFF;
+    font-size: 13px;
+    color: #111827;
+    min-width: 120px;
+}
+QComboBox#ZoomActionCombo::drop-down { border: none; width: 20px; }

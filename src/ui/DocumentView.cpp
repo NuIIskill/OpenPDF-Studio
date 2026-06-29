@@ -7,8 +7,10 @@
 #include <QDragEnterEvent>
 #include <QDragMoveEvent>
 #include <QDropEvent>
+#include <QCursor>
 #include <QScrollBar>
 #include <QMouseEvent>
+#include <QWheelEvent>
 #include <QFrame>
 #include <QPalette>
 #include <QPainter>
@@ -178,6 +180,45 @@ void DocumentView::setZoom(int percent)
     if (m_zoom == percent) return;
     m_zoom = percent;
     if (!m_filePath.isEmpty()) rerenderAll();
+}
+
+void DocumentView::setZoomSettings(int step, bool ctrlWheel, bool toPointer,
+                                   const QString &wheelAction)
+{
+    m_zoomStep         = step;
+    m_ctrlWheelEnabled = ctrlWheel;
+    m_zoomToPointer    = toPointer;
+    m_wheelAction      = wheelAction;
+}
+
+void DocumentView::wheelEvent(QWheelEvent *e)
+{
+    const bool hasCtrl = e->modifiers() & Qt::ControlModifier;
+    const bool shouldZoom = (hasCtrl && m_ctrlWheelEnabled)
+                         || (!hasCtrl && m_wheelAction == QLatin1String("zoom"));
+
+    if (shouldZoom) {
+        const int delta = e->angleDelta().y();
+        if (delta == 0) { QScrollArea::wheelEvent(e); return; }
+
+        const int oldZoom = m_zoom;
+        if (delta > 0) setZoom(qMin(m_zoom + m_zoomStep, 300));
+        else           setZoom(qMax(m_zoom - m_zoomStep, 25));
+
+        if (m_zoomToPointer && m_zoom != oldZoom) {
+            const QPoint pos = viewport()->mapFromGlobal(QCursor::pos());
+            const qreal ratio = qreal(m_zoom) / oldZoom;
+            horizontalScrollBar()->setValue(
+                qRound(ratio * (horizontalScrollBar()->value() + pos.x()) - pos.x()));
+            verticalScrollBar()->setValue(
+                qRound(ratio * (verticalScrollBar()->value() + pos.y()) - pos.y()));
+        }
+
+        e->accept();
+        return;
+    }
+
+    QScrollArea::wheelEvent(e);
 }
 
 void DocumentView::setTool(Tool tool)

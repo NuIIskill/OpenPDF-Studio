@@ -2,6 +2,7 @@
 
 #include <QObject>
 #include <QByteArray>
+#include <QKeySequence>
 #include <QString>
 
 class AppSettings : public QObject
@@ -32,6 +33,24 @@ public:
 
     [[nodiscard]] QString language() const;
     void setLanguage(const QString &lang);
+
+    // ── Shortcuts ─────────────────────────────────────────────────────────
+    [[nodiscard]] QKeySequence shortcut(const QString &actionKey,
+                                        const QKeySequence &defaultSeq) const;
+    void setShortcut(const QString &actionKey, const QKeySequence &seq);
+
+    // ── Zoom ──────────────────────────────────────────────────────────────
+    [[nodiscard]] int     zoomStep()      const;
+    void setZoomStep(int step);
+
+    [[nodiscard]] bool    ctrlWheelZoom() const;
+    void setCtrlWheelZoom(bool enabled);
+
+    [[nodiscard]] bool    zoomToPointer() const;
+    void setZoomToPointer(bool enabled);
+
+    [[nodiscard]] QString wheelAction()   const;  // "scroll" | "zoom"
+    void setWheelAction(const QString &action);
 
     void sync();
 
