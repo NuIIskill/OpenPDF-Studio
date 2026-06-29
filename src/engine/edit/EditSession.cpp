@@ -369,7 +369,9 @@ bool EditSession::saveVector(const QString &sourcePath, const QString &outputPat
 void EditSession::addEdit(int page, const QRectF &pdfBounds, const QString &newText,
                           double fontSizePt, const QColor &color, const QRectF &sourceRect)
 {
-    removeEdit(page, pdfBounds);
+    // No implicit removeEdit here: blank+text edits for the same in-place location
+    // share pdfBounds, and auto-removing would delete the companion blank when the
+    // text edit is appended.  Callers call removeEdit explicitly before addEdit.
     m_edits.append({ page, pdfBounds, sourceRect, newText, fontSizePt, color });
 }
 
@@ -390,18 +392,25 @@ void EditSession::removeAllAt(int page, const QRectF &pdfBounds)
 void EditSession::suspendEditsAt(int page, const QRectF &pdfBounds)
 {
     m_suspendedEdits.clear();
+
+    // Suspend ONLY edits whose pdfBounds exactly matches the clicked area.
+    //
+    // Previous companion-based logic (suspend everything linked via sourceRect)
+    // caused "text jumping back": when text was moved P1→P2 (overlapping), clicking
+    // on text(P2) also suspended blank(P1) via sourceRect, removing it from m_edits
+    // and letting P1's original PDF content bleed through.
+    //
+    // The blank(P1) must persist in m_edits for as long as P1 is meant to be erased.
+    // It is only suspended when the user directly clicks on P1's area — which isBlankAt
+    // already prevents for move-source areas that have no companion text.
     QList<Edit> remaining;
     for (const Edit &e : m_edits) {
-        if (e.page == page && e.pdfBounds.intersects(pdfBounds)) {
+        if (e.page == page && e.pdfBounds == pdfBounds)
             m_suspendedEdits.append(e);
-        } else {
+        else
             remaining.append(e);
-        }
     }
     m_edits = remaining;
-    qWarning() << "[SUSPEND] pdfBounds=" << pdfBounds
-               << "suspended=" << m_suspendedEdits.size()
-               << "remaining=" << m_edits.size();
 }
 
 bool EditSession::isBlankAt(int page, const QRectF &pdfBounds) const
@@ -487,13 +496,14 @@ void EditSession::applyToImage(int page, QImage &img, qreal scale) const
     if (img.isNull() || !hasEditsOnPage(page)) return;
 
     QPainter p(&img);
-    for (const auto &e : m_edits) {
-        if (e.page != page) continue;
-        if (e.newText.isEmpty())
+    // Two-pass: all blanks (white fills) before all text draws so that a blank
+    // added after a text edit in m_edits doesn't paint over the text.
+    for (const auto &e : m_edits)
+        if (e.page == page && e.newText.isNull())
             paintBlankEdit(p, e, scale);
-        else
+    for (const auto &e : m_edits)
+        if (e.page == page && !e.newText.isEmpty())
             paintTextEdit(p, e, scale);
-    }
 }
 
 void EditSession::paintBlankEdit(QPainter &p, const Edit &e, qreal scale)

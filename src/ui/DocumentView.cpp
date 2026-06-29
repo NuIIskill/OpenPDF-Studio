@@ -408,22 +408,19 @@ void DocumentView::rerenderPageWithBlank(int page, const QRectF &pdfBoundsPts)
     QImage img = m_renderer->renderPage(page, scale * dpr);
     img.setDevicePixelRatio(dpr);
 #ifdef HAVE_QT_PDF
-    m_session->applyToImage(page, img, scale * dpr);
     {
-        // Belt-and-suspenders: also fill the target area white directly,
-        // in case no blank session edit covers pdfBoundsPts (e.g. plain text
-        // block clicked for the first time with no prior session edit).
+        // Fill the editor area white BEFORE applying session edits so that native
+        // PDF text is hidden even on the first click (when no blank session edit
+        // exists yet).  Doing this AFTER applyToImage would erase text edits that
+        // applyToImage just drew — that was the cause of texts disappearing on zoom.
         const QRectF px(pdfBoundsPts.topLeft() * scale * dpr,
                         pdfBoundsPts.size()    * scale * dpr);
-        // Horizontal: use at least one line-height worth of device pixels so that
-        // adjacent text runs on the same visual line (which can sit just outside the
-        // extractor's detected polygon) are fully covered.
-        // Vertical: 4 logical pixels (scaled by DPR) for ascender/descender overhangs.
         const qreal hPad = 4.0;
         const qreal vPad = 4.0 * dpr;
         QPainter p(&img);
         p.fillRect(px.adjusted(-hPad, -vPad, hPad, vPad), Qt::white);
     }
+    m_session->applyToImage(page, img, scale * dpr);
 #endif
     if (!img.isNull())
         m_pageLabels[page]->setPixmap(QPixmap::fromImage(std::move(img)));
@@ -623,21 +620,9 @@ void DocumentView::commitCurrentEdit(const QString &newText)
 
     const QString trimNew = newText.trimmed();
 
-    // If text and position are unchanged from when the editor opened, don't
-    // create a session edit.  The PDF's embedded font renders special characters
-    // correctly; our system-font fallback cannot (shows □ for glyphs missing
-    // from the system font).  Restoring the original state preserves quality.
-    if (trimNew == m_activeEditOriginalText.trimmed() && bounds == origBounds) {
-        if (hadLive) m_session->removeEdit(page, liveBounds);
-        m_session->removeEdit(page, origBounds);
-        m_session->restoreSuspended();
-        m_lastCommittedPage       = page;
-        m_lastCommittedOrigBounds = origBounds;
-        rerenderPage(page);
-        return;
-    }
-
-    // Suspended edits discarded — we're replacing them with fresh content.
+    // Every commit creates a tracked session entry so that overlapping blocks
+    // can each be addressed independently in the same session.
+    // Suspended edits are discarded — we replace them with the new content.
     m_session->clearSuspended();
     // Remove the live edit and any stale edit at origBounds using EXACT match.
     // removeAllAt (intersects) is intentionally avoided here: a full paragraph's
@@ -724,8 +709,6 @@ void DocumentView::liveUpdateCurrentEdit(const QString &text)
         m_session->removeEdit(m_activeEditPage, m_lastLiveEditBounds);
         m_hasLiveEdit = false;
     }
-    // Belt-and-suspenders: remove any lingering edits at the original location.
-    m_session->removeAllAt(m_activeEditPage, m_activeEditOriginalBounds);
 
     if (!text.trimmed().isEmpty()) {
         m_session->addEdit(m_activeEditPage, m_activeEditBounds, text,
