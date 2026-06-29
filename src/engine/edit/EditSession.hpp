@@ -52,8 +52,19 @@ public:
     // Returns stored text color for the edit intersecting pdfBounds, or invalid QColor.
     QColor  editColorAt(int page, const QRectF &pdfBounds) const;
 
-    // Finds the first session edit whose bounds contain pdfPt.
-    // Returns true and writes bounds/text/fontSizePt/color if found; out-params may be null.
+    // Finds the topmost session edit whose bounds contain pdfPt AND that has a
+    // companion blank edit at the same pdfBounds (i.e. it is a replacement or
+    // in-place edit, not a plain createTextFrame overlay).  Returns true and fills
+    // out-params if found.
+    bool findReplacementEditAt(int page, const QPointF &pdfPt,
+                               QRectF  *outBounds     = nullptr,
+                               QString *outText       = nullptr,
+                               double  *outFontSizePt = nullptr,
+                               QColor  *outColor      = nullptr) const;
+
+    // Finds the topmost session edit (any kind, including overlay) whose bounds
+    // contain pdfPt.  Used as a last-resort fallback in handleEditClick after
+    // native-text and OCR lookup both fail.
     bool findEditAt(int page, const QPointF &pdfPt,
                     QRectF  *outBounds     = nullptr,
                     QString *outText       = nullptr,

@@ -333,17 +333,41 @@ bool EditSession::saveVector(const QString &sourcePath, const QString &outputPat
 
             std::string cs = getPageContents(ph);
 
-            // First pass: strip original text and capture font sizes
+            // First pass: strip original PDF text at every edit's pdfBounds.
+            // Both blank and text edits participate — blanks erase the original
+            // position, text edits may also sit over PDF text they should replace.
+            // Track the captured font size per edit; in-place pairs share pdfBounds
+            // so the text edit gets 0 from pass-1 (blank already stripped it) —
+            // propagate the blank's captured size forward.
             std::vector<double> capturedFs(edits.size(), 0.0);
+            // Track already-stripped bounds so in-place pairs (blank+text at same
+            // pdfBounds) don't run removeTextInBounds twice — and so the text edit
+            // inherits the font size captured from the blank's removal.
+            std::vector<std::pair<QRectF, double>> strippedCache;
             for (size_t i = 0; i < edits.size(); ++i) {
-                auto [filtered, fs] = removeTextInBounds(cs, edits[i]->pdfBounds, pageH);
-                cs = std::move(filtered);
-                capturedFs[i] = fs;
+                const QRectF &b = edits[i]->pdfBounds;
+                double reuse = -1.0;
+                for (const auto &[rect, fs] : strippedCache)
+                    if (rect == b) { reuse = fs; break; }
+                if (reuse >= 0.0) {
+                    capturedFs[i] = reuse;
+                } else {
+                    auto [filtered, fs] = removeTextInBounds(cs, b, pageH);
+                    cs = std::move(filtered);
+                    capturedFs[i] = fs;
+                    strippedCache.emplace_back(b, fs);
+                }
             }
-            // Second pass: append replacements.
+            // Second pass: append replacement text — blank edits are erase-only.
             // Priority: user-selected size (toolbar) > captured from content stream > height approx.
             for (size_t i = 0; i < edits.size(); ++i) {
+                if (edits[i]->newText.isNull()) continue;  // blank edit: erase only, no replacement
                 const double fs = edits[i]->fontSizePt > 0.0 ? edits[i]->fontSizePt : capturedFs[i];
+                qWarning() << "[SAVE] page" << pageIdx
+                           << "text=" << edits[i]->newText.left(30)
+                           << "bounds=" << edits[i]->pdfBounds
+                           << "fs=" << fs
+                           << "capturedFs=" << capturedFs[i];
                 cs += buildReplacement(edits[i]->pdfBounds, edits[i]->newText, pageH, fs);
             }
 
@@ -416,11 +440,14 @@ void EditSession::suspendEditsAt(int page, const QRectF &pdfBounds)
 bool EditSession::isBlankAt(int page, const QRectF &pdfBounds) const
 {
     for (const auto &blank : m_edits) {
-        if (blank.page != page || !blank.pdfBounds.intersects(pdfBounds) || !blank.newText.isNull())
+        // Use EXACT pdfBounds equality so that a blank created for a drag-move
+        // source (blank at P1) does not block clicks on native text blocks that
+        // merely overlap P1 — only the move-source area itself is blocked.
+        if (blank.page != page || blank.pdfBounds != pdfBounds || !blank.newText.isNull())
             continue;
-        // Found a blank. In-place edits always pair a blank+text at the same
-        // location; if a text edit also covers this area the spot has content and
-        // must open an editor — not be silently ignored.
+        // Found a blank at the exact location. In-place edits pair blank+text at
+        // the same pdfBounds — if a companion text edit also covers this area the
+        // spot has content and must open an editor, not be silently ignored.
         for (const auto &t : m_edits)
             if (t.page == page && !t.newText.isEmpty() && t.pdfBounds.intersects(pdfBounds))
                 return false;
@@ -458,27 +485,63 @@ bool EditSession::hasEditsOnPage(int page) const
 
 QString EditSession::editTextAt(int page, const QRectF &pdfBounds) const
 {
-    for (const auto &e : m_edits)
-        if (e.page == page && e.pdfBounds.intersects(pdfBounds))
+    // Iterate in reverse so the most-recently-added (topmost) text edit wins.
+    // Skip blank edits (null newText) — they don't carry display text and would
+    // make in-place edits (blank+text at same pdfBounds) show native text instead
+    // of the session text.
+    for (int i = m_edits.size() - 1; i >= 0; --i) {
+        const auto &e = m_edits[i];
+        if (e.page == page && !e.newText.isNull() && e.pdfBounds.intersects(pdfBounds))
             return e.newText;
+    }
     return QString(); // null = no existing edit
 }
 
-
 QColor EditSession::editColorAt(int page, const QRectF &pdfBounds) const
 {
-    for (const auto &e : m_edits)
-        if (e.page == page && e.pdfBounds.intersects(pdfBounds))
+    for (int i = m_edits.size() - 1; i >= 0; --i) {
+        const auto &e = m_edits[i];
+        if (e.page == page && !e.newText.isNull() && e.pdfBounds.intersects(pdfBounds))
             return e.textColor;
+    }
     return QColor(); // invalid = no stored color
+}
+
+bool EditSession::findReplacementEditAt(int page, const QPointF &pdfPt,
+                                        QRectF *outBounds, QString *outText,
+                                        double *outFontSizePt, QColor *outColor) const
+{
+    // Like findEditAt but only returns edits that have a companion blank at the
+    // same pdfBounds.  An edit without a companion blank is a createTextFrame
+    // overlay — it should not intercept clicks on native text underneath it.
+    for (int i = m_edits.size() - 1; i >= 0; --i) {
+        const auto &e = m_edits[i];
+        if (e.page != page || e.newText.isNull() || !e.pdfBounds.contains(pdfPt))
+            continue;
+        bool hasBlank = false;
+        for (const auto &b : m_edits)
+            if (b.page == page && b.newText.isNull() && b.pdfBounds == e.pdfBounds)
+                { hasBlank = true; break; }
+        if (!hasBlank) continue;
+        if (outBounds)     *outBounds     = e.pdfBounds;
+        if (outText)       *outText       = e.newText;
+        if (outFontSizePt) *outFontSizePt = e.fontSizePt;
+        if (outColor)      *outColor      = e.textColor;
+        return true;
+    }
+    return false;
 }
 
 bool EditSession::findEditAt(int page, const QPointF &pdfPt,
                              QRectF *outBounds, QString *outText,
                              double *outFontSizePt, QColor *outColor) const
 {
-    for (const auto &e : m_edits) {
-        if (e.page == page && e.pdfBounds.contains(pdfPt)) {
+    // Iterate in reverse so the topmost (most recently drawn) session edit wins
+    // when multiple overlapping edits contain the click point.
+    // Skip blank edits — they are erase-only and should not open an editor.
+    for (int i = m_edits.size() - 1; i >= 0; --i) {
+        const auto &e = m_edits[i];
+        if (e.page == page && !e.newText.isNull() && e.pdfBounds.contains(pdfPt)) {
             if (outBounds)     *outBounds     = e.pdfBounds;
             if (outText)       *outText       = e.newText;
             if (outFontSizePt) *outFontSizePt = e.fontSizePt;

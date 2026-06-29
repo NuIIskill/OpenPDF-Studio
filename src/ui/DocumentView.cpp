@@ -476,13 +476,30 @@ void DocumentView::handleEditClick(const QPoint &canvasPos)
     const QPointF pdfPt     = pageLocal / scale;
     const QSizeF  pageSize  = m_renderer->pageSizePts(pageIdx);
 
-    // Try native PDF text first (vector PDFs)
-    TextBlock block = m_extractor->textAt(pageIdx, pdfPt, pageSize);
+    // Session edits take priority over native PDF text.  If the user placed a
+    // text box (createTextFrame) or edited text in-place (handleEditClick), their
+    // session content is shown on top and clicking that area edits the session
+    // content, not the original PDF text underneath.
+    double sessionFontPt = 0.0;
+    QColor sessionColor;
+    bool   isSessionEdit = false;
+    TextBlock block;
+    {
+        QRectF  editBounds;
+        QString editText;
+        if (m_session->findEditAt(pageIdx, pdfPt, &editBounds, &editText, &sessionFontPt, &sessionColor)) {
+            block         = TextBlock{ pageIdx, editBounds, editText };
+            isSessionEdit = true;
+        }
+    }
 
-    // If no native text found (scanned / image PDF), fall back to OCR
+    // Fall back to native PDF text (vector PDFs)
+    if (!block.isValid())
+        block = m_extractor->textAt(pageIdx, pdfPt, pageSize);
+
+    // If still nothing, fall back to OCR (scanned / image PDF)
     if (!block.isValid() && m_ocrEngine && m_ocrEngine->isReady()) {
         if (!m_ocrCache.contains(pageIdx)) {
-            // Render at ≥300 DPI for reliable OCR accuracy
             const qreal ocrScale = qMax(scale * devicePixelRatioF(), 300.0 / 72.0);
             QApplication::setOverrideCursor(Qt::WaitCursor);
             QApplication::processEvents(QEventLoop::ExcludeUserInputEvents);
@@ -494,31 +511,15 @@ void DocumentView::handleEditClick(const QPoint &canvasPos)
         }
 
         qWarning() << "[OCR] cache for page" << pageIdx << "has" << m_ocrCache[pageIdx].size() << "lines";
-        qWarning() << "[OCR] click pdfPt:" << pdfPt << "pageSize:" << pageSize;
         const OcrEngine::Block ocr = OcrEngine::blockAt(m_ocrCache[pageIdx], pdfPt);
-        qWarning() << "[OCR] blockAt result: valid=" << ocr.isValid()
-                 << "bounds=" << ocr.pdfBounds << "text=" << ocr.text.left(60);
         if (ocr.isValid())
             block = TextBlock{ pageIdx, ocr.pdfBounds, ocr.text };
     }
 
-    qWarning() << "[EDIT] block valid=" << block.isValid() << "text=" << block.text.left(40);
+    qWarning() << "[EDIT] block valid=" << block.isValid() << "isSession=" << isSessionEdit
+               << "text=" << block.text.left(40);
 
-    // If no native/OCR text found, check for a floating session edit at this point
-    // (e.g., text that was moved from another position into a blank area).
-    double sessionFontPt = 0.0;
-    QColor sessionColor;
-    bool   isSessionEdit = false;
-    if (!block.isValid()) {
-        QRectF  editBounds;
-        QString editText;
-        if (m_session->findEditAt(pageIdx, pdfPt, &editBounds, &editText, &sessionFontPt, &sessionColor)) {
-            block        = TextBlock{ pageIdx, editBounds, editText };
-            isSessionEdit = true;
-        } else {
-            return;
-        }
-    }
+    if (!block.isValid()) return;
 
     // If this click was the release of a press that committed an edit on this
     // same block, don't re-open — that would call rerenderPageWithBlank and
@@ -544,9 +545,11 @@ void DocumentView::handleEditClick(const QPoint &canvasPos)
     if (m_session->isBlankAt(block.page, block.pdfBounds))
         return;
 
-    const QString existing     = m_session->editTextAt(block.page, block.pdfBounds);
-    const QString displayText  = existing.isNull() ? block.text : existing;
-    const QColor  storedColor  = m_session->editColorAt(block.page, block.pdfBounds);
+    // block.text is already the right text: findEditAt populates it for session
+    // edits, and m_extractor gives native text for non-session clicks.
+    // Do NOT call editTextAt(intersects) here — it bleeds in text from overlapping
+    // session boxes and causes those boxes' content to be duplicated on commit.
+    const QString displayText  = block.text;
 
     m_activeEditPage           = block.page;
     m_activeEditBounds         = block.pdfBounds;
@@ -567,9 +570,7 @@ void DocumentView::handleEditClick(const QPoint &canvasPos)
     // Text color: use stored session color on re-edits; otherwise sample the
     // rendered page.  Render at 1 pt=1 px so coordinates are unambiguous (no
     // device-pixel-ratio complications with the label's pixmap).
-    if (storedColor.isValid()) {
-        m_currentEditorColor = storedColor;
-    } else if (isSessionEdit && sessionColor.isValid()) {
+    if (isSessionEdit && sessionColor.isValid()) {
         m_currentEditorColor = sessionColor;
     } else {
         const QImage sampImg = m_renderer->renderPage(block.page, 1.0);
@@ -640,9 +641,10 @@ void DocumentView::commitCurrentEdit(const QString &newText)
     //   • text was deleted entirely
     // It is NOT created when the editor was opened fresh via drag (createTextFrame)
     // because that is an overlay: new text drawn on top without erasing anything.
+    // Native text that happens to share the drag area remains accessible by clicking
+    // outside the session box bounds (editTextAt bleed-in is separately prevented).
     const bool needBlank = m_activeEditNeedsBlank
-                        || !bounds.contains(origBounds)
-                        || trimNew.isEmpty();
+                        || !bounds.contains(origBounds);
     if (needBlank)
         m_session->addEdit(page, origBounds, QString(),
                            m_currentEditorFontSizePt, QColor(), origBounds);
@@ -675,12 +677,13 @@ void DocumentView::cancelCurrentEdit()
     const int page = m_activeEditPage;
     m_activeEditPage = -1;
     m_liveTimer->stop();
-    // Remove the live edit FIRST (by intersects, not exact, for robustness),
-    // THEN restore suspended edits.  Reversed order would re-insert the suspended
-    // edit and then removeEdit/removeAllAt would accidentally wipe it when it
-    // shares the same bounds as the live edit.
+    // Remove the live edit by EXACT bounds (m_lastLiveEditBounds is set to the
+    // live edit's pdfBounds immediately when it is added in liveUpdateCurrentEdit).
+    // Using removeAllAt(intersects) here was the cause of "not all text boxes
+    // rendered simultaneously": cancelling a new box that overlapped other session
+    // boxes wiped those existing boxes via the intersects predicate.
     if (m_hasLiveEdit) {
-        if (page >= 0) m_session->removeAllAt(page, m_lastLiveEditBounds);
+        if (page >= 0) m_session->removeEdit(page, m_lastLiveEditBounds);
         m_hasLiveEdit = false;
     }
     m_session->restoreSuspended();
