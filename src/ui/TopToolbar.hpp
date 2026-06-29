@@ -29,6 +29,7 @@ public:
 
     void setFileName(const QString &name);
     void setZoom(int percent);
+    void setViewMode(bool gridView);
     void refreshTheme();
     void retranslateUi();
 
@@ -43,6 +44,7 @@ Q_SIGNALS:
     void redoRequested();
     void saveRequested();
     void printRequested();
+    void viewModeChanged(bool gridView);
 
 private:
     void     buildLayout();

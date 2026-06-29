@@ -30,6 +30,12 @@ void TopToolbar::setZoom(int percent)
     m_zoomLabel->setText(QStringLiteral("%1 %").arg(percent));
 }
 
+void TopToolbar::setViewMode(bool gridView)
+{
+    m_viewSingleBtn->setChecked(!gridView);
+    m_viewGridBtn->setChecked(gridView);
+}
+
 void TopToolbar::refreshTheme()
 {
     const QColor nc = Theme::IconNormal;
@@ -309,18 +315,28 @@ void TopToolbar::buildLayout()
     layout->addWidget(makeSeparator());
     layout->addSpacing(2);
 
-    // View toggles
+    // View toggles — radio pair
     m_viewSingleBtn = new IconButton(this);
     m_viewSingleBtn->setIconName(QStringLiteral("square"));
     m_viewSingleBtn->setToolTip(tr("Single Page"));
     m_viewSingleBtn->setCheckable(true);
     m_viewSingleBtn->setChecked(true);
+    connect(m_viewSingleBtn, &QPushButton::clicked, this, [this]() {
+        m_viewSingleBtn->setChecked(true);
+        m_viewGridBtn->setChecked(false);
+        Q_EMIT viewModeChanged(false);
+    });
     layout->addWidget(m_viewSingleBtn);
 
     m_viewGridBtn = new IconButton(this);
     m_viewGridBtn->setIconName(QStringLiteral("layout-grid"));
     m_viewGridBtn->setToolTip(tr("Grid View"));
     m_viewGridBtn->setCheckable(true);
+    connect(m_viewGridBtn, &QPushButton::clicked, this, [this]() {
+        m_viewGridBtn->setChecked(true);
+        m_viewSingleBtn->setChecked(false);
+        Q_EMIT viewModeChanged(true);
+    });
     layout->addWidget(m_viewGridBtn);
 
     // Tabs are added by MainWindow after construction

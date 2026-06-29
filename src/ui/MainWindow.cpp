@@ -114,6 +114,10 @@ void MainWindow::connectSignals()
     connect(m_topToolbar, &TopToolbar::redoRequested,         this, &MainWindow::onRedo);
     connect(m_topToolbar, &TopToolbar::zoomInRequested,       this, &MainWindow::onZoomIn);
     connect(m_topToolbar, &TopToolbar::zoomOutRequested,      this, &MainWindow::onZoomOut);
+    connect(m_topToolbar, &TopToolbar::viewModeChanged, this, [this](bool grid) {
+        if (DocumentView *dv = currentDocView())
+            dv->setViewMode(grid ? DocumentView::ViewMode::Grid : DocumentView::ViewMode::Single);
+    });
 
     // Left sidebar
     connect(m_leftSidebar, &LeftSidebar::toolSelected,        this, &MainWindow::onToolSelected);
@@ -206,6 +210,12 @@ DocumentView *MainWindow::addDocView()
         m_statusBar->setPageInfo(1, pages);
     });
 
+    // Keep view-mode buttons in sync (e.g. when user clicks a grid card to return to single)
+    connect(dv, &DocumentView::viewModeChanged, this, [this, dv](DocumentView::ViewMode mode) {
+        if (dv == currentDocView())
+            m_topToolbar->setViewMode(mode == DocumentView::ViewMode::Grid);
+    });
+
     // Sync FormatBar font size ↔ active editor
     connect(dv, &DocumentView::editorFontSizeChanged,
             m_formatBar, &FormatBar::setFontSize);
@@ -234,6 +244,7 @@ void MainWindow::onTabActivated(int index)
     const DocumentView *dv = m_docViews[index];
     m_statusBar->setPageInfo(1, dv->pageCount() > 0 ? dv->pageCount() : 1);
     m_topToolbar->setZoom(m_zoom);
+    m_topToolbar->setViewMode(dv->viewMode() == DocumentView::ViewMode::Grid);
 }
 
 void MainWindow::onTabCloseRequested(int index)

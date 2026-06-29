@@ -1,5 +1,7 @@
 #pragma once
 
+#include <QHash>
+#include <QPixmap>
 #include <QScrollArea>
 #include <QUndoStack>
 
@@ -31,7 +33,8 @@ class DocumentView : public QScrollArea
     Q_OBJECT
 
 public:
-    enum class Tool { Select, Pan, Text, Comment, Image };
+    enum class Tool     { Select, Pan, Text, Comment, Image };
+    enum class ViewMode { Single, Grid };
 
     explicit DocumentView(QWidget *parent = nullptr);
     ~DocumentView() override;
@@ -43,6 +46,7 @@ public:
                            const QString &wheelAction);
     void   setTool(Tool tool);
     void   setEditMode(bool on);
+    void   setViewMode(ViewMode mode);
     bool   saveToFile(const QString &path);
     void   retranslateUi();
     // Called by MainWindow when the user changes the font size in the FormatBar.
@@ -50,6 +54,7 @@ public:
 
     QString     currentFile()      const { return m_filePath; }
     int         pageCount()        const { return m_pageCount; }
+    ViewMode    viewMode()         const { return m_viewMode; }
     QUndoStack *undoStack()        const { return m_undoStack; }
     bool        hasUnsavedEdits()  const;
     bool        pdfRenderingAvailable() const;
@@ -58,6 +63,7 @@ public:
 Q_SIGNALS:
     void fileOpened(const QString &path, int pageCount);
     void pageChanged(int current, int total);
+    void viewModeChanged(ViewMode mode);
     // Emitted when an editor opens so the FormatBar can show the correct font size.
     void editorFontSizeChanged(int ptSize);
 
@@ -67,6 +73,7 @@ protected:
     void dragMoveEvent(QDragMoveEvent *e) override;
     void dropEvent(QDropEvent *e) override;
     void changeEvent(QEvent *e) override;
+    void resizeEvent(QResizeEvent *e) override;
     void wheelEvent(QWheelEvent *e) override;
 
 private:
@@ -75,6 +82,10 @@ private:
     void   rerenderAll();
     void   rerenderPage(int page);
     void   rerenderPageWithBlank(int page, const QRectF &pdfBoundsPts);
+
+    // Grid view
+    void   buildGridItems();
+    void   relayoutGrid();
 
     // Edit-mode interaction
     void   handleEditClick(const QPoint &canvasPos);
@@ -92,6 +103,13 @@ private:
     QLabel      *m_dropHint  { nullptr };
     QRubberBand *m_rubberBand{ nullptr };
     QList<QLabel *> m_pageLabels;
+
+    // Grid view
+    struct GridItem { QWidget *card; QLabel *thumb; QLabel *label; QPixmap original; };
+    ViewMode        m_viewMode   { ViewMode::Single };
+    QWidget        *m_gridCanvas { nullptr };
+    QList<GridItem> m_gridItems;
+    QHash<QObject *, int> m_gridCardIndex;
 
     // Document state
     QString m_filePath;

@@ -199,6 +199,28 @@ QLabel#PageLabel {
 #DocumentView QScrollBar::add-line:horizontal,
 #DocumentView QScrollBar::sub-line:horizontal { width: 0px; }
 
+/* ── Grid view ───────────────────────────────────────────── */
+#GridCanvas {
+    background: #F3F4F6;
+}
+
+QFrame#GridCard {
+    background: #FFFFFF;
+    border: 1px solid #E5E7EB;
+    border-radius: 8px;
+}
+
+QFrame#GridCard:hover {
+    border-color: #CBD5E1;
+    background: #FAFAFA;
+}
+
+QLabel#GridPageLabel {
+    font-size: 12px;
+    font-weight: 500;
+    color: #6B7280;
+}
+
 /* ── RightSidebar ────────────────────────────────────────── */
 #RightSidebar {
     background-color: #FFFFFF;

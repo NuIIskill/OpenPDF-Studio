@@ -39,6 +39,35 @@ namespace OrgConst {
 #endif
 
 // ─────────────────────────────────────────────────────────────────────────────
+// DragDots — 2-column × 3-row dot-grid grip icon, painted directly
+// ─────────────────────────────────────────────────────────────────────────────
+class DragDots : public QWidget
+{
+public:
+    explicit DragDots(QWidget *parent = nullptr) : QWidget(parent)
+    {
+        setFixedSize(16, 22);
+        setCursor(Qt::SizeAllCursor);
+    }
+protected:
+    void paintEvent(QPaintEvent *) override
+    {
+        QPainter p(this);
+        p.setRenderHint(QPainter::Antialiasing);
+        p.setBrush(QColor(0xC4, 0xC9, 0xD4));
+        p.setPen(Qt::NoPen);
+        constexpr int R    = 2;   // dot radius
+        constexpr int xGap = 6;  // horizontal spacing (center-to-center)
+        constexpr int yGap = 6;  // vertical spacing
+        const int startX = (width()  - xGap) / 2;
+        const int startY = (height() - yGap * 2) / 2;
+        for (int row = 0; row < 3; ++row)
+            for (int col = 0; col < 2; ++col)
+                p.drawEllipse(QPoint(startX + col * xGap, startY + row * yGap), R, R);
+    }
+};
+
+// ─────────────────────────────────────────────────────────────────────────────
 // PageCard — individual page tile shown in the grid
 // ─────────────────────────────────────────────────────────────────────────────
 class PageCard : public QFrame
@@ -63,14 +92,18 @@ public:
         hdr->setContentsMargins(8, 4, 8, 0);
         hdr->setSpacing(0);
 
-        m_dragHandle = new QLabel(QStringLiteral("⠿⠿"), header);
-        m_dragHandle->setObjectName(QStringLiteral("DragHandle"));
-        m_dragHandle->setCursor(Qt::SizeAllCursor);
+        m_dragHandle = new DragDots(header);
         hdr->addWidget(m_dragHandle, 1, Qt::AlignLeft | Qt::AlignVCenter);
 
-        m_check = new QCheckBox(header);
-        m_check->setFixedSize(20, 20);
+        // Checkable QPushButton styled to look like a tick-box.
+        // "✓" text is always present; CSS makes it transparent when unchecked
+        // and white-on-blue when checked.
+        m_check = new QPushButton(QStringLiteral("✓"), header);
+        m_check->setObjectName(QStringLiteral("CardCheck"));
+        m_check->setCheckable(true);
+        m_check->setFixedSize(22, 22);
         m_check->setCursor(Qt::PointingHandCursor);
+        m_check->setFocusPolicy(Qt::NoFocus);
         hdr->addWidget(m_check, 0, Qt::AlignRight | Qt::AlignVCenter);
 
         root->addWidget(header);
@@ -90,7 +123,7 @@ public:
 
         applyStyle(false);
 
-        connect(m_check, &QCheckBox::toggled, this, &PageCard::checkToggled);
+        connect(m_check, &QPushButton::toggled, this, &PageCard::checkToggled);
     }
 
     void setThumb(const QPixmap &px)  { m_thumbLabel->setPixmap(px); }
@@ -133,25 +166,43 @@ protected:
     }
 
 private:
+    // Child styles are bundled here because setStyleSheet on the card frame
+    // creates a new style scope — dialog-level rules no longer reach children.
+    static QString childStyles()
+    {
+        return QStringLiteral(
+            "QPushButton#CardCheck {"
+            "  background:white; border:2px solid #D1D5DB; border-radius:5px;"
+            "  color:transparent; font-size:13px; font-weight:700; padding:0;"
+            "}"
+            "QPushButton#CardCheck:checked {"
+            "  background:#2563EB; border-color:#2563EB; color:white;"
+            "}"
+            "QPushButton#CardCheck:hover { border-color:#93C5FD; }"
+            "QLabel#PageCardLabel { font-size:13px; font-weight:600; color:#111827; padding-bottom:6px; }");
+    }
+
     void applyStyle(bool selected)
     {
         if (selected) {
             setStyleSheet(QStringLiteral(
-                "QFrame#PageCard { background:#FFFFFF; border:2px solid #2563EB; border-radius:10px; }"));
+                "QFrame#PageCard { background:#FFFFFF; border:2px solid #2563EB; border-radius:10px; }")
+                + childStyles());
         } else {
             setStyleSheet(QStringLiteral(
                 "QFrame#PageCard { background:#FFFFFF; border:1px solid #E5E7EB; border-radius:10px; }"
-                "QFrame#PageCard:hover { border:1px solid #CBD5E1; }"));
+                "QFrame#PageCard:hover { border:1px solid #CBD5E1; }")
+                + childStyles());
         }
     }
 
-    int       m_index;
-    bool      m_selected { false };
-    QPoint    m_dragStart;
-    QLabel   *m_dragHandle  { nullptr };
-    QLabel   *m_thumbLabel  { nullptr };
-    QLabel   *m_pageLabel   { nullptr };
-    QCheckBox *m_check      { nullptr };
+    int        m_index;
+    bool       m_selected { false };
+    QPoint     m_dragStart;
+    DragDots  *m_dragHandle  { nullptr };
+    QLabel    *m_thumbLabel  { nullptr };
+    QLabel    *m_pageLabel   { nullptr };
+    QPushButton *m_check     { nullptr };
 };
 
 #include "PdfOrganizerDialog.moc"
@@ -250,13 +301,6 @@ QPushButton#OrgSaveBtn {
 }
 QPushButton#OrgSaveBtn:hover { background: #1D4ED8; }
 QPushButton#OrgSaveBtn:pressed { background: #1E40AF; }
-QLabel#PageCardLabel { font-size: 13px; font-weight: 600; color: #111827; padding-bottom: 6px; }
-QLabel#DragHandle { color: #9CA3AF; font-size: 14px; letter-spacing: 2px; }
-QCheckBox { spacing: 0; }
-QCheckBox::indicator { width: 18px; height: 18px; border-radius: 4px;
-    border: 2px solid #D1D5DB; background: white; }
-QCheckBox::indicator:checked { background: #2563EB; border-color: #2563EB; image: none; }
-QCheckBox::indicator:hover { border-color: #2563EB; }
 )"));
 }
 

@@ -1,7 +1,9 @@
 #include "DocumentView.hpp"
 
 #include <QVBoxLayout>
+#include <QHBoxLayout>
 #include <QLabel>
+#include <QFrame>
 #include <QRubberBand>
 #include <QMimeData>
 #include <QDragEnterEvent>
@@ -11,13 +13,23 @@
 #include <QScrollBar>
 #include <QMouseEvent>
 #include <QWheelEvent>
-#include <QFrame>
 #include <QPalette>
 #include <QPainter>
 #include <QApplication>
+#include <QStyle>
 #include <QTimer>
 #include <QDebug>
 #include <QMap>
+
+namespace GridConst {
+    constexpr int RENDER_W  = 400;  // internal render quality (px wide)
+    constexpr int MIN_CARD_W = 180; // minimum card width for column count calculation
+    constexpr int LABEL_H   = 24;
+    constexpr int V_PAD     = 10;
+    constexpr int COL_GAP   = 16;
+    constexpr int ROW_GAP   = 20;
+    constexpr int MARGIN    = 24;
+}
 
 DocumentView::DocumentView(QWidget *parent)
     : QScrollArea(parent)
@@ -50,6 +62,10 @@ DocumentView::DocumentView(QWidget *parent)
     m_layout->addWidget(m_dropHint);
 
     setWidget(m_canvas);
+
+    m_gridCanvas = new QWidget();   // no parent — we control it via setWidget()
+    m_gridCanvas->setObjectName(QStringLiteral("GridCanvas"));
+
     viewport()->installEventFilter(this);
     m_canvas->installEventFilter(this);     // also catch events on the canvas itself
     m_rubberBand = new QRubberBand(QRubberBand::Rectangle, viewport());
@@ -111,6 +127,20 @@ DocumentView::~DocumentView()
 void DocumentView::clearDocument()
 {
     cancelCurrentEdit();
+
+    if (m_viewMode == ViewMode::Grid) {
+        for (const GridItem &item : m_gridItems)
+            delete item.card;
+        m_gridItems.clear();
+        m_gridCardIndex.clear();
+        m_gridCanvas->hide();
+        m_gridCanvas->setMinimumHeight(0);
+        takeWidget();
+        setWidget(m_canvas);
+        m_canvas->show();
+        m_viewMode = ViewMode::Single;
+        Q_EMIT viewModeChanged(ViewMode::Single);
+    }
 #ifdef HAVE_QT_PDF
     m_session->clearSuspended();
     m_session->clear();
@@ -137,6 +167,9 @@ bool DocumentView::openFile(const QString &path)
 {
     if (path.isEmpty()) return false;
     cancelCurrentEdit();
+
+    if (m_viewMode == ViewMode::Grid)
+        setViewMode(ViewMode::Single);
 
 #ifdef HAVE_QT_PDF
     m_session->clear();
@@ -331,6 +364,13 @@ void DocumentView::changeEvent(QEvent *e)
     QScrollArea::changeEvent(e);
 }
 
+void DocumentView::resizeEvent(QResizeEvent *e)
+{
+    QScrollArea::resizeEvent(e);
+    if (m_viewMode == ViewMode::Grid)
+        relayoutGrid();
+}
+
 // ── Page building ─────────────────────────────────────────────────────────────
 
 void DocumentView::buildPages()
@@ -425,6 +465,148 @@ void DocumentView::rerenderPageWithBlank(int page, const QRectF &pdfBoundsPts)
     if (!img.isNull())
         m_pageLabels[page]->setPixmap(QPixmap::fromImage(std::move(img)));
 #endif
+}
+
+// ── Grid view ─────────────────────────────────────────────────────────────────
+
+void DocumentView::setViewMode(ViewMode mode)
+{
+    if (m_viewMode == mode) return;
+    m_viewMode = mode;
+
+    if (mode == ViewMode::Grid) {
+        if (m_pageCount == 0) { m_viewMode = ViewMode::Single; return; }
+        buildGridItems();
+        m_canvas->hide();
+        takeWidget();
+        setWidget(m_gridCanvas);
+        m_gridCanvas->show();
+        // Defer: viewport()->width() is reliable after the scroll area processes the new widget
+        QMetaObject::invokeMethod(this, [this]() { relayoutGrid(); }, Qt::QueuedConnection);
+    } else {
+        for (const GridItem &item : m_gridItems)
+            delete item.card;
+        m_gridItems.clear();
+        m_gridCardIndex.clear();
+        m_gridCanvas->hide();
+        m_gridCanvas->setMinimumHeight(0);
+        takeWidget();
+        setWidget(m_canvas);
+        m_canvas->show();
+    }
+    Q_EMIT viewModeChanged(mode);
+}
+
+void DocumentView::buildGridItems()
+{
+    for (const GridItem &item : m_gridItems)
+        delete item.card;
+    m_gridItems.clear();
+    m_gridCardIndex.clear();
+
+#ifdef HAVE_PDF_RENDERING
+    if (!m_renderer) return;
+    const qreal dpr = devicePixelRatioF();
+
+    for (int i = 0; i < m_pageCount; ++i) {
+        auto *card = new QFrame(m_gridCanvas);
+        card->setObjectName(QStringLiteral("GridCard"));
+        card->setCursor(Qt::PointingHandCursor);
+        card->installEventFilter(this);
+
+        auto *vl = new QVBoxLayout(card);
+        vl->setContentsMargins(GridConst::V_PAD, GridConst::V_PAD,
+                               GridConst::V_PAD, GridConst::V_PAD);
+        vl->setSpacing(6);
+
+        auto *thumb = new QLabel(card);
+        thumb->setObjectName(QStringLiteral("GridThumb"));
+        thumb->setAlignment(Qt::AlignCenter);
+        thumb->setAttribute(Qt::WA_TransparentForMouseEvents, true);
+        thumb->setAutoFillBackground(true);
+        QPalette pal = thumb->palette();
+        pal.setColor(QPalette::Window, Qt::white);
+        thumb->setPalette(pal);
+
+        auto *lbl = new QLabel(tr("Page %1").arg(i + 1), card);
+        lbl->setObjectName(QStringLiteral("GridPageLabel"));
+        lbl->setAlignment(Qt::AlignCenter);
+        lbl->setAttribute(Qt::WA_TransparentForMouseEvents, true);
+
+        vl->addWidget(thumb, 1);
+        vl->addWidget(lbl, 0);
+
+        // Render at RENDER_W for quality; relayoutGrid scales to actual card width
+        QPixmap original;
+        const QSize sz100 = m_renderer->pageDisplaySize(i, 100);
+        if (sz100.width() > 0) {
+            const int   tZoom  = qMax(1, GridConst::RENDER_W * 100 / sz100.width());
+            const qreal tScale = PdfRenderer::screenScale(tZoom);
+            QImage img = m_renderer->renderPage(i, tScale * dpr);
+            img.setDevicePixelRatio(dpr);
+#ifdef HAVE_QT_PDF
+            m_session->applyToImage(i, img, tScale * dpr);
+#endif
+            if (!img.isNull())
+                original = QPixmap::fromImage(std::move(img));
+        }
+        thumb->setPixmap(original);
+
+        m_gridCardIndex[card] = i;
+        m_gridItems.append({card, thumb, lbl, original});
+    }
+#endif
+}
+
+void DocumentView::relayoutGrid()
+{
+    if (m_gridItems.isEmpty()) return;
+
+    // viewport()->width() is reliable here: called either from resizeEvent (after Qt has
+    // already resized the viewport) or from the QueuedConnection (after the event loop
+    // processes the new widget install). setWidgetResizable(true) keeps the canvas at
+    // exactly viewport width, so this is the authoritative measurement.
+    const int availW = qMax(GridConst::MIN_CARD_W + GridConst::MARGIN * 2,
+                            viewport()->width());
+
+    // Fill the full row: compute column count from MIN_CARD_W, then expand each card.
+    const int cols  = qMax(1, (availW - GridConst::MARGIN * 2 + GridConst::COL_GAP)
+                               / (GridConst::MIN_CARD_W + GridConst::COL_GAP));
+    const int cardW = (availW - GridConst::MARGIN * 2 - (cols - 1) * GridConst::COL_GAP) / cols;
+    const int thumbW = qMax(1, cardW - GridConst::V_PAD * 2);
+
+    // Compute thumb height from page 0 aspect ratio
+    int thumbH = qRound(thumbW * 1.414);  // A4 portrait fallback
+#ifdef HAVE_PDF_RENDERING
+    if (m_renderer && m_pageCount > 0) {
+        const QSize sz100 = m_renderer->pageDisplaySize(0, 100);
+        if (sz100.width() > 0)
+            thumbH = qRound(qreal(thumbW) * sz100.height() / sz100.width());
+    }
+#endif
+    const int cardH  = GridConst::V_PAD + thumbH + 6 + GridConst::LABEL_H + GridConst::V_PAD;
+    const int rows   = (m_gridItems.size() + cols - 1) / cols;
+    const int totalH = GridConst::MARGIN
+                       + rows * (cardH + GridConst::ROW_GAP) - GridConst::ROW_GAP
+                       + GridConst::MARGIN;
+
+    // setWidgetResizable(true) manages the width; we only control the height so the
+    // scroll area can add a vertical scrollbar when the grid is taller than the viewport.
+    m_gridCanvas->setMinimumHeight(totalH);
+
+    for (int i = 0; i < m_gridItems.size(); ++i) {
+        const int col = i % cols;
+        const int row = i / cols;
+        const int x   = GridConst::MARGIN + col * (cardW + GridConst::COL_GAP);
+        const int y   = GridConst::MARGIN + row * (cardH + GridConst::ROW_GAP);
+        m_gridItems[i].card->setGeometry(x, y, cardW, cardH);
+
+        // Scale stored original pixmap to match the current thumb area
+        if (!m_gridItems[i].original.isNull())
+            m_gridItems[i].thumb->setPixmap(
+                m_gridItems[i].original.scaled(thumbW, thumbH,
+                    Qt::KeepAspectRatio, Qt::SmoothTransformation));
+    }
 }
 
 // ── Edit mode ─────────────────────────────────────────────────────────────────
@@ -761,6 +943,24 @@ void DocumentView::createTextFrame(const QRect &viewportDragRect)
 
 bool DocumentView::eventFilter(QObject *obj, QEvent *e)
 {
+    // Grid card click → switch to single view and scroll to that page
+    if (m_viewMode == ViewMode::Grid && e->type() == QEvent::MouseButtonRelease) {
+        auto it = m_gridCardIndex.constFind(obj);
+        if (it != m_gridCardIndex.cend()) {
+            if (static_cast<QMouseEvent *>(e)->button() == Qt::LeftButton) {
+                const int pageIdx = it.value();
+                setViewMode(ViewMode::Single);
+                QMetaObject::invokeMethod(this, [this, pageIdx]() {
+                    if (pageIdx >= 0 && pageIdx < m_pageLabels.size()) {
+                        const QPoint p = m_pageLabels[pageIdx]->mapTo(m_canvas, QPoint(0, 0));
+                        verticalScrollBar()->setValue(p.y() - 40);
+                    }
+                }, Qt::QueuedConnection);
+            }
+            return true;
+        }
+    }
+
     // Page labels have WA_TransparentForMouseEvents so all clicks fall through to
     // m_canvas (their parent). We also handle viewport() for clicks in the margins.
     const bool fromCanvas   = (obj == m_canvas);

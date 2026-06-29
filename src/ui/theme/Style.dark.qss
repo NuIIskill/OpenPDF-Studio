@@ -187,6 +187,28 @@ QLabel#PageLabel {
     font-size: 14px;
 }
 
+/* ── Grid view ───────────────────────────────────────────── */
+#GridCanvas {
+    background: #2B2B2B;
+}
+
+QFrame#GridCard {
+    background: #3A3A3A;
+    border: 1px solid #484848;
+    border-radius: 8px;
+}
+
+QFrame#GridCard:hover {
+    border-color: #606060;
+    background: #404040;
+}
+
+QLabel#GridPageLabel {
+    font-size: 12px;
+    font-weight: 500;
+    color: #9CA3AF;
+}
+
 /* ── RightSidebar ────────────────────────────────────────── */
 #RightSidebar {
     background-color: #353535;
