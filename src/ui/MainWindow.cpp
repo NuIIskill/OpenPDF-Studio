@@ -420,6 +420,12 @@ void MainWindow::onModeSelected(const QString &mode)
         const QString file = dv ? dv->currentFile() : QString{};
         auto *dlg = new PdfOrganizerDialog(file, this);
         dlg->setAttribute(Qt::WA_DeleteOnClose);
+        connect(dlg, &QDialog::finished, this, [this, dv, dlg](int result) {
+            if (result != QDialog::Accepted || !dv) return;
+            const QString path = dlg->savedPath();
+            if (!path.isEmpty())
+                dv->openFile(path);
+        });
         dlg->open();
     }
 }

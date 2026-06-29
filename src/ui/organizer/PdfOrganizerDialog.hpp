@@ -37,6 +37,7 @@ public:
     ~PdfOrganizerDialog() override;
 
     void retranslateUi();
+    QString savedPath() const { return m_sourcePath; }
 
 protected:
     void changeEvent(QEvent *e) override;
@@ -77,12 +78,14 @@ private:
     // Save
     void saveAs();
     void save();
+    bool writePdf(const QString &outPath);
     QPixmap renderThumb(const PageEntry &e);
 
     // State
     QList<PageEntry>  m_pages;
     QList<PageCard *> m_cards;
     int               m_lastClickedIndex { -1 };
+    QString           m_sourcePath;   // path to overwrite on "Save" (empty = unknown)
 
 #ifdef HAVE_QT_PDF
     QMap<QString, QPdfDocument *> m_docs;

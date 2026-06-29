@@ -31,6 +31,7 @@ namespace OrgConst {
 #include <QResizeEvent>
 #include <QEvent>
 #include <QScrollBar>
+#include <QStyle>
 
 #ifdef HAVE_QT_PDF
 #include <QPdfDocument>
@@ -167,8 +168,10 @@ PdfOrganizerDialog::PdfOrganizerDialog(const QString &initialPath, QWidget *pare
     resize(1040, 700);
     buildUi();
 
-    if (!initialPath.isEmpty())
+    if (!initialPath.isEmpty()) {
+        m_sourcePath = initialPath;
         addPdfPages(initialPath);
+    }
 }
 
 PdfOrganizerDialog::~PdfOrganizerDialog()
@@ -214,30 +217,39 @@ QWidget#OrgToolbar  { background: #FFFFFF; border-bottom: 1px solid #E5E7EB; }
 QWidget#OrgInfoBar  { background: #EFF6FF; border-bottom: 1px solid #BFDBFE; }
 QWidget#OrgFooter   { background: #FFFFFF; border-top: 1px solid #E5E7EB; }
 QPushButton#OrgBtn  {
-    background: transparent; border: 1px solid #D1D5DB; border-radius: 7px;
-    color: #374151; font-size: 13px; padding: 5px 12px;
+    background: #F9FAFB; border: 1px solid #E5E7EB; border-radius: 6px;
+    color: #374151; font-size: 13px; padding: 3px 10px; icon-size: 16px;
 }
-QPushButton#OrgBtn:hover { background: #F3F4F6; border-color: #9CA3AF; }
-QPushButton#OrgBtn:disabled { color: #9CA3AF; border-color: #E5E7EB; }
+QPushButton#OrgBtn:hover  { background: #F3F4F6; border-color: #D1D5DB; }
+QPushButton#OrgBtn:pressed { background: #E5E7EB; }
+QPushButton#OrgBtn:disabled { color: #9CA3AF; background: #F9FAFB; border-color: #E5E7EB; }
 QToolButton#OrgAddBtn {
-    background: transparent; border: 1px solid #2563EB; border-radius: 7px;
-    color: #2563EB; font-size: 13px; font-weight: 600; padding: 5px 14px;
+    background: #EFF6FF; border: 1px solid #BFDBFE; border-radius: 6px;
+    color: #1D4ED8; font-size: 13px; font-weight: 600; padding: 3px 10px;
+    icon-size: 16px;
 }
-QToolButton#OrgAddBtn:hover { background: #EFF6FF; }
+QToolButton#OrgAddBtn:hover { background: #DBEAFE; border-color: #93C5FD; }
+QToolButton#OrgAddBtn:pressed { background: #BFDBFE; }
 QToolButton#OrgAddBtn::menu-button {
-    border-left: 1px solid #2563EB; width: 20px; border-radius: 0 7px 7px 0;
+    border-left: 1px solid #BFDBFE; width: 16px; border-radius: 0 6px 6px 0;
+}
+QToolButton#OrgAddBtn::menu-indicator {
+    width: 7px; height: 7px;
+    subcontrol-origin: padding; subcontrol-position: right center;
 }
 QPushButton#OrgDeleteBtn {
-    background: transparent; border: none;
-    color: #DC2626; font-size: 13px; padding: 5px 12px;
+    background: transparent; border: none; border-radius: 6px;
+    color: #DC2626; font-size: 13px; padding: 3px 10px; icon-size: 16px;
 }
-QPushButton#OrgDeleteBtn:hover { background: #FEF2F2; border-radius: 7px; }
+QPushButton#OrgDeleteBtn:hover { background: #FEF2F2; }
+QPushButton#OrgDeleteBtn:pressed { background: #FEE2E2; }
 QPushButton#OrgDeleteBtn:disabled { color: #FCA5A5; }
 QPushButton#OrgSaveBtn {
-    background: #2563EB; border: none; border-radius: 7px;
-    color: white; font-size: 13px; font-weight: 600; padding: 6px 20px;
+    background: #2563EB; border: none; border-radius: 6px;
+    color: white; font-size: 13px; font-weight: 600; padding: 4px 18px;
 }
 QPushButton#OrgSaveBtn:hover { background: #1D4ED8; }
+QPushButton#OrgSaveBtn:pressed { background: #1E40AF; }
 QLabel#PageCardLabel { font-size: 13px; font-weight: 600; color: #111827; padding-bottom: 6px; }
 QLabel#DragHandle { color: #9CA3AF; font-size: 14px; letter-spacing: 2px; }
 QCheckBox { spacing: 0; }
@@ -252,16 +264,20 @@ QWidget *PdfOrganizerDialog::buildToolbar()
 {
     auto *bar = new QWidget(this);
     bar->setObjectName(QStringLiteral("OrgToolbar"));
-    bar->setFixedHeight(60);
+    bar->setFixedHeight(50);
 
     auto *h = new QHBoxLayout(bar);
-    h->setContentsMargins(16, 0, 16, 0);
-    h->setSpacing(6);
+    h->setContentsMargins(12, 0, 12, 0);
+    h->setSpacing(4);
+
+    const QSize iconSz(16, 16);
 
     // Add PDF (menu button)
     m_addPdfBtn = new QToolButton(bar);
     m_addPdfBtn->setObjectName(QStringLiteral("OrgAddBtn"));
     m_addPdfBtn->setText(tr("Add PDF"));
+    m_addPdfBtn->setIcon(QIcon::fromTheme(QStringLiteral("document-open")));
+    m_addPdfBtn->setIconSize(iconSz);
     m_addPdfBtn->setToolButtonStyle(Qt::ToolButtonTextBesideIcon);
     m_addPdfBtn->setPopupMode(QToolButton::MenuButtonPopup);
     auto *addMenu = new QMenu(m_addPdfBtn);
@@ -281,49 +297,58 @@ QWidget *PdfOrganizerDialog::buildToolbar()
     // Add blank page
     m_addBlankBtn = new QPushButton(tr("Blank Page"), bar);
     m_addBlankBtn->setObjectName(QStringLiteral("OrgBtn"));
+    m_addBlankBtn->setIcon(QIcon::fromTheme(QStringLiteral("document-new")));
+    m_addBlankBtn->setIconSize(iconSz);
     connect(m_addBlankBtn, &QPushButton::clicked, this, &PdfOrganizerDialog::addBlankPage);
     h->addWidget(m_addBlankBtn);
 
     // Separator
     auto makeSep = [&]() {
-        auto *s = new QFrame(bar);
-        s->setFrameShape(QFrame::VLine);
-        s->setFixedWidth(1);
+        h->addSpacing(2);
+        auto *s = new QWidget(bar);
+        s->setFixedSize(1, 20);
         s->setStyleSheet(QStringLiteral("background:#E5E7EB;"));
-        h->addWidget(s);
+        h->addWidget(s, 0, Qt::AlignVCenter);
         h->addSpacing(2);
     };
     makeSep();
 
     // Move left / right
-    auto makeBtn = [&](const QString &label, const QString &tip) {
+    auto makeBtn = [&](const QString &label, const QString &tip, const QString &iconName) {
         auto *b = new QPushButton(label, bar);
         b->setObjectName(QStringLiteral("OrgBtn"));
         b->setToolTip(tip);
         b->setEnabled(false);
+        b->setIcon(QIcon::fromTheme(iconName));
+        b->setIconSize(iconSz);
         h->addWidget(b);
         return b;
     };
 
-    m_moveLeftBtn  = makeBtn(QStringLiteral("← ") + tr("Move left"),   tr("Move page left"));
-    m_moveRightBtn = makeBtn(QStringLiteral("→ ") + tr("Move right"),  tr("Move page right"));
+    m_moveLeftBtn  = makeBtn(tr("Move left"),   tr("Move page left"),    QStringLiteral("go-previous"));
+    m_moveRightBtn = makeBtn(tr("Move right"),  tr("Move page right"),   QStringLiteral("go-next"));
     makeSep();
 
-    m_rotLeftBtn   = makeBtn(QStringLiteral("↺ ") + tr("Rotate left"),  tr("Rotate left 90°"));
-    m_rotRightBtn  = makeBtn(QStringLiteral("↻ ") + tr("Rotate right"), tr("Rotate right 90°"));
+    m_rotLeftBtn   = makeBtn(tr("Rotate left"),  tr("Rotate left 90°"),  QStringLiteral("object-rotate-left"));
+    m_rotRightBtn  = makeBtn(tr("Rotate right"), tr("Rotate right 90°"), QStringLiteral("object-rotate-right"));
     makeSep();
 
-    m_deleteBtn = new QPushButton(QStringLiteral("🗑 ") + tr("Delete page"), bar);
+    m_deleteBtn = new QPushButton(tr("Delete page"), bar);
     m_deleteBtn->setObjectName(QStringLiteral("OrgDeleteBtn"));
+    m_deleteBtn->setIcon(QIcon::fromTheme(QStringLiteral("edit-delete")));
+    m_deleteBtn->setIconSize(iconSz);
     m_deleteBtn->setEnabled(false);
     h->addWidget(m_deleteBtn);
 
     h->addStretch(1);
 
     // Help button
-    auto *helpBtn = new QPushButton(QStringLiteral("?"), bar);
+    auto *helpBtn = new QPushButton(bar);
     helpBtn->setObjectName(QStringLiteral("OrgBtn"));
-    helpBtn->setFixedSize(32, 32);
+    helpBtn->setIcon(QIcon::fromTheme(QStringLiteral("help-browser"),
+                                      QIcon::fromTheme(QStringLiteral("help-contents"))));
+    helpBtn->setIconSize(iconSz);
+    helpBtn->setFixedSize(30, 30);
     helpBtn->setToolTip(tr("Help"));
     h->addWidget(helpBtn);
 
@@ -541,7 +566,16 @@ void PdfOrganizerDialog::relayout()
 {
     if (!m_gridContainer) return;
 
-    const int availW = m_scroll->viewport()->width();
+    // viewport()->width() returns 0 before the dialog is shown (constructor
+    // calls us before Qt has applied the layout to children). Fall back to the
+    // dialog's own width minus a scrollbar allowance so the initial grid is
+    // already correct when the window appears.
+    int availW = m_scroll->viewport()->width();
+    if (availW < OrgConst::CARD_W + OrgConst::GRID_PAD * 2) {
+        const int sbW = style()->pixelMetric(QStyle::PM_ScrollBarExtent);
+        availW = qMax(0, width() - sbW);
+    }
+
     const int cols   = qMax(1, (availW - OrgConst::GRID_PAD * 2 + OrgConst::COL_GAP) / (OrgConst::CARD_W + OrgConst::COL_GAP));
 
     const int rows   = m_cards.isEmpty() ? 0
@@ -740,10 +774,93 @@ QPixmap PdfOrganizerDialog::renderThumb(const PageEntry &e)
 
 // ── Save ──────────────────────────────────────────────────────────────────────
 
+bool PdfOrganizerDialog::writePdf(const QString &outPath)
+{
+#ifdef HAVE_QT_PDF
+    constexpr int   SAVE_DPI = 150;
+    constexpr qreal scale    = SAVE_DPI / 72.0;
+
+    // Returns the output page size in points for a given entry.
+    // 90°/270° user rotation transposes width↔height so the saved page has
+    // the correct landscape/portrait orientation.
+    auto outputPageSizePt = [&](const PageEntry &e) -> QSizeF {
+        if (e.isBlank || !m_docs.contains(e.pdfPath))
+            return QSizeF(595.0, 842.0);        // A4 fallback
+        QSizeF pt = m_docs[e.pdfPath]->pagePointSize(e.pageIndex);
+        if (e.rotation == 90 || e.rotation == 270)
+            pt.transpose();                     // landscape ↔ portrait
+        return pt;
+    };
+
+    // Page size for page 1 must be set BEFORE QPainter::begin() so the first
+    // page is opened at the correct size immediately.
+    QPdfWriter writer(outPath);
+    writer.setResolution(SAVE_DPI);
+    if (!m_pages.isEmpty())
+        writer.setPageSize(QPageSize(outputPageSizePt(m_pages[0]),
+                                     QPageSize::Point, {}, QPageSize::ExactMatch));
+
+    QPainter painter(&writer);
+    if (!painter.isActive()) return false;
+
+    for (int i = 0; i < m_pages.size(); ++i) {
+        const PageEntry &e = m_pages[i];
+
+        if (i > 0) {
+            // Page size must be set BEFORE newPage() — newPage() opens the new
+            // page at whatever size is current; setting it afterwards is too late.
+            writer.setPageSize(QPageSize(outputPageSizePt(e),
+                                         QPageSize::Point, {}, QPageSize::ExactMatch));
+            writer.newPage();
+        }
+
+        if (e.isBlank || !m_docs.contains(e.pdfPath))
+            continue;   // blank page: leave it white
+
+        QPdfDocument *doc    = m_docs[e.pdfPath];
+        const QSizeF  origPt = doc->pagePointSize(e.pageIndex);
+
+        // Render in the native (pre-user-rotation) orientation.
+        const QSize renderSz(qRound(origPt.width()  * scale),
+                             qRound(origPt.height() * scale));
+        QImage img = doc->render(e.pageIndex, renderSz);
+        if (img.isNull()) continue;
+
+        // Apply user rotation — for 90°/270° this transposes the image dimensions
+        // to match the transposed page size set above.
+        if (e.rotation != 0) {
+            QTransform t;
+            t.rotate(e.rotation);
+            img = img.transformed(t, Qt::SmoothTransformation);
+        }
+
+        painter.drawImage(QRect(QPoint(0, 0), img.size()), img);
+    }
+    painter.end();
+    return true;
+#else
+    Q_UNUSED(outPath)
+    QMessageBox::information(this, tr("Not Available"),
+                             tr("PDF writing requires Qt6Pdf."));
+    return false;
+#endif
+}
+
 void PdfOrganizerDialog::save()
 {
-    // If we know the original file (single source), save to it; otherwise saveAs
-    saveAs();
+    if (m_pages.isEmpty()) {
+        QMessageBox::warning(this, tr("Empty"),
+                             tr("Add at least one page before saving."));
+        return;
+    }
+
+    if (m_sourcePath.isEmpty()) {
+        saveAs();
+        return;
+    }
+
+    if (writePdf(m_sourcePath))
+        accept();
 }
 
 void PdfOrganizerDialog::saveAs()
@@ -755,42 +872,13 @@ void PdfOrganizerDialog::saveAs()
     }
 
     const QString outPath = QFileDialog::getSaveFileName(
-        this, tr("Save PDF As"), {}, tr("PDF files (*.pdf)"));
+        this, tr("Save PDF As"), m_sourcePath, tr("PDF files (*.pdf)"));
     if (outPath.isEmpty()) return;
 
-#ifdef HAVE_QT_PDF
-    QPdfWriter writer(outPath);
-    writer.setResolution(OrgConst::RENDER_DPI);
-    QPainter painter(&writer);
-    bool firstPage = true;
-
-    for (const PageEntry &e : m_pages) {
-        if (!firstPage) writer.newPage();
-        firstPage = false;
-
-        if (!e.isBlank && m_docs.contains(e.pdfPath)) {
-            QPdfDocument *doc = m_docs[e.pdfPath];
-            const QSizeF  ps  = doc->pagePointSize(e.pageIndex);
-            const QSize   sz(qRound(ps.width() * (OrgConst::RENDER_DPI / 72.0)),
-                             qRound(ps.height() * (OrgConst::RENDER_DPI / 72.0)));
-
-            writer.setPageSize(QPageSize(ps * (OrgConst::RENDER_DPI / 72.0),
-                               QPageSize::Point, {}, QPageSize::ExactMatch));
-
-            QImage img = doc->render(e.pageIndex, sz);
-            if (e.rotation != 0) {
-                QTransform t; t.rotate(e.rotation);
-                img = img.transformed(t, Qt::SmoothTransformation);
-            }
-            painter.drawImage(QRect({0,0}, img.size()), img);
-        }
+    if (writePdf(outPath)) {
+        m_sourcePath = outPath;
+        accept();
     }
-    painter.end();
-    accept();
-#else
-    QMessageBox::information(this, tr("Not Available"),
-                             tr("PDF writing requires Qt6Pdf."));
-#endif
 }
 
 // ── Qt event overrides ────────────────────────────────────────────────────────
@@ -799,6 +887,9 @@ void PdfOrganizerDialog::resizeEvent(QResizeEvent *e)
 {
     QDialog::resizeEvent(e);
     relayout();
+    // Queue a second pass: the scroll viewport finalizes its size (accounting
+    // for scrollbar visibility) only after the current resize event returns.
+    QMetaObject::invokeMethod(this, [this]() { relayout(); }, Qt::QueuedConnection);
 }
 
 void PdfOrganizerDialog::retranslateUi()
