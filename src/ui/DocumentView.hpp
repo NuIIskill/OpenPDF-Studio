@@ -119,9 +119,14 @@ private:
     // Edit-mode state
     int     m_activeEditPage { -1 };
     QRectF  m_activeEditBounds;
-    QRectF  m_activeEditOriginalBounds;  // bounds when the edit was first opened
+    QRectF  m_activeEditOriginalBounds;  // native PDF bounds when the edit was first opened
     QRectF  m_lastLiveEditBounds;        // bounds where the last live edit was placed
-    bool    m_hasLiveEdit     { false }; // whether a live edit is currently in the session
+    bool    m_hasLiveEdit       { false }; // whether a live edit is currently in the session
+    // true  → edit was opened by clicking on existing text (handleEditClick); a blank
+    //         edit must be committed to erase the original text before drawing the new.
+    // false → editor was created fresh via drag (createTextFrame); no erasure needed —
+    //         the text is drawn as a transparent overlay so it can sit on top of content.
+    bool    m_activeEditNeedsBlank { false };
     QString m_activeEditOriginalText;
     int     m_currentEditorFontSizePt { 12 };  // tracks font size set via FormatBar
     QColor  m_currentEditorColor     { 0x11, 0x11, 0x11 };  // sampled from page render

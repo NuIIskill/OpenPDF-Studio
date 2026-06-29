@@ -22,9 +22,24 @@ public:
     EditSession() = default;
 
     // fontSizePt=0 means "auto-detect from content stream or bound-height"
+    // sourceRect — the original PDF block this edit belongs to (used for grouping
+    // blank+text companion pairs that are created during a drag-move commit).
+    // Pass QRectF() (default) when there is no companion pair.
     void addEdit(int page, const QRectF &pdfBounds, const QString &newText,
-                 double fontSizePt = 0.0, const QColor &color = QColor());
+                 double fontSizePt = 0.0, const QColor &color = QColor(),
+                 const QRectF &sourceRect = QRectF());
     void removeEdit(int page, const QRectF &pdfBounds);
+    // Removes every edit on 'page' that overlaps 'pdfBounds'.
+    void removeAllAt(int page, const QRectF &pdfBounds);
+
+    // Suspend/restore — used when opening the editor over an existing edit.
+    // suspendEditsAt() removes all edits overlapping the area and saves them.
+    // clearSuspended()   — called on commit/live-update: discard the snapshot.
+    // restoreSuspended() — called on cancel: put the removed edits back.
+    void suspendEditsAt(int page, const QRectF &pdfBounds);
+    void clearSuspended();
+    void restoreSuspended();
+
     void clear();
 
     bool    hasEditsOnPage(int page) const;
@@ -32,6 +47,8 @@ public:
 
     // Returns current edited text at (page, pdfBounds), or null QString if none.
     QString editTextAt(int page, const QRectF &pdfBounds) const;
+    // Returns true if there is a blank (erase-only) session edit at this location.
+    bool isBlankAt(int page, const QRectF &pdfBounds) const;
     // Returns stored text color for the edit intersecting pdfBounds, or invalid QColor.
     QColor  editColorAt(int page, const QRectF &pdfBounds) const;
 
@@ -66,13 +83,17 @@ private:
     struct Edit {
         int     page;
         QRectF  pdfBounds;
+        // The original PDF block this edit belongs to.  For a drag-move commit,
+        // blank(P1) and text(P2) both carry sourceRect=P1, letting suspendEditsAt
+        // suspend the entire group when either member is hit.  Empty = standalone.
+        QRectF  sourceRect;
         QString newText;
         double  fontSizePt { 0.0 };  // 0 = derive from content stream / bound height
         QColor  textColor;           // invalid = use default (near-black)
     };
 
     static void paintTextEdit(QPainter &p, const Edit &e, qreal scale);
-    static void paintBlankEdit(QPainter &p, const QImage &snapshot, const Edit &e, qreal scale);
+    static void paintBlankEdit(QPainter &p, const Edit &e, qreal scale);
 
 #ifdef HAVE_QPDF
     // Hybrid: unedited pages copied as vector, edited pages rasterised at 300 DPI.
@@ -85,4 +106,5 @@ private:
 #endif
 
     QList<Edit> m_edits;
+    QList<Edit> m_suspendedEdits;  // saved by suspendEditsAt(), restored by restoreSuspended()
 };

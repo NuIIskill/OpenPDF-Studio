@@ -71,10 +71,11 @@ DocumentView::DocumentView(QWidget *parent)
     connect(m_editorFrame, &TextBoxFrame::dragEnded, this, [this]() {
         m_liveTimer->stop();
         liveUpdateCurrentEdit(m_editorFrame->currentText());
-        // Re-render page so the blank follows the box to its new position.
-        // liveUpdateCurrentEdit updates the session but doesn't repaint.
+        // Blank the ORIGINAL bounds so the underlying PDF text is erased.
+        // The live session edit at the new position handles blanking that area
+        // via applyToImage inside rerenderPageWithBlank.
         if (m_activeEditPage >= 0)
-            rerenderPageWithBlank(m_activeEditPage, m_activeEditBounds);
+            rerenderPageWithBlank(m_activeEditPage, m_activeEditOriginalBounds);
     });
     connect(m_editorFrame, &TextBoxFrame::boundsChanged, this, [this](const QRectF &inner) {
         if (m_activeEditPage < 0) return;
@@ -111,6 +112,7 @@ void DocumentView::clearDocument()
 {
     cancelCurrentEdit();
 #ifdef HAVE_QT_PDF
+    m_session->clearSuspended();
     m_session->clear();
     m_document->close();
     m_ocrCache.clear();
@@ -408,13 +410,19 @@ void DocumentView::rerenderPageWithBlank(int page, const QRectF &pdfBoundsPts)
 #ifdef HAVE_QT_PDF
     m_session->applyToImage(page, img, scale * dpr);
     {
+        // Belt-and-suspenders: also fill the target area white directly,
+        // in case no blank session edit covers pdfBoundsPts (e.g. plain text
+        // block clicked for the first time with no prior session edit).
         const QRectF px(pdfBoundsPts.topLeft() * scale * dpr,
                         pdfBoundsPts.size()    * scale * dpr);
-        // 2 px padding covers anti-aliased glyph edges without reaching
-        // adjacent lines at standard leading (gap ≥ 2–3 pt at 100 % zoom).
-        const QRect eraseRect = px.adjusted(-2, -2, 2, 2).toAlignedRect();
+        // Horizontal: use at least one line-height worth of device pixels so that
+        // adjacent text runs on the same visual line (which can sit just outside the
+        // extractor's detected polygon) are fully covered.
+        // Vertical: 4 logical pixels (scaled by DPR) for ascender/descender overhangs.
+        const qreal hPad = 4.0;
+        const qreal vPad = 4.0 * dpr;
         QPainter p(&img);
-        p.fillRect(eraseRect, Qt::white);
+        p.fillRect(px.adjusted(-hPad, -vPad, hPad, vPad), Qt::white);
     }
 #endif
     if (!img.isNull())
@@ -531,16 +539,24 @@ void DocumentView::handleEditClick(const QPoint &canvasPos)
         block.pdfBounds.size() * scale
     );
 
-    // If there's already an edit at this location, load the current text + stored color.
+    // If the click lands on a blank (erase-only) session edit — the source area
+    // of a drag-move — don't open any editor.  The area is intentionally empty;
+    // pre-filling with native PDF text would cause a duplicate (native text at P1
+    // alongside the still-active moved text at P2).  The user can drag-to-create
+    // a new text frame if they want to put text back here.
+    if (m_session->isBlankAt(block.page, block.pdfBounds))
+        return;
+
     const QString existing     = m_session->editTextAt(block.page, block.pdfBounds);
     const QString displayText  = existing.isNull() ? block.text : existing;
     const QColor  storedColor  = m_session->editColorAt(block.page, block.pdfBounds);
 
-    m_activeEditPage          = block.page;
-    m_activeEditBounds        = block.pdfBounds;
+    m_activeEditPage           = block.page;
+    m_activeEditBounds         = block.pdfBounds;
     m_activeEditOriginalBounds = block.pdfBounds;
-    m_activeEditOriginalText  = displayText;
-    m_hasLiveEdit             = false;
+    m_activeEditOriginalText   = displayText;
+    m_activeEditNeedsBlank     = true;   // editing existing text → must erase original
+    m_hasLiveEdit              = false;
 
     // Font size: use stored value for session edits; derive from block height otherwise.
     if (isSessionEdit && sessionFontPt > 0.0) {
@@ -575,9 +591,12 @@ void DocumentView::handleEditClick(const QPoint &canvasPos)
     m_editorFrame->setForbiddenZones({});
     m_editorFrame->setPageRect(pageLbl->geometry());
     m_editorFrame->resetCommitGuard();
-    m_editorFrame->present(displayText, canvasBounds, fontSize, m_currentEditorColor);
-    // Erase original text from page render so the editor isn't floating over it.
+    // Suspend edits and update the pixmap BEFORE showing the frame.
+    // If present()/show() triggers a synchronous canvas repaint, it must see
+    // the already-blanked pixmap — not the old one with stale ghost text.
+    m_session->suspendEditsAt(block.page, block.pdfBounds);
     rerenderPageWithBlank(block.page, block.pdfBounds);
+    m_editorFrame->present(displayText, canvasBounds, fontSize, m_currentEditorColor);
 #endif
 }
 
@@ -604,23 +623,48 @@ void DocumentView::commitCurrentEdit(const QString &newText)
 
     const QString trimNew = newText.trimmed();
 
-    // Remove the original edit (if re-editing previously committed text) and
-    // the last live-update edit (tracked precisely to avoid touching other boxes).
+    // If text and position are unchanged from when the editor opened, don't
+    // create a session edit.  The PDF's embedded font renders special characters
+    // correctly; our system-font fallback cannot (shows □ for glyphs missing
+    // from the system font).  Restoring the original state preserves quality.
+    if (trimNew == m_activeEditOriginalText.trimmed() && bounds == origBounds) {
+        if (hadLive) m_session->removeEdit(page, liveBounds);
+        m_session->removeEdit(page, origBounds);
+        m_session->restoreSuspended();
+        m_lastCommittedPage       = page;
+        m_lastCommittedOrigBounds = origBounds;
+        rerenderPage(page);
+        return;
+    }
+
+    // Suspended edits discarded — we're replacing them with fresh content.
+    m_session->clearSuspended();
+    // Remove the live edit and any stale edit at origBounds using EXACT match.
+    // removeAllAt (intersects) is intentionally avoided here: a full paragraph's
+    // pdfBounds can span several hundred pixels, so it would accidentally delete
+    // adjacent session edits that are close but distinct.
     m_session->removeEdit(page, origBounds);
+    if (!bounds.intersects(origBounds))
+        m_session->removeEdit(page, bounds);
     if (hadLive) m_session->removeEdit(page, liveBounds);
 
-    if (!trimNew.isEmpty())
-        m_session->addEdit(page, bounds, newText, m_currentEditorFontSizePt, m_currentEditorColor);
+    // Blank MUST be inserted before the text so applyToImage erases origBounds
+    // before drawing the new text.  It is needed when:
+    //   • editing existing text (handleEditClick) — erase original PDF or session text
+    //   • text was moved to a new position — erase original location
+    //   • text was deleted entirely
+    // It is NOT created when the editor was opened fresh via drag (createTextFrame)
+    // because that is an overlay: new text drawn on top without erasing anything.
+    const bool needBlank = m_activeEditNeedsBlank
+                        || !bounds.contains(origBounds)
+                        || trimNew.isEmpty();
+    if (needBlank)
+        m_session->addEdit(page, origBounds, QString(),
+                           m_currentEditorFontSizePt, QColor(), origBounds);
 
-    // Always blank origBounds if:
-    //   • the box was moved/shrunk (origBounds no longer covered by new bounds), OR
-    //   • the user deleted all text (nothing to paint over the original).
-    const bool needBlank = !bounds.contains(origBounds) || trimNew.isEmpty();
-    if (needBlank) {
-        m_session->addEdit(page, origBounds, QString(), m_currentEditorFontSizePt);
-        qWarning() << "[COMMIT] blank added origBounds=" << origBounds
-                   << "bounds=" << bounds << "textEmpty=" << trimNew.isEmpty();
-    }
+    if (!trimNew.isEmpty())
+        m_session->addEdit(page, bounds, newText,
+                           m_currentEditorFontSizePt, m_currentEditorColor, origBounds);
 
     // Remember the original PDF block bounds so that the mouseRelease handler
     // for THIS SAME CLICK can avoid re-opening an editor for the block we just
@@ -646,10 +690,15 @@ void DocumentView::cancelCurrentEdit()
     const int page = m_activeEditPage;
     m_activeEditPage = -1;
     m_liveTimer->stop();
+    // Remove the live edit FIRST (by intersects, not exact, for robustness),
+    // THEN restore suspended edits.  Reversed order would re-insert the suspended
+    // edit and then removeEdit/removeAllAt would accidentally wipe it when it
+    // shares the same bounds as the live edit.
     if (m_hasLiveEdit) {
-        if (page >= 0) m_session->removeEdit(page, m_lastLiveEditBounds);
+        if (page >= 0) m_session->removeAllAt(page, m_lastLiveEditBounds);
         m_hasLiveEdit = false;
     }
+    m_session->restoreSuspended();
     m_editorFrame->hide();
     if (page >= 0)
         rerenderPage(page);
@@ -668,20 +717,20 @@ void DocumentView::liveUpdateCurrentEdit(const QString &text)
                << "hasLive=" << m_hasLiveEdit
                << "lastLive=" << m_lastLiveEditBounds
                << "text=" << text.left(20);
-    // Remove the PREVIOUS live edit using the exact bounds it was placed at.
-    // Never use m_activeEditBounds here — the box may have moved on top of
-    // another box's edit, and we must not touch that other box.
+    // Keep suspended edits alive so cancel still restores the original content.
+    // They are discarded only on commit (commitCurrentEdit calls clearSuspended).
+    // Remove the previous live edit by its exact tracked bounds.
     if (m_hasLiveEdit) {
         m_session->removeEdit(m_activeEditPage, m_lastLiveEditBounds);
         m_hasLiveEdit = false;
     }
-    // Remove the original edit at its original position (handles re-editing
-    // previously committed text and the case where the box is being moved).
-    m_session->removeEdit(m_activeEditPage, m_activeEditOriginalBounds);
+    // Belt-and-suspenders: remove any lingering edits at the original location.
+    m_session->removeAllAt(m_activeEditPage, m_activeEditOriginalBounds);
 
     if (!text.trimmed().isEmpty()) {
         m_session->addEdit(m_activeEditPage, m_activeEditBounds, text,
-                           m_currentEditorFontSizePt, m_currentEditorColor);
+                           m_currentEditorFontSizePt, m_currentEditorColor,
+                           m_activeEditOriginalBounds);
         m_lastLiveEditBounds = m_activeEditBounds;
         m_hasLiveEdit        = true;
     }
@@ -709,6 +758,7 @@ void DocumentView::createTextFrame(const QRect &viewportDragRect)
     m_activeEditOriginalBounds = m_activeEditBounds;
     m_activeEditOriginalText  = QString();
     m_hasLiveEdit             = false;
+    m_activeEditNeedsBlank    = false;   // new text box overlay — don't erase background
 
     m_currentEditorColor = QColor(0x11, 0x11, 0x11);  // new box: no original to sample
     const int fontSize = qMax(8, qRound(12.0 * scale));
