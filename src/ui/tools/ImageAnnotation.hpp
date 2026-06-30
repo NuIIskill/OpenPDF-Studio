@@ -16,10 +16,14 @@ public:
     explicit ImageAnnotation(const QString &imagePath, QWidget *parent = nullptr);
 
     void setEditActive(bool on);
+    void setOriginalPixmap(const QPixmap &px);
+    // Restrict drag/resize to stay within this rect (canvas coords, parent-relative).
+    void setPageRect(const QRect &r) { m_pageRect = r; }
 
 Q_SIGNALS:
     void deleteRequested();
-    void moved(const QPoint &from, const QPoint &to);
+    void geometryChanged(const QRect &newGeometry);  // emitted after move or resize
+    void contextMenuRequested(const QPoint &globalPos);
 
 protected:
     void mousePressEvent(QMouseEvent *e) override;
@@ -28,13 +32,14 @@ protected:
     void enterEvent(QEnterEvent *e) override;
     void leaveEvent(QEvent *e) override;
     void paintEvent(QPaintEvent *e) override;
+    void resizeEvent(QResizeEvent *e) override;
+    void contextMenuEvent(QContextMenuEvent *e) override;
 
 private:
-    static constexpr int RESIZE_SZ = 10;
-    static constexpr int MIN_W = 80;
-    static constexpr int MIN_H = 60;
-    static constexpr int MAX_W = 600;
-    static constexpr int MAX_H = 500;
+    void updateScaledPixmap();
+    static constexpr int RESIZE_SZ = 12;
+    static constexpr int MIN_W = 40;
+    static constexpr int MIN_H = 30;
 
     bool isInResizeHandle(const QPoint &p) const;
 
@@ -50,4 +55,5 @@ private:
     QPoint m_posBeforeDrag;
     QPoint m_resizeOrigin;
     QSize  m_sizeAtResize;
+    QRect  m_pageRect;   // allowed region in parent coords; empty = unconstrained
 };

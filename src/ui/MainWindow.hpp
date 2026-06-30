@@ -62,6 +62,7 @@ private:
     void onZoomOut();
     void onModeSelected(const QString &mode);
     void onToolSelected(const QString &tool);
+    void onStartPresentation();
 
     bool confirmAndSave(DocumentView *dv);
     void openTextPanel();

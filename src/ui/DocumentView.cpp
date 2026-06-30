@@ -1,4 +1,13 @@
 #include "DocumentView.hpp"
+#include "tools/ImageAnnotation.hpp"
+
+#ifdef HAVE_QPDF
+#  include <qpdf/QPDF.hh>
+#  include <qpdf/QPDFPageDocumentHelper.hh>
+#  include <qpdf/QPDFPageObjectHelper.hh>
+#  include <qpdf/QPDFObjectHandle.hh>
+#  include <cstring>
+#endif
 
 #include <QVBoxLayout>
 #include <QHBoxLayout>
@@ -16,10 +25,14 @@
 #include <QPalette>
 #include <QPainter>
 #include <QApplication>
+#include <QClipboard>
+#include <QTextEdit>
 #include <QStyle>
 #include <QTimer>
 #include <QDebug>
 #include <QMap>
+#include <QFileDialog>
+#include <QMenu>
 
 namespace GridConst {
     constexpr int RENDER_W  = 400;  // internal render quality (px wide)
@@ -160,6 +173,11 @@ void DocumentView::clearDocument()
         delete lbl;
     }
     m_pageLabels.clear();
+
+    for (const PlacedImage &pi : m_placedImages) delete pi.widget;
+    m_placedImages.clear();
+    clearDetectedImageFrames();
+
     m_dropHint->show();
 }
 
@@ -215,6 +233,7 @@ void DocumentView::setZoom(int percent)
     if (m_zoom == percent) return;
     m_zoom = percent;
     if (!m_filePath.isEmpty()) rerenderAll();
+    updateImageOverlayPositions();
 }
 
 void DocumentView::setZoomSettings(int step, bool ctrlWheel, bool toPointer,
@@ -259,11 +278,22 @@ void DocumentView::wheelEvent(QWheelEvent *e)
 void DocumentView::setTool(Tool tool)
 {
     m_tool = tool;
+
+    // Image annotations are interactive only while the image tool is active.
+    const bool imgActive = (tool == Tool::Image);
+    for (const PlacedImage &pi : m_placedImages)
+        if (pi.widget)
+            static_cast<ImageAnnotation *>(pi.widget)->setEditActive(imgActive);
+
     switch (tool) {
-    case Tool::Pan:    viewport()->setCursor(Qt::OpenHandCursor); break;
-    case Tool::Text:   viewport()->setCursor(Qt::IBeamCursor);    break;
-    case Tool::Select: viewport()->setCursor(Qt::CrossCursor);    break;
-    default:           viewport()->setCursor(Qt::ArrowCursor);    break;
+    case Tool::Pan:    viewport()->setCursor(Qt::OpenHandCursor);    break;
+    case Tool::Text:   viewport()->setCursor(Qt::IBeamCursor);       break;
+    case Tool::Select: viewport()->setCursor(Qt::CrossCursor);       break;
+    case Tool::Image:
+        viewport()->setCursor(Qt::CrossCursor);
+        scanCurrentPageForImages();
+        break;
+    default:           viewport()->setCursor(Qt::ArrowCursor);       break;
     }
 }
 
@@ -323,6 +353,17 @@ void DocumentView::setEditorFontSize(int ptSize)
 #else
     Q_UNUSED(ptSize)
 #endif
+}
+
+int DocumentView::currentPage() const
+{
+    if (m_pageLabels.isEmpty()) return 0;
+    const int scrollY = verticalScrollBar()->value();
+    for (int i = 0; i < m_pageLabels.size(); ++i) {
+        if (m_pageLabels[i]->pos().y() + m_pageLabels[i]->height() > scrollY)
+            return i;
+    }
+    return m_pageLabels.size() - 1;
 }
 
 bool DocumentView::pdfRenderingAvailable() const
@@ -609,6 +650,610 @@ void DocumentView::relayoutGrid()
     }
 }
 
+// ── Image tool ────────────────────────────────────────────────────────────────
+
+void DocumentView::placeImage(const QImage &img, const QPoint &canvasPos)
+{
+    if (img.isNull() || m_pageLabels.isEmpty()) return;
+
+    auto [pageIdx, lbl] = pageAtCanvasPos(canvasPos);
+    if (pageIdx < 0 || !lbl) {
+        // If click landed in scroll margins, use the first visible page.
+        pageIdx = 0;
+        lbl = m_pageLabels.first();
+    }
+
+#ifdef HAVE_PDF_RENDERING
+    const qreal scale = PdfRenderer::screenScale(m_zoom);
+#else
+    const qreal scale = 1.0;
+#endif
+    // Position within the page in PDF points.
+    const QPoint localPx = canvasPos - lbl->pos();
+    const qreal ptX = localPx.x() / scale;
+    const qreal ptY = localPx.y() / scale;
+
+    // Natural image size in PDF points: keep 1 image-pixel = 1 pt, capped at page width.
+    qreal ptW = img.width()  / scale;
+    qreal ptH = img.height() / scale;
+#ifdef HAVE_PDF_RENDERING
+    if (m_renderer && m_pageCount > 0) {
+        const QSizeF pagePts = m_renderer->pageDisplaySize(pageIdx, 100);
+        const qreal  maxW    = pagePts.width() - ptX;
+        if (ptW > maxW) { ptH *= maxW / ptW; ptW = maxW; }
+    }
+#endif
+    const QRectF pdfBounds(ptX, ptY, ptW, ptH);
+
+    // Create overlay widget.
+    const int px = qRound(ptX * scale), py = qRound(ptY * scale);
+    const int pw = qRound(ptW * scale), ph = qRound(ptH * scale);
+    auto *ann = new ImageAnnotation(QString(), m_canvas);
+    ann->setOriginalPixmap(QPixmap::fromImage(img));
+    ann->setEditActive(m_tool == Tool::Image);
+    ann->setPageRect(lbl->geometry());
+    ann->setGeometry(lbl->pos().x() + px, lbl->pos().y() + py, pw, ph);
+    ann->show();
+
+    PlacedImage pi { pageIdx, pdfBounds, img, ann };
+    m_placedImages.append(pi);
+    connectImageAnnotation(ann);
+
+#ifdef HAVE_QT_PDF
+    m_session->addImageEdit(pageIdx, pdfBounds, img);
+    rerenderPage(pageIdx);
+#endif
+}
+
+void DocumentView::placeImageInRect(const QImage &img, const QRect &viewportRect)
+{
+    if (img.isNull() || m_pageLabels.isEmpty()) return;
+
+    const QPoint scroll(horizontalScrollBar()->value(), verticalScrollBar()->value());
+    const QRect  canvasRect = viewportRect.translated(scroll);
+
+    auto [pageIdx, lbl] = pageAtCanvasPos(canvasRect.topLeft());
+    if (pageIdx < 0 || !lbl) {
+        pageIdx = 0;
+        lbl = m_pageLabels.first();
+    }
+
+#ifdef HAVE_PDF_RENDERING
+    const qreal scale = PdfRenderer::screenScale(m_zoom);
+#else
+    const qreal scale = 1.0;
+#endif
+
+    const QPoint localTL = canvasRect.topLeft() - lbl->pos();
+    const QRectF pdfBounds(localTL.x() / scale, localTL.y() / scale,
+                           canvasRect.width() / scale, canvasRect.height() / scale);
+
+    auto *ann = new ImageAnnotation(QString(), m_canvas);
+    ann->setOriginalPixmap(QPixmap::fromImage(img));
+    ann->setEditActive(m_tool == Tool::Image);
+    ann->setPageRect(lbl->geometry());
+    ann->setGeometry(canvasRect);
+    ann->show();
+
+    PlacedImage pi { pageIdx, pdfBounds, img, ann };
+    m_placedImages.append(pi);
+    connectImageAnnotation(ann);
+
+#ifdef HAVE_QT_PDF
+    m_session->addImageEdit(pageIdx, pdfBounds, img);
+    rerenderPage(pageIdx);
+#endif
+}
+
+void DocumentView::connectImageAnnotation(ImageAnnotation *ann)
+{
+    connect(ann, &ImageAnnotation::deleteRequested, this, [this, ann]() {
+        for (int i = 0; i < m_placedImages.size(); ++i) {
+            if (m_placedImages[i].widget != ann) continue;
+#ifdef HAVE_QT_PDF
+            m_session->removeImageEdit(m_placedImages[i].page,
+                                       m_placedImages[i].pdfBounds);
+            rerenderPage(m_placedImages[i].page);
+#endif
+            m_placedImages.removeAt(i);
+            break;
+        }
+        ann->deleteLater();
+    });
+
+    connect(ann, &ImageAnnotation::geometryChanged, this, [this, ann](const QRect &newGeo) {
+        for (PlacedImage &placed : m_placedImages) {
+            if (placed.widget != ann) continue;
+#ifdef HAVE_PDF_RENDERING
+            const qreal sc = PdfRenderer::screenScale(m_zoom);
+            if (placed.page < m_pageLabels.size()) {
+                const QLabel *lbl2 = m_pageLabels[placed.page];
+                const QPoint  local = newGeo.topLeft() - lbl2->pos();
+                const QRectF  oldBounds = placed.pdfBounds;
+                placed.pdfBounds = QRectF(local.x() / sc, local.y() / sc,
+                                          newGeo.width() / sc, newGeo.height() / sc);
+#ifdef HAVE_QT_PDF
+                m_session->removeImageEdit(placed.page, oldBounds);
+                m_session->addImageEdit(placed.page, placed.pdfBounds, placed.image);
+                rerenderPage(placed.page);
+#endif
+            }
+#endif
+            break;
+        }
+    });
+
+    connect(ann, &ImageAnnotation::contextMenuRequested, this,
+            [this, ann](const QPoint &globalPos) {
+        showImageContextMenu(ann, globalPos);
+    });
+}
+
+void DocumentView::showImageContextMenu(ImageAnnotation *ann, const QPoint &globalPos)
+{
+    QMenu menu(this);
+    QAction *copy  = menu.addAction(QIcon::fromTheme(QStringLiteral("edit-copy")),
+                                    tr("Kopieren"));
+    QAction *cut   = menu.addAction(QIcon::fromTheme(QStringLiteral("edit-cut")),
+                                    tr("Ausschneiden"));
+    QAction *paste = menu.addAction(QIcon::fromTheme(QStringLiteral("edit-paste")),
+                                    tr("Einfügen"));
+    menu.addSeparator();
+    QAction *del   = menu.addAction(QIcon::fromTheme(QStringLiteral("edit-delete")),
+                                    tr("Löschen"));
+    paste->setEnabled(!m_imageClipboard.isNull());
+
+    QAction *triggered = menu.exec(globalPos);
+    if (!triggered) return;
+
+    if (triggered == copy || triggered == cut) {
+        for (const PlacedImage &pi : m_placedImages) {
+            if (pi.widget == ann) { m_imageClipboard = pi.image; break; }
+        }
+    }
+    if (triggered == paste && !m_imageClipboard.isNull()) {
+        const QPoint scroll(horizontalScrollBar()->value(), verticalScrollBar()->value());
+        const QRect  vpRect = ann->geometry().translated(-scroll).translated(20, 20);
+        placeImageInRect(m_imageClipboard, vpRect);
+    }
+    if (triggered == cut || triggered == del) {
+        ann->deleteRequested();  // signal → connected lambda removes + deleteLater
+    }
+}
+
+void DocumentView::showGeneralContextMenu(const QPoint &globalPos)
+{
+    QMenu menu(this);
+
+    QAction *cut   = menu.addAction(QIcon::fromTheme(QStringLiteral("edit-cut")),    tr("Ausschneiden"));
+    QAction *copy  = menu.addAction(QIcon::fromTheme(QStringLiteral("edit-copy")),   tr("Kopieren"));
+    QAction *paste = menu.addAction(QIcon::fromTheme(QStringLiteral("edit-paste")),  tr("Einfügen"));
+    menu.addSeparator();
+    QAction *del   = menu.addAction(QIcon::fromTheme(QStringLiteral("edit-delete")), tr("Löschen"));
+
+    auto *focusEdit    = qobject_cast<QTextEdit *>(QApplication::focusWidget());
+    const bool hasEdit = focusEdit && m_editorFrame && m_editorFrame->isVisible();
+    const bool hasSel  = hasEdit && focusEdit->textCursor().hasSelection();
+    const bool hasClip = !QApplication::clipboard()->text().isEmpty();
+
+    cut->setEnabled(hasSel);
+    copy->setEnabled(hasSel);
+    paste->setEnabled(hasEdit && hasClip);
+    del->setEnabled(hasEdit);
+
+    QAction *act = menu.exec(globalPos);
+    if (!act) return;
+
+    if (act == cut   && focusEdit)   { focusEdit->cut();    return; }
+    if (act == copy  && focusEdit)   { focusEdit->copy();   return; }
+    if (act == paste && focusEdit)   { focusEdit->paste();  return; }
+    if (act == del)                  { cancelCurrentEdit(); }
+}
+
+void DocumentView::updateImageOverlayPositions()
+{
+    if (m_placedImages.isEmpty()) return;
+#ifdef HAVE_PDF_RENDERING
+    const qreal scale = PdfRenderer::screenScale(m_zoom);
+    for (const PlacedImage &pi : m_placedImages) {
+        if (!pi.widget || pi.page >= m_pageLabels.size()) continue;
+        const QLabel *lbl = m_pageLabels[pi.page];
+        const int x = lbl->pos().x() + qRound(pi.pdfBounds.left()   * scale);
+        const int y = lbl->pos().y() + qRound(pi.pdfBounds.top()    * scale);
+        const int w = qRound(pi.pdfBounds.width()  * scale);
+        const int h = qRound(pi.pdfBounds.height() * scale);
+        pi.widget->setGeometry(x, y, w, h);
+        static_cast<ImageAnnotation *>(pi.widget)->setPageRect(lbl->geometry());
+    }
+#endif
+}
+
+void DocumentView::clearDetectedImageFrames()
+{
+    for (QFrame *f : m_detectedImageFrames) f->deleteLater();
+    m_detectedImageFrames.clear();
+}
+
+// ── qpdf-based PDF image region detector ─────────────────────────────────────
+// Recursively parses content streams (page + Form XObjects) tracking the CTM.
+// Returns bounding boxes in PDF points, top-left origin.
+#ifdef HAVE_QPDF
+
+namespace {
+
+using M6 = std::array<double, 6>;
+
+static M6 identity() { return {1,0,0,1,0,0}; }
+
+// Apply m1 first, then m2.
+static M6 compose(const M6 &m1, const M6 &m2) {
+    return {
+        m1[0]*m2[0] + m1[1]*m2[2],   m1[0]*m2[1] + m1[1]*m2[3],
+        m1[2]*m2[0] + m1[3]*m2[2],   m1[2]*m2[1] + m1[3]*m2[3],
+        m1[4]*m2[0] + m1[5]*m2[2] + m2[4],
+        m1[4]*m2[1] + m1[5]*m2[3] + m2[5]
+    };
+}
+
+// (x,y) → (x',y') via [a b c d e f]: x'=ax+cy+e, y'=bx+dy+f
+static std::pair<double,double> tx(const M6 &m, double x, double y) {
+    return { m[0]*x + m[2]*y + m[4], m[1]*x + m[3]*y + m[5] };
+}
+
+// Decode PDF name #XX hex escapes so our tokenized names match qpdf's ditems() keys.
+static std::string decodePdfName(const std::string &raw) {
+    std::string out;
+    out.reserve(raw.size());
+    for (size_t i = 0; i < raw.size(); ++i) {
+        if (raw[i] == '#' && i + 2 < raw.size()) {
+            auto hexDigit = [](char c) -> int {
+                if (c>='0'&&c<='9') return c-'0';
+                if (c>='a'&&c<='f') return c-'a'+10;
+                if (c>='A'&&c<='F') return c-'A'+10;
+                return -1;
+            };
+            int hi = hexDigit(raw[i+1]), lo = hexDigit(raw[i+2]);
+            if (hi >= 0 && lo >= 0) { out += char(hi*16+lo); i += 2; continue; }
+        }
+        out += raw[i];
+    }
+    return out;
+}
+
+// InlineImg is a synthetic token emitted for BI...ID...EI blocks; scanStream uses it
+// to record the image position from the current CTM without parsing binary pixel data.
+struct Tok { enum { Num, Name, Op, InlineImg } type; double num{0}; std::string s; };
+
+static std::vector<Tok> tokenise(const std::string &cs) {
+    std::vector<Tok> toks;
+    size_t i = 0, n = cs.size();
+    auto isWS = [](char c){ return c==' '||c=='\t'||c=='\r'||c=='\n'||c=='\f'; };
+    while (i < n) {
+        while (i < n && isWS(cs[i])) ++i;
+        if (i >= n) break;
+        char c = cs[i];
+        if (c == '%') { while (i<n && cs[i]!='\n' && cs[i]!='\r') ++i; continue; }
+        if (c == '(') {
+            int d=1; ++i;
+            while (i<n && d>0) {
+                if (cs[i]=='\\'){i+=2;continue;}
+                if (cs[i]=='(') ++d; else if(cs[i]==')') --d;
+                ++i;
+            }
+            continue;
+        }
+        if (c=='<' && i+1<n && cs[i+1]!='<') {
+            while (i<n && cs[i]!='>') ++i; if(i<n)++i; continue;
+        }
+        if ((c=='<'&&i+1<n&&cs[i+1]=='<')||(c=='>'&&i+1<n&&cs[i+1]=='>')) { i+=2; continue; }
+        if (c=='['||c==']') { ++i; continue; }
+        if (c == '/') {
+            size_t s0=i++;
+            while (i<n && !isWS(cs[i]) && cs[i]!='/' && cs[i]!='[' && cs[i]!=']' &&
+                   cs[i]!='('&& cs[i]!=')'&& cs[i]!='<'&& cs[i]!='>') ++i;
+            Tok t; t.type=Tok::Name; t.s=decodePdfName(cs.substr(s0,i-s0)); toks.push_back(t);
+            continue;
+        }
+        if (c=='-'||c=='+'||c=='.'||(c>='0'&&c<='9')) {
+            size_t s0=i;
+            if (cs[i]=='-'||cs[i]=='+') ++i;
+            while (i<n&&cs[i]>='0'&&cs[i]<='9') ++i;
+            if (i<n&&cs[i]=='.'){++i; while(i<n&&cs[i]>='0'&&cs[i]<='9')++i;}
+            Tok t; t.type=Tok::Num;
+            try{t.num=std::stod(cs.substr(s0,i-s0));}catch(...){}
+            toks.push_back(t); continue;
+        }
+        {
+            size_t s0=i;
+            while (i<n&&!isWS(cs[i])&&cs[i]!='/'&&cs[i]!='('&&cs[i]!=')'&&
+                   cs[i]!='<'&&cs[i]!='>'&&cs[i]!='['&&cs[i]!=']') ++i;
+            if (i==s0){++i;continue;}
+            std::string opStr = cs.substr(s0, i-s0);
+
+            if (opStr == "BI") {
+                // Inline image: emit a marker, then skip past ID and the binary blob to EI.
+                Tok t; t.type=Tok::InlineImg; toks.push_back(t);
+                // Advance through the inline-image parameter dict until "ID".
+                while (i < n) {
+                    while (i < n && isWS(cs[i])) ++i;
+                    if (i+1 < n && cs[i]=='I' && cs[i+1]=='D' &&
+                        (i+2 >= n || isWS(cs[i+2]))) { i += 2; break; }
+                    while (i < n && !isWS(cs[i])) ++i;
+                }
+                // Raw-scan the binary blob for "EI" preceded and followed by whitespace.
+                while (i < n) {
+                    if (cs[i]=='E' && i+1<n && cs[i+1]=='I') {
+                        if ((i==0||isWS(cs[i-1])) && (i+2>=n||isWS(cs[i+2])))
+                            { i += 2; break; }
+                    }
+                    ++i;
+                }
+                continue;
+            }
+
+            Tok t; t.type=Tok::Op; t.s=opStr; toks.push_back(t);
+        }
+    }
+    return toks;
+}
+
+static std::string getContentStream(QPDFObjectHandle obj) {
+    std::string cs;
+    auto contents = obj.getKey("/Contents");
+    auto append = [&](QPDFObjectHandle s) {
+        if (!s.isStream()) return;
+        try {
+            auto data = s.getStreamData(qpdf_dl_specialized);
+            cs.append(reinterpret_cast<const char*>(data->getBuffer()), data->getSize());
+            cs += ' ';
+        } catch (const std::exception &ex) {
+            qWarning() << "[ImageScan] stream decode error:" << ex.what();
+        }
+    };
+    if (contents.isArray()) {
+        for (int k=0;k<contents.getArrayNItems();++k) append(contents.getArrayItem(k));
+    } else {
+        append(contents);
+    }
+    return cs;
+}
+
+// Add XObjects from res into the map, skipping keys that are already present
+// (so the first call's entries — local/child resources — take priority).
+static void collectXObjects(QPDFObjectHandle res,
+                            std::map<std::string, QPDFObjectHandle> &xobjs)
+{
+    if (!res.isDictionary()) return;
+    auto xobjDict = res.getKey("/XObject");
+    if (!xobjDict.isDictionary()) return;
+    for (auto &kv : xobjDict.ditems())
+        xobjs.emplace(kv.first, kv.second);  // emplace: no-op if key already exists
+}
+
+// Compute image bbox from current CTM and append if large enough.
+static void addImageBBox(const M6 &m, double pageH, QList<QRectF> &result) {
+    double xs[4], ys[4];
+    auto [x0,y0]=tx(m,0,0); xs[0]=x0; ys[0]=y0;
+    auto [x1,y1]=tx(m,1,0); xs[1]=x1; ys[1]=y1;
+    auto [x2,y2]=tx(m,1,1); xs[2]=x2; ys[2]=y2;
+    auto [x3,y3]=tx(m,0,1); xs[3]=x3; ys[3]=y3;
+    double xMin=xs[0],xMax=xs[0],yMin=ys[0],yMax=ys[0];
+    for (int k=1;k<4;++k){
+        xMin=std::min(xMin,xs[k]); xMax=std::max(xMax,xs[k]);
+        yMin=std::min(yMin,ys[k]); yMax=std::max(yMax,ys[k]);
+    }
+    const QRectF r(xMin, pageH-yMax, xMax-xMin, yMax-yMin);
+    if (r.width()>5 && r.height()>5) result.append(r);
+}
+
+// Forward declaration.
+static void scanStream(const std::string &cs,
+                       QPDFObjectHandle localRes, QPDFObjectHandle pageRes,
+                       std::vector<M6> &stack, double pageH,
+                       QList<QRectF> &result, int depth);
+
+static void scanStream(const std::string &cs,
+                       QPDFObjectHandle localRes, QPDFObjectHandle pageRes,
+                       std::vector<M6> &stack, double pageH,
+                       QList<QRectF> &result, int depth)
+{
+    if (depth > 8 || cs.empty()) return;
+
+    // Build XObject map: local (child) resources first, page resources as fallback.
+    // emplace() never overrides, so local entries win for duplicate keys.
+    std::map<std::string, QPDFObjectHandle> xobjs;
+    collectXObjects(localRes, xobjs);
+    collectXObjects(pageRes,  xobjs);
+
+    std::vector<Tok> operands;
+    for (const Tok &tok : tokenise(cs)) {
+        if (tok.type == Tok::InlineImg) {
+            // Inline image at current CTM position.
+            addImageBBox(stack.back(), pageH, result);
+            operands.clear();
+            continue;
+        }
+        if (tok.type != Tok::Op) { operands.push_back(tok); continue; }
+
+        const std::string &op = tok.s;
+        if (op == "q") {
+            stack.push_back(stack.back());
+        } else if (op == "Q") {
+            if (stack.size() > 1) stack.pop_back();
+        } else if (op == "cm" && operands.size() >= 6) {
+            const size_t k = operands.size();
+            M6 m = { operands[k-6].num, operands[k-5].num,
+                     operands[k-4].num, operands[k-3].num,
+                     operands[k-2].num, operands[k-1].num };
+            stack.back() = compose(m, stack.back());
+        } else if (op == "Do" && !operands.empty()) {
+            std::string name;
+            for (int k=static_cast<int>(operands.size())-1; k>=0; --k)
+                if (operands[k].type==Tok::Name){ name=operands[k].s; break; }
+
+            // ditems() keys include the leading '/'; our tokenizer does too after decodePdfName.
+            // Defensive: also try without '/' in case qpdf version strips it.
+            auto it = xobjs.find(name);
+            if (it == xobjs.end() && !name.empty() && name[0]=='/')
+                it = xobjs.find(name.substr(1));
+
+            if (it != xobjs.end()) {
+                auto &xobj = it->second;
+                if (!xobj.isStream()) { operands.clear(); continue; }
+
+                auto sub = xobj.getDict().getKey("/Subtype");
+                if (!sub.isName()) { operands.clear(); continue; }
+
+                if (sub.getName() == "/Image") {
+                    addImageBBox(stack.back(), pageH, result);
+
+                } else if (sub.getName() == "/Form") {
+                    auto formDict = xobj.getDict();
+                    M6 formMatrix = identity();
+                    auto matKey = formDict.getKey("/Matrix");
+                    if (matKey.isArray() && matKey.getArrayNItems() == 6) {
+                        for (int k=0;k<6;++k)
+                            formMatrix[k] = matKey.getArrayItem(k).getNumericValue();
+                    }
+                    M6 composedCtm = compose(formMatrix, stack.back());
+
+                    // Form XObject uses its own isolated stack.
+                    std::vector<M6> formStack = { composedCtm };
+
+                    // Form's local resources, with page resources as fallback.
+                    QPDFObjectHandle formRes = formDict.getKey("/Resources");
+
+                    try {
+                        auto data = xobj.getStreamData(qpdf_dl_specialized);
+                        std::string formCS(reinterpret_cast<const char*>(data->getBuffer()),
+                                           data->getSize());
+                        scanStream(formCS, formRes, pageRes, formStack, pageH, result, depth+1);
+                    } catch (const std::exception &ex) {
+                        qWarning() << "[ImageScan] Form XObject decode error:" << ex.what();
+                    }
+                }
+            }
+        }
+        operands.clear();
+    }
+}
+
+} // namespace
+
+static QList<QRectF> detectPdfImageRegions(const QString &pdfPath, int pageIndex,
+                                            double pageHeightPts)
+{
+    QList<QRectF> result;
+    try {
+        QPDF pdf;
+        pdf.processFile(pdfPath.toLocal8Bit().constData());
+
+        QPDFPageDocumentHelper pdh(pdf);
+        auto pages = pdh.getAllPages();
+        if (pageIndex < 0 || pageIndex >= static_cast<int>(pages.size()))
+            return result;
+
+        QPDFPageObjectHelper ph = pages[pageIndex];
+        // getAttribute handles /Resources inherited from parent page-tree nodes.
+        QPDFObjectHandle resources = ph.getAttribute("/Resources", false);
+        QPDFObjectHandle pageObj   = ph.getObjectHandle();
+        const std::string cs = getContentStream(pageObj);
+
+        qDebug() << "[ImageScan] page" << pageIndex
+                 << "cs-length:" << cs.size()
+                 << "resources-valid:" << resources.isDictionary();
+
+        std::vector<M6> stack = { identity() };
+        scanStream(cs, resources, resources, stack, pageHeightPts, result, 0);
+
+        qDebug() << "[ImageScan] found" << result.size() << "image(s) on page" << pageIndex;
+        for (const auto &r : result)
+            qDebug() << "[ImageScan]  rect" << r;
+    } catch (const std::exception &ex) {
+        qWarning() << "[ImageScan] qpdf error:" << ex.what();
+    }
+    return result;
+}
+
+#endif // HAVE_QPDF
+
+void DocumentView::scanCurrentPageForImages()
+{
+#ifdef HAVE_PDF_RENDERING
+    if (m_pageLabels.isEmpty() || m_filePath.isEmpty()) return;
+
+    clearDetectedImageFrames();
+
+    // Use the first fully visible page.
+    int scanPage = 0;
+    for (int i = 0; i < m_pageLabels.size(); ++i) {
+        if (m_pageLabels[i]->pos().y() >= verticalScrollBar()->value()) {
+            scanPage = i;
+            break;
+        }
+    }
+
+    // Page height in PDF points (needed for coordinate conversion).
+    const QSizeF pageSizePts = [&]() -> QSizeF {
+        const QSize px100 = m_renderer->pageDisplaySize(scanPage, 100);
+        const qreal s100  = PdfRenderer::screenScale(100);
+        return QSizeF(px100.width() / s100, px100.height() / s100);
+    }();
+
+    QList<QRectF> regions;
+
+#ifdef HAVE_QPDF
+    // Primary: parse the PDF content stream directly — exact positions.
+    regions = detectPdfImageRegions(m_filePath, scanPage, pageSizePts.height());
+    qDebug() << "[ImageScan] qpdf found" << regions.size() << "image(s) on page" << scanPage;
+#endif
+
+#if defined(HAVE_QPDF) && defined(HAVE_TESSERACT)
+    // Fallback: use Tesseract layout analysis when qpdf found nothing.
+    if (regions.isEmpty() && m_ocrEngine && m_ocrEngine->isReady()) {
+#elif defined(HAVE_TESSERACT)
+    if (m_ocrEngine && m_ocrEngine->isReady()) {
+#else
+    if (false) {
+#endif
+#ifdef HAVE_TESSERACT
+        const qreal ocrScale = 150.0 / 72.0;
+        const QImage pageImg = m_renderer->renderPage(scanPage, ocrScale);
+        if (!pageImg.isNull())
+            regions = m_ocrEngine->detectImageRegions(pageImg, pageSizePts, ocrScale);
+        qDebug() << "[ImageScan] Tesseract fallback found" << regions.size() << "image(s)";
+#endif
+    }
+
+    // Filter out images that cover the whole page — those are scanned-page backgrounds
+    // and clicking them would replace the entire visible page with a floating widget.
+    const double pageArea = pageSizePts.width() * pageSizePts.height();
+    if (pageArea > 0) {
+        regions.removeIf([pageArea](const QRectF &r) {
+            return (r.width() * r.height()) / pageArea > 0.90;
+        });
+    }
+
+    if (regions.isEmpty()) return;
+
+    const qreal scale = PdfRenderer::screenScale(m_zoom);
+    const QLabel *lbl  = m_pageLabels[scanPage];
+
+    for (const QRectF &r : regions) {
+        auto *frame = new QFrame(m_canvas);
+        frame->setObjectName(QStringLiteral("ImageRegionOverlay"));
+        frame->setGeometry(
+            lbl->pos().x() + qRound(r.left()   * scale),
+            lbl->pos().y() + qRound(r.top()    * scale),
+            qRound(r.width()  * scale),
+            qRound(r.height() * scale));
+        frame->setAttribute(Qt::WA_TransparentForMouseEvents, true);
+        frame->show();
+        m_detectedImageFrames.append(frame);
+    }
+#endif // HAVE_PDF_RENDERING
+}
+
 // ── Edit mode ─────────────────────────────────────────────────────────────────
 
 std::pair<int, QLabel *> DocumentView::pageAtCanvasPos(const QPoint &canvasPos) const
@@ -822,11 +1467,10 @@ void DocumentView::commitCurrentEdit(const QString &newText)
     //   • text was moved to a new position — erase original location
     //   • text was deleted entirely
     // It is NOT created when the editor was opened fresh via drag (createTextFrame)
-    // because that is an overlay: new text drawn on top without erasing anything.
-    // Native text that happens to share the drag area remains accessible by clicking
-    // outside the session box bounds (editTextAt bleed-in is separately prevented).
-    const bool needBlank = m_activeEditNeedsBlank
-                        || !bounds.contains(origBounds);
+    // because that is a transparent overlay: new text drawn on top without erasing.
+    // The second condition must be gated on m_activeEditNeedsBlank — for fresh drag
+    // boxes the origBounds is just the initial drag rect, not real PDF content to erase.
+    const bool needBlank = m_activeEditNeedsBlank;
     if (needBlank)
         m_session->addEdit(page, origBounds, QString(),
                            m_currentEditorFontSizePt, QColor(), origBounds);
@@ -932,6 +1576,7 @@ void DocumentView::createTextFrame(const QRect &viewportDragRect)
     const int fontSize = qMax(8, qRound(12.0 * scale));
     m_editorFrame->setDecorations(true);  // new text box: show border + handles
     m_editorFrame->setPageRect(pageLbl->geometry());
+    m_editorFrame->setForbiddenZones({});
     m_editorFrame->resetCommitGuard();
     m_editorFrame->present(QString(), QRectF(canvasRect), fontSize, m_currentEditorColor);
 #else
@@ -997,6 +1642,50 @@ bool DocumentView::eventFilter(QObject *obj, QEvent *e)
                 return true;
             }
 
+            if (m_tool == Tool::Image) {
+#ifdef HAVE_PDF_RENDERING
+                // ── Click on a detected image frame → extract & place it ──────
+                for (int fi = 0; fi < m_detectedImageFrames.size(); ++fi) {
+                    if (!m_detectedImageFrames[fi]->geometry().contains(cvsPos))
+                        continue;
+                    QFrame *fr = m_detectedImageFrames[fi];
+                    auto [pageIdx, lbl] = pageAtCanvasPos(cvsPos);
+                    if (pageIdx >= 0 && lbl) {
+                        const qreal sc = PdfRenderer::screenScale(m_zoom);
+                        const QRect pageRel = fr->geometry().translated(-lbl->pos());
+                        const QImage pageImg = m_renderer->renderPage(pageIdx, sc);
+                        if (!pageImg.isNull()) {
+                            const QImage cropped = pageImg.copy(pageRel);
+                            if (!cropped.isNull()) {
+                                const QPoint scroll(horizontalScrollBar()->value(),
+                                                    verticalScrollBar()->value());
+                                placeImageInRect(cropped,
+                                                 fr->geometry().translated(-scroll));
+                            }
+                        }
+                    }
+                    fr->deleteLater();
+                    m_detectedImageFrames.removeAt(fi);
+                    return true;
+                }
+
+                // ── Start rubber band, but only when press is on a page ───────
+                {
+                    auto [pageIdx, lbl] = pageAtCanvasPos(cvsPos);
+                    if (pageIdx < 0) return true;  // outside page — swallow
+                    m_imageDragPageRect = lbl->geometry();
+                }
+#else
+                m_imageDragPageRect = {};
+#endif
+                m_imageDragStart = QPoint(
+                    qBound(m_imageDragPageRect.left(), cvsPos.x(), m_imageDragPageRect.right()),
+                    qBound(m_imageDragPageRect.top(),  cvsPos.y(), m_imageDragPageRect.bottom()));
+                m_imageTracking  = true;
+                m_imageDragging  = false;
+                return true;
+            }
+
             switch (m_tool) {
             case Tool::Select:
                 m_selectStart = vpPos;
@@ -1021,6 +1710,21 @@ bool DocumentView::eventFilter(QObject *obj, QEvent *e)
             if (m_textDragging) {
                 m_rubberBand->setGeometry(
                     QRect(toViewport(m_textDragStart), toViewport(cvsPos)).normalized());
+                m_rubberBand->show();
+            }
+            return true;
+        }
+        if (m_tool == Tool::Image && m_imageTracking) {
+            QPoint cvsPos = toCanvas(me->pos());
+            if (!m_imageDragPageRect.isEmpty()) {
+                cvsPos.setX(qBound(m_imageDragPageRect.left(), cvsPos.x(), m_imageDragPageRect.right()));
+                cvsPos.setY(qBound(m_imageDragPageRect.top(),  cvsPos.y(), m_imageDragPageRect.bottom()));
+            }
+            if (!m_imageDragging && (cvsPos - m_imageDragStart).manhattanLength() > 6)
+                m_imageDragging = true;
+            if (m_imageDragging) {
+                m_rubberBand->setGeometry(
+                    QRect(toViewport(m_imageDragStart), toViewport(cvsPos)).normalized());
                 m_rubberBand->show();
             }
             return true;
@@ -1058,6 +1762,25 @@ bool DocumentView::eventFilter(QObject *obj, QEvent *e)
                 }
                 return true;
             }
+            if (m_tool == Tool::Image && m_imageTracking) {
+                m_imageTracking = false;
+                if (m_imageDragging) {
+                    m_imageDragging = false;
+                    const QRect band = m_rubberBand->geometry();  // viewport coords
+                    m_rubberBand->hide();
+                    if (band.width() > 20 && band.height() > 20) {
+                        const QString path = QFileDialog::getOpenFileName(this,
+                            tr("Bild einfügen"), {},
+                            tr("Bilder (*.png *.jpg *.jpeg *.bmp *.gif *.tiff *.webp);;Alle Dateien (*)"));
+                        if (!path.isEmpty()) {
+                            const QImage img(path);
+                            if (!img.isNull())
+                                placeImageInRect(img, band);
+                        }
+                    }
+                }
+                return true;
+            }
             if (!m_editMode) {
                 switch (m_tool) {
                 case Tool::Select: m_rubberBand->hide();                        break;
@@ -1066,6 +1789,16 @@ bool DocumentView::eventFilter(QObject *obj, QEvent *e)
                 }
             }
         }
+    } else if (e->type() == QEvent::ContextMenu) {
+        // Show the general context menu whenever edit mode is active or a
+        // content-editing tool is selected.  For the image tool, ImageAnnotation
+        // accepts its own context-menu event so it never reaches the canvas — the
+        // general menu appears only when clicking on empty canvas area.
+        if (m_editMode || m_tool == Tool::Text || m_tool == Tool::Image) {
+            auto *ce = static_cast<QContextMenuEvent *>(e);
+            showGeneralContextMenu(ce->globalPos());
+            return true;
+        }
     }
 
     return QScrollArea::eventFilter(obj, e);
@@ -1073,14 +1806,26 @@ bool DocumentView::eventFilter(QObject *obj, QEvent *e)
 
 // ── Drag & Drop ───────────────────────────────────────────────────────────────
 
+static bool isImagePath(const QString &p)
+{
+    static const QStringList exts = {
+        ".png", ".jpg", ".jpeg", ".bmp", ".gif", ".tiff", ".tif", ".webp"
+    };
+    for (const QString &ext : exts)
+        if (p.endsWith(ext, Qt::CaseInsensitive)) return true;
+    return false;
+}
+
 void DocumentView::dragEnterEvent(QDragEnterEvent *e)
 {
-    if (e->mimeData()->hasUrls()) {
-        for (const QUrl &url : e->mimeData()->urls())
-            if (url.toLocalFile().endsWith(QLatin1String(".pdf"), Qt::CaseInsensitive)) {
-                e->acceptProposedAction();
-                return;
-            }
+    if (!e->mimeData()->hasUrls()) { e->ignore(); return; }
+    for (const QUrl &url : e->mimeData()->urls()) {
+        const QString path = url.toLocalFile();
+        if (path.endsWith(QLatin1String(".pdf"), Qt::CaseInsensitive) ||
+            (m_tool == Tool::Image && isImagePath(path))) {
+            e->acceptProposedAction();
+            return;
+        }
     }
     e->ignore();
 }
@@ -1095,6 +1840,16 @@ void DocumentView::dropEvent(QDropEvent *e)
             openFile(path);
             e->acceptProposedAction();
             return;
+        }
+        if (m_tool == Tool::Image && isImagePath(path)) {
+            const QImage img(path);
+            if (!img.isNull()) {
+                const QPoint vpPos  = e->position().toPoint();
+                const QPoint scroll(horizontalScrollBar()->value(), verticalScrollBar()->value());
+                placeImage(img, vpPos + scroll);
+                e->acceptProposedAction();
+                return;
+            }
         }
     }
 }

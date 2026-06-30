@@ -1,5 +1,6 @@
 #include "MainWindow.hpp"
 
+#include "PresentationWindow.hpp"
 #include "TopToolbar.hpp"
 #include "LeftSidebar.hpp"
 #include "DocumentView.hpp"
@@ -168,9 +169,10 @@ void MainWindow::connectSignals()
         connect(sc, &QShortcut::activated, this, fn);
         m_shortcuts.insert(QLatin1String(key), sc);
     };
-    addLambda("find",     [this]() { /* TODO: open find dialog */ });
-    addLambda("texttool", [this]() { onToolSelected(QStringLiteral("text")); });
-    addLambda("comment",  [this]() { onToolSelected(QStringLiteral("comment")); });
+    addLambda("find",         [this]() { /* TODO: open find dialog */ });
+    addLambda("texttool",     [this]() { onToolSelected(QStringLiteral("text")); });
+    addLambda("comment",      [this]() { onToolSelected(QStringLiteral("comment")); });
+    addLambda("presentation", [this]() { onStartPresentation(); });
     loadShortcuts();     // apply sequences from AppSettings (or defaults)
     loadZoomSettings();  // apply zoom settings from AppSettings (or defaults)
 
@@ -337,6 +339,14 @@ void MainWindow::onRedo()
         dv->undoStack()->redo();
 }
 
+void MainWindow::onStartPresentation()
+{
+    DocumentView *dv = currentDocView();
+    if (!dv || dv->currentFile().isEmpty()) return;
+    auto *pw = new PresentationWindow(dv->currentFile(), dv->currentPage());
+    pw->show();
+}
+
 void MainWindow::onZoomIn()
 {
     m_zoom = qMin(m_zoom + 10, 300);
@@ -363,11 +373,12 @@ void MainWindow::loadShortcuts()
         { "open",     "Ctrl+O"       },
         { "undo",     "Ctrl+Z"       },
         { "redo",     "Ctrl+Y"       },
-        { "find",     "Ctrl+F"       },
-        { "texttool", "T"            },
-        { "comment",  "C"            },
-        { "zoomin",   "Ctrl++"       },
-        { "zoomout",  "Ctrl+-"       },
+        { "find",         "Ctrl+F"       },
+        { "texttool",     "T"            },
+        { "comment",      "C"            },
+        { "zoomin",       "Ctrl++"       },
+        { "zoomout",      "Ctrl+-"       },
+        { "presentation", "F5"           },
     };
     for (const auto &def : kDefs) {
         const QString k = QLatin1String(def.key);
@@ -488,6 +499,8 @@ void MainWindow::onToolSelected(const QString &tool)
         dv->setTool(DocumentView::Tool::Pan);
     else if (tool == QLatin1String("text"))
         dv->setTool(DocumentView::Tool::Text);
+    else if (tool == QLatin1String("image"))
+        dv->setTool(DocumentView::Tool::Image);
 }
 
 // ── Theme / Language ──────────────────────────────────────────────────────────

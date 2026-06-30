@@ -187,6 +187,13 @@ QLabel#PageLabel {
     font-size: 14px;
 }
 
+/* ── Image region overlay ────────────────────────────────── */
+QFrame#ImageRegionOverlay {
+    border: 2px dashed #3B82F6;
+    background: rgba(59, 130, 246, 20);
+    border-radius: 3px;
+}
+
 /* ── Grid view ───────────────────────────────────────────── */
 #GridCanvas {
     background: #2B2B2B;

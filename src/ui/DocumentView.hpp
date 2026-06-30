@@ -11,6 +11,8 @@ class QVBoxLayout;
 class QRubberBand;
 QT_END_NAMESPACE
 
+class ImageAnnotation;
+
 #include "engine/ocr/OcrEngine.hpp"
 
 #ifdef HAVE_PDF_RENDERING
@@ -54,6 +56,7 @@ public:
 
     QString     currentFile()      const { return m_filePath; }
     int         pageCount()        const { return m_pageCount; }
+    int         currentPage()      const;
     ViewMode    viewMode()         const { return m_viewMode; }
     QUndoStack *undoStack()        const { return m_undoStack; }
     bool        hasUnsavedEdits()  const;
@@ -87,6 +90,16 @@ private:
     void   buildGridItems();
     void   relayoutGrid();
 
+    // Image tool
+    void   placeImage(const QImage &img, const QPoint &canvasPos);
+    void   placeImageInRect(const QImage &img, const QRect &viewportRect);
+    void   updateImageOverlayPositions();
+    void   clearDetectedImageFrames();
+    void   scanCurrentPageForImages();
+    void   connectImageAnnotation(ImageAnnotation *ann);
+    void   showImageContextMenu(ImageAnnotation *ann, const QPoint &globalPos);
+    void   showGeneralContextMenu(const QPoint &globalPos);
+
     // Edit-mode interaction
     void   handleEditClick(const QPoint &canvasPos);
     void   createTextFrame(const QRect &viewportDragRect);
@@ -102,7 +115,18 @@ private:
     QVBoxLayout *m_layout    { nullptr };
     QLabel      *m_dropHint  { nullptr };
     QRubberBand *m_rubberBand{ nullptr };
-    QList<QLabel *> m_pageLabels;
+    QList<QLabel *>  m_pageLabels;
+
+    // Image tool: each placed image, tracked in PDF coordinate space.
+    struct PlacedImage {
+        int page;
+        QRectF pdfBounds;   // position/size in PDF points
+        QImage image;
+        QWidget *widget { nullptr };  // ImageAnnotation overlay
+    };
+    QList<PlacedImage> m_placedImages;
+    QList<QFrame *>    m_detectedImageFrames;  // transient highlights for existing images
+    QImage             m_imageClipboard;        // internal copy/cut clipboard for image tool
 
     // Grid view
     struct GridItem { QWidget *card; QLabel *thumb; QLabel *label; QPixmap original; };
@@ -133,6 +157,12 @@ private:
     bool   m_textTracking { false };
     bool   m_textDragging { false };
     QPoint m_textDragStart;
+
+    // Image-tool drag-to-frame state (canvas coords)
+    bool   m_imageTracking { false };
+    bool   m_imageDragging  { false };
+    QPoint m_imageDragStart;
+    QRect  m_imageDragPageRect;  // page bounds for clamping rubber band
 
     // Edit-mode state
     int     m_activeEditPage { -1 };

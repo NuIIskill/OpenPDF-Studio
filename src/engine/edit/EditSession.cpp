@@ -236,7 +236,8 @@ static std::string pdfLit(const QString &s)
 }
 
 static std::string buildReplacement(const QRectF &bounds, const QString &text,
-                                     double pageH, double fontSizeOverride = 0.0)
+                                     double pageH, double fontSizeOverride = 0.0,
+                                     const QColor &color = QColor())
 {
     const QStringList lines   = text.split(u'\n');
     const int         nLines  = lines.size();
@@ -247,8 +248,13 @@ static std::string buildReplacement(const QRectF &bounds, const QString &text,
     const double      y0      = (pageH - bounds.top()) - fs * 0.80;
     const double      leading = fs * 1.20;
 
+    const double r = (color.isValid() ? color.redF()   : 0.0);
+    const double g = (color.isValid() ? color.greenF() : 0.0);
+    const double b = (color.isValid() ? color.blueF()  : 0.0);
+
     std::ostringstream ss; ss << std::fixed; ss.precision(3);
-    ss << "BT\n/OpenPDFHelv " << fs << " Tf\n0 0 0 rg\n"
+    ss << "BT\n/OpenPDFHelv " << fs << " Tf\n"
+       << r << ' ' << g << ' ' << b << " rg\n"
        << x << ' ' << y0 << " Td\n(" << pdfLit(lines[0]) << ") Tj\n";
     for (int i = 1; i < nLines; ++i)
         ss << "0 " << -leading << " Td\n(" << pdfLit(lines[i]) << ") Tj\n";
@@ -325,8 +331,9 @@ bool EditSession::saveVector(const QString &sourcePath, const QString &outputPat
             auto &ph        = pages[static_cast<std::size_t>(pageIdx)];
             QPDFObjectHandle pageObj = ph.getObjectHandle();
 
+            // Use getAttribute to resolve /MediaBox inherited from page-tree nodes.
             double pageH = 841.89;
-            QPDFObjectHandle mb = pageObj.getKey("/MediaBox");
+            QPDFObjectHandle mb = ph.getAttribute("/MediaBox", false);
             if (mb.isArray() && mb.getArrayNItems() == 4)
                 pageH = std::abs(mb.getArrayItem(3).getNumericValue()
                                - mb.getArrayItem(1).getNumericValue());
@@ -368,7 +375,8 @@ bool EditSession::saveVector(const QString &sourcePath, const QString &outputPat
                            << "bounds=" << edits[i]->pdfBounds
                            << "fs=" << fs
                            << "capturedFs=" << capturedFs[i];
-                cs += buildReplacement(edits[i]->pdfBounds, edits[i]->newText, pageH, fs);
+                cs += buildReplacement(edits[i]->pdfBounds, edits[i]->newText, pageH, fs,
+                                       edits[i]->textColor);
             }
 
             auto newStream = QPDFObjectHandle::newStream(&input, cs);
@@ -472,6 +480,33 @@ void EditSession::restoreSuspended()
 void EditSession::clear()
 {
     m_edits.clear();
+    m_imageEdits.clear();
+}
+
+// ── Image-edit CRUD ───────────────────────────────────────────────────────────
+
+void EditSession::addImageEdit(int page, const QRectF &pdfBounds, const QImage &image)
+{
+    m_imageEdits.append({ page, pdfBounds, image });
+}
+
+void EditSession::removeImageEdit(int page, const QRectF &pdfBounds)
+{
+    m_imageEdits.removeIf([&](const ImageEdit &ie) {
+        return ie.page == page && ie.pdfBounds == pdfBounds;
+    });
+}
+
+bool EditSession::hasImageEditsOnPage(int page) const
+{
+    for (const auto &ie : m_imageEdits)
+        if (ie.page == page) return true;
+    return false;
+}
+
+void EditSession::clearImageEdits()
+{
+    m_imageEdits.clear();
 }
 
 // ── Queries ───────────────────────────────────────────────────────────────────
@@ -556,17 +591,33 @@ bool EditSession::findEditAt(int page, const QPointF &pdfPt,
 
 void EditSession::applyToImage(int page, QImage &img, qreal scale) const
 {
-    if (img.isNull() || !hasEditsOnPage(page)) return;
+    if (img.isNull()) return;
+    const bool hasText   = hasEditsOnPage(page);
+    const bool hasImages = hasImageEditsOnPage(page);
+    if (!hasText && !hasImages) return;
 
     QPainter p(&img);
-    // Two-pass: all blanks (white fills) before all text draws so that a blank
-    // added after a text edit in m_edits doesn't paint over the text.
-    for (const auto &e : m_edits)
-        if (e.page == page && e.newText.isNull())
-            paintBlankEdit(p, e, scale);
-    for (const auto &e : m_edits)
-        if (e.page == page && !e.newText.isEmpty())
-            paintTextEdit(p, e, scale);
+    if (hasText) {
+        // Two-pass: all blanks (white fills) before all text draws so that a blank
+        // added after a text edit in m_edits doesn't paint over the text.
+        for (const auto &e : m_edits)
+            if (e.page == page && e.newText.isNull())
+                paintBlankEdit(p, e, scale);
+        for (const auto &e : m_edits)
+            if (e.page == page && !e.newText.isEmpty())
+                paintTextEdit(p, e, scale);
+    }
+    if (hasImages) {
+        for (const ImageEdit &ie : m_imageEdits) {
+            if (ie.page != page || ie.image.isNull()) continue;
+            const QRect dst(
+                qRound(ie.pdfBounds.left()   * scale),
+                qRound(ie.pdfBounds.top()    * scale),
+                qRound(ie.pdfBounds.width()  * scale),
+                qRound(ie.pdfBounds.height() * scale));
+            p.drawImage(dst, ie.image);
+        }
+    }
 }
 
 void EditSession::paintBlankEdit(QPainter &p, const Edit &e, qreal scale)
@@ -611,7 +662,9 @@ bool EditSession::saveToFile(const QString &outputPath,
                               const QString &sourcePath) const
 {
 #ifdef HAVE_QPDF
-    if (!sourcePath.isEmpty())
+    // Fall back to raster when images are present — vector PDF manipulation
+    // cannot embed raster images into the page stream cleanly.
+    if (!sourcePath.isEmpty() && m_imageEdits.isEmpty())
         return saveVector(sourcePath, outputPath, doc, pageCount);
 #else
     Q_UNUSED(sourcePath)

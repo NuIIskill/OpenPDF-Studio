@@ -66,6 +66,8 @@ set(SOURCES
     src/ui/StatusBar.hpp
     src/ui/SettingsPanel.cpp
     src/ui/SettingsPanel.hpp
+    src/ui/PresentationWindow.cpp
+    src/ui/PresentationWindow.hpp
 
     src/ui/widgets/PagePlaceholder.cpp
     src/ui/widgets/PagePlaceholder.hpp

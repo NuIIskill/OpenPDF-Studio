@@ -10,7 +10,7 @@
 #include <QPdfDocument>
 #endif
 
-// Stores all pending text edits for one document session.
+// Stores all pending text and image edits for one document session.
 // Knows how to apply them to a QImage (live view) and to save a final PDF.
 // When qpdf is available (HAVE_QPDF), saveToFile uses a hybrid approach:
 //   unedited pages are copied as-is (full vector quality); edited pages are
@@ -19,6 +19,13 @@
 class EditSession
 {
 public:
+    // Image overlay embedded in the document (inserted via image tool).
+    struct ImageEdit {
+        int    page;
+        QRectF pdfBounds;  // position/size in PDF points (top-left origin)
+        QImage image;
+    };
+
     EditSession() = default;
 
     // fontSizePt=0 means "auto-detect from content stream or bound-height"
@@ -40,10 +47,17 @@ public:
     void clearSuspended();
     void restoreSuspended();
 
+    // ── Image edits ────────────────────────────────────────────────────────────
+    void addImageEdit(int page, const QRectF &pdfBounds, const QImage &image);
+    void removeImageEdit(int page, const QRectF &pdfBounds);
+    bool hasImageEditsOnPage(int page) const;
+    void clearImageEdits();
+    const QList<ImageEdit> &imageEdits() const { return m_imageEdits; }
+
     void clear();
 
     bool    hasEditsOnPage(int page) const;
-    bool    hasAnyEdits()            const { return !m_edits.isEmpty(); }
+    bool    hasAnyEdits() const { return !m_edits.isEmpty() || !m_imageEdits.isEmpty(); }
 
     // Returns current edited text at (page, pdfBounds), or null QString if none.
     QString editTextAt(int page, const QRectF &pdfBounds) const;
@@ -116,6 +130,7 @@ private:
     bool saveRaster(const QString &outputPath, QPdfDocument *doc, int pageCount) const;
 #endif
 
-    QList<Edit> m_edits;
-    QList<Edit> m_suspendedEdits;  // saved by suspendEditsAt(), restored by restoreSuspended()
+    QList<Edit>       m_edits;
+    QList<Edit>       m_suspendedEdits;  // saved by suspendEditsAt(), restored by restoreSuspended()
+    QList<ImageEdit>  m_imageEdits;
 };
