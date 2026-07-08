@@ -32,32 +32,70 @@ QRect TextBoxFrame::innerRect() const
     return m_decorations ? rect().adjusted(kPad, kPad, -kPad, -kPad) : rect();
 }
 
+QRectF TextBoxFrame::innerCanvasRect() const
+{
+    return QRectF(innerRect()).translated(pos());
+}
+
 void TextBoxFrame::setDecorations(bool on) { m_decorations = on; }
-void TextBoxFrame::setFontSize(int px)     { m_editor->setFontSize(px); }
+void TextBoxFrame::setTextColor(const QColor &c) { m_editor->setColor(c); }
+void TextBoxFrame::setTextFont(const QString &family, bool bold, bool italic)
+{
+    m_editor->setTextFont(family, bold, italic);
+}
+
+void TextBoxFrame::setFontSize(int px)
+{
+    m_editor->setFontSize(px);
+
+    // Expand the frame so the text stays visible at the new font size.
+    // Suppress boundsChanged during the internal resize so DocumentView's
+    // boundsChanged handler doesn't re-enter setFontSize recursively.
+    QFontMetrics fm(m_editor->styledFont(px));
+    const int innerW    = qMax(1, width() - (m_decorations ? 2 * kPad : 0) - 8);
+    const QRect needed  = fm.boundingRect(QRect(0, 0, innerW, 9999),
+                                           Qt::TextWordWrap | Qt::AlignLeft,
+                                           m_editor->toPlainText());
+    const int minHeight = needed.height() + (m_decorations ? 2 * kPad : 0) + 8;
+    if (height() < minHeight) {
+        m_presenting = true;
+        resize(width(), minHeight);
+        m_editor->setGeometry(innerRect());
+        m_presenting = false;
+    }
+}
+
+void TextBoxFrame::repositionForZoom(const QRectF &canvasBounds, int px)
+{
+    QRect outer = canvasBounds.toAlignedRect();
+    if (m_decorations)
+        outer = outer.adjusted(-kPad, -kPad, kPad, kPad);
+    outer.setWidth(qMax(outer.width(),  120 + 2 * kPad));
+    outer.setHeight(qMax(outer.height(),  20 + 2 * kPad));
+
+    // m_presenting suppresses boundsChanged so DocumentView doesn't update
+    // m_activeEditBounds from this programmatic reposition.
+    m_presenting = true;
+    setGeometry(outer);
+    m_editor->setGeometry(innerRect());
+    m_editor->setFontSize(px);
+    m_presenting = false;
+    update();
+}
 void TextBoxFrame::setForbiddenZones(const QList<QRect> &z) { m_forbidden = z; }
 void TextBoxFrame::setPageRect(const QRect &r) { m_pageRect = r; }
 void TextBoxFrame::resetCommitGuard()      { m_editor->resetCommitGuard(); }
 QString TextBoxFrame::currentText() const  { return m_editor->toPlainText(); }
 
 void TextBoxFrame::present(const QString &text, const QRectF &canvasBounds, int fontSize,
-                           const QColor &color)
+                           const QColor &color, const QString &fontFamily,
+                           bool bold, bool italic)
 {
     QRect outer = canvasBounds.toAlignedRect();
     if (m_decorations) {
         outer = outer.adjusted(-kPad, -kPad, kPad, kPad);
         outer.setWidth(qMax(outer.width(),  120 + 2 * kPad));
         outer.setHeight(qMax(outer.height(),  20 + 2 * kPad));
-    }
-
-    {
-        QFont f; f.setPixelSize(qMax(8, fontSize));
-        QFontMetrics fm(f);
-        const int innerW = qMax(1, outer.width() - (m_decorations ? 2 * kPad : 0) - 8);
-        const QRect needed = fm.boundingRect(QRect(0, 0, innerW, 9999),
-                                              Qt::TextWordWrap | Qt::AlignLeft, text);
-        const int minOuterH = needed.height() + (m_decorations ? 2 * kPad : 0) + 8;
-        if (outer.height() < minOuterH)
-            outer.setHeight(minOuterH);
     }
 
     // Guard boundsChanged during present() — the outer rect expands by kPad on all
@@ -67,7 +105,7 @@ void TextBoxFrame::present(const QString &text, const QRectF &canvasBounds, int 
     m_presenting = true;
     setGeometry(outer);
     m_editor->setGeometry(innerRect());
-    m_editor->present(text, fontSize, color);
+    m_editor->present(text, fontSize, color, fontFamily, bold, italic);
 
     raise();
     show();

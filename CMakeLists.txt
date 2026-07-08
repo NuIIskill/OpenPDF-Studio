@@ -45,6 +45,11 @@ set(SOURCES
     src/engine/edit/EditSession.cpp
     src/engine/edit/EditSession.hpp
 
+    src/engine/edit/ContentMap.cpp
+    src/engine/edit/ContentMap.hpp
+    src/engine/edit/ContentModel.cpp
+    src/engine/edit/ContentModel.hpp
+
     src/ui/MainWindow.cpp
     src/ui/MainWindow.hpp
     src/ui/FormatBar.cpp

@@ -33,6 +33,9 @@ public:
     [[nodiscard]] RightSidebar *rightSidebar() const { return m_rightSidebar; }
     [[nodiscard]] StatusBar    *statusBar()    const { return m_statusBar;    }
 
+    // Open a PDF in the current tab (command line, file association).
+    void openPath(const QString &path);
+
 public Q_SLOTS:
     void applyTheme(const QString &mode);
     void applyLanguage(const QString &lang);

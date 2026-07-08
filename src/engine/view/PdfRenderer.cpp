@@ -29,6 +29,8 @@ QImage PdfRenderer::renderPage(int page, qreal scale) const
 
 #elif defined(HAVE_POPPLER)
 
+#include <QDebug>
+
 PdfRenderer::PdfRenderer(Poppler::Document *doc)
     : m_doc(doc)
 {}
@@ -49,11 +51,22 @@ QSize PdfRenderer::pageDisplaySize(int page, int zoomPercent) const
 
 QImage PdfRenderer::renderPage(int page, qreal scale) const
 {
-    auto p = m_doc->page(page);
-    if (!p) return {};
-    // Poppler takes DPI: pixels_per_inch = scale * 72 (since 1 pt = 1/72 inch)
-    const double dpi = scale * kPtsPerInch;
-    return p->renderToImage(dpi, dpi);
+    // Poppler can throw (e.g. std::bad_optional_access from the win32 font
+    // lookup when no substitute font is installed). A failed render must
+    // degrade to an empty page, never terminate the app.
+    try {
+        auto p = m_doc->page(page);
+        if (!p) return {};
+        // Poppler takes DPI: pixels_per_inch = scale * 72 (since 1 pt = 1/72 inch)
+        const double dpi = scale * kPtsPerInch;
+        return p->renderToImage(dpi, dpi);
+    } catch (const std::exception &ex) {
+        qWarning() << "[Poppler] renderToImage failed for page" << page
+                   << ":" << ex.what();
+        return {};
+    } catch (...) {
+        return {};
+    }
 }
 
 #endif // HAVE_QT_PDF / HAVE_POPPLER

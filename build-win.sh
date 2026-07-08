@@ -92,6 +92,32 @@ if [[ -d "$QT_BIN" ]]; then
         cp -u "${PLUGIN_DIR}/styles/"*.dll "${BUILD_DIR}/styles/" 2>/dev/null || true
     fi
 
+    # ── fontconfig config (fixes fontconfig init crash on Windows) ──────────
+    # The cross-compiled libfontconfig-1.dll has Linux paths hardcoded; deploy
+    # the proper Windows-aware fonts.conf so it can find Windows system fonts.
+    FC_ETC="/usr/x86_64-w64-mingw32/sys-root/mingw/etc/fonts"
+    FC_SHARE="/usr/x86_64-w64-mingw32/sys-root/mingw/share/fontconfig"
+    if [[ -f "${FC_ETC}/fonts.conf" ]]; then
+        mkdir -p "${BUILD_DIR}/etc/fonts/conf.d"
+        cp -u "${FC_ETC}/fonts.conf" "${BUILD_DIR}/etc/fonts/"
+        [[ -d "${FC_ETC}/conf.d" ]] && cp -ru "${FC_ETC}/conf.d/." "${BUILD_DIR}/etc/fonts/conf.d/"
+        echo "  fontconfig: fonts.conf deployed"
+    fi
+    if [[ -d "${FC_SHARE}/conf.avail" ]]; then
+        mkdir -p "${BUILD_DIR}/share/fontconfig"
+        cp -ru "${FC_SHARE}/." "${BUILD_DIR}/share/fontconfig/"
+        echo "  fontconfig: conf.avail deployed"
+    fi
+
+    # ── Poppler encoding data (CMap, cidToUnicode, nameToUnicode, unicodeMap) ─
+    # Without these, Poppler cannot process CID fonts (common in many PDFs).
+    POPPLER_DATA="/usr/share/poppler"
+    if [[ -d "${POPPLER_DATA}" ]]; then
+        mkdir -p "${BUILD_DIR}/share/poppler"
+        cp -ru "${POPPLER_DATA}/." "${BUILD_DIR}/share/poppler/"
+        echo "  poppler-data: encoding maps deployed"
+    fi
+
     echo "==> Deploy complete."
 else
     echo "==> WARN: Qt bin dir not found at ${QT_BIN} — skipping DLL deploy."

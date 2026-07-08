@@ -9,6 +9,7 @@ QT_BEGIN_NAMESPACE
 class QLabel;
 class QVBoxLayout;
 class QRubberBand;
+class QFrame;
 QT_END_NAMESPACE
 
 class ImageAnnotation;
@@ -17,15 +18,15 @@ class ImageAnnotation;
 
 #ifdef HAVE_PDF_RENDERING
 #  include "engine/view/PdfRenderer.hpp"
+#  include "engine/edit/PdfTextExtractor.hpp"
+#  include "engine/edit/EditSession.hpp"
+#  include "engine/edit/TextBoxFrame.hpp"
+#  include "engine/edit/TextBlock.hpp"
+#  include "engine/edit/ContentModel.hpp"
+#  include <memory>
 #  ifdef HAVE_QT_PDF
 #    include <QPdfDocument>
-#    include <QHash>
-#    include "engine/edit/PdfTextExtractor.hpp"
-#    include "engine/edit/EditSession.hpp"
-#    include "engine/edit/TextBoxFrame.hpp"
-#    include "engine/edit/TextBlock.hpp"
 #  elif defined(HAVE_POPPLER)
-#    include <memory>
 #    include <poppler/qt6/poppler-qt6.h>
 #  endif
 #endif
@@ -53,6 +54,12 @@ public:
     void   retranslateUi();
     // Called by MainWindow when the user changes the font size in the FormatBar.
     void   setEditorFontSize(int ptSize);
+    // Called by MainWindow when the user changes the text color in the FormatBar.
+    void   setEditorTextColor(const QColor &color);
+    // Called by MainWindow on FormatBar font family / bold / italic changes.
+    void   setEditorFontFamily(const QString &family);
+    void   setEditorBold(bool on);
+    void   setEditorItalic(bool on);
 
     QString     currentFile()      const { return m_filePath; }
     int         pageCount()        const { return m_pageCount; }
@@ -62,13 +69,18 @@ public:
     bool        hasUnsavedEdits()  const;
     bool        pdfRenderingAvailable() const;
     QList<QString> allPageTexts() const;
+    // Called by undo/redo commands to refresh a page after session state is restored.
+    void        rerenderPage(int page);
 
 Q_SIGNALS:
     void fileOpened(const QString &path, int pageCount);
     void pageChanged(int current, int total);
     void viewModeChanged(ViewMode mode);
+    void zoomChanged(int percent);
     // Emitted when an editor opens so the FormatBar can show the correct font size.
     void editorFontSizeChanged(int ptSize);
+    // Emitted when an editor opens with the detected font of the clicked block.
+    void editorFontChanged(const QString &family, bool bold, bool italic);
 
 protected:
     bool eventFilter(QObject *obj, QEvent *e) override;
@@ -83,7 +95,6 @@ private:
     // Page rendering
     void   buildPages();
     void   rerenderAll();
-    void   rerenderPage(int page);
     void   rerenderPageWithBlank(int page, const QRectF &pdfBoundsPts);
 
     // Grid view
@@ -106,9 +117,21 @@ private:
     void   commitCurrentEdit(const QString &newText);
     void   cancelCurrentEdit();
     void   liveUpdateCurrentEdit(const QString &text);
+    // Hover feedback: outline the detected content region under the cursor.
+    void   updateHoverHighlight(const QPoint &canvasPos);
+    void   hideHoverHighlight();
+    // (Re)build the content-detection provider for the current file.
+    void   resetContentProvider();
+    // Re-render the live session edit after a font/style toolbar change.
+    void   refreshEditorFontLive();
 
     // Canvas helpers
     std::pair<int, QLabel *> pageAtCanvasPos(const QPoint &canvasPos) const;
+    // Clamp r so it stays fully inside the PDF page (both position and size).
+    void clampToPdfPage(int page, QRectF &r) const;
+#ifdef HAVE_POPPLER
+    bool savePopplerRaster(const QString &outputPath);
+#endif
 
     // Widgets
     QWidget     *m_canvas    { nullptr };
@@ -176,8 +199,17 @@ private:
     //         the text is drawn as a transparent overlay so it can sit on top of content.
     bool    m_activeEditNeedsBlank { false };
     QString m_activeEditOriginalText;
-    int     m_currentEditorFontSizePt { 12 };  // tracks font size set via FormatBar
-    QColor  m_currentEditorColor     { 0x11, 0x11, 0x11 };  // sampled from page render
+    QString m_activeEditFieldName;   // non-empty: editing an AcroForm text field
+    int     m_currentEditorFontSizePt { 12 };
+    QColor  m_currentEditorColor     { 0x11, 0x11, 0x11 };
+    QColor  m_currentBgColor;  // cell background detected from PDF content stream
+    // Font of the active editor (detected from the clicked block, or chosen
+    // in the FormatBar). m_editorFontChangedByUser gates the vector-save font
+    // switch: only a user choice replaces the PDF's original font resource.
+    QString m_currentEditorFontFamily;
+    bool    m_currentEditorBold   { false };
+    bool    m_currentEditorItalic { false };
+    bool    m_editorFontChangedByUser { false };
 
     // After a commit, the press+release that triggered it must not re-open
     // an editor for the same block — that would blank the just-committed text.
@@ -191,13 +223,28 @@ private:
     OcrEngine *m_ocrEngine { nullptr };
 
 #ifdef HAVE_PDF_RENDERING
-    PdfRenderer *m_renderer { nullptr };
+    // Builds a session edit from the active editor state (font, colors,
+    // form-field binding). Single source of truth for commit AND live paths.
+    EditSession::Edit makeSessionEdit(int page, const QRectF &bounds,
+                                      const QRectF &sourceRect,
+                                      const QString &text) const;
+
+    PdfRenderer  *m_renderer    { nullptr };
+    EditSession  *m_session     { nullptr };
+    TextBoxFrame *m_editorFrame { nullptr };
+    // Content detection framework: per-page cached region model (text,
+    // paragraphs, table cells, form fields, images, media).
+    std::unique_ptr<ContentProvider> m_contentProvider;
+    // Hover feedback for detected regions in edit mode.
+    QFrame *m_hoverHighlight { nullptr };
+    QRectF  m_hoverBounds;
+    int     m_hoverPage { -1 };
+    // Snapshot of session edits taken at editor-open time — "before" state for undo.
+    QList<EditSession::Edit>              m_undoSnapBefore;
+    QHash<int, QList<OcrEngine::Block>>   m_ocrCache;
 #  ifdef HAVE_QT_PDF
-    QPdfDocument      *m_document    { nullptr };
-    PdfTextExtractor  *m_extractor   { nullptr };
-    EditSession       *m_session     { nullptr };
-    TextBoxFrame      *m_editorFrame { nullptr };
-    QHash<int, QList<OcrEngine::Block>> m_ocrCache;
+    QPdfDocument     *m_document  { nullptr };
+    PdfTextExtractor *m_extractor { nullptr };
 #  elif defined(HAVE_POPPLER)
     std::unique_ptr<Poppler::Document> m_popplerDoc;
 #  endif

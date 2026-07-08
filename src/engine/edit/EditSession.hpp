@@ -1,5 +1,6 @@
 #pragma once
 
+#include "ContentMap.hpp"
 #include "TextBlock.hpp"
 #include <QColor>
 #include <QList>
@@ -13,8 +14,9 @@
 // Stores all pending text and image edits for one document session.
 // Knows how to apply them to a QImage (live view) and to save a final PDF.
 // When qpdf is available (HAVE_QPDF), saveToFile uses a hybrid approach:
-//   unedited pages are copied as-is (full vector quality); edited pages are
-//   rasterised at 300 DPI so the original text is truly gone, not overlaid.
+//   unedited pages are copied as-is (full vector quality); edited pages get
+//   their content stream rewritten (original text ops removed, replacement
+//   text appended). AcroForm field edits update /V + appearance streams.
 // Without qpdf, falls back to raster rendering (QPdfWriter + QPainter).
 class EditSession
 {
@@ -26,21 +28,54 @@ public:
         QImage image;
     };
 
+    // A single text edit entry (public so undo/redo commands can snapshot them).
+    struct Edit {
+        int     page       { -1 };
+        QRectF  pdfBounds;
+        QRectF  sourceRect;
+        QString newText;
+        double  fontSizePt { 0.0 };
+        QColor  textColor;
+        QColor  bgColor;      // background color used for blank fill
+        QString fontFamily;   // Qt family for live paint ("" = default Helvetica)
+        bool    bold        { false };
+        bool    italic      { false };
+        // true → user changed font family/style; vector save switches to a
+        // standard-14 font. false → keep the PDF's original font resource.
+        bool    fontChanged { false };
+        // Non-empty → this edit sets the value of an AcroForm text field;
+        // vector save updates /V + appearances instead of the content stream.
+        QString formField;
+
+        bool operator==(const Edit &o) const {
+            return page == o.page && pdfBounds == o.pdfBounds &&
+                   sourceRect == o.sourceRect && newText == o.newText &&
+                   qFuzzyCompare(fontSizePt + 1.0, o.fontSizePt + 1.0) &&
+                   textColor == o.textColor && bgColor == o.bgColor &&
+                   fontFamily == o.fontFamily && bold == o.bold &&
+                   italic == o.italic && fontChanged == o.fontChanged &&
+                   formField == o.formField;
+        }
+        bool operator!=(const Edit &o) const { return !(*this == o); }
+    };
+
     EditSession() = default;
 
-    // fontSizePt=0 means "auto-detect from content stream or bound-height"
-    // sourceRect — the original PDF block this edit belongs to (used for grouping
-    // blank+text companion pairs that are created during a drag-move commit).
-    // Pass QRectF() (default) when there is no companion pair.
+    // Full-struct insert — preferred; carries font and form-field metadata.
+    void addEdit(Edit e) { m_edits.append(std::move(e)); }
+
+    // Legacy convenience overload (blank edits, tests).
+    // fontSizePt=0 means "auto-detect from bound-height".
     void addEdit(int page, const QRectF &pdfBounds, const QString &newText,
                  double fontSizePt = 0.0, const QColor &color = QColor(),
-                 const QRectF &sourceRect = QRectF());
+                 const QRectF &sourceRect = QRectF(),
+                 const QColor &bgColor = QColor());
     void removeEdit(int page, const QRectF &pdfBounds);
     // Removes every edit on 'page' that overlaps 'pdfBounds'.
     void removeAllAt(int page, const QRectF &pdfBounds);
 
     // Suspend/restore — used when opening the editor over an existing edit.
-    // suspendEditsAt() removes all edits overlapping the area and saves them.
+    // suspendEditsAt() removes all edits at the exact bounds and saves them.
     // clearSuspended()   — called on commit/live-update: discard the snapshot.
     // restoreSuspended() — called on cancel: put the removed edits back.
     void suspendEditsAt(int page, const QRectF &pdfBounds);
@@ -56,6 +91,10 @@ public:
 
     void clear();
 
+    // Snapshot / restore for undo-redo.
+    QList<Edit> snapshotEdits() const   { return m_edits; }
+    void        restoreEdits(QList<Edit> s) { m_edits = std::move(s); }
+
     bool    hasEditsOnPage(int page) const;
     bool    hasAnyEdits() const { return !m_edits.isEmpty() || !m_imageEdits.isEmpty(); }
 
@@ -66,24 +105,9 @@ public:
     // Returns stored text color for the edit intersecting pdfBounds, or invalid QColor.
     QColor  editColorAt(int page, const QRectF &pdfBounds) const;
 
-    // Finds the topmost session edit whose bounds contain pdfPt AND that has a
-    // companion blank edit at the same pdfBounds (i.e. it is a replacement or
-    // in-place edit, not a plain createTextFrame overlay).  Returns true and fills
-    // out-params if found.
-    bool findReplacementEditAt(int page, const QPointF &pdfPt,
-                               QRectF  *outBounds     = nullptr,
-                               QString *outText       = nullptr,
-                               double  *outFontSizePt = nullptr,
-                               QColor  *outColor      = nullptr) const;
-
     // Finds the topmost session edit (any kind, including overlay) whose bounds
-    // contain pdfPt.  Used as a last-resort fallback in handleEditClick after
-    // native-text and OCR lookup both fail.
-    bool findEditAt(int page, const QPointF &pdfPt,
-                    QRectF  *outBounds     = nullptr,
-                    QString *outText       = nullptr,
-                    double  *outFontSizePt = nullptr,
-                    QColor  *outColor      = nullptr) const;
+    // contain pdfPt. Fills *out with the full edit when found.
+    bool findEditAt(int page, const QPointF &pdfPt, Edit *out = nullptr) const;
 
     // Paint replacements onto an already-rendered QImage (used for live view).
     // scale = PDF-point-to-pixel factor used when rendering.
@@ -105,23 +129,13 @@ public:
 #endif
 
 private:
-    struct Edit {
-        int     page;
-        QRectF  pdfBounds;
-        // The original PDF block this edit belongs to.  For a drag-move commit,
-        // blank(P1) and text(P2) both carry sourceRect=P1, letting suspendEditsAt
-        // suspend the entire group when either member is hit.  Empty = standalone.
-        QRectF  sourceRect;
-        QString newText;
-        double  fontSizePt { 0.0 };  // 0 = derive from content stream / bound height
-        QColor  textColor;           // invalid = use default (near-black)
-    };
-
     static void paintTextEdit(QPainter &p, const Edit &e, qreal scale);
+    // Fills the edit area with Edit::bgColor (white when invalid).
     static void paintBlankEdit(QPainter &p, const Edit &e, qreal scale);
 
 #ifdef HAVE_QPDF
-    // Hybrid: unedited pages copied as vector, edited pages rasterised at 300 DPI.
+    // Hybrid: unedited pages copied as vector, edited pages get their content
+    // stream rewritten; form-field edits update /V + appearance streams.
     bool saveVector(const QString &sourcePath, const QString &outputPath,
                     QPdfDocument *doc, int pageCount) const;
 #endif

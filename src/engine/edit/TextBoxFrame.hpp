@@ -14,13 +14,23 @@ public:
 
     void setDecorations(bool on);
     void present(const QString &text, const QRectF &canvasBounds, int fontSize,
-                 const QColor &color = QColor(0x11, 0x11, 0x11));
+                 const QColor &color = QColor(0x11, 0x11, 0x11),
+                 const QString &fontFamily = QString(),
+                 bool bold = false, bool italic = false);
     void setFontSize(int pixelFontSize);
+    void setTextColor(const QColor &color);
+    // Change font family/style live (size, color, content preserved).
+    void setTextFont(const QString &family, bool bold, bool italic);
+    // Reposition and resize for a new zoom level without disturbing the editor's
+    // current text or cursor selection.
+    void repositionForZoom(const QRectF &canvasBounds, int pixelFontSize);
     void setForbiddenZones(const QList<QRect> &zones);
     // Clamp drag/resize to this rect (canvas coords). Pass null rect to disable clamping.
     void setPageRect(const QRect &pageRect);
     void resetCommitGuard();
     QString currentText() const;
+    // Returns the inner editing rect in parent (canvas) coordinates.
+    QRectF innerCanvasRect() const;
 
 Q_SIGNALS:
     void committed(const QString &text);

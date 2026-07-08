@@ -17,3 +17,4 @@ ui_*.h
 *.autosave
 .DS_Store
 Thumbs.db
+.claude/

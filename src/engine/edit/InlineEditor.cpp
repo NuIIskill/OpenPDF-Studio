@@ -20,22 +20,52 @@ InlineEditor::InlineEditor(QWidget *parent)
     });
 }
 
-static QString editorStyleSheet(int pixelFontSize, const QColor &color)
+void InlineEditor::applyStyle()
 {
-    return QString(
+    // Strip quote characters from the family so it can't break the stylesheet.
+    QString family = m_family;
+    family.remove(u'\'').remove(u'"');
+    const QString familyList = family.isEmpty()
+        ? QStringLiteral("Helvetica, Arial, 'Liberation Sans', sans-serif")
+        : QStringLiteral("'%1', Helvetica, Arial, 'Liberation Sans', sans-serif")
+              .arg(family);
+    setStyleSheet(QString(
         "QTextEdit#InlineEditor {"
         "  background: transparent;"
         "  border: none;"
-        "  font-size: %1px;"
+        "  font-family: %1;"
+        "  font-size: %2px;"
+        "  font-weight: %3;"
+        "  font-style: %4;"
         "  padding: 2px 4px;"
-        "  color: %2;"
-        "}").arg(qMax(8, pixelFontSize)).arg(color.name());
+        "  color: %5;"
+        "}")
+        .arg(familyList)
+        .arg(qMax(8, m_currentFontPx))
+        .arg(m_bold ? 700 : 400)
+        .arg(m_italic ? QStringLiteral("italic") : QStringLiteral("normal"))
+        .arg(m_currentColor.name()));
 }
 
-void InlineEditor::present(const QString &text, int pixelFontSize, const QColor &color)
+QFont InlineEditor::styledFont(int pixelFontSize) const
 {
-    m_currentColor = color.isValid() ? color : QColor(0x11, 0x11, 0x11);
-    setStyleSheet(editorStyleSheet(pixelFontSize, m_currentColor));
+    QFont f(m_family.isEmpty() ? QStringLiteral("Helvetica") : m_family);
+    f.setStyleHint(QFont::SansSerif);
+    f.setPixelSize(qMax(8, pixelFontSize));
+    f.setBold(m_bold);
+    f.setItalic(m_italic);
+    return f;
+}
+
+void InlineEditor::present(const QString &text, int pixelFontSize, const QColor &color,
+                           const QString &family, bool bold, bool italic)
+{
+    m_currentColor  = color.isValid() ? color : QColor(0x11, 0x11, 0x11);
+    m_currentFontPx = qMax(8, pixelFontSize);
+    m_family        = family;
+    m_bold          = bold;
+    m_italic        = italic;
+    applyStyle();
     setPlainText(text);
     selectAll();
     show();
@@ -43,7 +73,23 @@ void InlineEditor::present(const QString &text, int pixelFontSize, const QColor 
 
 void InlineEditor::setFontSize(int pixelFontSize)
 {
-    setStyleSheet(editorStyleSheet(pixelFontSize, m_currentColor));
+    m_currentFontPx = qMax(8, pixelFontSize);
+    applyStyle();
+}
+
+void InlineEditor::setColor(const QColor &color)
+{
+    if (!color.isValid()) return;
+    m_currentColor = color;
+    applyStyle();
+}
+
+void InlineEditor::setTextFont(const QString &family, bool bold, bool italic)
+{
+    m_family = family;
+    m_bold   = bold;
+    m_italic = italic;
+    applyStyle();
 }
 
 void InlineEditor::keyPressEvent(QKeyEvent *e)

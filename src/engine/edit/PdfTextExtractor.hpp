@@ -22,6 +22,10 @@ public:
     // All text blocks on a page (for diagnostics / future use).
     QList<TextBlock> allBlocks(int page) const;
 
+    // Text inside a rectangle (PDF-point coords, Y=0 at top), lines separated
+    // by '\n'. Used to fetch the full text of a detected paragraph block.
+    QString textInRect(int page, const QRectF &rect) const;
+
 private:
     TextBlock fetchBlock(int page, const QRectF &r, const QSizeF &pageSizePts) const;
 

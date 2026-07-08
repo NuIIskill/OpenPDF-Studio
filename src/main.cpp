@@ -1,7 +1,9 @@
 #include "app/App.hpp"
+#include "ui/MainWindow.hpp"
 #include "ui/theme/Theme.hpp"
 
 #include <QApplication>
+#include <QFileInfo>
 #include <QFontDatabase>
 #include <QIcon>
 #include <QLocale>
@@ -11,8 +13,42 @@
 #include <QTranslator>
 #include <cstdlib>
 
+#ifdef Q_OS_WIN
+#  include <windows.h>
+#  include <string>
+
+// On Windows, the cross-compiled fontconfig DLL has Linux paths hardcoded
+// as its system config location.  Setting FONTCONFIG_FILE before QApplication
+// is created (which loads Qt6Gui.dll and triggers fontconfig init) prevents
+// fontconfig from crashing when it can't find its config at the Linux path.
+// We point it to a fonts.conf deployed alongside the exe (in etc/fonts/).
+static void initFontconfigWindows()
+{
+    char buf[MAX_PATH];
+    if (GetModuleFileNameA(nullptr, buf, MAX_PATH) == 0) return;
+    std::string exePath(buf);
+    const auto lastSep = exePath.find_last_of("\\/");
+    const std::string exeDir = (lastSep != std::string::npos)
+                                   ? exePath.substr(0, lastSep)
+                                   : ".";
+    // Try the bundled fonts.conf first; fall back to letting fontconfig use
+    // the built-in config (which still has WINDOWSFONTDIR so fonts are found).
+    const std::string fcConf = exeDir + "\\etc\\fonts\\fonts.conf";
+    SetEnvironmentVariableA("FONTCONFIG_FILE", fcConf.c_str());
+    // The conf.avail dir sits next to fonts.conf
+    const std::string fcPath = exeDir + "\\etc\\fonts";
+    SetEnvironmentVariableA("FONTCONFIG_PATH", fcPath.c_str());
+    // Suppress the Linux-only mmap optimization (not reliable on Windows)
+    SetEnvironmentVariableA("FONTCONFIG_USE_MMAP", "false");
+}
+#endif
+
 int main(int argc, char *argv[])
 {
+#ifdef Q_OS_WIN
+    initFontconfigWindows();
+#endif
+
 #ifdef DEFAULT_QPA_PLATFORM
     if (qgetenv("QT_QPA_PLATFORM").isEmpty())
         qputenv("QT_QPA_PLATFORM", "wayland");
@@ -52,15 +88,14 @@ int main(int argc, char *argv[])
         }
     }
 
-    // ── Locale / translations (stub) ─────────────────────────────────────
+    // ── Locale / translations ─────────────────────────────────────────────
+    // Use the locale-aware overload: tries openpdf_de_DE.qm → openpdf_de.qm → openpdf.qm
     QTranslator translator;
-    const QStringList uiLanguages = QLocale::system().uiLanguages();
-    for (const QString &locale : uiLanguages) {
-        const QString baseName = QStringLiteral("OpenPDFStudio_") + locale;
-        if (translator.load(QStringLiteral(":/i18n/") + baseName)) {
-            qapp.installTranslator(&translator);
-            break;
-        }
+    if (translator.load(QLocale::system(),
+                        QStringLiteral("openpdf"),
+                        QStringLiteral("_"),
+                        QStringLiteral(":/i18n"))) {
+        qapp.installTranslator(&translator);
     }
 
     // ── App icon (blue rounded square + white "O") ────────────────────────
@@ -91,6 +126,11 @@ int main(int argc, char *argv[])
     // ── Application controller ────────────────────────────────────────────
     App app;
     app.startup();
+
+    // Open a PDF passed on the command line (file association / debugging).
+    const QStringList args = qapp.arguments();
+    if (args.size() > 1 && QFileInfo::exists(args.at(1)))
+        app.mainWindow()->openPath(args.at(1));
 
     return qapp.exec();
 }

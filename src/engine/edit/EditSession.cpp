@@ -1,8 +1,8 @@
 #include "EditSession.hpp"
+#include "ContentMap.hpp"
 
 #include <QPainter>
 #include <QFont>
-#include <QBuffer>
 #include <QDebug>
 
 #ifdef HAVE_QT_PDF
@@ -20,6 +20,8 @@
 #include <qpdf/QPDFWriter.hh>
 #include <qpdf/QPDFPageDocumentHelper.hh>
 #include <qpdf/QPDFPageObjectHelper.hh>
+#include <qpdf/QPDFAcroFormDocumentHelper.hh>
+#include <qpdf/QPDFFormFieldObjectHelper.hh>
 
 #include <cmath>
 #include <map>
@@ -42,7 +44,6 @@ struct Tok {
 class CSTok {
 public:
     explicit CSTok(const std::string &src) : m_s(src) {}
-    bool atEnd() const { return m_i >= m_s.size(); }
 
     Tok next() {
         skip();
@@ -57,9 +58,6 @@ public:
         if (c == '-' || c == '+' || c == '.' || isdigit((unsigned char)c)) return num();
         return word();
     }
-
-    // Return raw bytes from current position up to (not including) end of source.
-    std::string tail() const { return m_s.substr(m_i); }
 
 private:
     const std::string &m_s;
@@ -155,22 +153,26 @@ private:
 };
 
 // ── Content-stream filter ─────────────────────────────────────────────────────
-// Removes every BT..ET block that contains a text-show op (Tj/TJ/' /") whose
-// start position falls within targetBounds (Qt PDF-point coords, Y=0 at top).
-// Returns the filtered stream and the captured font size (0 if not found).
+// Replaces each text-show op (Tj/TJ/' /") whose start position falls within
+// targetBounds (Qt PDF-point coords, Y=0 at top) with an empty "() Tj" so that
+// subsequent relative Td moves in the same BT block stay correct.
+// Returns: {filtered_stream, fontSize, fontName_raw (e.g. "/F1")}.
+// A white fill rectangle is later appended to the stream to erase original
+// text that may live in form XObjects not touched by this filter.
 
-static std::pair<std::string, double> removeTextInBounds(const std::string &cs,
-                                                          const QRectF      &target,
-                                                          double             pageH)
+static std::tuple<std::string, double, std::string>
+removeTextInBounds(const std::string &cs, const QRectF &target, double pageH)
 {
     CSTok tok(cs);
     std::string out; out.reserve(cs.size());
 
-    bool        inBT = false, drop = false;
+    bool        inBT = false;
     std::string btBuf;
     std::vector<Tok> ops;
     double textX=0, textY=0, leading=0, fontSize=12;
-    double capturedFs = 0.0;  // font size from the dropped block
+    double      capturedFs   = 0.0;
+    std::string capturedFont;   // raw font-name token, e.g. "/F1"
+    std::string currentFont;
 
     auto flush = [&](std::string &dst) {
         for (auto &o : ops) { dst += o.raw; dst += ' '; }
@@ -183,11 +185,10 @@ static std::pair<std::string, double> removeTextInBounds(const std::string &cs,
 
         if (!inBT) {
             if (t.type == TT::Op && t.str == "BT") {
-                inBT = true; drop = false; textX=textY=leading=0;
+                inBT = true; textX=textY=leading=0;
                 btBuf = "BT\n"; ops.clear();
             } else if (t.type == TT::Op) {
                 if (t.str == "BI") {
-                    // Inline image: pass through verbatim until EI
                     flush(out); out += "BI "; ops.clear();
                     Tok u; do { u = tok.next(); out += u.raw; out += ' '; } while (u.type != TT::Eof && !(u.type == TT::Op && u.str == "EI"));
                     out += '\n';
@@ -196,28 +197,35 @@ static std::pair<std::string, double> removeTextInBounds(const std::string &cs,
         } else {
             if (t.type == TT::Op && t.str == "ET") {
                 inBT = false; ops.clear();
-                if (!drop) { btBuf += "ET\n"; out += btBuf; }
+                out += btBuf + "ET\n";
                 btBuf.clear();
             } else if (t.type == TT::Op) {
                 const std::string &o = t.str;
-                if      (o=="Tm" && ops.size()>=6)        { textX=ops[ops.size()-2].num; textY=ops[ops.size()-1].num; }
-                else if ((o=="Td"||o=="TD") && ops.size()>=2) { textX+=ops[ops.size()-2].num; textY+=ops[ops.size()-1].num; if(o=="TD") leading=-ops[ops.size()-1].num; }
-                else if (o=="T*")                         { textY -= leading; }
-                else if (o=="Tf" && ops.size()>=2)        { fontSize = ops.back().num; }
-                else if (o=="Tj"||o=="TJ"||o=="'"||o=="\"") {
-                    double qtY = pageH - textY;
-                    double exp = fontSize * 1.5;
-                    if (target.adjusted(-4,-exp,4,exp).contains(QPointF(textX, qtY))) {
-                        drop = true;
-                        capturedFs = fontSize;  // capture exact font size from this block
+                if      (o=="Tm" && ops.size()>=6)             { textX=ops[ops.size()-2].num; textY=ops[ops.size()-1].num; }
+                else if ((o=="Td"||o=="TD") && ops.size()>=2)  { textX+=ops[ops.size()-2].num; textY+=ops[ops.size()-1].num; if(o=="TD") leading=-ops[ops.size()-1].num; }
+                else if (o=="T*")                               { textY -= leading; }
+                else if (o=="TL" && !ops.empty())              { leading = ops.back().num; }
+                else if (o=="Tf" && ops.size()>=2)             { fontSize = ops.back().num; currentFont = ops[ops.size()-2].raw; }
+
+                const bool isShowOp = (o=="Tj"||o=="TJ"||o=="'"||o=="\"");
+                if (isShowOp) {
+                    const double qtY = pageH - textY;
+                    const double exp = fontSize * 0.5;
+                    if (target.adjusted(-12,-exp,12,exp).contains(QPointF(textX, qtY))) {
+                        capturedFs   = fontSize;
+                        capturedFont = currentFont;
+                        ops.clear();
+                        btBuf += "() Tj\n";
+                    } else {
+                        flush(btBuf); btBuf += t.raw; btBuf += '\n'; ops.clear();
                     }
+                } else {
+                    flush(btBuf); btBuf += t.raw; btBuf += '\n'; ops.clear();
                 }
-                if (!drop) { flush(btBuf); btBuf += t.raw; btBuf += '\n'; }
-                ops.clear();
             } else { ops.push_back(t); }
         }
     }
-    return { out, capturedFs };
+    return { out, capturedFs, capturedFont };
 }
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
@@ -235,9 +243,31 @@ static std::string pdfLit(const QString &s)
     return out;
 }
 
+// Append a background-filled rectangle at bounds to paint over any original text,
+// including text that lives in form XObjects (unreachable by removeTextInBounds).
+// bounds are in Qt PDF coords (Y=0 at top); pageH converts to PDF user coords.
+// Falls back to white when bg is invalid.
+static std::string bgErase(const QRectF &bounds, double pageH, const QColor &bg)
+{
+    const double r = bg.isValid() ? bg.redF()   : 1.0;
+    const double g = bg.isValid() ? bg.greenF() : 1.0;
+    const double b = bg.isValid() ? bg.blueF()  : 1.0;
+    std::ostringstream ss; ss << std::fixed; ss.precision(3);
+    const double x = bounds.left();
+    const double y = pageH - bounds.bottom();
+    const double w = bounds.width();
+    const double h = bounds.height();
+    ss << "q " << r << ' ' << g << ' ' << b << " rg "
+       << x << ' ' << y << ' ' << w << ' ' << h << " re f Q\n";
+    return ss.str();
+}
+
+// fontRef: font resource key, resolved by the caller (original resource or a
+// standard-14 font registered via ensureStdFont).
 static std::string buildReplacement(const QRectF &bounds, const QString &text,
-                                     double pageH, double fontSizeOverride = 0.0,
-                                     const QColor &color = QColor())
+                                     double pageH, double fontSizeOverride,
+                                     const QColor &color,
+                                     const std::string &fontRef)
 {
     const QStringList lines   = text.split(u'\n');
     const int         nLines  = lines.size();
@@ -253,7 +283,7 @@ static std::string buildReplacement(const QRectF &bounds, const QString &text,
     const double b = (color.isValid() ? color.blueF()  : 0.0);
 
     std::ostringstream ss; ss << std::fixed; ss.precision(3);
-    ss << "BT\n/OpenPDFHelv " << fs << " Tf\n"
+    ss << "BT\n" << fontRef << " " << fs << " Tf\n"
        << r << ' ' << g << ' ' << b << " rg\n"
        << x << ' ' << y0 << " Td\n(" << pdfLit(lines[0]) << ") Tj\n";
     for (int i = 1; i < nLines; ++i)
@@ -283,8 +313,42 @@ static std::string getPageContents(QPDFPageObjectHelper &ph)
     return result;
 }
 
-static void ensureHelvetica(QPDF &qpdf, QPDFPageObjectHelper &ph)
+// Map a Qt font family + style to one of the standard-14 PDF fonts. Every
+// conforming reader renders these without embedding.
+static std::string stdFontName(const QString &family, bool bold, bool italic)
 {
+    const QString f = family.toLower();
+    if (f.contains(QLatin1String("courier")) || f.contains(QLatin1String("mono"))) {
+        if (bold && italic) return "Courier-BoldOblique";
+        if (bold)           return "Courier-Bold";
+        if (italic)         return "Courier-Oblique";
+        return "Courier";
+    }
+    if (f.contains(QLatin1String("times"))
+            || f.contains(QLatin1String("georgia"))
+            || f.contains(QLatin1String("garamond"))
+            || f.contains(QLatin1String("book"))
+            || (f.contains(QLatin1String("serif")) && !f.contains(QLatin1String("sans")))) {
+        if (bold && italic) return "Times-BoldItalic";
+        if (bold)           return "Times-Bold";
+        if (italic)         return "Times-Italic";
+        return "Times-Roman";
+    }
+    if (bold && italic) return "Helvetica-BoldOblique";
+    if (bold)           return "Helvetica-Bold";
+    if (italic)         return "Helvetica-Oblique";
+    return "Helvetica";
+}
+
+// Registers a standard-14 font in the page's /Resources /Font dict (page-local
+// copy so shared dicts are never mutated). Returns the resource key ("/Opdf…").
+static std::string ensureStdFont(QPDF &qpdf, QPDFPageObjectHelper &ph,
+                                 const std::string &baseFont)
+{
+    std::string key = "/Opdf";
+    for (char c : baseFont)
+        if (c != '-') key += c;
+
     QPDFObjectHandle pageObj = ph.getObjectHandle();
     QPDFObjectHandle srcRes  = ph.getAttribute("/Resources", true);
 
@@ -298,16 +362,50 @@ static void ensureHelvetica(QPDF &qpdf, QPDFPageObjectHelper &ph)
     if (oldFont.isDictionary())
         for (const auto &k : oldFont.getKeys()) font.replaceKey(k, oldFont.getKey(k));
 
-    if (!font.hasKey("/OpenPDFHelv")) {
+    if (!font.hasKey(key)) {
         auto hf = QPDFObjectHandle::newDictionary();
         hf.replaceKey("/Type",     QPDFObjectHandle::newName("/Font"));
         hf.replaceKey("/Subtype",  QPDFObjectHandle::newName("/Type1"));
-        hf.replaceKey("/BaseFont", QPDFObjectHandle::newName("/Helvetica"));
+        hf.replaceKey("/BaseFont", QPDFObjectHandle::newName("/" + baseFont));
         hf.replaceKey("/Encoding", QPDFObjectHandle::newName("/WinAnsiEncoding"));
-        font.replaceKey("/OpenPDFHelv", qpdf.makeIndirectObject(hf));
+        font.replaceKey(key, qpdf.makeIndirectObject(hf));
     }
     res.replaceKey("/Font", font);
     pageObj.replaceKey("/Resources", res);
+    return key;
+}
+
+// Updates AcroForm text-field values (/V) and regenerates their appearance
+// streams so the new value renders in every viewer. Matches by fully
+// qualified name, name suffix, or partial name (/T of the widget).
+static void applyFormFieldEdits(QPDF &input,
+                                const std::vector<const EditSession::Edit*> &fieldEdits)
+{
+    try {
+        QPDFAcroFormDocumentHelper afdh(input);
+        auto fields = afdh.getFormFields();
+        bool changed = false;
+        for (const auto *e : fieldEdits) {
+            for (auto &f : fields) {
+                const QString fqn = QString::fromStdString(f.getFullyQualifiedName());
+                const QString pn  = QString::fromStdString(f.getPartialName());
+                if (fqn != e->formField && pn != e->formField
+                        && !fqn.endsWith(QLatin1Char('.') + e->formField))
+                    continue;
+                f.setV(QPDFObjectHandle::newUnicodeString(
+                           e->newText.toStdString()), true);
+                changed = true;
+                break;
+            }
+        }
+        if (changed) {
+            // Bake appearance streams; if generation fails, NeedAppearances
+            // stays set (from setV) and viewers regenerate on open.
+            try { afdh.generateAppearancesIfNeeded(); } catch (...) {}
+        }
+    } catch (const std::exception &ex) {
+        qWarning() << "[QPDF] form-field update failed:" << ex.what();
+    }
 }
 
 } // namespace
@@ -323,9 +421,22 @@ bool EditSession::saveVector(const QString &sourcePath, const QString &outputPat
         auto pages  = pdh.getAllPages();
         const int n = static_cast<int>(pages.size());
 
+        // AcroForm field edits update the field value (/V) — the widget's
+        // appearance stream renders the text, so the content stream is left
+        // untouched for them (blank companions included).
+        std::vector<const Edit*> fieldEdits;
         std::map<int, std::vector<const Edit*>> byPage;
-        for (const auto &e : m_edits)
-            if (e.page >= 0 && e.page < n) byPage[e.page].push_back(&e);
+        for (const auto &e : m_edits) {
+            if (e.page < 0 || e.page >= n) continue;
+            if (!e.formField.isEmpty()) {
+                if (!e.newText.isNull()) fieldEdits.push_back(&e);
+            } else {
+                byPage[e.page].push_back(&e);
+            }
+        }
+
+        if (!fieldEdits.empty())
+            applyFormFieldEdits(input, fieldEdits);
 
         for (auto &[pageIdx, edits] : byPage) {
             auto &ph        = pages[static_cast<std::size_t>(pageIdx)];
@@ -340,48 +451,64 @@ bool EditSession::saveVector(const QString &sourcePath, const QString &outputPat
 
             std::string cs = getPageContents(ph);
 
-            // First pass: strip original PDF text at every edit's pdfBounds.
-            // Both blank and text edits participate — blanks erase the original
-            // position, text edits may also sit over PDF text they should replace.
-            // Track the captured font size per edit; in-place pairs share pdfBounds
-            // so the text edit gets 0 from pass-1 (blank already stripped it) —
-            // propagate the blank's captured size forward.
-            std::vector<double> capturedFs(edits.size(), 0.0);
-            // Track already-stripped bounds so in-place pairs (blank+text at same
-            // pdfBounds) don't run removeTextInBounds twice — and so the text edit
-            // inherits the font size captured from the blank's removal.
-            std::vector<std::pair<QRectF, double>> strippedCache;
+            // First pass: replace in-bounds Tj ops with "() Tj" in the main stream.
+            // Also captures the original font name and size for reuse in pass 2.
+            // In-place pairs (blank+text at same pdfBounds) share one removal so
+            // the text edit inherits the font captured from the blank's removal.
+            std::vector<double>      capturedFs(edits.size(), 0.0);
+            std::vector<std::string> capturedFont(edits.size());
+            struct Stripped { QRectF rect; double fs; std::string font; QColor bg; };
+            std::vector<Stripped> strippedCache;
             for (size_t i = 0; i < edits.size(); ++i) {
                 const QRectF &b = edits[i]->pdfBounds;
-                double reuse = -1.0;
-                for (const auto &[rect, fs] : strippedCache)
-                    if (rect == b) { reuse = fs; break; }
-                if (reuse >= 0.0) {
-                    capturedFs[i] = reuse;
-                } else {
-                    auto [filtered, fs] = removeTextInBounds(cs, b, pageH);
+                bool found = false;
+                for (const auto &st : strippedCache) {
+                    if (st.rect == b) {
+                        capturedFs[i] = st.fs; capturedFont[i] = st.font;
+                        found = true; break;
+                    }
+                }
+                if (!found) {
+                    auto [filtered, fs, fn] = removeTextInBounds(cs, b, pageH);
                     cs = std::move(filtered);
-                    capturedFs[i] = fs;
-                    strippedCache.emplace_back(b, fs);
+                    capturedFs[i]   = fs;
+                    capturedFont[i] = fn;
+                    strippedCache.push_back({ b, fs, fn, edits[i]->bgColor });
                 }
             }
+            // Erase pass: fill each edited area with the background colour so that
+            // text rendered via form XObjects (which removeTextInBounds cannot reach)
+            // is covered.  Uses the stored bgColor; falls back to white.
+            for (const auto &st : strippedCache)
+                cs += bgErase(st.rect, pageH, st.bg);
+
             // Second pass: append replacement text — blank edits are erase-only.
-            // Priority: user-selected size (toolbar) > captured from content stream > height approx.
+            // Font size priority: toolbar override > captured > height estimate.
+            // Font resource: user changed the font → standard-14 mapping of the
+            // chosen family; otherwise keep the original font resource so the
+            // replacement matches the surrounding text exactly.
             for (size_t i = 0; i < edits.size(); ++i) {
-                if (edits[i]->newText.isNull()) continue;  // blank edit: erase only, no replacement
-                const double fs = edits[i]->fontSizePt > 0.0 ? edits[i]->fontSizePt : capturedFs[i];
+                if (edits[i]->newText.isNull()) continue;  // blank edit: erase only
+                const Edit &e = *edits[i];
+                const double fs = e.fontSizePt > 0.0 ? e.fontSizePt : capturedFs[i];
+
+                std::string fontRef;
+                if (e.fontChanged || capturedFont[i].empty())
+                    fontRef = ensureStdFont(input, ph,
+                                            stdFontName(e.fontFamily, e.bold, e.italic));
+                else
+                    fontRef = capturedFont[i];
+
                 qWarning() << "[SAVE] page" << pageIdx
-                           << "text=" << edits[i]->newText.left(30)
-                           << "bounds=" << edits[i]->pdfBounds
-                           << "fs=" << fs
-                           << "capturedFs=" << capturedFs[i];
-                cs += buildReplacement(edits[i]->pdfBounds, edits[i]->newText, pageH, fs,
-                                       edits[i]->textColor);
+                           << "text=" << e.newText.left(30)
+                           << "bounds=" << e.pdfBounds
+                           << "fs=" << fs << "font=" << QString::fromStdString(fontRef);
+                cs += buildReplacement(e.pdfBounds, e.newText, pageH, fs,
+                                       e.textColor, fontRef);
             }
 
             auto newStream = QPDFObjectHandle::newStream(&input, cs);
             pageObj.replaceKey("/Contents", input.makeIndirectObject(newStream));
-            ensureHelvetica(input, ph);
         }
 
         QPDFWriter writer(input, outputPath.toLocal8Bit().constData());
@@ -399,12 +526,10 @@ bool EditSession::saveVector(const QString &sourcePath, const QString &outputPat
 // ── Mutation ──────────────────────────────────────────────────────────────────
 
 void EditSession::addEdit(int page, const QRectF &pdfBounds, const QString &newText,
-                          double fontSizePt, const QColor &color, const QRectF &sourceRect)
+                          double fontSizePt, const QColor &color, const QRectF &sourceRect,
+                          const QColor &bgColor)
 {
-    // No implicit removeEdit here: blank+text edits for the same in-place location
-    // share pdfBounds, and auto-removing would delete the companion blank when the
-    // text edit is appended.  Callers call removeEdit explicitly before addEdit.
-    m_edits.append({ page, pdfBounds, sourceRect, newText, fontSizePt, color });
+    m_edits.append({ page, pdfBounds, sourceRect, newText, fontSizePt, color, bgColor });
 }
 
 void EditSession::removeEdit(int page, const QRectF &pdfBounds)
@@ -457,7 +582,7 @@ bool EditSession::isBlankAt(int page, const QRectF &pdfBounds) const
         // the same pdfBounds — if a companion text edit also covers this area the
         // spot has content and must open an editor, not be silently ignored.
         for (const auto &t : m_edits)
-            if (t.page == page && !t.newText.isEmpty() && t.pdfBounds.intersects(pdfBounds))
+            if (t.page == page && !t.newText.isEmpty() && t.pdfBounds == pdfBounds)
                 return false;
         return true;
     }
@@ -542,34 +667,7 @@ QColor EditSession::editColorAt(int page, const QRectF &pdfBounds) const
     return QColor(); // invalid = no stored color
 }
 
-bool EditSession::findReplacementEditAt(int page, const QPointF &pdfPt,
-                                        QRectF *outBounds, QString *outText,
-                                        double *outFontSizePt, QColor *outColor) const
-{
-    // Like findEditAt but only returns edits that have a companion blank at the
-    // same pdfBounds.  An edit without a companion blank is a createTextFrame
-    // overlay — it should not intercept clicks on native text underneath it.
-    for (int i = m_edits.size() - 1; i >= 0; --i) {
-        const auto &e = m_edits[i];
-        if (e.page != page || e.newText.isNull() || !e.pdfBounds.contains(pdfPt))
-            continue;
-        bool hasBlank = false;
-        for (const auto &b : m_edits)
-            if (b.page == page && b.newText.isNull() && b.pdfBounds == e.pdfBounds)
-                { hasBlank = true; break; }
-        if (!hasBlank) continue;
-        if (outBounds)     *outBounds     = e.pdfBounds;
-        if (outText)       *outText       = e.newText;
-        if (outFontSizePt) *outFontSizePt = e.fontSizePt;
-        if (outColor)      *outColor      = e.textColor;
-        return true;
-    }
-    return false;
-}
-
-bool EditSession::findEditAt(int page, const QPointF &pdfPt,
-                             QRectF *outBounds, QString *outText,
-                             double *outFontSizePt, QColor *outColor) const
+bool EditSession::findEditAt(int page, const QPointF &pdfPt, Edit *out) const
 {
     // Iterate in reverse so the topmost (most recently drawn) session edit wins
     // when multiple overlapping edits contain the click point.
@@ -577,10 +675,7 @@ bool EditSession::findEditAt(int page, const QPointF &pdfPt,
     for (int i = m_edits.size() - 1; i >= 0; --i) {
         const auto &e = m_edits[i];
         if (e.page == page && !e.newText.isNull() && e.pdfBounds.contains(pdfPt)) {
-            if (outBounds)     *outBounds     = e.pdfBounds;
-            if (outText)       *outText       = e.newText;
-            if (outFontSizePt) *outFontSizePt = e.fontSizePt;
-            if (outColor)      *outColor      = e.textColor;
+            if (out) *out = e;
             return true;
         }
     }
@@ -598,8 +693,7 @@ void EditSession::applyToImage(int page, QImage &img, qreal scale) const
 
     QPainter p(&img);
     if (hasText) {
-        // Two-pass: all blanks (white fills) before all text draws so that a blank
-        // added after a text edit in m_edits doesn't paint over the text.
+        // Two-pass: all blanks before all text draws.
         for (const auto &e : m_edits)
             if (e.page == page && e.newText.isNull())
                 paintBlankEdit(p, e, scale);
@@ -623,10 +717,8 @@ void EditSession::applyToImage(int page, QImage &img, qreal scale) const
 void EditSession::paintBlankEdit(QPainter &p, const Edit &e, qreal scale)
 {
     const QRectF px(e.pdfBounds.topLeft() * scale, e.pdfBounds.size() * scale);
-    // The extractor now merges all same-y-level polygons into pdfBounds, so a
-    // small fixed padding (4 device px) is enough to cover sub-pixel overhangs.
-    // Large horizontal padding used to destroy adjacent text blocks — don't use it.
-    p.fillRect(px.adjusted(-4, -4, 4, 4), Qt::white);
+    const QRect  r = px.adjusted(-1, -1, 1, 1).toAlignedRect();
+    p.fillRect(r, e.bgColor.isValid() ? e.bgColor : Qt::white);
 }
 
 void EditSession::paintTextEdit(QPainter &p, const Edit &e, qreal scale)
@@ -641,10 +733,15 @@ void EditSession::paintTextEdit(QPainter &p, const Edit &e, qreal scale)
         pixelSize = qMax(6, qRound(e.fontSizePt * scale));
     } else {
         const int lineCount = qMax(1, e.newText.count(u'\n') + 1);
-        pixelSize = qMax(8, int(px.height() / lineCount * 0.78));
+        pixelSize = qMax(8, qRound(px.height() / lineCount / 0.72));
     }
-    QFont f = p.font();
+    // Use the edit's stored family/style so the live view matches what the
+    // save path writes (original font kept, or user-chosen family).
+    QFont f(e.fontFamily.isEmpty() ? QStringLiteral("Helvetica") : e.fontFamily);
+    f.setStyleHint(QFont::SansSerif);
     f.setPixelSize(pixelSize);
+    f.setBold(e.bold);
+    f.setItalic(e.italic);
     p.setFont(f);
     p.setPen(e.textColor.isValid() ? e.textColor : QColor(0x11, 0x11, 0x11));
     p.drawText(px.toRect(),

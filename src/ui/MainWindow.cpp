@@ -145,6 +145,24 @@ void MainWindow::connectSignals()
         if (DocumentView *dv = currentDocView())
             dv->setEditorFontSize(pt);
     });
+    // FormatBar color → active editor live update
+    connect(m_formatBar, &FormatBar::textColorChanged, this, [this](const QColor &c) {
+        if (DocumentView *dv = currentDocView())
+            dv->setEditorTextColor(c);
+    });
+    // FormatBar font family / bold / italic → active editor live update
+    connect(m_formatBar, &FormatBar::fontFamilyChanged, this, [this](const QString &f) {
+        if (DocumentView *dv = currentDocView())
+            dv->setEditorFontFamily(f);
+    });
+    connect(m_formatBar, &FormatBar::boldToggled, this, [this](bool on) {
+        if (DocumentView *dv = currentDocView())
+            dv->setEditorBold(on);
+    });
+    connect(m_formatBar, &FormatBar::italicToggled, this, [this](bool on) {
+        if (DocumentView *dv = currentDocView())
+            dv->setEditorItalic(on);
+    });
 
     // All keyboard shortcuts — created once here, sequences updated by loadShortcuts()
     struct Def { const char *key; void (MainWindow::*slot)(); };
@@ -221,6 +239,23 @@ DocumentView *MainWindow::addDocView()
     // Sync FormatBar font size ↔ active editor
     connect(dv, &DocumentView::editorFontSizeChanged,
             m_formatBar, &FormatBar::setFontSize);
+    // Sync FormatBar font family/style with the detected font of the block
+    // the user is editing (Acrobat-style: toolbar reflects the clicked text).
+    connect(dv, &DocumentView::editorFontChanged, this,
+            [this, dv](const QString &family, bool bold, bool italic) {
+        if (dv != currentDocView()) return;
+        m_formatBar->setFontFamily(family);
+        m_formatBar->setBoldChecked(bold);
+        m_formatBar->setItalicChecked(italic);
+    });
+
+    // Sync zoom label when user zooms via mouse wheel
+    connect(dv, &DocumentView::zoomChanged, this, [this, dv](int percent) {
+        if (dv == currentDocView()) {
+            m_zoom = percent;
+            m_topToolbar->setZoom(percent);
+        }
+    });
 
     m_docStack->setCurrentWidget(dv);
     m_topToolbar->setCurrentTab(idx);
@@ -282,7 +317,11 @@ void MainWindow::onOpenFile()
     const QString path = QFileDialog::getOpenFileName(
         this, tr("Open PDF"), {}, tr("PDF files (*.pdf)"));
     if (path.isEmpty()) return;
+    openPath(path);
+}
 
+void MainWindow::openPath(const QString &path)
+{
     DocumentView *dv = currentDocView();
     if (!dv) return;
 

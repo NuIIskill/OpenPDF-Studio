@@ -1,5 +1,6 @@
 #pragma once
 #include <QColor>
+#include <QFont>
 #include <QTextEdit>
 
 // Frameless text editor living inside TextBoxFrame.
@@ -13,9 +14,18 @@ public:
 
     // Set content, font size, and text color, then grab focus.
     void present(const QString &text, int pixelFontSize,
-                 const QColor &color = QColor(0x11, 0x11, 0x11));
+                 const QColor &color = QColor(0x11, 0x11, 0x11),
+                 const QString &family = QString(),
+                 bool bold = false, bool italic = false);
     // Change font size live without resetting content (color is preserved).
     void setFontSize(int pixelFontSize);
+    // Change text color live without resetting content (font size is preserved).
+    void setColor(const QColor &color);
+    // Change font family/style live (size and color are preserved).
+    void setTextFont(const QString &family, bool bold, bool italic);
+
+    // The effective editor font at the given pixel size (for layout metrics).
+    QFont styledFont(int pixelFontSize) const;
 
 Q_SIGNALS:
     void committed(const QString &text);
@@ -33,8 +43,14 @@ public:
     void setDragMode(bool on)   { m_dragMode = on; }
 
 private:
-    bool   m_committing      { false };
-    bool   m_suppressFocusOut{ false };
-    bool   m_dragMode        { false };
-    QColor m_currentColor    { 0x11, 0x11, 0x11 };
+    void applyStyle();
+
+    bool    m_committing      { false };
+    bool    m_suppressFocusOut{ false };
+    bool    m_dragMode        { false };
+    QColor  m_currentColor    { 0x11, 0x11, 0x11 };
+    int     m_currentFontPx   { 12 };
+    QString m_family;
+    bool    m_bold            { false };
+    bool    m_italic          { false };
 };
