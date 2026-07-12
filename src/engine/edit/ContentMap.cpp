@@ -99,7 +99,8 @@ struct RowSegs {
 
 } // namespace
 
-QList<ContentItem> classifyContentClusters(QList<ContentCluster> clusters)
+QList<ContentItem> classifyContentClusters(QList<ContentCluster> clusters,
+                                           bool mergeVertical)
 {
     // Drop empties and degenerate runs
     QList<ContentCluster> cl;
@@ -173,6 +174,27 @@ QList<ContentItem> classifyContentClusters(QList<ContentCluster> clusters)
     std::sort(rsegs.begin(), rsegs.end(),
               [](const RowSegs &a, const RowSegs &b) { return a.y < b.y; });
 
+    // A bullet and its following text are one list line, not two table
+    // columns. Without this normalization, several adjacent bullet rows meet
+    // the table-alignment heuristic and become a bogus two-column table.
+    for (RowSegs &row : rsegs) {
+        if (row.segs.size() < 2) continue;
+        const QString marker = row.segs.first().text.trimmed();
+        if (marker != QStringLiteral("•") && marker != QStringLiteral("-")
+                && marker != QStringLiteral("–") && marker != QStringLiteral("—")
+                && marker != QStringLiteral("▪") && marker != QStringLiteral("◦"))
+            continue;
+        Seg merged = row.segs.first();
+        // Font/style must come from the list text, not from the tiny OpenSymbol
+        // bullet glyph (typically 3-4 pt bounding height).
+        merged.firstIdx = row.segs[1].firstIdx;
+        for (int n = 1; n < row.segs.size(); ++n) {
+            merged.text += u' ' + row.segs[n].text;
+            merged.bounds = merged.bounds.united(row.segs[n].bounds);
+        }
+        row.segs = { merged };
+    }
+
     // Phase 3: table detection — a multi-segment row is a table row only when a
     // vertically adjacent row is also multi-segment with ≥2 aligned column lefts.
     // (An isolated two-part line — e.g. heading + page number — stays plain text.)
@@ -218,6 +240,15 @@ QList<ContentItem> classifyContentClusters(QList<ContentCluster> clusters)
             if (it.isValid() && !it.text.isEmpty())
                 items.append(std::move(it));
         }
+    }
+
+    if (!mergeVertical) {
+        std::sort(items.begin(), items.end(), [](const ContentItem &a, const ContentItem &b) {
+            if (std::abs(a.bounds.top() - b.bounds.top()) > 0.5)
+                return a.bounds.top() < b.bounds.top();
+            return a.bounds.left() < b.bounds.left();
+        });
+        return items;
     }
 
     // Phase 5: vertical merge — consecutive aligned Text lines become a

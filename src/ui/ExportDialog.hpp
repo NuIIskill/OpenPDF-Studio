@@ -23,6 +23,7 @@ public:
 
     QString selectedPath()   const;
     QString selectedFormat() const;
+    int selectedImageQuality() const;
 
 private:
     void buildUi();

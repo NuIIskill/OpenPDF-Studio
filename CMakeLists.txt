@@ -6,6 +6,8 @@ project(OpenPDFStudio
     LANGUAGES CXX
 )
 
+include(CTest)
+
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
@@ -195,6 +197,7 @@ endif()
 
 if(WIN32)
     set_target_properties(OpenPDFStudio PROPERTIES WIN32_EXECUTABLE TRUE)
+    target_sources(OpenPDFStudio PRIVATE resources/windows/openpdf-studio.rc)
 endif()
 
 if(MINGW)
@@ -218,6 +221,17 @@ install(FILES resources/icons/openpdf-studio.png
     DESTINATION share/icons/hicolor/256x256/apps
     OPTIONAL
 )
+
+if(BUILD_TESTING AND EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/tests/problem.pdf")
+    add_test(NAME docx_export_problem_pdf
+        COMMAND ${CMAKE_COMMAND}
+            -DAPP=$<TARGET_FILE:OpenPDFStudio>
+            -DPDF=${CMAKE_CURRENT_SOURCE_DIR}/tests/problem.pdf
+            -DOUT=${CMAKE_CURRENT_BINARY_DIR}/problem-regression.docx
+            -P ${CMAKE_CURRENT_SOURCE_DIR}/tests/DocxRegression.cmake
+    )
+    set_tests_properties(docx_export_problem_pdf PROPERTIES TIMEOUT 120)
+endif()
 
 install(FILES packaging/appimage/README.md
     DESTINATION share/doc/OpenPDFStudio

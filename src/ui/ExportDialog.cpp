@@ -37,12 +37,19 @@ QString ExportDialog::selectedPath() const
     QString name = m_filenameEdit->text().trimmed();
     if (dir.isEmpty() || name.isEmpty()) return {};
     // ensure correct extension for selected format
-    if (m_selectedFormat == QLatin1String("word") && !name.endsWith(QLatin1String(".docx")))
+    if (m_selectedFormat == QLatin1String("word") && !name.endsWith(QLatin1String(".docx"), Qt::CaseInsensitive))
         name += QStringLiteral(".docx");
-    return dir + QLatin1Char('/') + name;
+    else if (m_selectedFormat == QLatin1String("image")
+             && !name.endsWith(QLatin1String(".png"), Qt::CaseInsensitive))
+        name += QStringLiteral(".png");
+    return QDir(dir).filePath(name);
 }
 
 QString ExportDialog::selectedFormat() const { return m_selectedFormat; }
+int ExportDialog::selectedImageQuality() const
+{
+    return m_qualityCombo ? m_qualityCombo->currentData().toInt() : 85;
+}
 
 // ── helpers ───────────────────────────────────────────────────────────────────
 
@@ -109,11 +116,13 @@ void ExportDialog::onFormatSelected(const QString &id)
     // Update filename extension
     QString name = m_filenameEdit->text();
     // strip old ext
-    for (const QString &ext : {".pdf", ".docx"}) {
-        if (name.endsWith(ext)) { name.chop(ext.length()); break; }
+    for (const QString &ext : {".pdf", ".docx", ".png"}) {
+        if (name.endsWith(ext, Qt::CaseInsensitive)) { name.chop(ext.length()); break; }
     }
     if (id == QLatin1String("word"))
         name += QStringLiteral(".docx");
+    else if (id == QLatin1String("image"))
+        name += QStringLiteral(".png");
     else
         name += QStringLiteral(".pdf");
     m_filenameEdit->setText(name);
@@ -153,10 +162,26 @@ void ExportDialog::onExport()
         return;
     }
 
-    if (m_selectedFormat == QLatin1String("image")) {
-        QMessageBox::information(this, tr("Coming soon"),
-            tr("Image export is not yet implemented."));
-        return;
+    const QString path = selectedPath();
+    QStringList existing;
+    if (m_selectedFormat == QLatin1String("image") && m_pageCount > 1) {
+        const QFileInfo out(path);
+        for (int page = 1; page <= m_pageCount; ++page) {
+            const QString candidate = out.dir().filePath(
+                out.completeBaseName() + QStringLiteral("_page_%1.png").arg(page));
+            if (QFileInfo::exists(candidate)) existing.append(candidate);
+        }
+    } else if (QFileInfo::exists(path)) {
+        existing.append(path);
+    }
+    if (!existing.isEmpty()) {
+        const QString shown = existing.size() == 1
+            ? QFileInfo(existing.first()).fileName()
+            : tr("%1 image files").arg(existing.size());
+        if (QMessageBox::question(this, tr("Overwrite existing file?"),
+                tr("%1 already exists. Do you want to overwrite it?").arg(shown),
+                QMessageBox::Yes | QMessageBox::No, QMessageBox::No) != QMessageBox::Yes)
+            return;
     }
 
     accept();
@@ -261,6 +286,7 @@ void ExportDialog::buildUi()
             border-radius: 6px;
             padding: 6px 14px;
             background: palette(button);
+            color: palette(buttonText);
         }
         QPushButton#XBrowse:hover { background: palette(light); }
         /* Cancel */
@@ -268,7 +294,8 @@ void ExportDialog::buildUi()
             border: 1px solid palette(mid);
             border-radius: 6px;
             padding: 0 16px;
-            background: palette(button);
+            background: palette(base);
+            color: palette(text);
         }
         QPushButton#XCancel:hover { background: palette(light); }
         /* Export (primary) */
@@ -303,7 +330,7 @@ void ExportDialog::buildUi()
         auto *pdfBtn  = makeFormatCard(QStringLiteral("📄"), QStringLiteral("PDF"),   QStringLiteral("pdf"),   true);
         auto *pdfaBtn = makeFormatCard(QStringLiteral("📋"), QStringLiteral("PDF/A"), QStringLiteral("pdfa"),  true);
         auto *wordBtn = makeFormatCard(QStringLiteral("W"),  QStringLiteral("Word"),  QStringLiteral("word"),  true);
-        auto *imgBtn  = makeFormatCard(QStringLiteral("🖼"), QStringLiteral("Image"), QStringLiteral("image"), false);
+        auto *imgBtn  = makeFormatCard(QStringLiteral("🖼"), QStringLiteral("Image"), QStringLiteral("image"), true);
         // Style the "W" as a blue badge
         wordBtn->findChild<QLabel *>(QStringLiteral("XCardIcon"))->setStyleSheet(
             QStringLiteral("font-size:16px;font-weight:bold;color:white;"

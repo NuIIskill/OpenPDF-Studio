@@ -15,6 +15,7 @@ QT_END_NAMESPACE
 class ImageAnnotation;
 
 #include "engine/ocr/OcrEngine.hpp"
+#include "engine/edit/DocxExporter.hpp"
 
 #ifdef HAVE_PDF_RENDERING
 #  include "engine/view/PdfRenderer.hpp"
@@ -68,7 +69,8 @@ public:
     QUndoStack *undoStack()        const { return m_undoStack; }
     bool        hasUnsavedEdits()  const;
     bool        pdfRenderingAvailable() const;
-    QList<QString> allPageTexts() const;
+    QList<DocxPage> allPageContent();
+    bool exportPagesToImages(const QString &outputPath, int quality = 85);
     // Called by undo/redo commands to refresh a page after session state is restored.
     void        rerenderPage(int page);
 

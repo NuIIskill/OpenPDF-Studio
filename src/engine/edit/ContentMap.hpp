@@ -75,7 +75,8 @@ struct ContentCluster {
 // Groups runs into lines → segments, detects table rows via column alignment
 // across neighbouring rows, merges aligned consecutive lines into Paragraph
 // items (text joined with '\n'). Font/color metadata is carried through.
-QList<ContentItem> classifyContentClusters(QList<ContentCluster> clusters);
+QList<ContentItem> classifyContentClusters(QList<ContentCluster> clusters,
+                                           bool mergeVertical = true);
 
 // ── Font resolution ───────────────────────────────────────────────────────────
 struct ResolvedFont {

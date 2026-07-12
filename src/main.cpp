@@ -1,5 +1,7 @@
 #include "app/App.hpp"
 #include "ui/MainWindow.hpp"
+#include "ui/DocumentView.hpp"
+#include "engine/edit/DocxExporter.hpp"
 #include "ui/theme/Theme.hpp"
 
 #include <QApplication>
@@ -123,12 +125,22 @@ int main(int argc, char *argv[])
         qapp.setWindowIcon(appIcon);
     }
 
+    // Headless regression/export entry point. It uses the same content path as
+    // the UI: OpenPDFStudio --export-docx input.pdf output.docx
+    const QStringList args = qapp.arguments();
+    if (args.size() == 4 && args.at(1) == QLatin1String("--export-docx")) {
+        DocumentView view;
+        if (!view.openFile(args.at(2))) return 2;
+        const bool ok = DocxExporter::exportToDocx(
+            args.at(3), view.allPageContent(), QFileInfo(args.at(2)).completeBaseName());
+        return ok ? 0 : 3;
+    }
+
     // ── Application controller ────────────────────────────────────────────
     App app;
     app.startup();
 
     // Open a PDF passed on the command line (file association / debugging).
-    const QStringList args = qapp.arguments();
     if (args.size() > 1 && QFileInfo::exists(args.at(1)))
         app.mainWindow()->openPath(args.at(1));
 

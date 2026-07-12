@@ -458,14 +458,24 @@ void MainWindow::onModeSelected(const QString &mode)
             const QString format = dlg.selectedFormat();
             if (!path.isEmpty()) {
                 if (format == QLatin1String("word")) {
-                    const QList<QString> texts = dv->allPageTexts();
+                    const QList<DocxPage> pages = dv->allPageContent();
                     const QString title = QFileInfo(dv->currentFile()).completeBaseName();
-                    if (DocxExporter::exportToDocx(path, texts, title))
+                    if (DocxExporter::exportToDocx(path, pages, title))
                         QMessageBox::information(this, tr("Export successful"),
                             tr("Document exported to \"%1\".").arg(QFileInfo(path).fileName()));
                     else
                         QMessageBox::warning(this, tr("Export failed"),
                             tr("Could not write to \"%1\".").arg(path));
+                } else if (format == QLatin1String("image")) {
+                    if (dv->exportPagesToImages(path, dlg.selectedImageQuality()))
+                        QMessageBox::information(this, tr("Export successful"),
+                            pages > 1
+                                ? tr("%1 pages exported as PNG images.").arg(pages)
+                                : tr("Document exported to \"%1\".").arg(QFileInfo(path).fileName()));
+                    else
+                        QMessageBox::warning(this, tr("Export failed"),
+                            tr("Could not export PNG images to \"%1\".").arg(
+                                QFileInfo(path).absolutePath()));
                 } else {
                     if (dv->saveToFile(path))
                         QMessageBox::information(this, tr("Export successful"),
