@@ -4,6 +4,7 @@
 #include <QPainter>
 #include <QFont>
 #include <QDebug>
+#include <climits>
 
 #ifdef HAVE_QT_PDF
 #include <QPdfWriter>
@@ -150,6 +151,27 @@ private:
         if (m_i==s0) ++m_i;
         Tok t; t.type=TT::Op; t.raw=m_s.substr(s0,m_i-s0); t.str=t.raw; return t;
     }
+
+public:
+    // Raw bytes of an inline image (call right after consuming BI), up to and
+    // including the EI operator. The binary payload must pass through
+    // UNTOUCHED — re-tokenizing it inserts whitespace into the image data and
+    // corrupts the stream from that point on.
+    std::string rawInlineImage() {
+        const size_t start = m_i;
+        while (m_i + 1 < m_s.size()) {
+            if (m_s[m_i] == 'E' && m_s[m_i+1] == 'I'
+                    && (m_i == 0 || isWS(m_s[m_i-1]))
+                    && (m_i + 2 >= m_s.size() || isWS(m_s[m_i+2])
+                        || isDelim(m_s[m_i+2]))) {
+                m_i += 2;
+                return m_s.substr(start, m_i - start);
+            }
+            ++m_i;
+        }
+        m_i = m_s.size();
+        return m_s.substr(start);
+    }
 };
 
 // ── Content-stream filter ─────────────────────────────────────────────────────
@@ -169,10 +191,34 @@ removeTextInBounds(const std::string &cs, const QRectF &target, double pageH)
     bool        inBT = false;
     std::string btBuf;
     std::vector<Tok> ops;
-    double textX=0, textY=0, leading=0, fontSize=12;
+    double leading=0, fontSize=12;
     double      capturedFs   = 0.0;
     std::string capturedFont;   // raw font-name token, e.g. "/F1"
     std::string currentFont;
+
+    // CTM tracking (row-vector convention, new matrix applies first).
+    // Without it, PDFs that wrap their content in a `cm` transform (most
+    // generator output!) report positions in the wrong space, NOTHING gets
+    // removed, and the saved file resurrects the original text as a dupe.
+    struct M { double a=1,b=0,c=0,d=1,e=0,f=0; };
+    const auto concatM = [](const M &L, const M &R) -> M {
+        return { L.a*R.a + L.b*R.c,  L.a*R.b + L.b*R.d,
+                 L.c*R.a + L.d*R.c,  L.c*R.b + L.d*R.d,
+                 L.e*R.a + L.f*R.c + R.e,
+                 L.e*R.b + L.f*R.d + R.f };
+    };
+    M ctm;
+    std::vector<M> ctmStack;
+
+    // Text LINE matrix (Tlm). Td/TD/T* translations are expressed in text
+    // space and transformed through Tlm — scalar x/y tracking silently breaks
+    // on the mirrored `1 0 0 -1 0 0 Tm` that Qt & friends emit, removing
+    // RANDOM glyphs instead of the targeted ones.
+    M tlm;
+    const auto tlmTranslate = [&](double tx, double ty) {
+        tlm.e = tx * tlm.a + ty * tlm.c + tlm.e;
+        tlm.f = tx * tlm.b + ty * tlm.d + tlm.f;
+    };
 
     auto flush = [&](std::string &dst) {
         for (auto &o : ops) { dst += o.raw; dst += ' '; }
@@ -185,12 +231,26 @@ removeTextInBounds(const std::string &cs, const QRectF &target, double pageH)
 
         if (!inBT) {
             if (t.type == TT::Op && t.str == "BT") {
-                inBT = true; textX=textY=leading=0;
+                inBT = true; leading=0; tlm = M{};
                 btBuf = "BT\n"; ops.clear();
             } else if (t.type == TT::Op) {
+                // Interpret the graphics state BEFORE flushing (ops still hold
+                // the operands); the tokens themselves pass through verbatim.
+                if (t.str == "q") {
+                    ctmStack.push_back(ctm);
+                } else if (t.str == "Q") {
+                    if (!ctmStack.empty()) { ctm = ctmStack.back(); ctmStack.pop_back(); }
+                } else if (t.str == "cm" && ops.size() >= 6) {
+                    M m;
+                    m.a = ops[ops.size()-6].num; m.b = ops[ops.size()-5].num;
+                    m.c = ops[ops.size()-4].num; m.d = ops[ops.size()-3].num;
+                    m.e = ops[ops.size()-2].num; m.f = ops[ops.size()-1].num;
+                    ctm = concatM(m, ctm);
+                }
                 if (t.str == "BI") {
-                    flush(out); out += "BI "; ops.clear();
-                    Tok u; do { u = tok.next(); out += u.raw; out += ' '; } while (u.type != TT::Eof && !(u.type == TT::Op && u.str == "EI"));
+                    flush(out); ops.clear();
+                    out += "BI";
+                    out += tok.rawInlineImage();   // verbatim — never re-tokenize
                     out += '\n';
                 } else { flush(out); out += t.raw; out += '\n'; ops.clear(); }
             } else { ops.push_back(t); }
@@ -201,21 +261,58 @@ removeTextInBounds(const std::string &cs, const QRectF &target, double pageH)
                 btBuf.clear();
             } else if (t.type == TT::Op) {
                 const std::string &o = t.str;
-                if      (o=="Tm" && ops.size()>=6)             { textX=ops[ops.size()-2].num; textY=ops[ops.size()-1].num; }
-                else if ((o=="Td"||o=="TD") && ops.size()>=2)  { textX+=ops[ops.size()-2].num; textY+=ops[ops.size()-1].num; if(o=="TD") leading=-ops[ops.size()-1].num; }
-                else if (o=="T*")                               { textY -= leading; }
+                if      (o=="Tm" && ops.size()>=6)             {
+                    tlm.a = ops[ops.size()-6].num; tlm.b = ops[ops.size()-5].num;
+                    tlm.c = ops[ops.size()-4].num; tlm.d = ops[ops.size()-3].num;
+                    tlm.e = ops[ops.size()-2].num; tlm.f = ops[ops.size()-1].num;
+                }
+                else if ((o=="Td"||o=="TD") && ops.size()>=2)  {
+                    const double tx = ops[ops.size()-2].num;
+                    const double ty = ops[ops.size()-1].num;
+                    tlmTranslate(tx, ty);
+                    if (o=="TD") leading = -ty;
+                }
+                else if (o=="T*")                               { tlmTranslate(0, -leading); }
                 else if (o=="TL" && !ops.empty())              { leading = ops.back().num; }
                 else if (o=="Tf" && ops.size()>=2)             { fontSize = ops.back().num; currentFont = ops[ops.size()-2].raw; }
 
                 const bool isShowOp = (o=="Tj"||o=="TJ"||o=="'"||o=="\"");
                 if (isShowOp) {
-                    const double qtY = pageH - textY;
-                    const double exp = fontSize * 0.5;
-                    if (target.adjusted(-12,-exp,12,exp).contains(QPointF(textX, qtY))) {
-                        capturedFs   = fontSize;
+                    // ' and " advance to the next line BEFORE showing.
+                    if (o == "'" || o == "\"") tlmTranslate(0, -leading);
+                    // Map the line-matrix origin through the CTM into page space.
+                    const double px   = tlm.e*ctm.a + tlm.f*ctm.c + ctm.e;
+                    const double py   = tlm.e*ctm.b + tlm.f*ctm.d + ctm.f;
+                    const double qtY  = pageH - py;
+                    const double tlmS = std::sqrt(tlm.b*tlm.b + tlm.d*tlm.d);
+                    const double ctmS = std::sqrt(ctm.c*ctm.c + ctm.d*ctm.d);
+                    const double effFs = fontSize
+                                       * (tlmS > 0.001 ? tlmS : 1.0)
+                                       * (ctmS > 0.001 ? ctmS : 1.0);
+                    const double exp = effFs * 0.5;
+                    if (target.adjusted(-12,-exp,12,exp).contains(QPointF(px, qtY))) {
+                        capturedFs   = effFs;
                         capturedFont = currentFont;
+                        // Preserve the positioning side effects of the removed
+                        // operator: ' and " perform a T* line advance — dropping
+                        // it collapses every following line of the block onto
+                        // one position.
+                        if (o == "'") {
+                            btBuf += "T* () Tj\n";
+                        } else if (o == "\"") {
+                            double aw = 0.0, ac = 0.0; int seen = 0;
+                            for (const Tok &tk : ops)
+                                if (tk.type == TT::Num) {
+                                    (seen == 0 ? aw : ac) = tk.num;
+                                    if (++seen == 2) break;
+                                }
+                            std::ostringstream ssq;
+                            ssq << aw << ' ' << ac << " () \"\n";
+                            btBuf += ssq.str();
+                        } else {
+                            btBuf += "() Tj\n";
+                        }
                         ops.clear();
-                        btBuf += "() Tj\n";
                     } else {
                         flush(btBuf); btBuf += t.raw; btBuf += '\n'; ops.clear();
                     }
@@ -229,6 +326,75 @@ removeTextInBounds(const std::string &cs, const QRectF &target, double pageH)
 }
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
+
+// Graphics state at the end of a content stream: how many q pushes remain
+// unpopped, and which CTM will be in effect once they are popped. Streams
+// commonly apply their base transform (`0.24 0 0 -0.24 0 792 cm`) OUTSIDE
+// any q — that one can never be popped, so appended content must be wrapped
+// in its INVERSE to land in default page space.
+struct StreamEndState {
+    int depth { 0 };
+    double a{1}, b{0}, c{0}, d{1}, e{0}, f{0};   // effective base CTM
+    bool isIdentity() const {
+        return std::abs(a-1) < 1e-9 && std::abs(b) < 1e-9 && std::abs(c) < 1e-9
+            && std::abs(d-1) < 1e-9 && std::abs(e) < 1e-9 && std::abs(f) < 1e-9;
+    }
+};
+
+static StreamEndState streamEndState(const std::string &cs)
+{
+    struct M6 { double a=1,b=0,c=0,d=1,e=0,f=0; };
+    M6 ctm;
+    std::vector<M6> stack;
+    std::vector<Tok> ops;
+    CSTok tok(cs);
+    while (true) {
+        Tok t = tok.next();
+        if (t.type == TT::Eof) break;
+        if (t.type != TT::Op) { ops.push_back(t); continue; }
+        if (t.str == "q") { stack.push_back(ctm); }
+        else if (t.str == "Q") { if (!stack.empty()) { ctm = stack.back(); stack.pop_back(); } }
+        else if (t.str == "cm" && ops.size() >= 6) {
+            M6 m;
+            m.a = ops[ops.size()-6].num; m.b = ops[ops.size()-5].num;
+            m.c = ops[ops.size()-4].num; m.d = ops[ops.size()-3].num;
+            m.e = ops[ops.size()-2].num; m.f = ops[ops.size()-1].num;
+            // new matrix applies first (row-vector convention)
+            M6 r;
+            r.a = m.a*ctm.a + m.b*ctm.c;        r.b = m.a*ctm.b + m.b*ctm.d;
+            r.c = m.c*ctm.a + m.d*ctm.c;        r.d = m.c*ctm.b + m.d*ctm.d;
+            r.e = m.e*ctm.a + m.f*ctm.c + ctm.e; r.f = m.e*ctm.b + m.f*ctm.d + ctm.f;
+            ctm = r;
+        }
+        else if (t.str == "BI") { tok.rawInlineImage(); }
+        ops.clear();
+    }
+    // After the caller appends depth × "Q", the effective CTM is the one
+    // saved at the FIRST unmatched q — or the current one if balanced.
+    const M6 base = stack.empty() ? ctm : stack.front();
+    StreamEndState st;
+    st.depth = int(stack.size());
+    st.a = base.a; st.b = base.b; st.c = base.c;
+    st.d = base.d; st.e = base.e; st.f = base.f;
+    return st;
+}
+
+// "q <inverse-of-base> cm" prefix that maps appended content back into
+// default page space. Empty when the base CTM is already identity.
+static std::string inverseCtmPrefix(const StreamEndState &st)
+{
+    if (st.isIdentity()) return {};
+    const double det = st.a * st.d - st.b * st.c;
+    if (std::abs(det) < 1e-12) return {};   // degenerate — nothing sane to do
+    const double ia = st.d / det,  ib = -st.b / det;
+    const double ic = -st.c / det, id = st.a / det;
+    const double ie = -(st.e * ia + st.f * ic);
+    const double if_ = -(st.e * ib + st.f * id);
+    std::ostringstream ss; ss << std::fixed; ss.precision(8);
+    ss << "q " << ia << ' ' << ib << ' ' << ic << ' ' << id << ' '
+       << ie << ' ' << if_ << " cm\n";
+    return ss.str();
+}
 
 static std::string pdfLit(const QString &s)
 {
@@ -411,7 +577,8 @@ static void applyFormFieldEdits(QPDF &input,
 } // namespace
 
 bool EditSession::saveVector(const QString &sourcePath, const QString &outputPath,
-                              QPdfDocument * /*doc*/, int /*pageCount*/) const
+                              QPdfDocument * /*doc*/, int /*pageCount*/,
+                              const QSet<int> &overlayPages) const
 {
     try {
         QPDF input;
@@ -450,6 +617,7 @@ bool EditSession::saveVector(const QString &sourcePath, const QString &outputPat
                                - mb.getArrayItem(1).getNumericValue());
 
             std::string cs = getPageContents(ph);
+            const bool overlay = overlayPages.contains(pageIdx);
 
             // First pass: replace in-bounds Tj ops with "() Tj" in the main stream.
             // Also captures the original font name and size for reuse in pass 2.
@@ -459,7 +627,7 @@ bool EditSession::saveVector(const QString &sourcePath, const QString &outputPat
             std::vector<std::string> capturedFont(edits.size());
             struct Stripped { QRectF rect; double fs; std::string font; QColor bg; };
             std::vector<Stripped> strippedCache;
-            for (size_t i = 0; i < edits.size(); ++i) {
+            for (size_t i = 0; !overlay && i < edits.size(); ++i) {
                 const QRectF &b = edits[i]->pdfBounds;
                 bool found = false;
                 for (const auto &st : strippedCache) {
@@ -476,28 +644,65 @@ bool EditSession::saveVector(const QString &sourcePath, const QString &outputPat
                     strippedCache.push_back({ b, fs, fn, edits[i]->bgColor });
                 }
             }
-            // Erase pass: fill each edited area with the background colour so that
-            // text rendered via form XObjects (which removeTextInBounds cannot reach)
-            // is covered.  Uses the stored bgColor; falls back to white.
-            for (const auto &st : strippedCache)
-                cs += bgErase(st.rect, pageH, st.bg);
+            if (!overlay) {
+                // Erase pass — ONLY for BLANK edits whose removal found
+                // nothing (text living in a form XObject it cannot reach).
+                // Text-edit bounds must NEVER get a cover rect: a text box
+                // over an empty area would paint a colored background block
+                // into the page. Cover only the glyph rects.
+                for (const auto *e : edits) {
+                    if (!e->newText.isNull()) continue;   // blanks only
+                    bool removalFailed = false;
+                    for (const auto &st : strippedCache)
+                        if (st.rect == e->pdfBounds) {
+                            removalFailed = (st.fs == 0.0 && st.font.empty());
+                            break;
+                        }
+                    if (!removalFailed) continue;
+                    const QList<QRectF> areas = e->eraseRects.isEmpty()
+                                                    ? QList<QRectF>{ e->pdfBounds }
+                                                    : e->eraseRects;
+                    for (const QRectF &r : areas)
+                        cs += bgErase(r.adjusted(-2, -2, 2, 2), pageH, e->bgColor);
+                }
+            } else {
+                // OVERLAY fallback (verified-save): the original stream stays
+                // byte-identical; the erased text is covered per glyph rect
+                // with the sampled background color. Append-only — cannot
+                // corrupt anything.
+                for (const auto *e : edits) {
+                    if (!e->newText.isNull()) continue;
+                    const QList<QRectF> areas = e->eraseRects.isEmpty()
+                                                    ? QList<QRectF>{ e->pdfBounds }
+                                                    : e->eraseRects;
+                    for (const QRectF &r : areas)
+                        cs += bgErase(r.adjusted(-2, -2, 2, 2), pageH, e->bgColor);
+                }
+            }
+
+            // Neutralize leftover graphics state: pop unmatched q pushes, then
+            // wrap everything we append in the INVERSE of the stream's base
+            // CTM (applied outside any q — e.g. Qt's `0.24 0 0 -0.24 0 792 cm`)
+            // so replacements land in default page space, not scaled/mirrored.
+            const StreamEndState endState = streamEndState(cs);
+            for (int d = endState.depth; d > 0; --d)
+                cs += "Q\n";
+            const std::string invPrefix = inverseCtmPrefix(endState);
+            cs += invPrefix;
 
             // Second pass: append replacement text — blank edits are erase-only.
             // Font size priority: toolbar override > captured > height estimate.
-            // Font resource: user changed the font → standard-14 mapping of the
-            // chosen family; otherwise keep the original font resource so the
-            // replacement matches the surrounding text exactly.
+            // Font resource: ALWAYS a standard-14 font mapped from the detected
+            // family. Reusing the original resource renders garbage for subset/
+            // custom-encoded fonts (our text is WinAnsi bytes, their encoding
+            // is arbitrary glyph indices).
             for (size_t i = 0; i < edits.size(); ++i) {
                 if (edits[i]->newText.isNull()) continue;  // blank edit: erase only
                 const Edit &e = *edits[i];
                 const double fs = e.fontSizePt > 0.0 ? e.fontSizePt : capturedFs[i];
 
-                std::string fontRef;
-                if (e.fontChanged || capturedFont[i].empty())
-                    fontRef = ensureStdFont(input, ph,
-                                            stdFontName(e.fontFamily, e.bold, e.italic));
-                else
-                    fontRef = capturedFont[i];
+                const std::string fontRef = ensureStdFont(
+                    input, ph, stdFontName(e.fontFamily, e.bold, e.italic));
 
                 qWarning() << "[SAVE] page" << pageIdx
                            << "text=" << e.newText.left(30)
@@ -506,6 +711,8 @@ bool EditSession::saveVector(const QString &sourcePath, const QString &outputPat
                 cs += buildReplacement(e.pdfBounds, e.newText, pageH, fs,
                                        e.textColor, fontRef);
             }
+            if (!invPrefix.empty())
+                cs += "Q\n";
 
             auto newStream = QPDFObjectHandle::newStream(&input, cs);
             pageObj.replaceKey("/Contents", input.makeIndirectObject(newStream));
@@ -520,6 +727,60 @@ bool EditSession::saveVector(const QString &sourcePath, const QString &outputPat
         return false;
     }
 }
+
+static inline QRgb overWhite(QRgb c);   // defined with paintBackgroundPatch
+
+#if defined(HAVE_QT_PDF)
+QSet<int> EditSession::verifyVectorSave(const QString &outputPath,
+                                        QPdfDocument *doc) const
+{
+    QSet<int> bad;
+
+    // Edited pages + their exclusion zones (dilated edit areas).
+    QHash<int, QList<QRectF>> zones;
+    for (const auto &e : m_edits) {
+        if (!e.formField.isEmpty()) continue;   // field edits don't touch streams
+        QList<QRectF> &z = zones[e.page];
+        z.append(e.pdfBounds.adjusted(-8, -8, 8, 8));
+        for (const QRectF &r : e.eraseRects)
+            z.append(r.adjusted(-8, -8, 8, 8));
+    }
+    if (zones.isEmpty() || !doc) return bad;
+
+    QPdfDocument savedDoc;
+    if (savedDoc.load(outputPath) != QPdfDocument::Error::None) {
+        for (auto it = zones.cbegin(); it != zones.cend(); ++it)
+            bad.insert(it.key());
+        return bad;
+    }
+
+    for (auto it = zones.cbegin(); it != zones.cend(); ++it) {
+        const int page = it.key();
+        const QSizeF pts = doc->pagePointSize(page);
+        const QSize  px(int(pts.width()), int(pts.height()));   // 72 dpi
+        const QImage a = doc->render(page, px);
+        const QImage b = savedDoc.render(page, px);
+        if (a.isNull() || b.isNull()) { bad.insert(page); continue; }
+
+        int diff = 0;
+        for (int y = 0; y < a.height() && y < b.height(); ++y) {
+            for (int x = 0; x < a.width() && x < b.width(); ++x) {
+                const QRgb ca = overWhite(a.pixel(x, y));
+                const QRgb cb = overWhite(b.pixel(x, y));
+                if (qAbs(qRed(ca) - qRed(cb)) + qAbs(qGreen(ca) - qGreen(cb))
+                        + qAbs(qBlue(ca) - qBlue(cb)) <= 60) continue;
+                bool excluded = false;
+                for (const QRectF &z : it.value())
+                    if (z.contains(x, y)) { excluded = true; break; }
+                if (!excluded && ++diff > 60) break;
+            }
+            if (diff > 60) break;
+        }
+        if (diff > 60) bad.insert(page);
+    }
+    return bad;
+}
+#endif // HAVE_QT_PDF
 
 #endif // HAVE_QPDF
 
@@ -570,23 +831,77 @@ void EditSession::suspendEditsAt(int page, const QRectF &pdfBounds)
     m_edits = remaining;
 }
 
-bool EditSession::isBlankAt(int page, const QRectF &pdfBounds) const
+bool EditSession::isBlankAt(int page, const QPointF &pdfPt) const
 {
+    // Point containment instead of exact rect equality: after a move, a fresh
+    // click at the source position re-detects the native text with bounds that
+    // never exactly match the stored blank (region-model expansion, clamping).
+    // Clicks on neighbouring text stay unaffected — their click point lies
+    // outside the blank.
     for (const auto &blank : m_edits) {
-        // Use EXACT pdfBounds equality so that a blank created for a drag-move
-        // source (blank at P1) does not block clicks on native text blocks that
-        // merely overlap P1 — only the move-source area itself is blocked.
-        if (blank.page != page || blank.pdfBounds != pdfBounds || !blank.newText.isNull())
+        if (blank.page != page || !blank.newText.isNull()
+                || !blank.pdfBounds.contains(pdfPt))
             continue;
-        // Found a blank at the exact location. In-place edits pair blank+text at
-        // the same pdfBounds — if a companion text edit also covers this area the
-        // spot has content and must open an editor, not be silently ignored.
+        // In-place edits pair blank+text at the same pdfBounds — that spot has
+        // content and must open an editor, not be silently swallowed.
+        bool hasCompanion = false;
         for (const auto &t : m_edits)
-            if (t.page == page && !t.newText.isEmpty() && t.pdfBounds == pdfBounds)
-                return false;
-        return true;
+            if (t.page == page && !t.newText.isEmpty()
+                    && t.pdfBounds == blank.pdfBounds) {
+                hasCompanion = true;
+                break;
+            }
+        if (!hasCompanion) return true;
     }
     return false;
+}
+
+bool EditSession::isBlankCovering(int page, const QRectF &bounds) const
+{
+    if (bounds.isEmpty()) return false;
+    const double blockArea = bounds.width() * bounds.height();
+    for (const auto &blank : m_edits) {
+        if (blank.page != page || !blank.newText.isNull()) continue;
+        const QRectF inter = blank.pdfBounds.intersected(bounds);
+        if (inter.isEmpty()) continue;
+        bool hasCompanion = false;
+        for (const auto &t : m_edits)
+            if (t.page == page && !t.newText.isEmpty()
+                    && t.pdfBounds == blank.pdfBounds) {
+                hasCompanion = true;
+                break;
+            }
+        if (hasCompanion) continue;
+        // Base the ratio on the SMALLER of the two areas: a text lookup that
+        // merged the erased content into a larger block (neighbouring cell,
+        // fuzzy snap) still counts as "covering" when the blank itself is
+        // mostly inside the block.
+        const double blankArea = blank.pdfBounds.width() * blank.pdfBounds.height();
+        const double base      = qMax(1.0, qMin(blockArea, blankArea));
+        if (inter.width() * inter.height() >= base * 0.5)
+            return true;
+    }
+    return false;
+}
+
+QList<QRectF> EditSession::blankRegions(int page) const
+{
+    // Companion-less blanks = intentionally emptied areas. Text lookup must
+    // treat them as if the text were gone — otherwise a click near them can
+    // resurrect the invisible original.
+    QList<QRectF> out;
+    for (const auto &blank : m_edits) {
+        if (blank.page != page || !blank.newText.isNull()) continue;
+        bool hasCompanion = false;
+        for (const auto &t : m_edits)
+            if (t.page == page && !t.newText.isEmpty()
+                    && t.pdfBounds == blank.pdfBounds) {
+                hasCompanion = true;
+                break;
+            }
+        if (!hasCompanion) out.append(blank.pdfBounds);
+    }
+    return out;
 }
 
 void EditSession::clearSuspended()
@@ -693,10 +1008,11 @@ void EditSession::applyToImage(int page, QImage &img, qreal scale) const
 
     QPainter p(&img);
     if (hasText) {
-        // Two-pass: all blanks before all text draws.
+        // Two-pass: all blanks before all text draws. Blanks reconstruct the
+        // background from the freshly rendered page pixels around them.
         for (const auto &e : m_edits)
             if (e.page == page && e.newText.isNull())
-                paintBlankEdit(p, e, scale);
+                paintBlankEdit(p, img, e, scale);
         for (const auto &e : m_edits)
             if (e.page == page && !e.newText.isEmpty())
                 paintTextEdit(p, e, scale);
@@ -714,11 +1030,164 @@ void EditSession::applyToImage(int page, QImage &img, qreal scale) const
     }
 }
 
-void EditSession::paintBlankEdit(QPainter &p, const Edit &e, qreal scale)
+// Qt PDF renders pages onto a TRANSPARENT background — the "paper" is
+// rgba(0,0,0,0), which reads as pitch black if alpha is ignored. Every
+// sampled pixel must be composited over white (the paper color) first.
+static inline QRgb overWhite(QRgb c)
 {
-    const QRectF px(e.pdfBounds.topLeft() * scale, e.pdfBounds.size() * scale);
-    const QRect  r = px.adjusted(-1, -1, 1, 1).toAlignedRect();
-    p.fillRect(r, e.bgColor.isValid() ? e.bgColor : Qt::white);
+    const int a = qAlpha(c);
+    if (a == 255) return c;
+    return qRgb((qRed(c)   * a + 255 * (255 - a)) / 255,
+                (qGreen(c) * a + 255 * (255 - a)) / 255,
+                (qBlue(c)  * a + 255 * (255 - a)) / 255);
+}
+
+void EditSession::paintBackgroundPatch(QPainter &p, const QImage &img,
+                                       const QRect &rectPx)
+{
+    paintBackgroundPatch(p, img, QList<QRect>{ rectPx });
+}
+
+void EditSession::paintBackgroundPatch(QPainter &p, const QImage &img,
+                                       const QList<QRect> &rectsPx)
+{
+    if (rectsPx.isEmpty()) return;
+    const int W = img.width();
+    const int H = img.height();
+
+    int left = INT_MAX, right = INT_MIN, bTop = INT_MAX, bBot = INT_MIN;
+    for (const QRect &r : rectsPx) {
+        left  = qMin(left,  r.left());
+        right = qMax(right, r.right());
+        bTop  = qMin(bTop,  r.top());
+        bBot  = qMax(bBot,  r.bottom());
+    }
+    left  = qMax(left, 0);
+    right = qMin(right, W - 1);
+
+    const auto closeRgb = [](QRgb a, QRgb b) {
+        return qAbs(qRed(a) - qRed(b)) + qAbs(qGreen(a) - qGreen(b))
+             + qAbs(qBlue(a) - qBlue(b)) < 36;
+    };
+
+    // BAND color: text often sits in a colored stripe exactly as tall as the
+    // block (table header rows!). Above/below sampling then sees only the
+    // page outside the stripe and paints the wrong color into it. Sample
+    // LEFT and RIGHT of the whole block at its mid height — if both sides
+    // agree, that is the true background behind the text.
+    QRgb bandColor = 0;
+    bool hasBand   = false;
+    if (bTop <= bBot) {
+        const int midY = qBound(0, (bTop + bBot) / 2, H - 1);
+        QRgb l[2], r[2]; int nL = 0, nR = 0;
+        for (const int dx : { 3, 8 }) {
+            const int xl = left - dx, xr = right + dx;
+            if (xl >= 0 && nL < 2) l[nL++] = overWhite(img.pixel(xl, midY));
+            if (xr <  W && nR < 2) r[nR++] = overWhite(img.pixel(xr, midY));
+        }
+        if (nL == 2 && nR == 2 && closeRgb(l[0], l[1]) && closeRgb(r[0], r[1])
+                && closeRgb(l[0], r[0])) {
+            bandColor = l[0];
+            hasBand   = true;
+        }
+    }
+
+    for (int x = left; x <= right; ++x) {
+        // Column span across the WHOLE block: topmost..bottommost covering
+        // rect. Sampling between tightly stacked lines would read the
+        // neighbouring line's glyphs and smear them into the fill, so the
+        // samples sit strictly outside the block for this column.
+        int top = INT_MAX, bot = INT_MIN;
+        for (const QRect &r : rectsPx)
+            if (x >= r.left() && x <= r.right()) {
+                top = qMin(top, r.top());
+                bot = qMax(bot, r.bottom());
+            }
+        if (top > bot) continue;
+        top = qMax(top, 0);
+        bot = qMin(bot, H - 1);
+        if (top > bot) continue;
+
+        QRgb above[2]; int nA = 0;
+        QRgb below[2]; int nB = 0;
+        for (const int dy : { 2, 6 }) {
+            const int ya = top - dy;
+            const int yb = bot + dy;
+            if (ya >= 0 && nA < 2) above[nA++] = overWhite(img.pixel(x, ya));
+            if (yb <  H && nB < 2) below[nB++] = overWhite(img.pixel(x, yb));
+        }
+
+        const int spanH = bot - top + 1;
+
+        // Colored band behind the text → the band color wins; the vertical
+        // neighbours are outside the stripe and would punch wrong-colored
+        // holes into it.
+        if (hasBand) {
+            p.fillRect(x, top, 1, spanH, QColor::fromRgb(bandColor));
+            continue;
+        }
+
+        QRgb cand[4]; int n = 0;
+        for (int i = 0; i < nA; ++i) cand[n++] = above[i];
+        for (int i = 0; i < nB; ++i) cand[n++] = below[i];
+        if (n == 0) {
+            p.fillRect(x, top, 1, spanH, Qt::white);
+            continue;
+        }
+
+        const auto close = closeRgb;
+
+        QRgb best = cand[0]; int bestScore = -1;
+        for (int i = 0; i < n; ++i) {
+            int score = 0;
+            for (int j = 0; j < n; ++j)
+                if (close(cand[i], cand[j])) ++score;
+            if (score > bestScore) { bestScore = score; best = cand[i]; }
+        }
+
+        if (bestScore >= 2 || n == 1) {
+            // Clear majority (or only one sample) — solid column fill.
+            p.fillRect(x, top, 1, spanH, QColor::fromRgb(best));
+        } else {
+            // Above and below disagree — the span probably crosses a
+            // horizontal background boundary. Blend vertically instead of
+            // hard-guessing.
+            const QRgb ct = nA > 0 ? above[0] : best;
+            const QRgb cb = nB > 0 ? below[0] : best;
+            QLinearGradient g(QPointF(x, top), QPointF(x, bot + 1));
+            g.setColorAt(0.0, QColor::fromRgb(ct));
+            g.setColorAt(1.0, QColor::fromRgb(cb));
+            p.fillRect(QRect(x, top, 1, spanH), g);
+        }
+    }
+}
+
+void EditSession::paintBlankEdit(QPainter &p, const QImage &img, const Edit &e,
+                                 qreal scale)
+{
+    // Erase per glyph line rect when available — a whole-bounds erase would
+    // wipe graphics (chart bars, images) sharing the area with the text.
+    // All rects are passed as ONE block so the reconstruction samples outside
+    // the block instead of between its lines.
+    const QList<QRectF> areas = e.eraseRects.isEmpty()
+                                    ? QList<QRectF>{ e.pdfBounds }
+                                    : e.eraseRects;
+    // Pad in PDF points, scaled to pixels: glyph antialiasing bleeds ~1-2 pt
+    // beyond the word boxes. A fixed 1 px pad left visible text traces at
+    // higher render scales (300 dpi save!).
+    const qreal pad = qMax(1.0, 2.5 * scale);
+    QList<QRect> rects;
+    rects.reserve(areas.size());
+    for (const QRectF &a : areas) {
+        const QRectF px(a.topLeft() * scale, a.size() * scale);
+        rects.append(px.adjusted(-pad, -pad, pad, pad).toAlignedRect());
+    }
+    if (!img.isNull()) {
+        paintBackgroundPatch(p, img, rects);
+    } else {
+        for (const QRect &r : rects)
+            p.fillRect(r, e.bgColor.isValid() ? e.bgColor : Qt::white);
+    }
 }
 
 void EditSession::paintTextEdit(QPainter &p, const Edit &e, qreal scale)
@@ -761,8 +1230,23 @@ bool EditSession::saveToFile(const QString &outputPath,
 #ifdef HAVE_QPDF
     // Fall back to raster when images are present — vector PDF manipulation
     // cannot embed raster images into the page stream cleanly.
-    if (!sourcePath.isEmpty() && m_imageEdits.isEmpty())
-        return saveVector(sourcePath, outputPath, doc, pageCount);
+    if (!sourcePath.isEmpty() && m_imageEdits.isEmpty()) {
+        if (!saveVector(sourcePath, outputPath, doc, pageCount))
+            return saveRaster(outputPath, doc, pageCount);
+        // VERIFIED SAVE: render every edited page of the result against the
+        // original. Any page whose content changed OUTSIDE the edit zones was
+        // corrupted by the stream rewrite (unknown generator constructs) and
+        // is re-written in append-only overlay mode — that mode cannot
+        // corrupt anything, the original stream stays byte-identical.
+        const QSet<int> bad = verifyVectorSave(outputPath, doc);
+        if (!bad.isEmpty()) {
+            qWarning() << "[SAVE] rewrite verification failed on pages" << bad
+                       << "— falling back to overlay mode for those pages";
+            if (!saveVector(sourcePath, outputPath, doc, pageCount, bad))
+                return saveRaster(outputPath, doc, pageCount);
+        }
+        return true;
+    }
 #else
     Q_UNUSED(sourcePath)
 #endif

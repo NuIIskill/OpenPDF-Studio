@@ -154,7 +154,8 @@ QList<ContentItem> PopplerContentProvider::buildPageUnguarded(int page)
         ContentCluster c;
         c.bounds     = tb->boundingBox();
         c.text       = tb->text();
-        c.fontSizePt = std::max(2.0, c.bounds.height() * 0.9);
+        // Word-box height ≈ ascent+descent ≈ the font size itself.
+        c.fontSizePt = std::max(2.0, c.bounds.height() * 1.05);
         c.exactWidth = true;
         clusters.append(std::move(c));
     }

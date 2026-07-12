@@ -116,13 +116,12 @@ private:
     void   createTextFrame(const QRect &viewportDragRect);
     void   commitCurrentEdit(const QString &newText);
     void   cancelCurrentEdit();
-    void   liveUpdateCurrentEdit(const QString &text);
     // Hover feedback: outline the detected content region under the cursor.
     void   updateHoverHighlight(const QPoint &canvasPos);
     void   hideHoverHighlight();
     // (Re)build the content-detection provider for the current file.
     void   resetContentProvider();
-    // Re-render the live session edit after a font/style toolbar change.
+    // Apply the current font state to the open editor widget.
     void   refreshEditorFontLive();
 
     // Canvas helpers
@@ -188,11 +187,16 @@ private:
     QRect  m_imageDragPageRect;  // page bounds for clamping rubber band
 
     // Edit-mode state
-    int     m_activeEditPage { -1 };
+    int     m_activeEditPage { -1 };        // page under the box NOW (follows drags)
+    // Page the edit was OPENED on. The box may be dragged onto another page:
+    // the blank (erasing the original text) always belongs to the source page,
+    // the new text is committed on m_activeEditPage.
+    int     m_activeEditSourcePage { -1 };
     QRectF  m_activeEditBounds;
     QRectF  m_activeEditOriginalBounds;  // native PDF bounds when the edit was first opened
-    QRectF  m_lastLiveEditBounds;        // bounds where the last live edit was placed
-    bool    m_hasLiveEdit       { false }; // whether a live edit is currently in the session
+    // Tight glyph rects of the original text — erasure targets ONLY these,
+    // never the whole bounds rect (which would wipe co-located graphics).
+    QList<QRectF> m_activeEditEraseRects;
     // true  → edit was opened by clicking on existing text (handleEditClick); a blank
     //         edit must be committed to erase the original text before drawing the new.
     // false → editor was created fresh via drag (createTextFrame); no erasure needed —
@@ -217,8 +221,6 @@ private:
     QRectF m_lastCommittedOrigBounds;
 
     QUndoStack *m_undoStack      { nullptr };
-    QTimer     *m_liveTimer      { nullptr };
-    QString     m_livePendingText;
 
     OcrEngine *m_ocrEngine { nullptr };
 

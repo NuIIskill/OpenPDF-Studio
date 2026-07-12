@@ -5,7 +5,7 @@
 
 // Frameless text editor living inside TextBoxFrame.
 // TextBoxFrame owns geometry; this widget only handles text and keyboard input.
-// Enter commits, Escape cancels, focus-loss commits.
+// Enter inserts a newline; Escape cancels; focus-loss commits.
 class InlineEditor : public QTextEdit
 {
     Q_OBJECT
@@ -26,6 +26,7 @@ public:
 
     // The effective editor font at the given pixel size (for layout metrics).
     QFont styledFont(int pixelFontSize) const;
+    int   fontPixelSize() const { return m_currentFontPx; }
 
 Q_SIGNALS:
     void committed(const QString &text);
@@ -35,6 +36,7 @@ Q_SIGNALS:
 protected:
     void keyPressEvent(QKeyEvent *e) override;
     void focusOutEvent(QFocusEvent *e) override;
+    void wheelEvent(QWheelEvent *e) override;
 
 public:
     void resetCommitGuard()    { m_committing = false; }

@@ -550,12 +550,18 @@ void scanStream(const std::string &cs, ScanOut &out, const M &baseCtm,
 
     bool inBT = false;
     std::vector<Tok> ops;
-    // (textX, textY) track the LINE matrix origin — Td/TD/T* are relative to
-    // it. penX tracks the show-op advance within the current line so that
-    // successive Tj ops on one line don't overlap; it resets on line moves.
-    double textX = 0, textY = 0, penX = 0;
-    double leading = 0, fontSize = 12, tmScaleY = 1.0;
+    // Full text LINE matrix (Tlm): Td/TD/T* translations are text-space and
+    // must be transformed through it — scalar x/y tracking breaks on the
+    // mirrored `1 0 0 -1 0 0 Tm` that Qt & friends emit. penX tracks the
+    // show-op advance along the line (text space); resets on line moves.
+    M tlm;
+    double penX = 0;
+    double leading = 0, fontSize = 12;
     int    renderMode = 0;
+    const auto tlmTranslate = [&](double tx, double ty) {
+        tlm.e = tx * tlm.a + ty * tlm.c + tlm.e;
+        tlm.f = tx * tlm.b + ty * tlm.d + tlm.f;
+    };
     QString curFont;
     std::map<std::string, QString> fontCache;
 
@@ -646,8 +652,8 @@ void scanStream(const std::string &cs, ScanOut &out, const M &baseCtm,
         if (!inBT) {
             if (o == "BT") {
                 inBT = true;
-                textX = textY = penX = leading = 0;
-                tmScaleY = 1.0;
+                tlm = M{};
+                penX = leading = 0;
             }
             else if (o == "q") { gsStack.push_back(gs); }
             else if (o == "Q") { if (!gsStack.empty()) { gs = gsStack.back(); gsStack.pop_back(); } }
@@ -750,37 +756,40 @@ void scanStream(const std::string &cs, ScanOut &out, const M &baseCtm,
         if (o == "ET") { inBT = false; ops.clear(); continue; }
 
         if (o == "Tm" && ops.size() >= 6) {
-            const double b = ops[ops.size()-5].num;
-            const double d = ops[ops.size()-3].num;
-            textX = ops[ops.size()-2].num;
-            textY = ops[ops.size()-1].num;
+            tlm.a = ops[ops.size()-6].num; tlm.b = ops[ops.size()-5].num;
+            tlm.c = ops[ops.size()-4].num; tlm.d = ops[ops.size()-3].num;
+            tlm.e = ops[ops.size()-2].num; tlm.f = ops[ops.size()-1].num;
             penX  = 0;
-            const double s = std::sqrt(b*b + d*d);
-            tmScaleY = (s > 0.001) ? s : 1.0;
         }
         else if ((o == "Td" || o == "TD") && ops.size() >= 2) {
-            textX += ops[ops.size()-2].num;
-            textY += ops[ops.size()-1].num;
-            penX   = 0;
-            if (o == "TD") leading = -ops[ops.size()-1].num;
+            const double tx = ops[ops.size()-2].num;
+            const double ty = ops[ops.size()-1].num;
+            tlmTranslate(tx, ty);
+            penX = 0;
+            if (o == "TD") leading = -ty;
         }
-        else if (o == "T*")                 { textY -= leading; penX = 0; }
+        else if (o == "T*")                 { tlmTranslate(0, -leading); penX = 0; }
         else if (o == "TL" && !ops.empty()) { leading = ops.back().num; }
         else if (o == "Tf" && ops.size() >= 2)  { applyTf(); }
         else if (o == "Tr" && !ops.empty()) { renderMode = int(ops.back().num); }
         else if (handleColorOp(o)) { /* fill color updated */ }
         else if (o == "Tj" || o == "TJ" || o == "'" || o == "\"") {
-            if (o == "'" || o == "\"") { textY -= leading; penX = 0; }
+            if (o == "'" || o == "\"") { tlmTranslate(0, -leading); penX = 0; }
 
             const QString text = extractText(ops, o);
             // Render mode 3 = invisible (OCR text layer), 7 = clip-only.
             if (!text.trimmed().isEmpty() && renderMode != 3 && renderMode != 7) {
+                const double tlmScale = std::sqrt(tlm.b * tlm.b + tlm.d * tlm.d);
                 const double ctmScaleY = std::sqrt(gs.ctm.c * gs.ctm.c
                                                    + gs.ctm.d * gs.ctm.d);
-                const double effective = fontSize * tmScaleY
+                const double effective = fontSize
+                                       * (tlmScale  > 0.001 ? tlmScale  : 1.0)
                                        * (ctmScaleY > 0.001 ? ctmScaleY : 1.0);
                 if (effective >= 1.0) {
-                    const QPointF p   = xf(textX + penX, textY);
+                    // Pen offset along the line, through Tlm, then the CTM.
+                    const double tx = penX * tlm.a + tlm.e;
+                    const double ty = penX * tlm.b + tlm.f;
+                    const QPointF p   = xf(tx, ty);
                     const double  qtY = out.pageH - p.y();
                     const double  estW = std::max(4.0,
                                              text.length() * effective * 0.55);
@@ -794,10 +803,10 @@ void scanStream(const std::string &cs, ScanOut &out, const M &baseCtm,
                     out.clusters.append(std::move(clu));
                 }
             }
-            // Approximate pen advance so successive show ops on the same line
-            // don't overlap — also for skipped (invisible) text. The pen resets
-            // on Td/TD/T*/Tm; it must NOT leak into the line matrix.
-            penX += text.length() * 0.55 * fontSize * tmScaleY;
+            // Approximate pen advance (text space) so successive show ops on
+            // one line don't overlap — also for skipped (invisible) text.
+            // Resets on Td/TD/T*/Tm; it must NOT leak into the line matrix.
+            penX += text.length() * 0.55 * fontSize;
         }
 
         ops.clear();

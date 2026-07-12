@@ -3,6 +3,7 @@
 #include <QApplication>
 #include <QKeyEvent>
 #include <QFocusEvent>
+#include <QWheelEvent>
 
 InlineEditor::InlineEditor(QWidget *parent)
     : QTextEdit(parent)
@@ -15,6 +16,9 @@ InlineEditor::InlineEditor(QWidget *parent)
     setLineWrapMode(QTextEdit::WidgetWidth);
     setAttribute(Qt::WA_DeleteOnClose, false);
     setContextMenuPolicy(Qt::NoContextMenu);
+    // No inner offsets: the text must sit exactly on the original PDF text
+    // position (the frame aligns its inner rect with the block bounds).
+    document()->setDocumentMargin(0);
     connect(this, &QTextEdit::textChanged, this, [this]() {
         Q_EMIT changed(toPlainText());
     });
@@ -37,7 +41,7 @@ void InlineEditor::applyStyle()
         "  font-size: %2px;"
         "  font-weight: %3;"
         "  font-style: %4;"
-        "  padding: 2px 4px;"
+        "  padding: 0px;"
         "  color: %5;"
         "}")
         .arg(familyList)
@@ -98,15 +102,8 @@ void InlineEditor::keyPressEvent(QKeyEvent *e)
         Q_EMIT cancelled();
         return;
     }
-    // Enter without Shift commits; Shift+Enter inserts a newline.
-    if ((e->key() == Qt::Key_Return || e->key() == Qt::Key_Enter)
-        && !(e->modifiers() & Qt::ShiftModifier)) {
-        if (!m_committing) {
-            m_committing = true;
-            Q_EMIT committed(toPlainText());
-        }
-        return;
-    }
+    // Enter inserts a newline — like any text editor. Committing happens by
+    // clicking outside (focus out); Escape cancels.
     // Delete key with the full text selected → erase the block entirely.
     if (e->key() == Qt::Key_Delete) {
         const QTextCursor c = textCursor();
@@ -121,6 +118,28 @@ void InlineEditor::keyPressEvent(QKeyEvent *e)
         }
     }
     QTextEdit::keyPressEvent(e);
+}
+
+void InlineEditor::wheelEvent(QWheelEvent *e)
+{
+    // The editor has no scrollbars (it grows with its content), so wheel
+    // input belongs to the page. Merely calling ignore() is NOT enough:
+    // QAbstractScrollArea's viewportEvent reports wheel events as handled
+    // even when ignored, so they never propagate — scrolling appears dead
+    // whenever the cursor is over an open editor. Forward a copy directly
+    // to the enclosing scroll area's viewport instead.
+    e->accept();
+    QWidget *w = parentWidget();
+    while (w && !qobject_cast<QAbstractScrollArea *>(w))
+        w = w->parentWidget();
+    if (auto *area = qobject_cast<QAbstractScrollArea *>(w)) {
+        QWidget *vp = area->viewport();
+        QWheelEvent copy(vp->mapFromGlobal(e->globalPosition().toPoint()),
+                         e->globalPosition(), e->pixelDelta(), e->angleDelta(),
+                         e->buttons(), e->modifiers(), e->phase(),
+                         e->inverted());
+        QApplication::sendEvent(vp, &copy);
+    }
 }
 
 void InlineEditor::focusOutEvent(QFocusEvent *e)

@@ -39,6 +39,7 @@
 #include <QDebug>
 #include <QMap>
 #include <QFileDialog>
+#include <QFontMetrics>
 #include <QMenu>
 #include <QUndoCommand>
 
@@ -50,25 +51,31 @@ class EditUndoCmd : public QUndoCommand
 {
     EditSession              *m_session;
     DocumentView             *m_view;
-    int                       m_page;
+    int                       m_srcPage, m_dstPage;  // differ when the box was dragged onto another page
     QList<EditSession::Edit>  m_before, m_after;
     bool                      m_firstRedo { true };
 public:
-    EditUndoCmd(EditSession *s, DocumentView *v, int page,
+    EditUndoCmd(EditSession *s, DocumentView *v, int srcPage, int dstPage,
                 QList<EditSession::Edit> before,
                 QList<EditSession::Edit> after)
         : QUndoCommand(DocumentView::tr("Text bearbeiten"))
-        , m_session(s), m_view(v), m_page(page)
+        , m_session(s), m_view(v), m_srcPage(srcPage), m_dstPage(dstPage)
         , m_before(std::move(before)), m_after(std::move(after)) {}
 
     void undo() override {
         m_session->restoreEdits(m_before);
-        m_view->rerenderPage(m_page);
+        rerender();
     }
     void redo() override {
         if (m_firstRedo) { m_firstRedo = false; return; }
         m_session->restoreEdits(m_after);
-        m_view->rerenderPage(m_page);
+        rerender();
+    }
+private:
+    void rerender() {
+        m_view->rerenderPage(m_srcPage);
+        if (m_dstPage != m_srcPage)
+            m_view->rerenderPage(m_dstPage);
     }
 };
 
@@ -77,7 +84,17 @@ public:
 // Returns the word cluster's bounding rect and concatenated text,
 // or an invalid TextBlock if nothing is close enough to pdfPt.
 // Poppler-Qt6 text coordinates use screen space (Y=0 at top-left).
-static TextBlock popplerTextAt(Poppler::Document *doc, int page, const QPointF &pdfPt)
+// Session-erased areas are invisible to text lookup: a glyph whose center
+// lies in an excluded region is treated as if it were not on the page.
+static bool popplerExcluded(const QRectF &glyph, const QList<QRectF> &exclude)
+{
+    for (const QRectF &e : exclude)
+        if (e.contains(glyph.center())) return true;
+    return false;
+}
+
+static TextBlock popplerTextAt(Poppler::Document *doc, int page, const QPointF &pdfPt,
+                               const QList<QRectF> &exclude = {})
 {
     // Poppler can throw on malformed files — degrade to "no text found".
     try {
@@ -87,11 +104,12 @@ static TextBlock popplerTextAt(Poppler::Document *doc, int page, const QPointF &
     const auto textBoxes = popplerPage->textList();
     if (textBoxes.empty()) return {};
 
-    // Find the nearest word to the click point (exact hit preferred)
+    // Find the nearest word to the click point (exact hit preferred).
     double bestDist = 40.0;
     int bestIdx = -1;
     for (int i = 0; i < static_cast<int>(textBoxes.size()); ++i) {
         const QRectF bbox = textBoxes[i]->boundingBox();
+        if (popplerExcluded(bbox, exclude)) continue;
         if (bbox.contains(pdfPt)) { bestIdx = i; bestDist = 0.0; break; }
         const double dx = qMax(0.0, qMax(bbox.left() - pdfPt.x(), pdfPt.x() - bbox.right()));
         const double dy = qMax(0.0, qMax(bbox.top()  - pdfPt.y(), pdfPt.y() - bbox.bottom()));
@@ -109,6 +127,7 @@ static TextBlock popplerTextAt(Poppler::Document *doc, int page, const QPointF &
     std::vector<Word> lineWords;
     for (const auto &tb : textBoxes) {
         const QRectF bbox = tb->boundingBox();
+        if (popplerExcluded(bbox, exclude)) continue;
         if (std::abs(bbox.center().y() - lineY) < lineH * 0.6)
             lineWords.push_back({ bbox, tb->text(), tb->hasSpaceAfter() });
     }
@@ -130,47 +149,108 @@ static TextBlock popplerTextAt(Poppler::Document *doc, int page, const QPointF &
     } catch (...) { return {}; }
 }
 
-// Full text inside rect (word centers inside), grouped into lines joined by
-// '\n'. Used to fetch the text of a detected paragraph block.
-static QString popplerTextInRect(Poppler::Document *doc, int page, const QRectF &rect)
+struct PopplerWord { QRectF bbox; QString text; bool spaceAfter; };
+
+// Collects the words of the text block covering `area`, then COMPLETES each
+// line: the region model's width estimates can end short of the real line,
+// so collected lines grow word-by-word over word-sized gaps until the true
+// line ends. Column gutters (gaps far wider than a word space) are never
+// crossed. Incomplete collection here caused half-erased originals after a
+// move — line-end words missing from the erase rects stayed visible.
+static std::vector<PopplerWord> popplerCollectBlockWords(
+        Poppler::Document *doc, int page, const QRectF &area,
+        const QList<QRectF> &exclude = {})
 {
+    std::vector<PopplerWord> all;
     try {
-    auto popplerPage = doc->page(page);
-    if (!popplerPage) return {};
+        auto popplerPage = doc->page(page);
+        if (!popplerPage) return {};
+        for (const auto &tb : popplerPage->textList()) {
+            const QRectF b = tb->boundingBox();
+            if (!b.isEmpty() && !popplerExcluded(b, exclude))
+                all.push_back({ b, tb->text(), tb->hasSpaceAfter() });
+        }
+    } catch (...) { return {}; }
 
-    struct Word { QRectF bbox; QString text; bool spaceAfter; };
-    std::vector<Word> inside;
-    for (const auto &tb : popplerPage->textList()) {
-        const QRectF bbox = tb->boundingBox();
-        if (rect.adjusted(-2, -2, 2, 2).contains(bbox.center()))
-            inside.push_back({ bbox, tb->text(), tb->hasSpaceAfter() });
+    std::vector<char> used(all.size(), 0);
+    const QRectF seedArea = area.adjusted(-2, -2, 2, 2);
+    bool any = false;
+    for (size_t i = 0; i < all.size(); ++i)
+        if (seedArea.contains(all[i].bbox.center())) { used[i] = 1; any = true; }
+    if (!any) return {};
+
+    bool changed = true;
+    while (changed) {
+        changed = false;
+        for (size_t i = 0; i < all.size(); ++i) {
+            if (used[i]) continue;
+            const QRectF &w = all[i].bbox;
+            for (size_t j = 0; j < all.size(); ++j) {
+                if (!used[j]) continue;
+                const QRectF &u = all[j].bbox;
+                const double lineH = std::max({ u.height(), w.height(), 4.0 });
+                if (std::abs(w.center().y() - u.center().y()) > lineH * 0.6)
+                    continue;
+                const double gap = (w.left() >= u.right())
+                                       ? w.left() - u.right()
+                                       : u.left() - w.right();
+                if (gap < lineH * 1.2) { used[i] = 1; changed = true; break; }
+            }
+        }
     }
-    if (inside.empty()) return {};
 
-    std::sort(inside.begin(), inside.end(), [](const Word &a, const Word &b) {
+    std::vector<PopplerWord> out;
+    for (size_t i = 0; i < all.size(); ++i)
+        if (used[i]) out.push_back(all[i]);
+    std::sort(out.begin(), out.end(),
+              [](const PopplerWord &a, const PopplerWord &b) {
         if (std::abs(a.bbox.center().y() - b.bbox.center().y()) > 3.0)
             return a.bbox.center().y() < b.bbox.center().y();
         return a.bbox.left() < b.bbox.left();
     });
+    return out;
+}
+
+// Full text of the block covering rect (lines completed, see above), joined
+// with '\n', plus the glyph-accurate united bounds of the collected words.
+static TextBlock popplerBlockInRect(Poppler::Document *doc, int page, const QRectF &rect,
+                                    const QList<QRectF> &exclude = {})
+{
+    const auto words = popplerCollectBlockWords(doc, page, rect, exclude);
+    if (words.empty()) return {};
 
     QString out;
-    double lineY  = inside.front().bbox.center().y();
-    double lineH  = qMax(inside.front().bbox.height(), 6.0);
-    for (size_t i = 0; i < inside.size(); ++i) {
-        const Word &w = inside[i];
+    QRectF  united = words.front().bbox;
+    double  lineY  = words.front().bbox.center().y();
+    double  lineH  = qMax(words.front().bbox.height(), 6.0);
+    for (size_t i = 0; i < words.size(); ++i) {
+        const PopplerWord &w = words[i];
+        united = united.united(w.bbox);
         if (i > 0) {
             if (std::abs(w.bbox.center().y() - lineY) > lineH * 0.6) {
                 out += u'\n';
                 lineY = w.bbox.center().y();
                 lineH = qMax(w.bbox.height(), 6.0);
-            } else if (inside[i - 1].spaceAfter) {
+            } else if (words[i - 1].spaceAfter) {
                 out += u' ';
             }
         }
         out += w.text;
     }
-    return out.trimmed();
-    } catch (...) { return {}; }
+    out = out.trimmed();
+    return out.isEmpty() ? TextBlock{} : TextBlock{ page, united, out };
+}
+
+// Tight word boxes of the block covering `area` (lines completed) — used to
+// erase ONLY the glyphs.
+static QList<QRectF> popplerGlyphRects(Poppler::Document *doc, int page,
+                                       const QRectF &area,
+                                       const QList<QRectF> &exclude = {})
+{
+    QList<QRectF> out;
+    for (const PopplerWord &w : popplerCollectBlockWords(doc, page, area, exclude))
+        out.append(w.bbox);
+    return out;
 }
 #endif // HAVE_POPPLER
 
@@ -189,13 +269,7 @@ namespace GridConst {
 DocumentView::DocumentView(QWidget *parent)
     : QScrollArea(parent)
     , m_undoStack(new QUndoStack(this))
-    , m_liveTimer(new QTimer(this))
 {
-    m_liveTimer->setSingleShot(true);
-    m_liveTimer->setInterval(400);   // ms debounce — rerender 400ms after last keystroke
-    connect(m_liveTimer, &QTimer::timeout, this, [this]() {
-        liveUpdateCurrentEdit(m_livePendingText);
-    });
     setObjectName(QStringLiteral("DocumentView"));
     setFrameShape(QFrame::NoFrame);
     setWidgetResizable(true);
@@ -231,28 +305,37 @@ DocumentView::DocumentView(QWidget *parent)
     m_editorFrame = new TextBoxFrame(m_canvas);
     connect(m_editorFrame, &TextBoxFrame::committed, this, &DocumentView::commitCurrentEdit);
     connect(m_editorFrame, &TextBoxFrame::cancelled,  this, &DocumentView::cancelCurrentEdit);
-    connect(m_editorFrame, &TextBoxFrame::changed, this, [this](const QString &text) {
-        m_livePendingText = text;
-        m_liveTimer->start();  // restart debounce window
-    });
+    // While the editor is open, its widget IS the live view of the text —
+    // nothing is painted onto the page underneath (painting the same text
+    // there produced visible doubling on drag/zoom). The page only shows the
+    // blank that hides the original text; the session edit is created on commit.
     connect(m_editorFrame, &TextBoxFrame::dragEnded, this, [this]() {
-        m_liveTimer->stop();
-        liveUpdateCurrentEdit(m_editorFrame->currentText());
-        // Blank the ORIGINAL bounds so the underlying PDF text is erased.
-        // The live session edit at the new position handles blanking that area
-        // via applyToImage inside rerenderPageWithBlank.
-        if (m_activeEditPage >= 0)
-            rerenderPageWithBlank(m_activeEditPage, m_activeEditOriginalBounds);
+        // Keep the ORIGINAL bounds blanked so the underlying text stays hidden
+        // after the box was dragged away from it. The blank always lives on
+        // the SOURCE page — the box itself may rest on a different page now.
+        if (m_activeEditSourcePage >= 0 && m_activeEditNeedsBlank)
+            rerenderPageWithBlank(m_activeEditSourcePage, m_activeEditOriginalBounds);
     });
     connect(m_editorFrame, &TextBoxFrame::boundsChanged, this, [this](const QRectF &inner) {
         if (m_activeEditPage < 0) return;
-        const QLabel *lbl = m_pageLabels.value(m_activeEditPage, nullptr);
-        if (!lbl) return;
+        // The box is freely draggable across pages: the page under its center
+        // owns it. Between pages (margins/gaps) keep the last owner.
+        auto [pg, lbl] = pageAtCanvasPos(inner.center().toPoint());
+        if (pg < 0 || !lbl) {
+            pg  = m_activeEditPage;
+            lbl = m_pageLabels.value(pg, nullptr);
+            if (!lbl) return;
+        }
+        if (pg != m_activeEditPage) {
+            m_activeEditPage = pg;
+            // Growth and resize clamps must use the page the box is on now.
+            m_editorFrame->setPageRect(lbl->geometry());
+        }
         const qreal scale = PdfRenderer::screenScale(m_zoom);
         QRectF newBounds(
             (inner.topLeft() - QPointF(lbl->pos())) / scale,
             inner.size() / scale);
-        clampToPdfPage(m_activeEditPage, newBounds);
+        clampToPdfPage(pg, newBounds);
         m_activeEditBounds = newBounds;
     });
     // Hover feedback: outlines the detected content region under the cursor
@@ -408,19 +491,25 @@ void DocumentView::setZoom(int percent)
     // rerenderPageWithBlank() painted.  Re-apply it so the original text stays
     // hidden behind the editor at the new zoom level.
     if (m_activeEditPage >= 0 && m_editorFrame->isVisible()) {
-        rerenderPageWithBlank(m_activeEditPage, m_activeEditOriginalBounds);
+        if (m_activeEditSourcePage >= 0)
+            rerenderPageWithBlank(m_activeEditSourcePage, m_activeEditOriginalBounds);
 
         // Reposition the editor frame for the new zoom.  The label positions
         // returned by lbl->pos() are stale immediately after rerenderAll()
         // because Qt's layout manager updates geometry asynchronously.
         // A 0 ms timer defers the reposition until after the layout has settled.
         const int activePage = m_activeEditPage;
-        const int zoomPct    = percent;
-        QTimer::singleShot(0, this, [this, activePage, zoomPct]() {
+        QTimer::singleShot(0, this, [this, activePage]() {
             if (m_activeEditPage != activePage || !m_editorFrame->isVisible()) return;
+            // Force the canvas layout NOW — label positions are stale until
+            // the deferred relayout has run, and the 0 ms timer can fire first.
+            if (m_layout) m_layout->activate();
             const QLabel *lbl = m_pageLabels.value(activePage, nullptr);
             if (!lbl) return;
-            const qreal scale = PdfRenderer::screenScale(zoomPct);
+            // Read the CURRENT zoom, not a captured one: rapid wheel zooming
+            // queues several of these lambdas and each must position for the
+            // zoom the page is actually rendered at.
+            const qreal scale = PdfRenderer::screenScale(m_zoom);
             m_editorFrame->setPageRect(lbl->geometry());  // page rect changes with zoom
             const QRectF cb(
                 m_activeEditBounds.topLeft() * scale + QPointF(lbl->pos()),
@@ -497,7 +586,6 @@ void DocumentView::setEditMode(bool on)
 {
     if (m_editMode == on) return;
 #ifdef HAVE_PDF_RENDERING
-    m_liveTimer->stop();
     commitCurrentEdit(m_editorFrame->currentText());
 #endif
     hideHoverHighlight();
@@ -508,7 +596,6 @@ void DocumentView::setEditMode(bool on)
 bool DocumentView::saveToFile(const QString &path)
 {
 #ifdef HAVE_QT_PDF
-    m_liveTimer->stop();
     commitCurrentEdit(m_editorFrame->currentText());
     if (!m_session->saveToFile(path, m_document, m_pageCount, m_filePath))
         return false;
@@ -523,7 +610,6 @@ bool DocumentView::saveToFile(const QString &path)
     rerenderAll();
     return true;
 #elif defined(HAVE_POPPLER)
-    m_liveTimer->stop();
     commitCurrentEdit(m_editorFrame->currentText());
     if (!m_popplerDoc || !m_renderer) return false;
     if (!savePopplerRaster(path)) return false;
@@ -634,10 +720,32 @@ void DocumentView::updateHoverHighlight(const QPoint &canvasPos)
     const qreal   scale = PdfRenderer::screenScale(m_zoom);
     const QPointF pdfPt = QPointF(canvasPos - pageLbl->pos()) / scale;
 
+    // Hover must NEVER build the page model — that parses the whole file on
+    // the UI thread and freezes scrolling (Qt synthesizes mouse moves while
+    // scrolling). Only pages already built by a click get hover feedback.
+    if (!m_contentProvider->hasPage(pageIdx)) {
+        hideHoverHighlight();
+        return;
+    }
+
+    // Blanked areas (source of a moved/deleted block) are intentionally empty —
+    // highlighting the visually erased native text there would be misleading.
+    if (m_session && m_session->isBlankAt(pageIdx, pdfPt)) {
+        hideHoverHighlight();
+        return;
+    }
+
     // Exact hits only (6 pt slack) — nearest-match hover feels jumpy.
     const ContentItem item = m_contentProvider->itemAt(
         pageIdx, pdfPt, kAllContentTypes, 6.0);
     if (!item.isValid()) { hideHoverHighlight(); return; }
+
+    // Items that are mostly erased (source of a moved block) aren't there
+    // anymore — don't advertise them.
+    if (m_session && m_session->isBlankCovering(pageIdx, item.bounds)) {
+        hideHoverHighlight();
+        return;
+    }
 
     if (pageIdx == m_hoverPage && item.bounds == m_hoverBounds
             && m_hoverHighlight->isVisible())
@@ -688,8 +796,6 @@ void DocumentView::refreshEditorFontLive()
     if (m_activeEditPage < 0 || !m_editorFrame->isVisible()) return;
     m_editorFrame->setTextFont(m_currentEditorFontFamily,
                                m_currentEditorBold, m_currentEditorItalic);
-    m_livePendingText = m_editorFrame->currentText();
-    m_liveTimer->start();   // debounce the live re-render
 #endif
 }
 
@@ -869,10 +975,13 @@ void DocumentView::rerenderAll()
         const QSize sz = m_renderer->pageDisplaySize(i, m_zoom);
         m_pageLabels[i]->setFixedSize(sz);
         QImage img = m_renderer->renderPage(i, scale * dpr);
-        img.setDevicePixelRatio(dpr);
+        // Paint in RAW device pixels first; tag the DPR only afterwards —
+        // a QPainter on a DPR-tagged image multiplies every coordinate by
+        // dpr and would displace all edit painting on scaled displays.
 #ifdef HAVE_PDF_RENDERING
         if (m_session) m_session->applyToImage(i, img, scale * dpr);
 #endif
+        img.setDevicePixelRatio(dpr);
         if (!img.isNull())
             m_pageLabels[i]->setPixmap(QPixmap::fromImage(std::move(img)));
     }
@@ -886,8 +995,9 @@ void DocumentView::rerenderPage(int page)
     const qreal dpr   = devicePixelRatioF();
     const qreal scale = PdfRenderer::screenScale(m_zoom);
     QImage img = m_renderer->renderPage(page, scale * dpr);
-    img.setDevicePixelRatio(dpr);
+    // Paint first, tag DPR afterwards (see rerenderAll).
     if (m_session) m_session->applyToImage(page, img, scale * dpr);
+    img.setDevicePixelRatio(dpr);
     if (!img.isNull())
         m_pageLabels[page]->setPixmap(QPixmap::fromImage(std::move(img)));
 #endif
@@ -903,22 +1013,33 @@ void DocumentView::rerenderPageWithBlank(int page, const QRectF &pdfBoundsPts)
     const qreal dpr   = devicePixelRatioF();
     const qreal scale = PdfRenderer::screenScale(m_zoom);
     QImage img = m_renderer->renderPage(page, scale * dpr);
-    img.setDevicePixelRatio(dpr);
+    // NOTE: the DPR is tagged only AFTER all painting — a QPainter on a
+    // DPR-tagged image multiplies every coordinate by dpr and would displace
+    // the erase rects on scaled displays (fractional scaling!).
     {
-        // Fill the editor area BEFORE applying session edits so that native PDF
-        // text is hidden even on the first click (before a blank session edit exists).
-        const QRectF px(pdfBoundsPts.topLeft() * scale * dpr,
-                        pdfBoundsPts.size()    * scale * dpr);
-        // Padding scales with zoom so it stays ≈ 1.5 PDF points at any zoom level.
-        const qreal pad = qMax(1.0, 1.5 * scale * dpr);
-        const QRect fillR = px.adjusted(-pad, -pad, pad, pad).toAlignedRect();
-
-        const QColor bg = m_currentBgColor.isValid() ? m_currentBgColor : Qt::white;
-
+        // Erase the original text BEFORE applying session edits so it is
+        // hidden even on the first click. Two safety properties:
+        //   • only the tight glyph rects are touched (graphics survive)
+        //   • the background is reconstructed from real surrounding pixels,
+        //     never a guessed color
+        const qreal s   = scale * dpr;
+        const qreal pad = qMax(1.0, 2.5 * s);
+        const QList<QRectF> areas = m_activeEditEraseRects.isEmpty()
+                                        ? QList<QRectF>{ pdfBoundsPts }
+                                        : m_activeEditEraseRects;
+        QList<QRect> rects;
+        rects.reserve(areas.size());
+        for (const QRectF &a : areas) {
+            const QRectF px(a.topLeft() * s, a.size() * s);
+            rects.append(px.adjusted(-pad, -pad, pad, pad).toAlignedRect());
+        }
+        // One call for the whole block: the reconstruction samples outside
+        // the block, never between its tightly stacked lines.
         QPainter p(&img);
-        p.fillRect(fillR, bg);
+        EditSession::paintBackgroundPatch(p, img, rects);
     }
     if (m_session) m_session->applyToImage(page, img, scale * dpr);
+    img.setDevicePixelRatio(dpr);
     if (!img.isNull())
         m_pageLabels[page]->setPixmap(QPixmap::fromImage(std::move(img)));
 #endif
@@ -1000,8 +1121,8 @@ void DocumentView::buildGridItems()
             const int   tZoom  = qMax(1, GridConst::RENDER_W * 100 / sz100.width());
             const qreal tScale = PdfRenderer::screenScale(tZoom);
             QImage img = m_renderer->renderPage(i, tScale * dpr);
-            img.setDevicePixelRatio(dpr);
             if (m_session) m_session->applyToImage(i, img, tScale * dpr);
+            img.setDevicePixelRatio(dpr);
             if (!img.isNull())
                 original = QPixmap::fromImage(std::move(img));
         }
@@ -1698,22 +1819,76 @@ void DocumentView::clampToPdfPage(int page, QRectF &r) const
 
 // Sample the most common non-white pixel color in a region of a rendered page image.
 // Returns a fallback near-black if nothing non-white is found.
-static QColor sampleDominantColor(const QImage &img, const QRect &region)
+// Qt PDF renders onto a TRANSPARENT background — the "paper" reads as
+// rgba(0,0,0,0). Composite over white before interpreting any pixel, or
+// blank paper counts as pitch black.
+static inline QRgb pixelOverWhite(const QImage &img, int x, int y)
+{
+    const QRgb c = img.pixel(x, y);
+    const int  a = qAlpha(c);
+    if (a == 255) return c;
+    return qRgb((qRed(c)   * a + 255 * (255 - a)) / 255,
+                (qGreen(c) * a + 255 * (255 - a)) / 255,
+                (qBlue(c)  * a + 255 * (255 - a)) / 255);
+}
+
+// Text color = the color of the GLYPH CORES, i.e. the darkest percentile of
+// the region. A most-frequent-non-white heuristic breaks on backends whose
+// antialiasing dominates (thin fonts at low dpi render mostly light grey and
+// the mode lands on a wash-out — the committed text then paints ghostly).
+static QColor sampleTextColor(const QImage &img, const QRect &region)
 {
     const QRect sr = region.intersected(img.rect());
     if (sr.isEmpty()) return QColor(0x11, 0x11, 0x11);
 
-    QMap<QRgb, int> counts;
-    const int stepX = qMax(1, sr.width()  / 60);
-    const int stepY = qMax(1, sr.height() / 30);
-    for (int y = sr.top(); y < sr.bottom(); y += stepY) {
-        for (int x = sr.left(); x < sr.right(); x += stepX) {
-            const QColor c = QColor::fromRgb(img.pixel(x, y));
-            if (c.red() < 230 || c.green() < 230 || c.blue() < 230)
-                counts[c.rgb()]++;
+    struct Px { int lum; QRgb rgb; };
+    std::vector<Px> pixels;
+    pixels.reserve(size_t(sr.width()) * sr.height() / 4 + 16);
+    for (int y = sr.top(); y <= sr.bottom(); ++y)
+        for (int x = sr.left(); x <= sr.right(); ++x) {
+            const QRgb c  = pixelOverWhite(img, x, y);
+            const int lum = (qRed(c) * 299 + qGreen(c) * 587 + qBlue(c) * 114)
+                          / 1000;
+            if (lum < 240) pixels.push_back({ lum, c });
         }
+    if (pixels.empty()) return QColor(0x11, 0x11, 0x11);
+
+    std::sort(pixels.begin(), pixels.end(),
+              [](const Px &a, const Px &b) { return a.lum < b.lum; });
+    const size_t take = std::max<size_t>(8, pixels.size() / 10);
+    long r = 0, g = 0, b = 0;
+    const size_t n = std::min(take, pixels.size());
+    for (size_t i = 0; i < n; ++i) {
+        r += qRed(pixels[i].rgb);
+        g += qGreen(pixels[i].rgb);
+        b += qBlue(pixels[i].rgb);
     }
-    if (counts.isEmpty()) return QColor(0x11, 0x11, 0x11);
+    const QColor core(int(r / n), int(g / n), int(b / n));
+    // Nothing dark at all → no real text under the rect; default ink.
+    if (core.lightnessF() > 0.82) return QColor(0x11, 0x11, 0x11);
+    return core;
+}
+
+// Dominant color INSIDE the text bounds — that is the background the blank
+// fill must reproduce. Inside a text rect the background always outweighs the
+// glyph pixels by area, so the mode is the background color; this holds for
+// white pages, colored table rows, and dark headers with light text alike.
+// (A ring AROUND the bounds is unusable: for table cells it runs exactly
+// along the dark border lines and returns the border color.)
+// Works on every backend, including backgrounds the content-stream scan
+// can't see (form XObjects, shadings, images).
+static QColor sampleBackgroundColor(const QImage &img, const QRect &region)
+{
+    const QRect sr = region.intersected(img.rect());
+    if (sr.isEmpty()) return {};
+
+    QMap<QRgb, int> counts;
+    const int stepX = qMax(1, sr.width()  / 120);
+    const int stepY = qMax(1, sr.height() / 40);
+    for (int y = sr.top(); y <= sr.bottom(); y += stepY)
+        for (int x = sr.left(); x <= sr.right(); x += stepX)
+            counts[pixelOverWhite(img, x, y)]++;
+    if (counts.isEmpty()) return {};
 
     QRgb best = 0; int bestN = 0;
     for (auto it = counts.cbegin(); it != counts.cend(); ++it)
@@ -1738,6 +1913,10 @@ void DocumentView::handleEditClick(const QPoint &canvasPos)
     // text box (createTextFrame) or edited text in-place (handleEditClick), their
     // session content is shown on top and clicking that area edits the session
     // content, not the original PDF text underneath.
+    // Session-erased areas: text lookup must treat them as gone, or a click
+    // near them resurrects the invisible original as a duplicate.
+    const QList<QRectF> erasedZones = m_session->blankRegions(pageIdx);
+
     bool              isSessionEdit = false;
     EditSession::Edit sessionEdit;
     TextBlock block;
@@ -1779,10 +1958,10 @@ void DocumentView::handleEditClick(const QPoint &canvasPos)
     // Fall back to native PDF text (vector PDFs)
     if (!block.isValid()) {
 #ifdef HAVE_QT_PDF
-        block = m_extractor->textAt(pageIdx, pdfPt, pageSize);
+        block = m_extractor->textAt(pageIdx, pdfPt, pageSize, erasedZones);
 #elif defined(HAVE_POPPLER)
         if (m_popplerDoc)
-            block = popplerTextAt(m_popplerDoc.get(), pageIdx, pdfPt);
+            block = popplerTextAt(m_popplerDoc.get(), pageIdx, pdfPt, erasedZones);
 #endif
     }
 
@@ -1822,46 +2001,77 @@ void DocumentView::handleEditClick(const QPoint &canvasPos)
     }
     m_lastCommittedPage = -1;
 
-    // If the click lands on a blank (erase-only) session edit — the source area
-    // of a drag-move — don't open any editor.  The area is intentionally empty;
-    // pre-filling with native PDF text would cause a duplicate (native text at P1
-    // alongside the still-active moved text at P2).  The user can drag-to-create
-    // a new text frame if they want to put text back here.
-    if (m_session->isBlankAt(block.page, block.pdfBounds))
+    // If the click lands inside a blank (erase-only) session edit — the source
+    // area of a drag-move — don't open any editor.  The area is intentionally
+    // empty; pre-filling with the (still present, only visually erased) native
+    // PDF text would duplicate it: native text back at P1 alongside the moved
+    // text at P2.  The user can drag-to-create a new text frame here instead.
+    // Two guards: the click point itself, AND the found block — text lookup is
+    // fuzzy (nearest within 40 pt), so a click NEAR the blanked area can snap
+    // onto the invisible original even though the point lies outside the blank.
+    // NEVER swallow session-edit clicks: moved text often still overlaps its
+    // own blank, and its visible content must stay editable on top of it.
+    if (!isSessionEdit && (m_session->isBlankAt(block.page, pdfPt)
+                           || m_session->isBlankCovering(block.page, block.pdfBounds)))
         return;
 
     QString displayText = block.text;
 
     m_activeEditPage           = block.page;
+    m_activeEditSourcePage     = block.page;
     m_activeEditBounds         = block.pdfBounds;
     clampToPdfPage(block.page, m_activeEditBounds);
     m_activeEditOriginalBounds = m_activeEditBounds;
     m_activeEditNeedsBlank     = true;   // editing existing text → must erase original
-    m_hasLiveEdit              = false;
     m_activeEditFieldName.clear();
 
-    // Apply the region model: exact bounds, paragraph text, form-field mode.
+    // Apply the region model: bounds, paragraph text, form-field mode.
+    // Bounds priority: glyph-accurate extractor rects win over the region
+    // model's estimated character widths (estimates overpaint surroundings);
+    // the region model takes over when the extractor found nothing or
+    // returned a suspicious multi-row rect.
     bool paragraphBounds = false;
     if (!isSessionEdit && contentItem.isValid()) {
         if (!contentItem.bounds.isEmpty()) {
-            m_activeEditBounds         = contentItem.bounds;
-            m_activeEditOriginalBounds = contentItem.bounds;
-            clampToPdfPage(block.page, m_activeEditBounds);
+            const double fs = contentItem.fontSizePt > 0.0
+                                  ? contentItem.fontSizePt : 12.0;
+            const bool extractorUsable = block.pdfBounds.height() > 0.5
+                                      && block.pdfBounds.height() <= fs * 2.5;
+            if (!extractorUsable || contentItem.isFormField()) {
+                m_activeEditBounds         = contentItem.bounds;
+                m_activeEditOriginalBounds = contentItem.bounds;
+                clampToPdfPage(block.page, m_activeEditBounds);
+            }
         }
         if (contentItem.type == ContentItem::Type::Paragraph) {
             // The extractor block covers only the clicked line; fetch the full
-            // multi-line paragraph so it is edited as one unit.
+            // multi-line paragraph (text + glyph-accurate bounds) so it is
+            // edited as one unit without overpainting its surroundings.
             paragraphBounds = true;
-            QString paraText;
+            TextBlock para;
 #ifdef HAVE_QT_PDF
-            paraText = m_extractor->textInRect(block.page, contentItem.bounds);
+            para = m_extractor->blockInRect(block.page, contentItem.bounds,
+                                            erasedZones);
 #elif defined(HAVE_POPPLER)
             if (m_popplerDoc)
-                paraText = popplerTextInRect(m_popplerDoc.get(), block.page,
-                                             contentItem.bounds);
+                para = popplerBlockInRect(m_popplerDoc.get(), block.page,
+                                          contentItem.bounds, erasedZones);
 #endif
-            if (paraText.isEmpty()) paraText = contentItem.text;
-            if (!paraText.isEmpty()) displayText = paraText;
+            // Sanity: a "paragraph" spanning most of the page is a detection
+            // failure — editing it would open a viewport-sized frame. Fall
+            // back to the clicked line in that case.
+            const bool paraSane = para.isValid()
+                               && para.pdfBounds.height() < pageSize.height() * 0.5;
+            if (paraSane && !para.text.isEmpty()) {
+                displayText                = para.text;
+                m_activeEditBounds         = para.pdfBounds;
+                m_activeEditOriginalBounds = para.pdfBounds;
+                clampToPdfPage(block.page, m_activeEditBounds);
+            } else if (!para.isValid() && !contentItem.text.isEmpty()) {
+                displayText = contentItem.text;
+            } else {
+                paragraphBounds = false;   // keep the tight line bounds
+            }
         }
         if (contentItem.isFormField()) {
             m_activeEditFieldName = contentItem.fieldName;
@@ -1896,6 +2106,14 @@ void DocumentView::handleEditClick(const QPoint &canvasPos)
             const double lineH     = qMin(m_activeEditBounds.height() / lineCount, 20.0);
             m_currentEditorFontSizePt = qMax(4, qRound(lineH / 0.72));
         }
+    }
+    // Sanity: the clicked line's glyph height caps the font size — a
+    // detection outlier must not commit 2-3x oversized text.
+    if (!isSessionEdit && !contentItem.isFormField()) {
+        const double lineGlyphH = block.pdfBounds.height();
+        if (lineGlyphH > 4.0 && lineGlyphH < 60.0
+                && m_currentEditorFontSizePt > lineGlyphH * 1.5)
+            m_currentEditorFontSizePt = qMax(4, qRound(lineGlyphH * 1.05));
     }
     Q_EMIT editorFontSizeChanged(m_currentEditorFontSizePt);
 
@@ -1944,6 +2162,17 @@ void DocumentView::handleEditClick(const QPoint &canvasPos)
         m_activeEditOriginalBounds = m_activeEditBounds;
     }
 
+    // Page rendered at 3 px per pt — shared by the color samplers below,
+    // rendered lazily and at most once. Low-dpi renders consist mostly of
+    // antialiasing pixels and make color detection unreliable.
+    constexpr qreal kSampleScale = 3.0;
+    QImage sampImg;
+    const auto sampleImage = [&]() -> const QImage & {
+        if (sampImg.isNull())
+            sampImg = m_renderer->renderPage(block.page, kSampleScale);
+        return sampImg;
+    };
+
     // Text color: stored session color > exact content-stream fill color >
     // pixel sampling of the rendered page (last resort).
     if (isSessionEdit && sessionEdit.textColor.isValid()) {
@@ -1951,30 +2180,82 @@ void DocumentView::handleEditClick(const QPoint &canvasPos)
     } else if (!isSessionEdit && contentItem.isValid()
                && contentItem.textColor.isValid()) {
         m_currentEditorColor = contentItem.textColor;
-    } else {
-        const QImage sampImg = m_renderer->renderPage(block.page, 1.0);
-        if (!sampImg.isNull()) {
-            const QRect sr = block.pdfBounds.toAlignedRect().intersected(sampImg.rect());
-            m_currentEditorColor = sampleDominantColor(sampImg, sr);
-        }
+    } else if (!sampleImage().isNull()) {
+        const QRectF px(block.pdfBounds.topLeft() * kSampleScale,
+                        block.pdfBounds.size() * kSampleScale);
+        m_currentEditorColor = sampleTextColor(sampleImage(),
+                                               px.toAlignedRect());
     }
 
     const int fontSize = qMax(6, qRound(m_currentEditorFontSizePt * scale));
 
-    // Background color from the region model (content-stream fills). Only
-    // perceptually light fills (luminance ≥ 0.70) are used — saturated or dark
-    // fills are decorative borders or accent stripes, not cell backgrounds.
+    // Background color: stored session color > content-stream fill (light
+    // fills only — dark detections are usually borders, not backgrounds) >
+    // pixel ring around the bounds. The ring sees the ACTUAL surrounding
+    // pixels, so it also covers backgrounds the stream scan can't reach
+    // (form XObjects, shadings, images) and the Poppler backend, which has
+    // no stream scan at all. Without it the blank fill paints white bars
+    // over colored table rows.
     m_currentBgColor = Qt::white;
     if (isSessionEdit && sessionEdit.bgColor.isValid()) {
         m_currentBgColor = sessionEdit.bgColor;
-    } else if (contentItem.isValid() && contentItem.bgColor.isValid()) {
-        const QColor bg  = contentItem.bgColor;
-        const qreal  lum = 0.299 * bg.redF() + 0.587 * bg.greenF()
-                         + 0.114 * bg.blueF();
-        if (lum >= 0.70) m_currentBgColor = bg;
+    } else {
+        QColor bg;
+        if (contentItem.isValid() && contentItem.bgColor.isValid()) {
+            const QColor c   = contentItem.bgColor;
+            const qreal  lum = 0.299 * c.redF() + 0.587 * c.greenF()
+                             + 0.114 * c.blueF();
+            if (lum >= 0.70) bg = c;
+        }
+        if (!bg.isValid() && !sampleImage().isNull()) {
+            const QRectF px(m_activeEditBounds.topLeft() * kSampleScale,
+                            m_activeEditBounds.size() * kSampleScale);
+            bg = sampleBackgroundColor(sampleImage(), px.toAlignedRect());
+        }
+        if (bg.isValid()) m_currentBgColor = bg;
+    }
+
+    // The editor font's metrics differ slightly from the PDF font. If the
+    // detected bounds are even a few points too narrow for the editor font,
+    // QTextEdit wraps the last word onto a bogus new line — and the commit
+    // paints that wrap into the document. Widen the edit bounds so every
+    // original line fits the editor font on ONE line (clamped to the page).
+    if (m_currentEditorFontSizePt > 0 && !displayText.isEmpty()) {
+        QFont measure(m_currentEditorFontFamily.isEmpty()
+                          ? QStringLiteral("Helvetica")
+                          : m_currentEditorFontFamily);
+        measure.setStyleHint(QFont::SansSerif);
+        measure.setPixelSize(m_currentEditorFontSizePt);   // 1 px == 1 pt here
+        measure.setBold(m_currentEditorBold);
+        measure.setItalic(m_currentEditorItalic);
+        const QFontMetricsF fm(measure);
+        qreal needW = 0.0;
+        const QStringList lines = displayText.split(u'\n');
+        for (const QString &ln : lines)
+            needW = qMax(needW, fm.horizontalAdvance(ln));
+        needW += m_currentEditorFontSizePt * 0.6;   // caret/AA headroom
+        if (needW > m_activeEditBounds.width())
+            m_activeEditBounds.setWidth(
+                qMin(needW, pageSize.width() - m_activeEditBounds.left() - 2.0));
     }
 
     hideHoverHighlight();
+
+    // Erasure targets: ONLY the tight glyph rects of the original text.
+    // A whole-bounds erase would destroy graphics (chart bars, images,
+    // rules) sharing the rectangle with the text.
+    m_activeEditEraseRects.clear();
+    if (m_activeEditNeedsBlank) {
+#ifdef HAVE_QT_PDF
+        m_activeEditEraseRects = m_extractor->glyphRects(
+            block.page, m_activeEditOriginalBounds, erasedZones);
+#elif defined(HAVE_POPPLER)
+        if (m_popplerDoc)
+            m_activeEditEraseRects = popplerGlyphRects(
+                m_popplerDoc.get(), block.page, m_activeEditOriginalBounds,
+                erasedZones);
+#endif
+    }
 
     // Recompute canvas bounds from the (possibly expanded) m_activeEditBounds so
     // both the blank fill rect and the editor frame cover the full rendered text.
@@ -1985,6 +2266,8 @@ void DocumentView::handleEditClick(const QPoint &canvasPos)
     m_editorFrame->setDecorations(true);
     m_editorFrame->setForbiddenZones({});
     m_editorFrame->setPageRect(pageLbl->geometry());
+    // Single-line edits extend horizontally while typing instead of wrapping.
+    m_editorFrame->setGrowHorizontal(!displayText.contains(u'\n'));
     m_editorFrame->resetCommitGuard();
     m_undoSnapBefore = m_session->snapshotEdits();
     m_session->suspendEditsAt(block.page, block.pdfBounds);
@@ -2026,22 +2309,19 @@ void DocumentView::commitCurrentEdit(const QString &newText)
 {
 #ifdef HAVE_PDF_RENDERING
     if (m_activeEditPage < 0) return;
-    m_liveTimer->stop();
 
     // Capture all state before hide() — hide() can trigger a recursive
     // focusOut→committed→commitCurrentEdit call, which exits early because
     // m_activeEditPage is already -1.
-    const int    page       = m_activeEditPage;
+    const int    page       = m_activeEditPage;         // where the box is NOW
+    const int    srcPage    = m_activeEditSourcePage >= 0 ? m_activeEditSourcePage
+                                                          : m_activeEditPage;
     const QRectF bounds     = m_activeEditBounds;
     const QRectF origBounds = m_activeEditOriginalBounds;
-    const QRectF liveBounds = m_lastLiveEditBounds;
-    const bool   hadLive    = m_hasLiveEdit;
-    m_activeEditPage = -1;
-    m_hasLiveEdit    = false;
+    m_activeEditPage       = -1;
+    m_activeEditSourcePage = -1;
 
     m_editorFrame->hide();  // may trigger recursive commit, which exits early ↑
-
-    qWarning() << "[COMMIT] page=" << page << "new=" << newText.left(40);
 
     const QString trimNew = newText.trimmed();
 
@@ -2057,10 +2337,9 @@ void DocumentView::commitCurrentEdit(const QString &newText)
     // removeAllAt (intersects) is intentionally avoided here: a full paragraph's
     // pdfBounds can span several hundred pixels, so it would accidentally delete
     // adjacent session edits that are close but distinct.
-    m_session->removeEdit(page, origBounds);
-    if (!bounds.intersects(origBounds))
+    m_session->removeEdit(srcPage, origBounds);
+    if (page != srcPage || !bounds.intersects(origBounds))
         m_session->removeEdit(page, bounds);
-    if (hadLive) m_session->removeEdit(page, liveBounds);
 
     // Blank MUST be inserted before the text so applyToImage erases origBounds
     // before drawing the new text.  It is needed when:
@@ -2072,8 +2351,12 @@ void DocumentView::commitCurrentEdit(const QString &newText)
     // The second condition must be gated on m_activeEditNeedsBlank — for fresh drag
     // boxes the origBounds is just the initial drag rect, not real PDF content to erase.
     const bool needBlank = m_activeEditNeedsBlank;
-    if (needBlank)
-        m_session->addEdit(makeSessionEdit(page, origBounds, origBounds, QString()));
+    if (needBlank) {
+        EditSession::Edit blank = makeSessionEdit(srcPage, origBounds, origBounds,
+                                                  QString());
+        blank.eraseRects = m_activeEditEraseRects;   // glyphs only, not the rect
+        m_session->addEdit(std::move(blank));
+    }
 
     if (!trimNew.isEmpty())
         m_session->addEdit(makeSessionEdit(page, bounds, origBounds, newText));
@@ -2083,21 +2366,24 @@ void DocumentView::commitCurrentEdit(const QString &newText)
     // changed — avoid polluting the stack with no-op "clicked and walked away" entries.
     const auto snapAfter = m_session->snapshotEdits();
     if (snapAfter != snapBefore)
-        m_undoStack->push(new EditUndoCmd(m_session, this, page, snapBefore, snapAfter));
+        m_undoStack->push(new EditUndoCmd(m_session, this, srcPage, page,
+                                          snapBefore, snapAfter));
 
     // Remember the original PDF block bounds so that the mouseRelease handler
     // for THIS SAME CLICK can avoid re-opening an editor for the block we just
     // committed — doing so would call rerenderPageWithBlank and blank the text.
-    m_lastCommittedPage       = page;
+    m_lastCommittedPage       = srcPage;
     m_lastCommittedOrigBounds = origBounds;
 
     // When blanking is needed, rerenderPageWithBlank ensures origBounds is
     // cleared via BOTH applyToImage (session blank edit) and the explicit fill —
     // belt-and-suspenders so the original text definitely disappears.
     if (needBlank)
-        rerenderPageWithBlank(page, origBounds);
+        rerenderPageWithBlank(srcPage, origBounds);
     else
-        rerenderPage(page);
+        rerenderPage(srcPage);
+    if (page != srcPage)
+        rerenderPage(page);   // box was dragged onto another page — paint it there
 #else
     Q_UNUSED(newText)
 #endif
@@ -2106,48 +2392,18 @@ void DocumentView::commitCurrentEdit(const QString &newText)
 void DocumentView::cancelCurrentEdit()
 {
 #ifdef HAVE_PDF_RENDERING
-    const int page = m_activeEditPage;
-    m_activeEditPage = -1;
-    m_liveTimer->stop();
-    if (m_hasLiveEdit) {
-        if (page >= 0) m_session->removeEdit(page, m_lastLiveEditBounds);
-        m_hasLiveEdit = false;
-    }
+    const int page    = m_activeEditPage;
+    const int srcPage = m_activeEditSourcePage;
+    m_activeEditPage       = -1;
+    m_activeEditSourcePage = -1;
     m_session->restoreSuspended();
     m_editorFrame->hide();
     if (page >= 0)
         rerenderPage(page);
+    if (srcPage >= 0 && srcPage != page)
+        rerenderPage(srcPage);
 #else
     m_activeEditPage = -1;
-#endif
-}
-
-void DocumentView::liveUpdateCurrentEdit(const QString &text)
-{
-#ifdef HAVE_PDF_RENDERING
-    if (m_activeEditPage < 0) return;
-    qWarning() << "[LIVE] page=" << m_activeEditPage
-               << "orig=" << m_activeEditOriginalBounds
-               << "active=" << m_activeEditBounds
-               << "hasLive=" << m_hasLiveEdit
-               << "lastLive=" << m_lastLiveEditBounds
-               << "text=" << text.left(20);
-    // Keep suspended edits alive so cancel still restores the original content.
-    // They are discarded only on commit (commitCurrentEdit calls clearSuspended).
-    // Remove the previous live edit by its exact tracked bounds.
-    if (m_hasLiveEdit) {
-        m_session->removeEdit(m_activeEditPage, m_lastLiveEditBounds);
-        m_hasLiveEdit = false;
-    }
-
-    if (!text.trimmed().isEmpty()) {
-        m_session->addEdit(makeSessionEdit(m_activeEditPage, m_activeEditBounds,
-                                           m_activeEditOriginalBounds, text));
-        m_lastLiveEditBounds = m_activeEditBounds;
-        m_hasLiveEdit        = true;
-    }
-#else
-    Q_UNUSED(text)
 #endif
 }
 
@@ -2163,15 +2419,16 @@ void DocumentView::createTextFrame(const QRect &viewportDragRect)
     if (pageIdx < 0) return;
 
     const qreal scale = PdfRenderer::screenScale(m_zoom);
-    m_activeEditPage   = pageIdx;
+    m_activeEditPage       = pageIdx;
+    m_activeEditSourcePage = pageIdx;
     m_activeEditBounds = QRectF(
         (QPointF(canvasRect.topLeft()) - QPointF(pageLbl->pos())) / scale,
         QSizeF(canvasRect.size()) / scale);
     clampToPdfPage(pageIdx, m_activeEditBounds);
     m_activeEditOriginalBounds = m_activeEditBounds;
     m_activeEditOriginalText  = QString();
-    m_hasLiveEdit             = false;
     m_activeEditNeedsBlank    = false;   // new text box overlay — don't erase background
+    m_activeEditEraseRects.clear();
     m_activeEditFieldName.clear();
     m_undoSnapBefore          = m_session->snapshotEdits();  // before any live edits
 
@@ -2189,6 +2446,7 @@ void DocumentView::createTextFrame(const QRect &viewportDragRect)
     hideHoverHighlight();
     const int fontSize = qMax(8, qRound(12.0 * scale));
     m_editorFrame->setDecorations(true);  // new text box: show border + handles
+    m_editorFrame->setGrowHorizontal(false);   // user chose this width
     m_editorFrame->setPageRect(pageLbl->geometry());
     m_editorFrame->setForbiddenZones({});
     m_editorFrame->resetCommitGuard();
@@ -2244,9 +2502,8 @@ bool DocumentView::eventFilter(QObject *obj, QEvent *e)
                 if (m_editorFrame->isVisible() && m_editorFrame->geometry().contains(cvsPos))
                     return QScrollArea::eventFilter(obj, e);
                 // Commit the active edit before starting a new one.
-                // cancelCurrentEdit must NOT be used here — it removes the live edit,
-                // so the user's typed text would disappear.
-                m_liveTimer->stop();
+                // cancelCurrentEdit must NOT be used here — the user's typed
+                // text must be kept, not discarded.
                 commitCurrentEdit(m_editorFrame->currentText());
 #endif
                 m_textDragStart = cvsPos;   // stored in canvas coords

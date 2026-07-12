@@ -31,6 +31,12 @@ public:
     QString currentText() const;
     // Returns the inner editing rect in parent (canvas) coordinates.
     QRectF innerCanvasRect() const;
+    // Grow the frame until the whole document is visible. Height always
+    // grows; width grows too for single-line edits (setGrowHorizontal) so
+    // typing extends the line instead of wrapping it — a wrap the commit
+    // would paint into the document.
+    void growToFitText();
+    void setGrowHorizontal(bool on) { m_growHorizontal = on; }
 
 Q_SIGNALS:
     void committed(const QString &text);
@@ -63,6 +69,11 @@ private:
     QRect         m_dragStartGeo;
     bool          m_decorations { true };
     bool          m_presenting  { false };  // suppress boundsChanged during present()
+    // Minimum INNER width. Only drag-created (empty) boxes get the large
+    // minimum — in-place edits must keep the width of the original text so
+    // the tracked edit bounds stay honest.
+    int           m_minInnerW   { 120 };
+    bool          m_growHorizontal { false };
     QList<QRect>  m_forbidden;
     QRect         m_pageRect;              // empty = no clamping
 };

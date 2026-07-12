@@ -25,6 +25,11 @@ public:
     // and a reference into the cache would dangle across invalidate calls.
     QList<ContentItem> pageItems(int page);
 
+    // True when the page has already been built. Cheap callers (hover!) must
+    // check this and NEVER trigger a build — buildPage parses the whole file
+    // on the UI thread and freezes scrolling on complex documents.
+    bool hasPage(int page) const { return m_cache.contains(page); }
+
     // Spatial lookup (see contentItemAt). maxDistance < 0 → exact hits only.
     ContentItem itemAt(int page, const QPointF &pdfPt,
                        unsigned typeMask = kTextualContentTypes,

@@ -5,7 +5,8 @@
 #include <QPen>
 #include <QMouseEvent>
 #include <QTimer>
-#include <QFontMetrics>
+#include <QtMath>
+#include <QFontMetricsF>
 
 // ── Construction ──────────────────────────────────────────────────────────────
 
@@ -25,6 +26,10 @@ TextBoxFrame::TextBoxFrame(QWidget *parent) : QWidget(parent)
     connect(m_editor, &InlineEditor::committed, this, &TextBoxFrame::committed);
     connect(m_editor, &InlineEditor::cancelled,  this, &TextBoxFrame::cancelled);
     connect(m_editor, &InlineEditor::changed,    this, &TextBoxFrame::changed);
+    // Typing must never push text out of sight — grow the box with content.
+    connect(m_editor, &InlineEditor::changed, this, [this]() {
+        if (isVisible()) growToFitText();
+    });
 }
 
 QRect TextBoxFrame::innerRect() const
@@ -47,22 +52,43 @@ void TextBoxFrame::setTextFont(const QString &family, bool bold, bool italic)
 void TextBoxFrame::setFontSize(int px)
 {
     m_editor->setFontSize(px);
+    growToFitText();
+}
 
-    // Expand the frame so the text stays visible at the new font size.
-    // Suppress boundsChanged during the internal resize so DocumentView's
-    // boundsChanged handler doesn't re-enter setFontSize recursively.
-    QFontMetrics fm(m_editor->styledFont(px));
-    const int innerW    = qMax(1, width() - (m_decorations ? 2 * kPad : 0) - 8);
-    const QRect needed  = fm.boundingRect(QRect(0, 0, innerW, 9999),
-                                           Qt::TextWordWrap | Qt::AlignLeft,
-                                           m_editor->toPlainText());
-    const int minHeight = needed.height() + (m_decorations ? 2 * kPad : 0) + 8;
-    if (height() < minHeight) {
-        m_presenting = true;
-        resize(width(), minHeight);
-        m_editor->setGeometry(innerRect());
-        m_presenting = false;
+void TextBoxFrame::growToFitText()
+{
+    int newW = width();
+
+    // Single-line edits: grow the WIDTH while typing (up to the page edge)
+    // so the line extends instead of wrapping — a wrap here is committed
+    // into the document as a bogus paragraph break.
+    if (m_growHorizontal) {
+        const QFontMetricsF fm(m_editor->styledFont(m_editor->fontPixelSize()));
+        qreal longest = 0.0;
+        const QStringList lines = m_editor->toPlainText().split(u'\n');
+        for (const QString &ln : lines)
+            longest = qMax(longest, fm.horizontalAdvance(ln));
+        const int neededW = qCeil(longest + fm.averageCharWidth() + 10)
+                          + (m_decorations ? 2 * kPad : 0);
+        if (neededW > newW) {
+            newW = neededW;
+            if (!m_pageRect.isNull())
+                newW = qMin(newW, m_pageRect.right() - x() + 1);
+        }
     }
+
+    // The document wraps at the editor width, so its size() is the exact
+    // space the text needs at that width.
+    const int needed = qCeil(m_editor->document()->size().height());
+    int newH = qMax(height(), needed + (m_decorations ? 2 * kPad : 0) + 2);
+    // Never grow beyond the page — a runaway height (bad detection, huge
+    // font) must not blow the frame across the whole viewport.
+    if (!m_pageRect.isNull())
+        newH = qMin(newH, m_pageRect.bottom() - y() + 1);
+
+    if (newW != width() || newH != height())
+        resize(newW, newH);   // resizeEvent → boundsChanged updates the
+                              // edit bounds in DocumentView
 }
 
 void TextBoxFrame::repositionForZoom(const QRectF &canvasBounds, int px)
@@ -70,7 +96,7 @@ void TextBoxFrame::repositionForZoom(const QRectF &canvasBounds, int px)
     QRect outer = canvasBounds.toAlignedRect();
     if (m_decorations)
         outer = outer.adjusted(-kPad, -kPad, kPad, kPad);
-    outer.setWidth(qMax(outer.width(),  120 + 2 * kPad));
+    outer.setWidth(qMax(outer.width(),  m_minInnerW + 2 * kPad));
     outer.setHeight(qMax(outer.height(),  20 + 2 * kPad));
 
     // m_presenting suppresses boundsChanged so DocumentView doesn't update
@@ -80,6 +106,7 @@ void TextBoxFrame::repositionForZoom(const QRectF &canvasBounds, int px)
     m_editor->setGeometry(innerRect());
     m_editor->setFontSize(px);
     m_presenting = false;
+    growToFitText();   // keep all text visible at the new zoom level
     update();
 }
 void TextBoxFrame::setForbiddenZones(const QList<QRect> &z) { m_forbidden = z; }
@@ -91,10 +118,15 @@ void TextBoxFrame::present(const QString &text, const QRectF &canvasBounds, int 
                            const QColor &color, const QString &fontFamily,
                            bool bold, bool italic)
 {
+    // Empty (drag-created) boxes need room to type into; boxes over existing
+    // text keep the text's width — inflating it would leak into the tracked
+    // edit bounds and misplace the committed edit.
+    m_minInnerW = text.trimmed().isEmpty() ? 120 : 24;
+
     QRect outer = canvasBounds.toAlignedRect();
     if (m_decorations) {
         outer = outer.adjusted(-kPad, -kPad, kPad, kPad);
-        outer.setWidth(qMax(outer.width(),  120 + 2 * kPad));
+        outer.setWidth(qMax(outer.width(),  m_minInnerW + 2 * kPad));
         outer.setHeight(qMax(outer.height(),  20 + 2 * kPad));
     }
 
@@ -111,6 +143,11 @@ void TextBoxFrame::present(const QString &text, const QRectF &canvasBounds, int 
     show();
     update();
     m_presenting = false;
+
+    // If the text needs more room than the detected bounds (e.g. a paragraph
+    // taller than its rect), grow now — no text may open hidden. Emits
+    // boundsChanged so DocumentView tracks the grown edit area.
+    growToFitText();
 
     m_editor->suppressNextFocusOut();
     m_editor->setFocus();
@@ -226,17 +263,13 @@ void TextBoxFrame::mouseMoveEvent(QMouseEvent *e)
             geo.setBottom(qMax(geo.bottom() + d.y(), geo.top() + minH));
     }
 
-    // Clamp to PDF page boundary so the box can't go outside the page
-    if (!m_pageRect.isNull()) {
-        if (m_drag == Handle::Move) {
-            // Translate back so the box stays inside the page rect
-            geo.moveLeft(qBound(m_pageRect.left(), geo.left(), m_pageRect.right() - geo.width()));
-            geo.moveTop(qBound(m_pageRect.top(), geo.top(), m_pageRect.bottom() - geo.height()));
-        } else {
-            geo = geo.intersected(m_pageRect).normalized();
-            if (geo.width() < minW || geo.height() < minH)
-                geo = m_dragStartGeo;  // refuse the resize if it would be too small
-        }
+    // Moving is FREE across the whole canvas — the box may be dragged onto
+    // any other page; DocumentView retargets the page under the box center
+    // via boundsChanged. Only resizing stays clamped to the current page.
+    if (!m_pageRect.isNull() && m_drag != Handle::Move) {
+        geo = geo.intersected(m_pageRect).normalized();
+        if (geo.width() < minW || geo.height() < minH)
+            geo = m_dragStartGeo;  // refuse the resize if it would be too small
     }
 
     setGeometry(geo);
@@ -246,6 +279,12 @@ void TextBoxFrame::mouseMoveEvent(QMouseEvent *e)
 void TextBoxFrame::mouseReleaseEvent(QMouseEvent *e)
 {
     if (e->button() == Qt::LeftButton && m_drag != Handle::None) {
+        // A 1-2 px jitter while clicking the border must not move the box —
+        // an accidental offset commits the text slightly displaced.
+        if (m_drag == Handle::Move
+                && (geometry().topLeft() - m_dragStartGeo.topLeft())
+                       .manhattanLength() <= 2)
+            setGeometry(m_dragStartGeo);
         m_drag = Handle::None;
         unsetCursor();
         e->accept();

@@ -4,6 +4,7 @@
 #include "TextBlock.hpp"
 #include <QColor>
 #include <QList>
+#include <QSet>
 #include <QImage>
 #include <QString>
 
@@ -46,6 +47,11 @@ public:
         // Non-empty → this edit sets the value of an AcroForm text field;
         // vector save updates /V + appearances instead of the content stream.
         QString formField;
+        // Blank edits: the tight per-line glyph rects to erase. Erasing only
+        // the glyphs (not the whole pdfBounds rect) keeps graphics that share
+        // the area — chart bars, images, rules — intact. Empty → fall back
+        // to erasing pdfBounds.
+        QList<QRectF> eraseRects;
 
         bool operator==(const Edit &o) const {
             return page == o.page && pdfBounds == o.pdfBounds &&
@@ -54,7 +60,7 @@ public:
                    textColor == o.textColor && bgColor == o.bgColor &&
                    fontFamily == o.fontFamily && bold == o.bold &&
                    italic == o.italic && fontChanged == o.fontChanged &&
-                   formField == o.formField;
+                   formField == o.formField && eraseRects == o.eraseRects;
         }
         bool operator!=(const Edit &o) const { return !(*this == o); }
     };
@@ -100,8 +106,19 @@ public:
 
     // Returns current edited text at (page, pdfBounds), or null QString if none.
     QString editTextAt(int page, const QRectF &pdfBounds) const;
-    // Returns true if there is a blank (erase-only) session edit at this location.
-    bool isBlankAt(int page, const QRectF &pdfBounds) const;
+    // Returns true if pdfPt lies inside a blank (erase-only) session edit that
+    // has no companion text at the same bounds — i.e. the intentionally empty
+    // source area of a moved/deleted block. Point containment (not exact rect
+    // equality) so re-detected native bounds can't sneak past the guard.
+    bool isBlankAt(int page, const QPointF &pdfPt) const;
+    // Returns true if a blank (without companion) covers ≥ half of `bounds`
+    // OR is itself mostly inside `bounds` — i.e. the block found there is
+    // (or contains) erased text. Catches clicks that land NEAR the blanked
+    // area and fuzzy-snap or merge onto the invisible original.
+    bool isBlankCovering(int page, const QRectF &bounds) const;
+    // The intentionally emptied areas (companion-less blanks) of a page —
+    // exclusion zones for text lookup.
+    QList<QRectF> blankRegions(int page) const;
     // Returns stored text color for the edit intersecting pdfBounds, or invalid QColor.
     QColor  editColorAt(int page, const QRectF &pdfBounds) const;
 
@@ -112,6 +129,19 @@ public:
     // Paint replacements onto an already-rendered QImage (used for live view).
     // scale = PDF-point-to-pixel factor used when rendering.
     void applyToImage(int page, QImage &img, qreal scale) const;
+
+    // Reconstructs the background inside the rects by copying the real pixels
+    // just above/below (per column, majority vote; vertical blend when the two
+    // sides disagree). No color guessing — handles backgrounds that change
+    // across the area (box edges, stripes, gradients, images).
+    // The multi-rect overload treats the rects as ONE block: per column it
+    // spans from the topmost to the bottommost covering rect and samples
+    // OUTSIDE that span — sampling between tightly stacked text lines would
+    // hit the neighbouring line's glyphs and smear them into the fill.
+    static void paintBackgroundPatch(QPainter &p, const QImage &img,
+                                     const QRect &rectPx);
+    static void paintBackgroundPatch(QPainter &p, const QImage &img,
+                                     const QList<QRect> &rectsPx);
 
     // Write the document with all edits to outputPath.
     //   sourcePath  — original PDF file on disk; enables vector output via qpdf.
@@ -130,14 +160,26 @@ public:
 
 private:
     static void paintTextEdit(QPainter &p, const Edit &e, qreal scale);
-    // Fills the edit area with Edit::bgColor (white when invalid).
-    static void paintBlankEdit(QPainter &p, const Edit &e, qreal scale);
+    // Erases the edit area by reconstructing the surrounding background
+    // (paintBackgroundPatch); Edit::bgColor is only the last-resort fallback.
+    static void paintBlankEdit(QPainter &p, const QImage &img, const Edit &e,
+                               qreal scale);
 
 #ifdef HAVE_QPDF
     // Hybrid: unedited pages copied as vector, edited pages get their content
     // stream rewritten; form-field edits update /V + appearance streams.
+    // Pages in overlayPages skip the (riskier) text-op removal and get an
+    // append-only overlay instead — used as the verified-save fallback.
     bool saveVector(const QString &sourcePath, const QString &outputPath,
-                    QPdfDocument *doc, int pageCount) const;
+                    QPdfDocument *doc, int pageCount,
+                    const QSet<int> &overlayPages = {}) const;
+#endif
+#if defined(HAVE_QPDF) && defined(HAVE_QT_PDF)
+    // Renders every edited page of the saved file against the original and
+    // returns the pages whose content OUTSIDE the edit zones changed — i.e.
+    // pages the stream rewrite corrupted. Those get the overlay fallback.
+    QSet<int> verifyVectorSave(const QString &outputPath,
+                               QPdfDocument *doc) const;
 #endif
 
 #ifdef HAVE_QT_PDF

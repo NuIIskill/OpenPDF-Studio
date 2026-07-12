@@ -10,10 +10,20 @@ PdfTextExtractor::PdfTextExtractor(QPdfDocument *doc)
 {
 }
 
+// Session-erased areas are invisible to text lookup: a glyph whose center
+// lies in an excluded region is treated as if it were not on the page.
+static bool isExcluded(const QRectF &glyph, const QList<QRectF> &exclude)
+{
+    for (const QRectF &e : exclude)
+        if (e.contains(glyph.center())) return true;
+    return false;
+}
+
 // ── Public ────────────────────────────────────────────────────────────────────
 
 TextBlock PdfTextExtractor::textAt(int page, const QPointF &pdfPt,
-                                   const QSizeF & /*pageSizePts*/) const
+                                   const QSizeF & /*pageSizePts*/,
+                                   const QList<QRectF> &exclude) const
 {
     // ── Step 1: all text polygons for the page ────────────────────────────────
     const QPdfSelection all = m_doc->getAllText(page);
@@ -24,17 +34,22 @@ TextBlock PdfTextExtractor::textAt(int page, const QPointF &pdfPt,
     // ── Step 2: find the polygon containing (or nearest to) the click point ──
     // Three passes: exact contains → ±8/6 pt expansion → nearest within 40 pt.
     int best = -1;
-    for (int i = 0; i < polys.size(); ++i)
+    for (int i = 0; i < polys.size(); ++i) {
+        if (isExcluded(polys[i].boundingRect(), exclude)) continue;
         if (polys[i].boundingRect().contains(pdfPt)) { best = i; break; }
+    }
     if (best < 0)
-        for (int i = 0; i < polys.size(); ++i)
+        for (int i = 0; i < polys.size(); ++i) {
+            if (isExcluded(polys[i].boundingRect(), exclude)) continue;
             if (polys[i].boundingRect().adjusted(-8, -6, 8, 6).contains(pdfPt)) {
                 best = i; break;
             }
+        }
     if (best < 0) {
         qreal bestD = 40.0;
         for (int i = 0; i < polys.size(); ++i) {
             const QRectF r = polys[i].boundingRect();
+            if (isExcluded(r, exclude)) continue;
             const qreal dx = std::max({0.0, r.left()-pdfPt.x(), pdfPt.x()-r.right()});
             const qreal dy = std::max({0.0, r.top() -pdfPt.y(), pdfPt.y()-r.bottom()});
             const qreal d  = std::hypot(dx, dy);
@@ -70,6 +85,7 @@ TextBlock PdfTextExtractor::textAt(int page, const QPointF &pdfPt,
             changed = false;
             for (int i = 0; i < polys.size(); ++i) {
                 const QRectF r = polys[i].boundingRect();
+                if (isExcluded(r, exclude)) continue;
                 if (r.bottom() < origRCapped.top()    - yTol) continue;
                 if (r.top()    > origRCapped.bottom() + yTol) continue;
                 const qreal gapR = r.left()     - polyR.right();
@@ -152,12 +168,102 @@ TextBlock PdfTextExtractor::textAt(int page, const QPointF &pdfPt,
     return { page, reportBounds, text };
 }
 
+QList<QRectF> PdfTextExtractor::glyphRects(int page, const QRectF &area,
+                                           const QList<QRectF> &exclude) const
+{
+    // getSelection(corner, corner) is UNRELIABLE for rect extraction (it can
+    // return nothing for exact block bounds). getAllText polygons are the
+    // reliable geometry source. Seed with polygons whose center lies in the
+    // area, then COMPLETE the lines: region-model width estimates can end
+    // short of the true line ends, so seeds grow over word-sized gaps until
+    // the line is complete. Column gutters are never crossed.
+    QList<QRectF> all;
+    const QPdfSelection allSel = m_doc->getAllText(page);
+    if (!allSel.isValid()) return {};
+    for (const QPolygonF &poly : allSel.bounds()) {
+        const QRectF r = poly.boundingRect();
+        if (!r.isEmpty() && !isExcluded(r, exclude)) all.append(r);
+    }
+
+    QList<bool> used(all.size(), false);
+    const QRectF seedArea = area.adjusted(-2, -2, 2, 2);
+    bool any = false;
+    for (int i = 0; i < all.size(); ++i)
+        if (seedArea.contains(all[i].center())) { used[i] = true; any = true; }
+    if (!any) return {};
+
+    bool changed = true;
+    while (changed) {
+        changed = false;
+        for (int i = 0; i < all.size(); ++i) {
+            if (used[i]) continue;
+            const QRectF &w = all[i];
+            for (int j = 0; j < all.size(); ++j) {
+                if (!used[j]) continue;
+                const QRectF &u = all[j];
+                const double lineH = std::max({ u.height(), w.height(), 4.0 });
+                if (std::abs(w.center().y() - u.center().y()) > lineH * 0.6)
+                    continue;
+                const double gap = (w.left() >= u.right())
+                                       ? w.left() - u.right()
+                                       : u.left() - w.right();
+                if (gap < lineH * 1.2) { used[i] = true; changed = true; break; }
+            }
+        }
+    }
+
+    QList<QRectF> out;
+    for (int i = 0; i < all.size(); ++i)
+        if (used[i]) out.append(all[i]);
+    return out;
+}
+
+TextBlock PdfTextExtractor::blockInRect(int page, const QRectF &rect,
+                                        const QList<QRectF> &exclude) const
+{
+    const QList<QRectF> rs = glyphRects(page, rect, exclude);
+    if (rs.isEmpty()) return {};
+
+    // Group into lines by center-Y, union per line.
+    struct Line { QRectF r; };
+    QList<Line> lines;
+    for (const QRectF &g : rs) {
+        bool placed = false;
+        for (Line &ln : lines) {
+            const double lineH = std::max({ ln.r.height(), g.height(), 4.0 });
+            if (std::abs(g.center().y() - ln.r.center().y()) < lineH * 0.6) {
+                ln.r = ln.r.united(g);
+                placed = true;
+                break;
+            }
+        }
+        if (!placed) lines.append({ g });
+    }
+    std::sort(lines.begin(), lines.end(),
+              [](const Line &a, const Line &b) { return a.r.top() < b.r.top(); });
+
+    // Per-line text via getSelection with anchors ON the line — that works
+    // reliably (corner-point selection over multi-line rects does not).
+    QString text;
+    QRectF  united;
+    for (const Line &ln : lines) {
+        united = united.isNull() ? ln.r : united.united(ln.r);
+        const QPointF a(ln.r.left() + 0.5,  ln.r.center().y());
+        const QPointF b(ln.r.right() - 0.5, ln.r.center().y());
+        const QPdfSelection sel = m_doc->getSelection(page, a, b);
+        QString lineText = sel.isValid() ? sel.text().trimmed() : QString();
+        lineText.replace(u'\n', u' ');
+        if (!text.isEmpty()) text += u'\n';
+        text += lineText;
+    }
+    text = text.trimmed();
+    if (text.isEmpty() || united.isEmpty()) return {};
+    return { page, united, text };
+}
+
 QString PdfTextExtractor::textInRect(int page, const QRectF &rect) const
 {
-    const QPdfSelection sel = m_doc->getSelection(page, rect.topLeft(),
-                                                  rect.bottomRight());
-    if (!sel.isValid()) return {};
-    return sel.text().trimmed();
+    return blockInRect(page, rect).text;
 }
 
 QList<TextBlock> PdfTextExtractor::allBlocks(int page) const
