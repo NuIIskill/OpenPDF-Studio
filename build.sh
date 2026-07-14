@@ -185,7 +185,8 @@ APPRUN_EOF
     # ── Pack ──────────────────────────────────────────────────────────────────
     echo "==> Packing AppImage…"
     mkdir -p dist
-    APPIMAGE_OUT="dist/OpenPDF_Studio-${ARCH}.AppImage"
+    VERSION="$(tr -d '[:space:]' < version.txt)"
+    APPIMAGE_OUT="dist/OpenPDF_Studio-${VERSION}-${ARCH}.AppImage"
     ARCH="${ARCH}" "${APPIMAGETOOL}" "${APPDIR}" "${APPIMAGE_OUT}"
     echo "==> AppImage ready: ${APPIMAGE_OUT}"
 fi

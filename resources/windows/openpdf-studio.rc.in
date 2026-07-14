@@ -1,10 +1,10 @@
 #include <winver.h>
 
-IDI_ICON1 ICON "openpdf-studio.ico"
+IDI_ICON1 ICON "@CMAKE_CURRENT_SOURCE_DIR@/resources/windows/openpdf-studio.ico"
 
 VS_VERSION_INFO VERSIONINFO
- FILEVERSION     0,1,0,0
- PRODUCTVERSION  0,1,0,0
+ FILEVERSION     @PROJECT_VERSION_MAJOR@,@PROJECT_VERSION_MINOR@,@PROJECT_VERSION_PATCH@,0
+ PRODUCTVERSION  @PROJECT_VERSION_MAJOR@,@PROJECT_VERSION_MINOR@,@PROJECT_VERSION_PATCH@,0
  FILEFLAGSMASK   VS_FFI_FILEFLAGSMASK
  FILEFLAGS       0
  FILEOS          VOS_NT_WINDOWS32
@@ -17,12 +17,12 @@ BEGIN
         BEGIN
             VALUE "CompanyName",      "nullskill"
             VALUE "FileDescription",  "OpenPDF Studio"
-            VALUE "FileVersion",      "0.1.0"
+            VALUE "FileVersion",      "@PROJECT_VERSION@"
             VALUE "InternalName",     "OpenPDFStudio"
             VALUE "LegalCopyright",   "\xA9 nullskill"
             VALUE "OriginalFilename", "OpenPDFStudio.exe"
             VALUE "ProductName",      "OpenPDF Studio"
-            VALUE "ProductVersion",   "0.1.0"
+            VALUE "ProductVersion",   "@PROJECT_VERSION@"
         END
     END
     BLOCK "VarFileInfo"

@@ -16,8 +16,8 @@ DIST_DIR="$ROOT/dist"
 NSIS_VERSION="3.11"
 NSIS_CACHE="${NSIS_CACHE:-$HOME/.cache/openpdf-studio/nsis-$NSIS_VERSION}"
 
-VERSION="$(sed -n 's/^[[:space:]]*VERSION[[:space:]]\+\([0-9.]\+\).*/\1/p' "$ROOT/CMakeLists.txt" | head -1)"
-[[ -n "$VERSION" ]] || { echo "ERROR: Version nicht aus CMakeLists.txt lesbar"; exit 1; }
+VERSION="$(tr -d '[:space:]' < "$ROOT/version.txt")"
+[[ -n "$VERSION" ]] || { echo "ERROR: Version nicht aus version.txt lesbar"; exit 1; }
 echo "==> OpenPDF Studio $VERSION (win64)"
 
 # ── 0. Build sicherstellen ────────────────────────────────────────────────────

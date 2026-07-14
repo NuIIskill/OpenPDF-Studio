@@ -1,7 +1,13 @@
 cmake_minimum_required(VERSION 3.20)
 
+# Zentrale Versionsquelle: version.txt im Repo-Root (auch von build.sh und
+# packaging/windows/package-win.sh gelesen).
+file(READ "${CMAKE_CURRENT_SOURCE_DIR}/version.txt" OPENPDF_VERSION)
+string(STRIP "${OPENPDF_VERSION}" OPENPDF_VERSION)
+set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS version.txt)
+
 project(OpenPDFStudio
-    VERSION 0.1.0
+    VERSION ${OPENPDF_VERSION}
     DESCRIPTION "OpenPDF Studio - Modern PDF Editor"
     LANGUAGES CXX
 )
@@ -197,7 +203,9 @@ endif()
 
 if(WIN32)
     set_target_properties(OpenPDFStudio PROPERTIES WIN32_EXECUTABLE TRUE)
-    target_sources(OpenPDFStudio PRIVATE resources/windows/openpdf-studio.rc)
+    configure_file(resources/windows/openpdf-studio.rc.in
+                   "${CMAKE_CURRENT_BINARY_DIR}/openpdf-studio.rc" @ONLY)
+    target_sources(OpenPDFStudio PRIVATE "${CMAKE_CURRENT_BINARY_DIR}/openpdf-studio.rc")
 endif()
 
 if(MINGW)
