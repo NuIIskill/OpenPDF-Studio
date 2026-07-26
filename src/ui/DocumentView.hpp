@@ -64,7 +64,10 @@ public:
 
     QString     currentFile()      const { return m_filePath; }
     int         pageCount()        const { return m_pageCount; }
+    // 0-based index of the page the user is looking at.
     int         currentPage()      const;
+    // Scrolls the given 0-based page to the top of the viewport.
+    void        goToPage(int page);
     ViewMode    viewMode()         const { return m_viewMode; }
     QUndoStack *undoStack()        const { return m_undoStack; }
     bool        hasUnsavedEdits()  const;
@@ -130,6 +133,9 @@ private:
     std::pair<int, QLabel *> pageAtCanvasPos(const QPoint &canvasPos) const;
     // Clamp r so it stays fully inside the PDF page (both position and size).
     void clampToPdfPage(int page, QRectF &r) const;
+    // Emits pageChanged() when scrolling brought a different page to the front.
+    void reportCurrentPage();
+    void scrollToPage(int page, bool allowRetry);
 #ifdef HAVE_POPPLER
     bool savePopplerRaster(const QString &outputPath);
 #endif
@@ -163,6 +169,7 @@ private:
     QString m_filePath;
     int     m_zoom      { 100 };
     int     m_pageCount { 0 };
+    int     m_lastReportedPage { -1 };   // 0-based; -1 = nothing reported yet
     Tool    m_tool      { Tool::Select };
     bool    m_editMode  { false };
 

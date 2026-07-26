@@ -297,6 +297,9 @@ DocumentView::DocumentView(QWidget *parent)
     m_gridCanvas = new QWidget();   // no parent — we control it via setWidget()
     m_gridCanvas->setObjectName(QStringLiteral("GridCanvas"));
 
+    connect(verticalScrollBar(), &QScrollBar::valueChanged,
+            this, [this]() { reportCurrentPage(); });
+
     viewport()->installEventFilter(this);
     m_canvas->installEventFilter(this);     // also catch events on the canvas itself
     m_rubberBand = new QRubberBand(QRubberBand::Rectangle, viewport());
@@ -413,6 +416,7 @@ void DocumentView::clearDocument()
 #endif
     m_filePath.clear();
     m_pageCount = 0;
+    m_lastReportedPage = -1;
     m_undoStack->clear();
 
     for (QLabel *lbl : m_pageLabels) {
@@ -445,6 +449,7 @@ bool DocumentView::openFile(const QString &path)
     resetContentProvider();
     buildPages();
     Q_EMIT fileOpened(m_filePath, m_pageCount);
+    m_lastReportedPage = 0;          // freshly opened documents start at the top
     Q_EMIT pageChanged(1, m_pageCount);
     return true;
 
@@ -464,6 +469,7 @@ bool DocumentView::openFile(const QString &path)
     resetContentProvider();
     buildPages();
     Q_EMIT fileOpened(m_filePath, m_pageCount);
+    m_lastReportedPage = 0;          // freshly opened documents start at the top
     Q_EMIT pageChanged(1, m_pageCount);
     return true;
 
@@ -473,6 +479,7 @@ bool DocumentView::openFile(const QString &path)
     m_dropHint->show();
     retranslateUi();
     Q_EMIT fileOpened(m_filePath, m_pageCount);
+    m_lastReportedPage = 0;          // freshly opened documents start at the top
     Q_EMIT pageChanged(1, m_pageCount);
     return true;
 #endif
@@ -884,12 +891,70 @@ void DocumentView::setEditorTextColor(const QColor &color)
 int DocumentView::currentPage() const
 {
     if (m_pageLabels.isEmpty()) return 0;
-    const int scrollY = verticalScrollBar()->value();
+
+    // The page covering most of the viewport is the one the user is reading.
+    // Taking the first partially visible page instead would keep the indicator
+    // one page behind for as long as a sliver of it hangs in at the top.
+    const int top    = verticalScrollBar()->value();
+    const int bottom = top + viewport()->height();
+
+    int best = 0;
+    int bestVisible = -1;
     for (int i = 0; i < m_pageLabels.size(); ++i) {
-        if (m_pageLabels[i]->pos().y() + m_pageLabels[i]->height() > scrollY)
-            return i;
+        const int y0 = m_pageLabels[i]->pos().y();
+        const int y1 = y0 + m_pageLabels[i]->height();
+        if (y0 >= bottom) break;
+
+        const int visible = qMin(y1, bottom) - qMax(y0, top);
+        if (visible > bestVisible) {
+            bestVisible = visible;
+            best        = i;
+        }
     }
-    return m_pageLabels.size() - 1;
+    return best;
+}
+
+void DocumentView::goToPage(int page)
+{
+    scrollToPage(page, true);
+}
+
+void DocumentView::scrollToPage(int page, bool allowRetry)
+{
+    if (m_pageLabels.isEmpty()) return;
+    page = qBound(0, page, m_pageLabels.size() - 1);
+
+    // The page widgets live on m_canvas, which is not the widget on screen in
+    // grid mode — jumping to a page there means returning to the page view.
+    if (m_viewMode == ViewMode::Grid)
+        setViewMode(ViewMode::Single);
+
+    // Right after open/zoom the layout can still be pending, in which case
+    // every page would report pos().y() == 0 and the jump would go nowhere.
+    if (m_layout) m_layout->activate();
+
+    constexpr int kTopGap = 20;   // leave a little air above the page
+    const int target = qMax(0, m_pageLabels[page]->pos().y() - kTopGap);
+    verticalScrollBar()->setValue(target);
+
+    if (allowRetry && verticalScrollBar()->value() != target) {
+        // The scroll area sizes its canvas — and with it the scrollbar range —
+        // only once it has processed the new page widgets. Until then the jump
+        // is clamped to 0, which is what made the very first click on the page
+        // arrows after opening a document do nothing. Retry once, after that.
+        QTimer::singleShot(0, this, [this, page]() { scrollToPage(page, false); });
+        return;
+    }
+    reportCurrentPage();
+}
+
+void DocumentView::reportCurrentPage()
+{
+    if (m_pageCount <= 0 || m_pageLabels.isEmpty()) return;
+    const int page = currentPage();
+    if (page == m_lastReportedPage) return;
+    m_lastReportedPage = page;
+    Q_EMIT pageChanged(page + 1, m_pageCount);
 }
 
 bool DocumentView::pdfRenderingAvailable() const

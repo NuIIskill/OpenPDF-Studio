@@ -195,8 +195,18 @@ void MainWindow::connectSignals()
     loadZoomSettings();  // apply zoom settings from AppSettings (or defaults)
 
     // Status bar
-    connect(m_statusBar, &StatusBar::previousPageRequested, this, [this]() {});
-    connect(m_statusBar, &StatusBar::nextPageRequested,     this, [this]() {});
+    connect(m_statusBar, &StatusBar::previousPageRequested, this, [this]() {
+        if (DocumentView *dv = currentDocView())
+            dv->goToPage(dv->currentPage() - 1);
+    });
+    connect(m_statusBar, &StatusBar::nextPageRequested, this, [this]() {
+        if (DocumentView *dv = currentDocView())
+            dv->goToPage(dv->currentPage() + 1);
+    });
+    connect(m_statusBar, &StatusBar::pageRequested, this, [this](int page) {
+        if (DocumentView *dv = currentDocView())
+            dv->goToPage(page - 1);          // status bar counts from 1
+    });
     connect(m_statusBar, &StatusBar::panelToggleRequested,  this, [this]() {
         m_rightSidebarCollapsed = !m_rightSidebarCollapsed;
         if (m_rightSidebarCollapsed) {
@@ -228,6 +238,12 @@ DocumentView *MainWindow::addDocView()
             m_topToolbar->setTabLabel(i, fi.fileName());
         }
         m_statusBar->setPageInfo(1, pages);
+    });
+
+    // Keep the page indicator in step with scrolling / jumps in the view
+    connect(dv, &DocumentView::pageChanged, this, [this, dv](int current, int total) {
+        if (dv == currentDocView())
+            m_statusBar->setPageInfo(current, total);
     });
 
     // Keep view-mode buttons in sync (e.g. when user clicks a grid card to return to single)
@@ -279,7 +295,9 @@ void MainWindow::onTabActivated(int index)
     m_topToolbar->setCurrentTab(index);
 
     const DocumentView *dv = m_docViews[index];
-    m_statusBar->setPageInfo(1, dv->pageCount() > 0 ? dv->pageCount() : 1);
+    // Show where this tab was left off, not page 1.
+    m_statusBar->setPageInfo(dv->currentPage() + 1,
+                             dv->pageCount() > 0 ? dv->pageCount() : 1);
     m_topToolbar->setZoom(m_zoom);
     m_topToolbar->setViewMode(dv->viewMode() == DocumentView::ViewMode::Grid);
 }
