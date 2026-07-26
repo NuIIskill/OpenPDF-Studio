@@ -62,6 +62,9 @@ private:
     // Card management
     PageCard *makeCard(int index);
     void      rebuildCards();
+    void      syncCards();
+    int       columnCount() const;
+    int       dropIndexAt(const QPoint &pos) const;
     void      relayout();
     void      updatePageLabels();
     void      updateFooterCount();

@@ -32,6 +32,8 @@ namespace OrgConst {
 #include <QEvent>
 #include <QScrollBar>
 #include <QStyle>
+#include <QMargins>
+#include <QPageSize>
 
 #ifdef HAVE_QT_PDF
 #include <QPdfDocument>
@@ -150,6 +152,7 @@ protected:
     {
         if (e->button() == Qt::LeftButton) {
             m_dragStart = e->pos();
+            m_dragArmed = true;
             Q_EMIT clicked(m_index, e->modifiers());
         }
         QFrame::mousePressEvent(e);
@@ -157,10 +160,16 @@ protected:
 
     void mouseMoveEvent(QMouseEvent *e) override
     {
-        if ((e->buttons() & Qt::LeftButton) &&
+        if (m_dragArmed && (e->buttons() & Qt::LeftButton) &&
             (e->pos() - m_dragStart).manhattanLength() > QApplication::startDragDistance())
         {
+            // One drag per press. The signal runs the whole drag synchronously
+            // and reorders the grid; a second emit from the same press would
+            // carry this card's pre-drop index and move a page the user never
+            // picked up.
+            m_dragArmed = false;
             Q_EMIT dragStarted(m_index);
+            return;
         }
         QFrame::mouseMoveEvent(e);
     }
@@ -198,6 +207,7 @@ private:
 
     int        m_index;
     bool       m_selected { false };
+    bool       m_dragArmed { false };
     QPoint     m_dragStart;
     DragDots  *m_dragHandle  { nullptr };
     QLabel    *m_thumbLabel  { nullptr };
@@ -547,8 +557,7 @@ void PdfOrganizerDialog::moveSelected(int delta)
         for (int i = sel.size() - 1; i >= 0; --i)
             m_pages.swapItemsAt(sel[i], sel[i] + 1);
     }
-    rebuildCards();
-    updatePageLabels();
+    syncCards();
 }
 
 void PdfOrganizerDialog::rotateSelected(int degrees)
@@ -606,12 +615,30 @@ void PdfOrganizerDialog::rebuildCards()
     updateSelectionButtons();
 }
 
-void PdfOrganizerDialog::relayout()
+// Reorder path: the cards themselves are interchangeable, so re-point the
+// existing ones at their new entries instead of destroying and recreating
+// them. Rebuilding mid-drag would delete the card whose mouse handler is still
+// on the stack and leave the freed cards painted over the new grid.
+void PdfOrganizerDialog::syncCards()
 {
-    if (!m_gridContainer) return;
+    if (m_cards.size() != m_pages.size()) {
+        rebuildCards();
+        updatePageLabels();
+        return;
+    }
+    for (int i = 0; i < m_pages.size(); ++i) {
+        m_cards[i]->setIndex(i);
+        m_cards[i]->setThumb(m_pages[i].thumb);
+        m_cards[i]->setSelected(m_pages[i].selected);
+        m_cards[i]->setPageLabel(tr("Page %1").arg(i + 1));
+    }
+    updateSelectionButtons();
+}
 
-    // viewport()->width() returns 0 before the dialog is shown (constructor
-    // calls us before Qt has applied the layout to children). Fall back to the
+int PdfOrganizerDialog::columnCount() const
+{
+    // viewport()->width() returns 0 before the dialog is shown (the constructor
+    // asks before Qt has applied the layout to children). Fall back to the
     // dialog's own width minus a scrollbar allowance so the initial grid is
     // already correct when the window appears.
     int availW = m_scroll->viewport()->width();
@@ -619,8 +646,15 @@ void PdfOrganizerDialog::relayout()
         const int sbW = style()->pixelMetric(QStyle::PM_ScrollBarExtent);
         availW = qMax(0, width() - sbW);
     }
+    return qMax(1, (availW - OrgConst::GRID_PAD * 2 + OrgConst::COL_GAP)
+                       / (OrgConst::CARD_W + OrgConst::COL_GAP));
+}
 
-    const int cols   = qMax(1, (availW - OrgConst::GRID_PAD * 2 + OrgConst::COL_GAP) / (OrgConst::CARD_W + OrgConst::COL_GAP));
+void PdfOrganizerDialog::relayout()
+{
+    if (!m_gridContainer) return;
+
+    const int cols   = columnCount();
 
     const int rows   = m_cards.isEmpty() ? 0
                      : (m_cards.size() + cols - 1) / cols;
@@ -700,22 +734,39 @@ void PdfOrganizerDialog::onCardCheckToggled(int index, bool checked)
 
 void PdfOrganizerDialog::moveCardTo(int from, int to)
 {
-    if (from == to || from < 0 || to < 0 ||
-        from >= m_pages.size() || to >= m_pages.size()) return;
+    if (from < 0 || from >= m_pages.size() || m_pages.isEmpty()) return;
+    to = qBound(0, to, m_pages.size() - 1);
+    if (from == to) return;
+
     const PageEntry e = m_pages.takeAt(from);
     m_pages.insert(to, e);
-    rebuildCards();
-    updatePageLabels();
-    updateFooterCount();
-    // Re-select the moved card
-    if (to < m_pages.size()) {
-        m_pages[to].selected = true;
-        m_cards[to]->setSelected(true);
-    }
-    updateSelectionButtons();
+
+    // Keep the moved page selected and make it the shift-selection anchor —
+    // otherwise the anchor still points at whatever page now sits at `from`.
+    m_pages[to].selected = true;
+    m_lastClickedIndex   = to;
+
+    syncCards();
 }
 
 // ── Drag-and-drop ─────────────────────────────────────────────────────────────
+
+// Maps a drop point (in grid-container coordinates, so already scroll-aware)
+// onto the grid slot it falls in. Hit-testing the card rectangles instead would
+// leave the gaps and the padding unmatched, and every drop that landed a few
+// pixels beside a card silently sent the page to the end of the document.
+int PdfOrganizerDialog::dropIndexAt(const QPoint &pos) const
+{
+    if (m_cards.isEmpty()) return 0;
+
+    const int cols = columnCount();
+    const int col  = qBound(0, (pos.x() - OrgConst::GRID_PAD)
+                                   / (OrgConst::CARD_W + OrgConst::COL_GAP), cols - 1);
+    const int row  = qMax(0, (pos.y() - OrgConst::GRID_PAD)
+                                 / (OrgConst::CARD_H + OrgConst::ROW_GAP));
+
+    return qBound(0, row * cols + col, m_cards.size() - 1);
+}
 
 void PdfOrganizerDialog::startDrag(int fromIndex)
 {
@@ -759,14 +810,7 @@ bool PdfOrganizerDialog::eventFilter(QObject *obj, QEvent *e)
             auto *de = static_cast<QDropEvent *>(e);
             const int from = de->mimeData()
                 ->data(QStringLiteral("application/x-page-index")).toInt();
-
-            // Find the card we're dropping onto
-            const QPoint pos = de->position().toPoint();
-            int to = m_cards.size() - 1;
-            for (int i = 0; i < m_cards.size(); ++i) {
-                if (m_cards[i]->geometry().contains(pos)) { to = i; break; }
-            }
-            moveCardTo(from, to);
+            moveCardTo(from, dropIndexAt(de->position().toPoint()));
             de->acceptProposedAction();
             return true;
         }
@@ -839,10 +883,17 @@ bool PdfOrganizerDialog::writePdf(const QString &outPath)
     // Page size for page 1 must be set BEFORE QPainter::begin() so the first
     // page is opened at the correct size immediately.
     QPdfWriter writer(outPath);
+    writer.setCreator(QStringLiteral("OpenPDF Studio"));
     writer.setResolution(SAVE_DPI);
     if (!m_pages.isEmpty())
         writer.setPageSize(QPageSize(outputPageSizePt(m_pages[0]),
                                      QPageSize::Point, {}, QPageSize::ExactMatch));
+
+    // QPdfWriter defaults to ~10 pt page margins, which shrink the painter's
+    // paint rect and put its origin inside the page — a full-page image would
+    // be nudged down/right and clipped off the right and bottom edges.
+    // Zeroing them once is enough; setPageSize() below keeps zero margins.
+    writer.setPageMargins(QMarginsF(0, 0, 0, 0));
 
     QPainter painter(&writer);
     if (!painter.isActive()) return false;
@@ -878,7 +929,10 @@ bool PdfOrganizerDialog::writePdf(const QString &outPath)
             img = img.transformed(t, Qt::SmoothTransformation);
         }
 
-        painter.drawImage(QRect(QPoint(0, 0), img.size()), img);
+        // Target the device's paint rect rather than the image size, so the
+        // page is filled exactly even when point→pixel rounding differs.
+        painter.drawImage(QRect(0, 0, painter.device()->width(),
+                                painter.device()->height()), img);
     }
     painter.end();
     return true;
