@@ -1,5 +1,11 @@
 # Refactoring-Plan: `src/ui/`
 
+> **Status: Schritte 0–4 umgesetzt** (2026-08-01, Commits `dffa916`…`b7ff8f8`).
+> `DocumentView.cpp` ist von 3420 auf 2081 Zeilen und von 171 auf 120
+> Präprozessor-Direktiven geschrumpft. Wo die Umsetzung vom Plan abweicht, steht das
+> unten beim jeweiligen Schritt unter **Umgesetzt**. Der Abschnitt „Bewusst nicht in
+> diesem Plan" gilt unverändert — die Edit-Session-Logik ist nicht angefasst.
+
 Stand: 2026-07-31. Ausgangslage: `DocumentView.cpp` hat 3420 Zeilen, 68 Methoden und
 171 Präprozessor-Direktiven. Ziel ist ein Koordinator von ~400 Zeilen, der vier
 Controller besitzt, statt alles selbst zu tun.
@@ -204,6 +210,11 @@ unverändert mit — das ist eine bewusste Entscheidung, keine Altlast.
 **Prüfen:** Markieren über Seitengrenzen, Zoomwechsel bei aktiver Selektion, Kopieren,
 Selektion im Edit-Modus.
 
+**Umgesetzt** (`a92a89c`) — wie geplant. Zwei Anpassungen an der API-Skizze:
+`handlePress` gibt `void` zurück statt `bool`, weil der Press das Event nie verbraucht;
+`PageCanvas` hat zusätzlich `pageLabelCount()`, damit die Anker-Suche exakt über die
+gebauten Labels läuft und nicht über die Dokument-Seitenzahl.
+
 ---
 
 ## Schritt 2 — `ImageAnnotationLayer`
@@ -280,6 +291,19 @@ das `PlacedImage` mitführt — der Save-Pfad hat mit Widgets nichts zu tun.
 
 **Prüfen:** Bild per Drop, per Drag-Rahmen, Verschieben/Skalieren, Kontextmenü
 Kopieren/Ausschneiden/Einfügen, Undo/Redo, Speichern mit platzierten Bildern.
+
+**Umgesetzt** (`6bee7ad`) mit zwei Abweichungen:
+
+- **`showGeneralContextMenu` bleibt in `DocumentView`.** Der Plan hat es wegen des
+  Namens und seiner Position im Image-Block als Bild-Menü gelistet. Es arbeitet aber
+  auf dem offenen Editor und der markierten Seitentext-Auswahl und weiß nichts von
+  Bildern.
+- **Der Layer rechnet ausschließlich in Canvas-Koordinaten.** Vorher wurde
+  Canvas → Viewport umgerechnet, nur damit `placeImageInRect` direkt wieder
+  zurückrechnet. Die Umrechnung passiert jetzt einmal an der Aufrufgrenze.
+
+Zusätzlich mitgewandert: der ~300-zeilige qpdf-Content-Stream-Detektor, dessen einziger
+Aufrufer der Seiten-Scan war.
 
 ---
 
@@ -370,6 +394,21 @@ Position".
 **Prüfen:** Zoom in beiden Modi, Moduswechsel Single↔Grid, Fenster-Resize im Grid,
 Rerender nach Edit-Commit, Undo/Redo (ruft `rerenderPage` von außen).
 
+**Umgesetzt** (`44c281d`). `layoutChanged()` funktioniert wie vorgesehen. Drei
+Abweichungen, alle weil die `QScrollArea` nicht mit in die Engine kann:
+
+- **`setViewMode` bleibt in `DocumentView`** — es tauscht das Widget der Scroll-Area.
+  Die Engine baut nur die Grid-Items auf und ab.
+- **`relayoutGrid(int availableWidth)`** bekommt die Viewport-Breite übergeben, statt
+  `viewport()->width()` selbst zu lesen.
+- **`rerenderPageWithBlank`** bekommt die Erase-Rects als Parameter; sie gehören zur
+  Edit-Session, die vorerst in `DocumentView` bleibt.
+
+Ebenfalls beachtet: `tr("Page %1")` war unter dem Kontext `DocumentView` übersetzt. Der
+verschobene Aufruf nutzt deshalb explizit
+`QCoreApplication::translate("DocumentView", …)` — sonst wären die Übersetzungen in
+allen 11 `.ts`-Dateien verwaist. Gleiches gilt für das Bild-Kontextmenü aus Schritt 2.
+
 ---
 
 ## Schritt 4 — `DocumentExporter` → nach `src/engine/`
@@ -420,6 +459,14 @@ entscheiden, wenn der Schritt drankommt.
 **Warum zuletzt, obwohl am einfachsten:** Der Schritt ist unabhängig von 1–3 und kann
 jederzeit vorgezogen werden. Er steht hier hinten, weil er der erste ist, dessen Ergebnis
 sich ohne UI testen lässt — ein guter Anlass, direkt danach das Test-Setup aufzusetzen.
+
+**Umgesetzt** (`b7ff8f8`). Der Bedarf war größer als in der Skizze: neben Renderer,
+Provider und Session braucht `allPageContent()` auch die OCR-Engine und — im
+Qt-PDF-Pfad — `QPdfDocument` und `PdfTextExtractor`. Statt eines Konstruktors mit sechs
+Parametern, dessen Signatur sich je Backend unterscheidet, bündelt
+`DocumentExporter::Sources` die geliehenen Zeiger. `DocumentView` behält beide Methoden
+als Fassade; die offene Frage, ob `ExportDialog` direkt auf den Exporter geht, ist
+weiterhin offen.
 
 ---
 
