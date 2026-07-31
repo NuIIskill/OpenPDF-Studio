@@ -60,27 +60,28 @@ set(SOURCES
 
     src/ui/MainWindow.cpp
     src/ui/MainWindow.hpp
-    src/ui/FormatBar.cpp
-    src/ui/FormatBar.hpp
     src/ui/DocumentView.cpp
     src/ui/DocumentView.hpp
-    src/ui/LeftSidebar.cpp
-    src/ui/LeftSidebar.hpp
-    src/ui/LeftSidebar.hpp
-    src/ui/RightSidebar.cpp
-    src/ui/RightSidebar.hpp
-    src/ui/TextPropertiesPanel.cpp
-    src/ui/TextPropertiesPanel.hpp
-    src/ui/TopToolbar.cpp
-    src/ui/TopToolbar.hpp
-    src/ui/ToolPanel.cpp
-    src/ui/ToolPanel.hpp
-    src/ui/StatusBar.cpp
-    src/ui/StatusBar.hpp
-    src/ui/SettingsPanel.cpp
-    src/ui/SettingsPanel.hpp
     src/ui/PresentationWindow.cpp
     src/ui/PresentationWindow.hpp
+
+    src/ui/bars/TopToolbar.cpp
+    src/ui/bars/TopToolbar.hpp
+    src/ui/bars/FormatBar.cpp
+    src/ui/bars/FormatBar.hpp
+    src/ui/bars/StatusBar.cpp
+    src/ui/bars/StatusBar.hpp
+
+    src/ui/panels/LeftSidebar.cpp
+    src/ui/panels/LeftSidebar.hpp
+    src/ui/panels/RightSidebar.cpp
+    src/ui/panels/RightSidebar.hpp
+    src/ui/panels/ToolPanel.cpp
+    src/ui/panels/ToolPanel.hpp
+    src/ui/panels/SettingsPanel.cpp
+    src/ui/panels/SettingsPanel.hpp
+    src/ui/panels/TextPropertiesPanel.cpp
+    src/ui/panels/TextPropertiesPanel.hpp
 
     src/ui/widgets/PagePlaceholder.cpp
     src/ui/widgets/PagePlaceholder.hpp
@@ -97,11 +98,10 @@ set(SOURCES
     src/ui/tools/ImageAnnotation.hpp
     src/ui/tools/UndoCommands.hpp
 
-    src/ui/ExportDialog.cpp
-    src/ui/ExportDialog.hpp
-
-    src/ui/organizer/PdfOrganizerDialog.cpp
-    src/ui/organizer/PdfOrganizerDialog.hpp
+    src/ui/dialogs/ExportDialog.cpp
+    src/ui/dialogs/ExportDialog.hpp
+    src/ui/dialogs/PdfOrganizerDialog.cpp
+    src/ui/dialogs/PdfOrganizerDialog.hpp
 
     src/ui/theme/Theme.cpp
     src/ui/theme/Theme.hpp
