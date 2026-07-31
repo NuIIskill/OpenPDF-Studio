@@ -13,6 +13,7 @@ class QFrame;
 QT_END_NAMESPACE
 
 class ImageAnnotationLayer;
+class PageLayoutEngine;
 class TextSelectionController;
 
 #include "engine/ocr/OcrEngine.hpp"
@@ -84,8 +85,8 @@ public:
 
     // ── PageCanvas ────────────────────────────────────────────────────────────
     QWidget *canvasWidget()   const override { return m_canvas; }
-    QLabel  *pageLabel(int page) const override { return m_pageLabels.value(page, nullptr); }
-    int      pageLabelCount() const override { return static_cast<int>(m_pageLabels.size()); }
+    QLabel  *pageLabel(int page) const override;
+    int      pageLabelCount() const override;
     qreal    screenScale()    const override;
     std::pair<int, QLabel *> pageAtCanvasPos(const QPoint &canvasPos) const override;
 
@@ -110,14 +111,8 @@ protected:
     void wheelEvent(QWheelEvent *e) override;
 
 private:
-    // Page rendering
-    void   buildPages();
-    void   rerenderAll();
+    // Re-render a page with the active edit's original text blanked out.
     void   rerenderPageWithBlank(int page, const QRectF &pdfBoundsPts);
-
-    // Grid view
-    void   buildGridItems();
-    void   relayoutGrid();
 
     // Context menu for the open editor / marked page text. Images bring their
     // own menu — that one lives in ImageAnnotationLayer.
@@ -154,17 +149,17 @@ private:
     QVBoxLayout *m_layout    { nullptr };
     QLabel      *m_dropHint  { nullptr };
     QRubberBand *m_rubberBand{ nullptr };
-    QList<QLabel *>  m_pageLabels;
+
+    // Owns the page widgets — single column and grid.
+    PageLayoutEngine *m_layoutEngine { nullptr };
 
     // Placed images and detected image regions, tracked in PDF coordinate space.
     ImageAnnotationLayer *m_imageLayer { nullptr };
 
-    // Grid view
-    struct GridItem { QWidget *card; QLabel *thumb; QLabel *label; QPixmap original; };
-    ViewMode        m_viewMode   { ViewMode::Single };
-    QWidget        *m_gridCanvas { nullptr };
-    QList<GridItem> m_gridItems;
-    QHash<QObject *, int> m_gridCardIndex;
+    // Grid view — the widgets live in m_layoutEngine; the mode itself stays
+    // here because it drives which widget the scroll area shows.
+    ViewMode  m_viewMode   { ViewMode::Single };
+    QWidget  *m_gridCanvas { nullptr };
 
     // Document state
     QString m_filePath;

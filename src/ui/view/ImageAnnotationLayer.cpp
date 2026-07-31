@@ -21,6 +21,7 @@
 #endif
 
 #include <QAction>
+#include <QCoreApplication>
 #include <QDebug>
 #include <QFrame>
 #include <QIcon>
@@ -192,16 +193,23 @@ void ImageAnnotationLayer::connectAnnotation(ImageAnnotation *ann)
 
 void ImageAnnotationLayer::showContextMenu(ImageAnnotation *ann, const QPoint &globalPos)
 {
+    // These strings were translated under the DocumentView context before the
+    // extraction. Naming the context explicitly keeps all 11 existing
+    // translations valid instead of orphaning them in every .ts file.
+    const auto dvTr = [](const char *s) {
+        return QCoreApplication::translate("DocumentView", s);
+    };
+
     QMenu menu(m_canvas->canvasWidget());
     QAction *copy  = menu.addAction(QIcon::fromTheme(QStringLiteral("edit-copy")),
-                                    tr("Kopieren"));
+                                    dvTr("Kopieren"));
     QAction *cut   = menu.addAction(QIcon::fromTheme(QStringLiteral("edit-cut")),
-                                    tr("Ausschneiden"));
+                                    dvTr("Ausschneiden"));
     QAction *paste = menu.addAction(QIcon::fromTheme(QStringLiteral("edit-paste")),
-                                    tr("Einfügen"));
+                                    dvTr("Einfügen"));
     menu.addSeparator();
     QAction *del   = menu.addAction(QIcon::fromTheme(QStringLiteral("edit-delete")),
-                                    tr("Löschen"));
+                                    dvTr("Löschen"));
     paste->setEnabled(!m_clipboard.isNull());
 
     QAction *triggered = menu.exec(globalPos);

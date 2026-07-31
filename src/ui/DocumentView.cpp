@@ -1,6 +1,7 @@
 #include "DocumentView.hpp"
 #include "tools/ImageAnnotation.hpp"
 #include "view/ImageAnnotationLayer.hpp"
+#include "view/PageLayoutEngine.hpp"
 #include "view/TextSelectionController.hpp"
 
 #ifdef HAVE_QPDF
@@ -263,15 +264,6 @@ static QList<QRectF> popplerGlyphRects(Poppler::Document *doc, int page,
 
 #endif // HAVE_PDF_RENDERING
 
-namespace GridConst {
-    constexpr int RENDER_W  = 400;  // internal render quality (px wide)
-    constexpr int MIN_CARD_W = 180; // minimum card width for column count calculation
-    constexpr int LABEL_H   = 24;
-    constexpr int V_PAD     = 10;
-    constexpr int COL_GAP   = 16;
-    constexpr int ROW_GAP   = 20;
-    constexpr int MARGIN    = 24;
-}
 
 DocumentView::DocumentView(QWidget *parent)
     : QScrollArea(parent)
@@ -318,6 +310,21 @@ DocumentView::DocumentView(QWidget *parent)
     connect(m_imageLayer, &ImageAnnotationLayer::pageNeedsRerender,
             this, &DocumentView::rerenderPage);
 
+    m_layoutEngine = new PageLayoutEngine(m_canvas, m_layout, m_gridCanvas, this);
+    // One place to keep every page-anchored overlay in sync with a relayout —
+    // previously each relayout site had to remember both of these by hand.
+    connect(m_layoutEngine, &PageLayoutEngine::layoutChanged, this, [this]() {
+        m_selection->relayout();
+        m_imageLayer->relayout();
+    });
+    connect(m_layoutEngine, &PageLayoutEngine::pageActivated, this, [this](int page) {
+        setViewMode(ViewMode::Single);
+        QMetaObject::invokeMethod(this, [this, page]() {
+            if (const QLabel *lbl = m_layoutEngine->pageLabel(page))
+                verticalScrollBar()->setValue(lbl->mapTo(m_canvas, QPoint(0, 0)).y() - 40);
+        }, Qt::QueuedConnection);
+    });
+
 #ifdef HAVE_PDF_RENDERING
     m_session     = new EditSession();
     m_editorFrame = new TextBoxFrame(m_canvas);
@@ -341,7 +348,7 @@ DocumentView::DocumentView(QWidget *parent)
         auto [pg, lbl] = pageAtCanvasPos(inner.center().toPoint());
         if (pg < 0 || !lbl) {
             pg  = m_activeEditPage;
-            lbl = m_pageLabels.value(pg, nullptr);
+            lbl = pageLabel(pg);
             if (!lbl) return;
         }
         if (pg != m_activeEditPage) {
@@ -367,6 +374,7 @@ DocumentView::DocumentView(QWidget *parent)
     m_renderer  = new PdfRenderer(m_document);
     m_extractor = new PdfTextExtractor(m_document);
     m_selection->setSource(m_renderer, m_document);
+    m_layoutEngine->setSource(m_renderer, m_session);
 #  endif
 #endif
     // HAVE_POPPLER: m_renderer and m_popplerDoc are created per-file in openFile()
@@ -405,10 +413,7 @@ void DocumentView::clearDocument()
     m_selection->clear();
 
     if (m_viewMode == ViewMode::Grid) {
-        for (const GridItem &item : m_gridItems)
-            delete item.card;
-        m_gridItems.clear();
-        m_gridCardIndex.clear();
+        m_layoutEngine->clearGrid();
         m_gridCanvas->hide();
         m_gridCanvas->setMinimumHeight(0);
         takeWidget();
@@ -430,8 +435,9 @@ void DocumentView::clearDocument()
     m_session->clearSuspended();
     m_session->clear();
     m_ocrCache.clear();
-    // Drop the controller's handles before the objects behind them die.
+    // Drop the handles into m_renderer before the object behind it dies.
     m_selection->setSource(nullptr, nullptr);
+    m_layoutEngine->setSource(nullptr, m_session);
     delete m_renderer;
     m_renderer = nullptr;
     m_popplerDoc.reset();
@@ -445,11 +451,7 @@ void DocumentView::clearDocument()
     m_lastReportedPage = -1;
     m_undoStack->clear();
 
-    for (QLabel *lbl : m_pageLabels) {
-        m_layout->removeWidget(lbl);
-        delete lbl;
-    }
-    m_pageLabels.clear();
+    m_layoutEngine->clearPages();
 
     m_imageLayer->clear();
 
@@ -471,8 +473,10 @@ bool DocumentView::openFile(const QString &path)
     m_filePath  = path;
     m_pageCount = m_document->pageCount();
     m_imageLayer->setSource(m_renderer, m_session, m_ocrEngine, m_filePath);
+    m_layoutEngine->setPageCount(m_pageCount);
     resetContentProvider();
-    buildPages();
+    m_dropHint->hide();
+    m_layoutEngine->buildPages();
     Q_EMIT fileOpened(m_filePath, m_pageCount);
     m_lastReportedPage = 0;          // freshly opened documents start at the top
     Q_EMIT pageChanged(1, m_pageCount);
@@ -493,8 +497,11 @@ bool DocumentView::openFile(const QString &path)
     m_filePath   = path;
     m_pageCount  = m_popplerDoc->numPages();
     m_imageLayer->setSource(m_renderer, m_session, m_ocrEngine, m_filePath);
+    m_layoutEngine->setSource(m_renderer, m_session);
+    m_layoutEngine->setPageCount(m_pageCount);
     resetContentProvider();
-    buildPages();
+    m_dropHint->hide();
+    m_layoutEngine->buildPages();
     Q_EMIT fileOpened(m_filePath, m_pageCount);
     m_lastReportedPage = 0;          // freshly opened documents start at the top
     Q_EMIT pageChanged(1, m_pageCount);
@@ -518,9 +525,9 @@ void DocumentView::setZoom(int percent)
 {
     if (m_zoom == percent) return;
     m_zoom = percent;
+    m_layoutEngine->setZoom(percent);
     Q_EMIT zoomChanged(percent);
-    if (!m_filePath.isEmpty()) rerenderAll();
-    m_imageLayer->relayout();
+    if (!m_filePath.isEmpty()) m_layoutEngine->rerenderAll();
     // Page labels are re-laid out asynchronously after rerenderAll(), so the
     // highlights are repositioned once more when that layout has settled.
     m_selection->relayout();
@@ -544,7 +551,7 @@ void DocumentView::setZoom(int percent)
             // Force the canvas layout NOW — label positions are stale until
             // the deferred relayout has run, and the 0 ms timer can fire first.
             if (m_layout) m_layout->activate();
-            const QLabel *lbl = m_pageLabels.value(activePage, nullptr);
+            const QLabel *lbl = pageLabel(activePage);
             if (!lbl) return;
             // Read the CURRENT zoom, not a captured one: rapid wheel zooming
             // queues several of these lambdas and each must position for the
@@ -645,7 +652,7 @@ bool DocumentView::saveToFile(const QString &path)
     m_document->close();
     m_document->load(path);
     resetContentProvider();
-    rerenderAll();
+    m_layoutEngine->rerenderAll();
     return true;
 #elif defined(HAVE_POPPLER)
     commitCurrentEdit(m_editorFrame->currentText());
@@ -665,7 +672,7 @@ bool DocumentView::saveToFile(const QString &path)
         m_renderer   = new PdfRenderer(m_popplerDoc.get());
     }
     resetContentProvider();
-    rerenderAll();
+    m_layoutEngine->rerenderAll();
     return true;
 #else
     Q_UNUSED(path)
@@ -905,7 +912,7 @@ void DocumentView::setEditorFontSize(int ptSize)
             clampToPdfPage(m_activeEditPage, m_activeEditBounds);
         }
         m_currentEditorFontSizePt = ptSize;
-        const QLabel *lbl = m_pageLabels.value(m_activeEditPage, nullptr);
+        const QLabel *lbl = pageLabel(m_activeEditPage);
         if (lbl) {
             m_editorFrame->setPageRect(lbl->geometry());
             const QRectF cb(
@@ -935,7 +942,7 @@ void DocumentView::setEditorTextColor(const QColor &color)
 
 int DocumentView::currentPage() const
 {
-    if (m_pageLabels.isEmpty()) return 0;
+    if (pageLabelCount() == 0) return 0;
 
     // The page covering most of the viewport is the one the user is reading.
     // Taking the first partially visible page instead would keep the indicator
@@ -945,9 +952,9 @@ int DocumentView::currentPage() const
 
     int best = 0;
     int bestVisible = -1;
-    for (int i = 0; i < m_pageLabels.size(); ++i) {
-        const int y0 = m_pageLabels[i]->pos().y();
-        const int y1 = y0 + m_pageLabels[i]->height();
+    for (int i = 0; i < pageLabelCount(); ++i) {
+        const int y0 = pageLabel(i)->pos().y();
+        const int y1 = y0 + pageLabel(i)->height();
         if (y0 >= bottom) break;
 
         const int visible = qMin(y1, bottom) - qMax(y0, top);
@@ -961,8 +968,8 @@ int DocumentView::currentPage() const
 
 int DocumentView::firstVisiblePage() const
 {
-    for (int i = 0; i < m_pageLabels.size(); ++i)
-        if (m_pageLabels[i]->pos().y() >= verticalScrollBar()->value())
+    for (int i = 0; i < pageLabelCount(); ++i)
+        if (pageLabel(i)->pos().y() >= verticalScrollBar()->value())
             return i;
     return 0;
 }
@@ -974,8 +981,8 @@ void DocumentView::goToPage(int page)
 
 void DocumentView::scrollToPage(int page, bool allowRetry)
 {
-    if (m_pageLabels.isEmpty()) return;
-    page = qBound(0, page, m_pageLabels.size() - 1);
+    if (pageLabelCount() == 0) return;
+    page = qBound(0, page, pageLabelCount() - 1);
 
     // The page widgets live on m_canvas, which is not the widget on screen in
     // grid mode — jumping to a page there means returning to the page view.
@@ -987,7 +994,7 @@ void DocumentView::scrollToPage(int page, bool allowRetry)
     if (m_layout) m_layout->activate();
 
     constexpr int kTopGap = 20;   // leave a little air above the page
-    const int target = qMax(0, m_pageLabels[page]->pos().y() - kTopGap);
+    const int target = qMax(0, pageLabel(page)->pos().y() - kTopGap);
     verticalScrollBar()->setValue(target);
 
     if (allowRetry && verticalScrollBar()->value() != target) {
@@ -1003,7 +1010,7 @@ void DocumentView::scrollToPage(int page, bool allowRetry)
 
 void DocumentView::reportCurrentPage()
 {
-    if (m_pageCount <= 0 || m_pageLabels.isEmpty()) return;
+    if (m_pageCount <= 0 || pageLabelCount() == 0) return;
     const int page = currentPage();
     if (page == m_lastReportedPage) return;
     m_lastReportedPage = page;
@@ -1340,115 +1347,32 @@ void DocumentView::resizeEvent(QResizeEvent *e)
 {
     QScrollArea::resizeEvent(e);
     if (m_viewMode == ViewMode::Grid)
-        relayoutGrid();
+        m_layoutEngine->relayoutGrid(viewport()->width());
 }
 
-// ── Page building ─────────────────────────────────────────────────────────────
+// ── Page rendering (delegated to PageLayoutEngine) ────────────────────────────
 
-void DocumentView::buildPages()
+QLabel *DocumentView::pageLabel(int page) const
 {
-    for (QLabel *lbl : m_pageLabels) {
-        m_layout->removeWidget(lbl);
-        delete lbl;
-    }
-    m_pageLabels.clear();
-    m_dropHint->hide();
-
-    for (int i = 0; i < m_pageCount; ++i) {
-        auto *lbl = new QLabel(m_canvas);
-        lbl->setObjectName(QStringLiteral("PageLabel"));
-        lbl->setAlignment(Qt::AlignCenter);
-        lbl->setFrameStyle(QFrame::Box | QFrame::Plain);
-        lbl->setLineWidth(1);
-        lbl->setAutoFillBackground(true);
-        QPalette p = lbl->palette();
-        p.setColor(QPalette::Window, Qt::white);
-        lbl->setPalette(p);
-        lbl->setAttribute(Qt::WA_TransparentForMouseEvents, true);
-        m_layout->addWidget(lbl, 0, Qt::AlignHCenter);
-        m_pageLabels.append(lbl);
-    }
-
-    rerenderAll();
+    return m_layoutEngine->pageLabel(page);
 }
 
-void DocumentView::rerenderAll()
+int DocumentView::pageLabelCount() const
 {
-#ifdef HAVE_PDF_RENDERING
-    if (!m_renderer) return;
-    const qreal dpr   = devicePixelRatioF();
-    const qreal scale = PdfRenderer::screenScale(m_zoom);
-    for (int i = 0; i < m_pageLabels.size(); ++i) {
-        const QSize sz = m_renderer->pageDisplaySize(i, m_zoom);
-        m_pageLabels[i]->setFixedSize(sz);
-        QImage img = m_renderer->renderPage(i, scale * dpr);
-        // Paint in RAW device pixels first; tag the DPR only afterwards —
-        // a QPainter on a DPR-tagged image multiplies every coordinate by
-        // dpr and would displace all edit painting on scaled displays.
-#ifdef HAVE_PDF_RENDERING
-        if (m_session) m_session->applyToImage(i, img, scale * dpr);
-#endif
-        img.setDevicePixelRatio(dpr);
-        if (!img.isNull())
-            m_pageLabels[i]->setPixmap(QPixmap::fromImage(std::move(img)));
-    }
-#endif
+    return m_layoutEngine->pageLabelCount();
 }
 
 void DocumentView::rerenderPage(int page)
 {
-#ifdef HAVE_PDF_RENDERING
-    if (!m_renderer || page < 0 || page >= m_pageLabels.size()) return;
-    const qreal dpr   = devicePixelRatioF();
-    const qreal scale = PdfRenderer::screenScale(m_zoom);
-    QImage img = m_renderer->renderPage(page, scale * dpr);
-    // Paint first, tag DPR afterwards (see rerenderAll).
-    if (m_session) m_session->applyToImage(page, img, scale * dpr);
-    img.setDevicePixelRatio(dpr);
-    if (!img.isNull())
-        m_pageLabels[page]->setPixmap(QPixmap::fromImage(std::move(img)));
-#endif
+    m_layoutEngine->rerenderPage(page);
 }
 
-// Re-renders the page normally then paints a white blank over pdfBoundsPts.
-// Called when starting an edit so the original text disappears from view —
-// the editor widget sits over a clean white area instead of over the old text.
 void DocumentView::rerenderPageWithBlank(int page, const QRectF &pdfBoundsPts)
 {
 #ifdef HAVE_PDF_RENDERING
-    if (!m_renderer || page < 0 || page >= m_pageLabels.size()) return;
-    const qreal dpr   = devicePixelRatioF();
-    const qreal scale = PdfRenderer::screenScale(m_zoom);
-    QImage img = m_renderer->renderPage(page, scale * dpr);
-    // NOTE: the DPR is tagged only AFTER all painting — a QPainter on a
-    // DPR-tagged image multiplies every coordinate by dpr and would displace
-    // the erase rects on scaled displays (fractional scaling!).
-    {
-        // Erase the original text BEFORE applying session edits so it is
-        // hidden even on the first click. Two safety properties:
-        //   • only the tight glyph rects are touched (graphics survive)
-        //   • the background is reconstructed from real surrounding pixels,
-        //     never a guessed color
-        const qreal s   = scale * dpr;
-        const qreal pad = qMax(1.0, 2.5 * s);
-        const QList<QRectF> areas = m_activeEditEraseRects.isEmpty()
-                                        ? QList<QRectF>{ pdfBoundsPts }
-                                        : m_activeEditEraseRects;
-        QList<QRect> rects;
-        rects.reserve(areas.size());
-        for (const QRectF &a : areas) {
-            const QRectF px(a.topLeft() * s, a.size() * s);
-            rects.append(px.adjusted(-pad, -pad, pad, pad).toAlignedRect());
-        }
-        // One call for the whole block: the reconstruction samples outside
-        // the block, never between its tightly stacked lines.
-        QPainter p(&img);
-        EditSession::paintBackgroundPatch(p, img, rects);
-    }
-    if (m_session) m_session->applyToImage(page, img, scale * dpr);
-    img.setDevicePixelRatio(dpr);
-    if (!img.isNull())
-        m_pageLabels[page]->setPixmap(QPixmap::fromImage(std::move(img)));
+    m_layoutEngine->rerenderPageWithBlank(page, pdfBoundsPts, m_activeEditEraseRects);
+#else
+    Q_UNUSED(page) Q_UNUSED(pdfBoundsPts)
 #endif
 }
 
@@ -1462,18 +1386,18 @@ void DocumentView::setViewMode(ViewMode mode)
 
     if (mode == ViewMode::Grid) {
         if (m_pageCount == 0) { m_viewMode = ViewMode::Single; return; }
-        buildGridItems();
+        m_layoutEngine->buildGridItems();
         m_canvas->hide();
         takeWidget();
         setWidget(m_gridCanvas);
         m_gridCanvas->show();
-        // Defer: viewport()->width() is reliable after the scroll area processes the new widget
-        QMetaObject::invokeMethod(this, [this]() { relayoutGrid(); }, Qt::QueuedConnection);
+        // Defer: viewport()->width() is reliable after the scroll area processes
+        // the new widget.
+        QMetaObject::invokeMethod(this, [this]() {
+            m_layoutEngine->relayoutGrid(viewport()->width());
+        }, Qt::QueuedConnection);
     } else {
-        for (const GridItem &item : m_gridItems)
-            delete item.card;
-        m_gridItems.clear();
-        m_gridCardIndex.clear();
+        m_layoutEngine->clearGrid();
         m_gridCanvas->hide();
         m_gridCanvas->setMinimumHeight(0);
         takeWidget();
@@ -1481,116 +1405,6 @@ void DocumentView::setViewMode(ViewMode mode)
         m_canvas->show();
     }
     Q_EMIT viewModeChanged(mode);
-}
-
-void DocumentView::buildGridItems()
-{
-    for (const GridItem &item : m_gridItems)
-        delete item.card;
-    m_gridItems.clear();
-    m_gridCardIndex.clear();
-
-#ifdef HAVE_PDF_RENDERING
-    if (!m_renderer) return;
-    const qreal dpr = devicePixelRatioF();
-
-    for (int i = 0; i < m_pageCount; ++i) {
-        auto *card = new QFrame(m_gridCanvas);
-        card->setObjectName(QStringLiteral("GridCard"));
-        card->setCursor(Qt::PointingHandCursor);
-        card->installEventFilter(this);
-
-        auto *vl = new QVBoxLayout(card);
-        vl->setContentsMargins(GridConst::V_PAD, GridConst::V_PAD,
-                               GridConst::V_PAD, GridConst::V_PAD);
-        vl->setSpacing(6);
-
-        auto *thumb = new QLabel(card);
-        thumb->setObjectName(QStringLiteral("GridThumb"));
-        thumb->setAlignment(Qt::AlignCenter);
-        thumb->setAttribute(Qt::WA_TransparentForMouseEvents, true);
-        thumb->setAutoFillBackground(true);
-        QPalette pal = thumb->palette();
-        pal.setColor(QPalette::Window, Qt::white);
-        thumb->setPalette(pal);
-
-        auto *lbl = new QLabel(tr("Page %1").arg(i + 1), card);
-        lbl->setObjectName(QStringLiteral("GridPageLabel"));
-        lbl->setAlignment(Qt::AlignCenter);
-        lbl->setAttribute(Qt::WA_TransparentForMouseEvents, true);
-
-        vl->addWidget(thumb, 1);
-        vl->addWidget(lbl, 0);
-
-        // Render at RENDER_W for quality; relayoutGrid scales to actual card width
-        QPixmap original;
-        const QSize sz100 = m_renderer->pageDisplaySize(i, 100);
-        if (sz100.width() > 0) {
-            const int   tZoom  = qMax(1, GridConst::RENDER_W * 100 / sz100.width());
-            const qreal tScale = PdfRenderer::screenScale(tZoom);
-            QImage img = m_renderer->renderPage(i, tScale * dpr);
-            if (m_session) m_session->applyToImage(i, img, tScale * dpr);
-            img.setDevicePixelRatio(dpr);
-            if (!img.isNull())
-                original = QPixmap::fromImage(std::move(img));
-        }
-        thumb->setPixmap(original);
-
-        m_gridCardIndex[card] = i;
-        m_gridItems.append({card, thumb, lbl, original});
-    }
-#endif
-}
-
-void DocumentView::relayoutGrid()
-{
-    if (m_gridItems.isEmpty()) return;
-
-    // viewport()->width() is reliable here: called either from resizeEvent (after Qt has
-    // already resized the viewport) or from the QueuedConnection (after the event loop
-    // processes the new widget install). setWidgetResizable(true) keeps the canvas at
-    // exactly viewport width, so this is the authoritative measurement.
-    const int availW = qMax(GridConst::MIN_CARD_W + GridConst::MARGIN * 2,
-                            viewport()->width());
-
-    // Fill the full row: compute column count from MIN_CARD_W, then expand each card.
-    const int cols  = qMax(1, (availW - GridConst::MARGIN * 2 + GridConst::COL_GAP)
-                               / (GridConst::MIN_CARD_W + GridConst::COL_GAP));
-    const int cardW = (availW - GridConst::MARGIN * 2 - (cols - 1) * GridConst::COL_GAP) / cols;
-    const int thumbW = qMax(1, cardW - GridConst::V_PAD * 2);
-
-    // Compute thumb height from page 0 aspect ratio
-    int thumbH = qRound(thumbW * 1.414);  // A4 portrait fallback
-#ifdef HAVE_PDF_RENDERING
-    if (m_renderer && m_pageCount > 0) {
-        const QSize sz100 = m_renderer->pageDisplaySize(0, 100);
-        if (sz100.width() > 0)
-            thumbH = qRound(qreal(thumbW) * sz100.height() / sz100.width());
-    }
-#endif
-    const int cardH  = GridConst::V_PAD + thumbH + 6 + GridConst::LABEL_H + GridConst::V_PAD;
-    const int rows   = (m_gridItems.size() + cols - 1) / cols;
-    const int totalH = GridConst::MARGIN
-                       + rows * (cardH + GridConst::ROW_GAP) - GridConst::ROW_GAP
-                       + GridConst::MARGIN;
-
-    // setWidgetResizable(true) manages the width; we only control the height so the
-    // scroll area can add a vertical scrollbar when the grid is taller than the viewport.
-    m_gridCanvas->setMinimumHeight(totalH);
-
-    for (int i = 0; i < m_gridItems.size(); ++i) {
-        const int col = i % cols;
-        const int row = i / cols;
-        const int x   = GridConst::MARGIN + col * (cardW + GridConst::COL_GAP);
-        const int y   = GridConst::MARGIN + row * (cardH + GridConst::ROW_GAP);
-        m_gridItems[i].card->setGeometry(x, y, cardW, cardH);
-
-        // Scale stored original pixmap to match the current thumb area
-        if (!m_gridItems[i].original.isNull())
-            m_gridItems[i].thumb->setPixmap(
-                m_gridItems[i].original.scaled(thumbW, thumbH,
-                    Qt::KeepAspectRatio, Qt::SmoothTransformation));
-    }
 }
 
 // ── Context menu (editor / page selection) ────────────────────────────────────
@@ -1629,9 +1443,9 @@ qreal DocumentView::screenScale() const
 
 std::pair<int, QLabel *> DocumentView::pageAtCanvasPos(const QPoint &canvasPos) const
 {
-    for (int i = 0; i < m_pageLabels.size(); ++i)
-        if (m_pageLabels[i]->geometry().contains(canvasPos))
-            return { i, m_pageLabels[i] };
+    for (int i = 0; i < pageLabelCount(); ++i)
+        if (pageLabel(i)->geometry().contains(canvasPos))
+            return { i, pageLabel(i) };
     return { -1, nullptr };
 }
 
@@ -2296,24 +2110,6 @@ void DocumentView::createTextFrame(const QRect &viewportDragRect)
 
 bool DocumentView::eventFilter(QObject *obj, QEvent *e)
 {
-    // Grid card click → switch to single view and scroll to that page
-    if (m_viewMode == ViewMode::Grid && e->type() == QEvent::MouseButtonRelease) {
-        auto it = m_gridCardIndex.constFind(obj);
-        if (it != m_gridCardIndex.cend()) {
-            if (static_cast<QMouseEvent *>(e)->button() == Qt::LeftButton) {
-                const int pageIdx = it.value();
-                setViewMode(ViewMode::Single);
-                QMetaObject::invokeMethod(this, [this, pageIdx]() {
-                    if (pageIdx >= 0 && pageIdx < m_pageLabels.size()) {
-                        const QPoint p = m_pageLabels[pageIdx]->mapTo(m_canvas, QPoint(0, 0));
-                        verticalScrollBar()->setValue(p.y() - 40);
-                    }
-                }, Qt::QueuedConnection);
-            }
-            return true;
-        }
-    }
-
     // Page labels have WA_TransparentForMouseEvents so all clicks fall through to
     // m_canvas (their parent). We also handle viewport() for clicks in the margins.
     const bool fromCanvas   = (obj == m_canvas);
