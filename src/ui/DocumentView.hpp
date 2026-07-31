@@ -76,6 +76,9 @@ public:
     bool exportPagesToImages(const QString &outputPath, int quality = 85);
     // Called by undo/redo commands to refresh a page after session state is restored.
     void        rerenderPage(int page);
+    // Select tool: text marked on the page (empty when nothing is selected).
+    QString     selectedText() const;
+    void        copySelectedText();
 
 Q_SIGNALS:
     void fileOpened(const QString &path, int pageCount);
@@ -93,6 +96,7 @@ protected:
     void dragMoveEvent(QDragMoveEvent *e) override;
     void dropEvent(QDropEvent *e) override;
     void changeEvent(QEvent *e) override;
+    void keyPressEvent(QKeyEvent *e) override;
     void resizeEvent(QResizeEvent *e) override;
     void wheelEvent(QWheelEvent *e) override;
 
@@ -128,6 +132,23 @@ private:
     void   resetContentProvider();
     // Apply the current font state to the open editor widget.
     void   refreshEditorFontLive();
+
+    // Text selection (Select tool) — active in normal AND edit mode.
+    // Anchors are canvas coords; the selection itself is stored in PDF points
+    // so it survives zoom changes and relayouts.
+    void   updateTextSelection(const QPoint &canvasFrom, const QPoint &canvasTo);
+    void   clearTextSelection();
+    void   updateSelectionOverlays();
+    // Maps a canvas position onto a page anchor, clamping to the nearest page
+    // when the cursor is in a margin / between pages.
+    bool   selectionAnchorAt(const QPoint &canvasPos, int *page, QPointF *pdfPt) const;
+#ifdef HAVE_QT_PDF
+    // Line geometry of a page (PDF points), cached — QPdfDocument::getSelection
+    // only returns a selection when BOTH anchors sit on a glyph, so the raw
+    // mouse anchors have to be snapped onto these rects first.
+    const QList<QRectF> &pageLineRects(int page);
+    QHash<int, QList<QRectF>> m_lineRectCache;
+#endif
 
     // Canvas helpers
     std::pair<int, QLabel *> pageAtCanvasPos(const QPoint &canvasPos) const;
@@ -182,7 +203,19 @@ private:
     // View-mode interaction
     QPoint m_panStart;
     QPoint m_panScrollOrigin;
-    QPoint m_selectStart;
+
+    // Select-tool text selection (canvas coords for the anchors,
+    // PDF points for the resulting geometry).
+    struct TextSelectionPart {
+        int           page;
+        QList<QRectF> rects;   // PDF points, top-left origin
+        QString       text;
+    };
+    QList<TextSelectionPart> m_textSelection;
+    QList<QWidget *>         m_selectionOverlays;
+    bool   m_selectTracking { false };
+    bool   m_selectDragging { false };
+    QPoint m_selectDragStart;   // canvas coords
 
     // Text-tool drag-to-create state (viewport coords)
     bool   m_textTracking { false };

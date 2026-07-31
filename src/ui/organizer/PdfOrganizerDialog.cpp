@@ -35,6 +35,8 @@ namespace OrgConst {
 #include <QMargins>
 #include <QPageSize>
 
+#include "ui/theme/Theme.hpp"
+
 #ifdef HAVE_QT_PDF
 #include <QPdfDocument>
 #include <QPdfWriter>
@@ -56,7 +58,8 @@ protected:
     {
         QPainter p(this);
         p.setRenderHint(QPainter::Antialiasing);
-        p.setBrush(QColor(0xC4, 0xC9, 0xD4));
+        p.setBrush(Theme::DarkMode ? QColor(0x6A, 0x6A, 0x6A)
+                                   : QColor(0xC4, 0xC9, 0xD4));
         p.setPen(Qt::NoPen);
         constexpr int R    = 2;   // dot radius
         constexpr int xGap = 6;  // horizontal spacing (center-to-center)
@@ -179,28 +182,41 @@ private:
     // creates a new style scope — dialog-level rules no longer reach children.
     static QString childStyles()
     {
+        const bool dk = Theme::DarkMode;
         return QStringLiteral(
             "QPushButton#CardCheck {"
-            "  background:white; border:2px solid #D1D5DB; border-radius:5px;"
+            "  background:%1; border:2px solid %2; border-radius:5px;"
             "  color:transparent; font-size:13px; font-weight:700; padding:0;"
             "}"
             "QPushButton#CardCheck:checked {"
             "  background:#2563EB; border-color:#2563EB; color:white;"
             "}"
-            "QPushButton#CardCheck:hover { border-color:#93C5FD; }"
-            "QLabel#PageCardLabel { font-size:13px; font-weight:600; color:#111827; padding-bottom:6px; }");
+            "QPushButton#CardCheck:hover { border-color:%3; }"
+            "QLabel#PageCardLabel { font-size:13px; font-weight:600; color:%4; padding-bottom:6px; }")
+            .arg(dk ? QLatin1String("#2B2B2B") : QLatin1String("#FFFFFF"),
+                 dk ? QLatin1String("#555555") : QLatin1String("#D1D5DB"),
+                 dk ? QLatin1String("#3B82F6") : QLatin1String("#93C5FD"),
+                 dk ? QLatin1String("#D8D8D8") : QLatin1String("#111827"));
     }
 
     void applyStyle(bool selected)
     {
+        const bool dk = Theme::DarkMode;
+        const QString bg     = dk ? QStringLiteral("#3A3A3A") : QStringLiteral("#FFFFFF");
+        const QString border = dk ? QStringLiteral("#484848") : QStringLiteral("#E5E7EB");
+        const QString hover  = dk ? QStringLiteral("#606060") : QStringLiteral("#CBD5E1");
+        const QString sel    = dk ? QStringLiteral("#3B82F6") : QStringLiteral("#2563EB");
+
         if (selected) {
             setStyleSheet(QStringLiteral(
-                "QFrame#PageCard { background:#FFFFFF; border:2px solid #2563EB; border-radius:10px; }")
+                "QFrame#PageCard { background:%1; border:2px solid %2; border-radius:10px; }")
+                .arg(bg, sel)
                 + childStyles());
         } else {
             setStyleSheet(QStringLiteral(
-                "QFrame#PageCard { background:#FFFFFF; border:1px solid #E5E7EB; border-radius:10px; }"
-                "QFrame#PageCard:hover { border:1px solid #CBD5E1; }")
+                "QFrame#PageCard { background:%1; border:1px solid %2; border-radius:10px; }"
+                "QFrame#PageCard:hover { border:1px solid %3; }")
+                .arg(bg, border, hover)
                 + childStyles());
         }
     }
@@ -268,8 +284,62 @@ void PdfOrganizerDialog::buildUi()
 
     root->addWidget(buildFooter());
 
-    // Stylesheet
-    setStyleSheet(QStringLiteral(R"(
+    // Stylesheet — light and dark are kept as two complete sheets so each
+    // theme can be read (and tweaked) as one coherent block.
+    setStyleSheet(Theme::DarkMode ? QStringLiteral(R"(
+QDialog { background: #2B2B2B; }
+QWidget#OrganizerGrid  { background: #2B2B2B; }
+QScrollArea#OrganizerScroll { background: #2B2B2B; border: none; }
+QScrollArea#OrganizerScroll > QWidget > QWidget { background: #2B2B2B; }
+QWidget#OrgToolbar  { background: #353535; border-bottom: 1px solid #484848; }
+QWidget#OrgInfoBar  { background: #1E3358; border-bottom: 1px solid #2B4870; }
+QWidget#OrgFooter   { background: #353535; border-top: 1px solid #484848; }
+QPushButton#OrgBtn  {
+    background: #404040; border: 1px solid #505050; border-radius: 6px;
+    color: #D8D8D8; font-size: 13px; padding: 3px 10px; icon-size: 16px;
+}
+QPushButton#OrgBtn:hover  { background: #4A4A4A; border-color: #606060; }
+QPushButton#OrgBtn:pressed { background: #555555; }
+QPushButton#OrgBtn:disabled { color: #6B6B6B; background: #3A3A3A; border-color: #484848; }
+QToolButton#OrgAddBtn {
+    background: #1E3358; border: 1px solid #2B4870; border-radius: 6px;
+    color: #93C5FD; font-size: 13px; font-weight: 600; padding: 3px 10px;
+    icon-size: 16px;
+}
+QToolButton#OrgAddBtn:hover { background: #24406B; border-color: #3B82F6; }
+QToolButton#OrgAddBtn:pressed { background: #2B4870; }
+QToolButton#OrgAddBtn::menu-button {
+    border-left: 1px solid #2B4870; width: 16px; border-radius: 0 6px 6px 0;
+}
+QToolButton#OrgAddBtn::menu-indicator {
+    width: 7px; height: 7px;
+    subcontrol-origin: padding; subcontrol-position: right center;
+}
+QPushButton#OrgDeleteBtn {
+    background: transparent; border: none; border-radius: 6px;
+    color: #F87171; font-size: 13px; padding: 3px 10px; icon-size: 16px;
+}
+QPushButton#OrgDeleteBtn:hover { background: #4A2B2B; }
+QPushButton#OrgDeleteBtn:pressed { background: #5A3030; }
+QPushButton#OrgDeleteBtn:disabled { color: #7F4A4A; }
+QPushButton#OrgSaveBtn {
+    background: #2563EB; border: none; border-radius: 6px;
+    color: white; font-size: 13px; font-weight: 600; padding: 4px 18px;
+}
+QPushButton#OrgSaveBtn:hover { background: #1D4ED8; }
+QPushButton#OrgSaveBtn:pressed { background: #1E40AF; }
+QScrollArea#OrganizerScroll QScrollBar:vertical {
+    background: transparent; width: 10px; margin: 0;
+}
+QScrollArea#OrganizerScroll QScrollBar::handle:vertical {
+    background: #555555; border-radius: 5px; min-height: 32px;
+}
+QScrollArea#OrganizerScroll QScrollBar::handle:vertical:hover { background: #666666; }
+QScrollArea#OrganizerScroll QScrollBar::add-line:vertical,
+QScrollArea#OrganizerScroll QScrollBar::sub-line:vertical { height: 0; }
+QScrollArea#OrganizerScroll QScrollBar::add-page:vertical,
+QScrollArea#OrganizerScroll QScrollBar::sub-page:vertical { background: transparent; }
+)") : QStringLiteral(R"(
 QDialog { background: #F8FAFC; }
 QWidget#OrganizerGrid  { background: #F8FAFC; }
 QScrollArea#OrganizerScroll { background: #F8FAFC; border: none; }
@@ -311,6 +381,17 @@ QPushButton#OrgSaveBtn {
 }
 QPushButton#OrgSaveBtn:hover { background: #1D4ED8; }
 QPushButton#OrgSaveBtn:pressed { background: #1E40AF; }
+QScrollArea#OrganizerScroll QScrollBar:vertical {
+    background: transparent; width: 10px; margin: 0;
+}
+QScrollArea#OrganizerScroll QScrollBar::handle:vertical {
+    background: #CBD5E1; border-radius: 5px; min-height: 32px;
+}
+QScrollArea#OrganizerScroll QScrollBar::handle:vertical:hover { background: #94A3B8; }
+QScrollArea#OrganizerScroll QScrollBar::add-line:vertical,
+QScrollArea#OrganizerScroll QScrollBar::sub-line:vertical { height: 0; }
+QScrollArea#OrganizerScroll QScrollBar::add-page:vertical,
+QScrollArea#OrganizerScroll QScrollBar::sub-page:vertical { background: transparent; }
 )"));
 }
 
@@ -361,7 +442,8 @@ QWidget *PdfOrganizerDialog::buildToolbar()
         h->addSpacing(2);
         auto *s = new QWidget(bar);
         s->setFixedSize(1, 20);
-        s->setStyleSheet(QStringLiteral("background:#E5E7EB;"));
+        s->setStyleSheet(Theme::DarkMode ? QStringLiteral("background:#484848;")
+                                         : QStringLiteral("background:#E5E7EB;"));
         h->addWidget(s, 0, Qt::AlignVCenter);
         h->addSpacing(2);
     };
@@ -425,19 +507,25 @@ QWidget *PdfOrganizerDialog::buildInfoBar()
     h->setContentsMargins(16, 0, 12, 0);
     h->setSpacing(8);
 
+    const bool dk = Theme::DarkMode;
+
     auto *ico = new QLabel(QStringLiteral("ℹ"), m_infoBar);
-    ico->setStyleSheet(QStringLiteral("color:#2563EB; font-size:16px;"));
+    ico->setStyleSheet(QStringLiteral("color:%1; font-size:16px;")
+                           .arg(dk ? QLatin1String("#60A5FA") : QLatin1String("#2563EB")));
     h->addWidget(ico);
 
     auto *txt = new QLabel(tr("Drag & drop pages to reorder"), m_infoBar);
-    txt->setStyleSheet(QStringLiteral("color:#1D4ED8; font-size:13px;"));
+    txt->setStyleSheet(QStringLiteral("color:%1; font-size:13px;")
+                           .arg(dk ? QLatin1String("#93C5FD") : QLatin1String("#1D4ED8")));
     h->addWidget(txt, 1);
 
     auto *close = new QPushButton(QStringLiteral("✕"), m_infoBar);
     close->setFixedSize(24, 24);
     close->setStyleSheet(QStringLiteral(
-        "QPushButton { background:transparent; border:none; color:#3B82F6; font-size:12px; }"
-        "QPushButton:hover { color:#1D4ED8; }"));
+        "QPushButton { background:transparent; border:none; color:%1; font-size:12px; }"
+        "QPushButton:hover { color:%2; }")
+        .arg(dk ? QLatin1String("#60A5FA") : QLatin1String("#3B82F6"),
+             dk ? QLatin1String("#BFDBFE") : QLatin1String("#1D4ED8")));
     connect(close, &QPushButton::clicked, m_infoBar, &QWidget::hide);
     h->addWidget(close);
 
@@ -455,7 +543,8 @@ QWidget *PdfOrganizerDialog::buildFooter()
     h->setSpacing(8);
 
     m_countLabel = new QLabel(QStringLiteral("📄 0 ") + tr("Pages"), footer);
-    m_countLabel->setStyleSheet(QStringLiteral("color:#374151; font-size:13px;"));
+    m_countLabel->setStyleSheet(QStringLiteral("color:%1; font-size:13px;")
+        .arg(Theme::DarkMode ? QLatin1String("#D8D8D8") : QLatin1String("#374151")));
     h->addWidget(m_countLabel);
     h->addStretch(1);
 
