@@ -246,6 +246,61 @@ install(FILES packaging/appimage/README.md
     OPTIONAL
 )
 
+# ── CPack: RPM + DEB ─────────────────────────────────────────────────────────
+# Gebaut über packaging/linux/package-linux.sh (nicht direkt cpack aufrufen —
+# das Skript setzt Prefix/Ausgabepfad und schiebt die Artefakte nach dist/).
+if(UNIX AND NOT APPLE)
+    set(CPACK_PACKAGE_NAME "openpdf-studio")
+    set(CPACK_PACKAGE_VERSION "${PROJECT_VERSION}")
+    set(CPACK_PACKAGE_DESCRIPTION_SUMMARY "${PROJECT_DESCRIPTION}")
+    set(CPACK_PACKAGE_VENDOR "nullskill")
+    set(CPACK_PACKAGE_CONTACT "nullskill <nullskilll@gmail.com>")
+    set(CPACK_PACKAGE_DESCRIPTION
+"OpenPDF Studio is a native Qt6 PDF viewer and editor: inline text editing,
+page organizer, annotations, OCR and export to PDF, DOCX and image formats.")
+    set(CPACK_PACKAGE_HOMEPAGE_URL "https://openpdf-studio.nullskill.de")
+    set(CPACK_RESOURCE_FILE_LICENSE "${CMAKE_CURRENT_SOURCE_DIR}/LICENSE")
+    set(CPACK_PACKAGING_INSTALL_PREFIX "/usr")
+    set(CPACK_PACKAGE_FILE_NAME
+        "openpdf-studio-${PROJECT_VERSION}-${CMAKE_SYSTEM_PROCESSOR}")
+    set(CPACK_STRIP_FILES ON)
+
+    # ── RPM (Fedora/RHEL/openSUSE) ───────────────────────────────────────────
+    set(CPACK_RPM_PACKAGE_LICENSE "MIT")
+    set(CPACK_RPM_PACKAGE_GROUP "Applications/Productivity")
+    set(CPACK_RPM_PACKAGE_URL "${CPACK_PACKAGE_HOMEPAGE_URL}")
+    # Der RPM-Generator übernimmt CPACK_PACKAGE_DESCRIPTION nicht automatisch.
+    set(CPACK_RPM_PACKAGE_DESCRIPTION "${CPACK_PACKAGE_DESCRIPTION}")
+    set(CPACK_RPM_FILE_NAME RPM-DEFAULT)
+    # rpmbuild leitet Requires automatisch aus den ELF-Sonames ab.
+    set(CPACK_RPM_PACKAGE_AUTOREQ ON)
+    # Diese Verzeichnisse gehören filesystem/hicolor-icon-theme — nicht mitpaketieren.
+    set(CPACK_RPM_EXCLUDE_FROM_AUTO_FILELIST_ADDITION
+        /usr/share/applications
+        /usr/share/icons
+        /usr/share/icons/hicolor
+        /usr/share/icons/hicolor/256x256
+        /usr/share/icons/hicolor/256x256/apps
+        /usr/share/doc
+    )
+
+    # ── DEB (Debian/Ubuntu) ──────────────────────────────────────────────────
+    # dpkg-shlibdeps funktioniert beim Bauen auf Fedora nicht (keine Debian-
+    # Shlib-Datenbank) → Depends werden explizit gepflegt. Alternativen-Syntax
+    # deckt die t64-Umbenennung ab Ubuntu 24.04 mit ab.
+    set(CPACK_DEBIAN_PACKAGE_SECTION "graphics")
+    set(CPACK_DEBIAN_PACKAGE_PRIORITY "optional")
+    set(CPACK_DEBIAN_PACKAGE_HOMEPAGE "${CPACK_PACKAGE_HOMEPAGE_URL}")
+    set(CPACK_DEBIAN_FILE_NAME DEB-DEFAULT)
+    set(CPACK_DEBIAN_PACKAGE_SHLIBDEPS OFF)
+    set(CPACK_DEBIAN_PACKAGE_DEPENDS
+        "libqt6core6 | libqt6core6t64, libqt6gui6, libqt6widgets6, libqt6printsupport6")
+    set(CPACK_DEBIAN_PACKAGE_RECOMMENDS
+        "libqt6pdf6, libqpdf29 | libqpdf29t64, libtesseract5 | libtesseract5t64")
+
+    include(CPack)
+endif()
+
 # Translation update helper — run: cmake --build . --target update_translations
 # Pre-compiled .qm files are already embedded via resources/openpdf-studio.qrc.
 # This target only updates the .ts source files for translators.
