@@ -13,9 +13,11 @@ class QFrame;
 QT_END_NAMESPACE
 
 class ImageAnnotation;
+class TextSelectionController;
 
 #include "engine/ocr/OcrEngine.hpp"
 #include "engine/edit/DocxExporter.hpp"
+#include "ui/view/PageCanvas.hpp"
 
 #ifdef HAVE_PDF_RENDERING
 #  include "engine/view/PdfRenderer.hpp"
@@ -32,7 +34,7 @@ class ImageAnnotation;
 #  endif
 #endif
 
-class DocumentView : public QScrollArea
+class DocumentView : public QScrollArea, public PageCanvas
 {
     Q_OBJECT
 
@@ -63,7 +65,7 @@ public:
     void   setEditorItalic(bool on);
 
     QString     currentFile()      const { return m_filePath; }
-    int         pageCount()        const { return m_pageCount; }
+    int         pageCount()        const override { return m_pageCount; }
     // 0-based index of the page the user is looking at.
     int         currentPage()      const;
     // Scrolls the given 0-based page to the top of the viewport.
@@ -79,6 +81,13 @@ public:
     // Select tool: text marked on the page (empty when nothing is selected).
     QString     selectedText() const;
     void        copySelectedText();
+
+    // ── PageCanvas ────────────────────────────────────────────────────────────
+    QWidget *canvasWidget()   const override { return m_canvas; }
+    QLabel  *pageLabel(int page) const override { return m_pageLabels.value(page, nullptr); }
+    int      pageLabelCount() const override { return static_cast<int>(m_pageLabels.size()); }
+    qreal    screenScale()    const override;
+    std::pair<int, QLabel *> pageAtCanvasPos(const QPoint &canvasPos) const override;
 
 Q_SIGNALS:
     void fileOpened(const QString &path, int pageCount);
@@ -133,25 +142,7 @@ private:
     // Apply the current font state to the open editor widget.
     void   refreshEditorFontLive();
 
-    // Text selection (Select tool) — active in normal AND edit mode.
-    // Anchors are canvas coords; the selection itself is stored in PDF points
-    // so it survives zoom changes and relayouts.
-    void   updateTextSelection(const QPoint &canvasFrom, const QPoint &canvasTo);
-    void   clearTextSelection();
-    void   updateSelectionOverlays();
-    // Maps a canvas position onto a page anchor, clamping to the nearest page
-    // when the cursor is in a margin / between pages.
-    bool   selectionAnchorAt(const QPoint &canvasPos, int *page, QPointF *pdfPt) const;
-#ifdef HAVE_QT_PDF
-    // Line geometry of a page (PDF points), cached — QPdfDocument::getSelection
-    // only returns a selection when BOTH anchors sit on a glyph, so the raw
-    // mouse anchors have to be snapped onto these rects first.
-    const QList<QRectF> &pageLineRects(int page);
-    QHash<int, QList<QRectF>> m_lineRectCache;
-#endif
-
     // Canvas helpers
-    std::pair<int, QLabel *> pageAtCanvasPos(const QPoint &canvasPos) const;
     // Clamp r so it stays fully inside the PDF page (both position and size).
     void clampToPdfPage(int page, QRectF &r) const;
     // Emits pageChanged() when scrolling brought a different page to the front.
@@ -204,18 +195,8 @@ private:
     QPoint m_panStart;
     QPoint m_panScrollOrigin;
 
-    // Select-tool text selection (canvas coords for the anchors,
-    // PDF points for the resulting geometry).
-    struct TextSelectionPart {
-        int           page;
-        QList<QRectF> rects;   // PDF points, top-left origin
-        QString       text;
-    };
-    QList<TextSelectionPart> m_textSelection;
-    QList<QWidget *>         m_selectionOverlays;
-    bool   m_selectTracking { false };
-    bool   m_selectDragging { false };
-    QPoint m_selectDragStart;   // canvas coords
+    // Select-tool text marking, including its highlight overlays.
+    TextSelectionController *m_selection { nullptr };
 
     // Text-tool drag-to-create state (viewport coords)
     bool   m_textTracking { false };

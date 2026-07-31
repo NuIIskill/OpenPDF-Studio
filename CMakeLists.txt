@@ -83,6 +83,10 @@ set(SOURCES
     src/ui/panels/TextPropertiesPanel.cpp
     src/ui/panels/TextPropertiesPanel.hpp
 
+    src/ui/view/PageCanvas.hpp
+    src/ui/view/TextSelectionController.cpp
+    src/ui/view/TextSelectionController.hpp
+
     src/ui/widgets/PagePlaceholder.cpp
     src/ui/widgets/PagePlaceholder.hpp
     src/ui/widgets/ThumbnailItem.cpp
