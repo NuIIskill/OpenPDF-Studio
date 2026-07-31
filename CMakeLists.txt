@@ -49,6 +49,8 @@ set(SOURCES
     src/engine/edit/TextBoxFrame.hpp
     src/engine/edit/DocxExporter.cpp
     src/engine/edit/DocxExporter.hpp
+    src/engine/edit/DocumentExporter.cpp
+    src/engine/edit/DocumentExporter.hpp
 
     src/engine/edit/EditSession.cpp
     src/engine/edit/EditSession.hpp

@@ -18,6 +18,7 @@ class TextSelectionController;
 
 #include "engine/ocr/OcrEngine.hpp"
 #include "engine/edit/DocxExporter.hpp"
+#include "engine/edit/DocumentExporter.hpp"
 #include "ui/view/PageCanvas.hpp"
 
 #ifdef HAVE_PDF_RENDERING
@@ -113,6 +114,11 @@ protected:
 private:
     // Re-render a page with the active edit's original text blanked out.
     void   rerenderPageWithBlank(int page, const QRectF &pdfBoundsPts);
+
+#ifdef HAVE_PDF_RENDERING
+    // Bundles the engine-level objects the exporter borrows.
+    DocumentExporter::Sources exportSources() const;
+#endif
 
     // Context menu for the open editor / marked page text. Images bring their
     // own menu — that one lives in ImageAnnotationLayer.
