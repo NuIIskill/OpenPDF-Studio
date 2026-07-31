@@ -12,7 +12,7 @@ class QRubberBand;
 class QFrame;
 QT_END_NAMESPACE
 
-class ImageAnnotation;
+class ImageAnnotationLayer;
 class TextSelectionController;
 
 #include "engine/ocr/OcrEngine.hpp"
@@ -119,15 +119,12 @@ private:
     void   buildGridItems();
     void   relayoutGrid();
 
-    // Image tool
-    void   placeImage(const QImage &img, const QPoint &canvasPos);
-    void   placeImageInRect(const QImage &img, const QRect &viewportRect);
-    void   updateImageOverlayPositions();
-    void   clearDetectedImageFrames();
-    void   scanCurrentPageForImages();
-    void   connectImageAnnotation(ImageAnnotation *ann);
-    void   showImageContextMenu(ImageAnnotation *ann, const QPoint &globalPos);
+    // Context menu for the open editor / marked page text. Images bring their
+    // own menu — that one lives in ImageAnnotationLayer.
     void   showGeneralContextMenu(const QPoint &globalPos);
+    // 0-based index of the first page whose top is at or below the scroll
+    // position — what the image scan treats as "the visible page".
+    int    firstVisiblePage() const;
 
     // Edit-mode interaction
     void   handleEditClick(const QPoint &canvasPos);
@@ -159,16 +156,8 @@ private:
     QRubberBand *m_rubberBand{ nullptr };
     QList<QLabel *>  m_pageLabels;
 
-    // Image tool: each placed image, tracked in PDF coordinate space.
-    struct PlacedImage {
-        int page;
-        QRectF pdfBounds;   // position/size in PDF points
-        QImage image;
-        QWidget *widget { nullptr };  // ImageAnnotation overlay
-    };
-    QList<PlacedImage> m_placedImages;
-    QList<QFrame *>    m_detectedImageFrames;  // transient highlights for existing images
-    QImage             m_imageClipboard;        // internal copy/cut clipboard for image tool
+    // Placed images and detected image regions, tracked in PDF coordinate space.
+    ImageAnnotationLayer *m_imageLayer { nullptr };
 
     // Grid view
     struct GridItem { QWidget *card; QLabel *thumb; QLabel *label; QPixmap original; };
@@ -202,12 +191,6 @@ private:
     bool   m_textTracking { false };
     bool   m_textDragging { false };
     QPoint m_textDragStart;
-
-    // Image-tool drag-to-frame state (canvas coords)
-    bool   m_imageTracking { false };
-    bool   m_imageDragging  { false };
-    QPoint m_imageDragStart;
-    QRect  m_imageDragPageRect;  // page bounds for clamping rubber band
 
     // Edit-mode state
     int     m_activeEditPage { -1 };        // page under the box NOW (follows drags)

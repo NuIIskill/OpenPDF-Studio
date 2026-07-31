@@ -84,6 +84,8 @@ set(SOURCES
     src/ui/panels/TextPropertiesPanel.hpp
 
     src/ui/view/PageCanvas.hpp
+    src/ui/view/ImageAnnotationLayer.cpp
+    src/ui/view/ImageAnnotationLayer.hpp
     src/ui/view/TextSelectionController.cpp
     src/ui/view/TextSelectionController.hpp
 
