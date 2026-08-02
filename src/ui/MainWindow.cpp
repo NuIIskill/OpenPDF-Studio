@@ -399,8 +399,9 @@ void MainWindow::onRedo()
 void MainWindow::onStartPresentation()
 {
     DocumentView *dv = currentDocView();
-    if (!dv || dv->currentFile().isEmpty()) return;
-    auto *pw = new PresentationWindow(dv->currentFile(), dv->currentPage());
+    if (!dv || dv->contentFile().isEmpty()) return;
+    // Present what the user sees, including changes not written to their file yet.
+    auto *pw = new PresentationWindow(dv->contentFile(), dv->currentPage());
     pw->show();
 }
 
@@ -506,13 +507,18 @@ void MainWindow::onModeSelected(const QString &mode)
         }
     } else if (mode == QLatin1String("organize")) {
         DocumentView *dv = currentDocView();
-        const QString file = dv ? dv->currentFile() : QString{};
-        auto *dlg = new PdfOrganizerDialog(file, this);
+        // Organize what is on screen (the working copy, if there is one), but
+        // keep the document's own file as the target the changes belong to.
+        auto *dlg = new PdfOrganizerDialog(dv ? dv->contentFile() : QString{}, this);
+        if (dv) dlg->setTargetPath(dv->currentFile());
         dlg->setAttribute(Qt::WA_DeleteOnClose);
         connect(dlg, &QDialog::finished, this, [this, dv, dlg](int result) {
             if (result != QDialog::Accepted || !dv) return;
-            const QString path = dlg->savedPath();
-            if (!path.isEmpty())
+            const QString path = dlg->resultPath();
+            if (path.isEmpty()) return;
+            if (dlg->resultIsWorkingCopy())
+                dv->openWorkingCopy(path, dlg->targetPath());
+            else
                 dv->openFile(path);
         });
         dlg->open();

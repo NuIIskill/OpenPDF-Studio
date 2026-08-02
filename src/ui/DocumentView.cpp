@@ -1,4 +1,6 @@
 #include "DocumentView.hpp"
+#include "app/SafeWrite.hpp"
+#include "app/SessionStore.hpp"
 #include "tools/ImageAnnotation.hpp"
 #include "view/ImageAnnotationLayer.hpp"
 #include "view/PageLayoutEngine.hpp"
@@ -442,7 +444,10 @@ void DocumentView::clearDocument()
     m_renderer = nullptr;
     m_popplerDoc.reset();
 #endif
+    SessionStore::discard(m_filePath);
     m_filePath.clear();
+    m_targetPath.clear();
+    m_workingCopyDirty = false;
 #ifdef HAVE_PDF_RENDERING
     // m_renderer is already gone on the Poppler path — drop the stale handles.
     m_imageLayer->setSource(m_renderer, m_session, m_ocrEngine, QString());
@@ -463,14 +468,33 @@ bool DocumentView::openFile(const QString &path)
     if (path.isEmpty()) return false;
     cancelCurrentEdit();
 
+    // Opening a document ends any working-copy state of the previous one. The
+    // old working file is only dropped once the new document actually loaded.
+    const QString previousWorkingFile =
+        (path != m_filePath) ? m_filePath : QString();
+
     if (m_viewMode == ViewMode::Grid)
         setViewMode(ViewMode::Single);
 
 #ifdef HAVE_QT_PDF
-    m_session->clear();
+    // Load before dropping any state: a failed load used to leave the session
+    // cleared and the document closed while the page widgets and page count
+    // still described the previous file — the view went blank with no error.
+    // QPdfDocument requires an explicit close before loading another file.
+    m_document->close();
     const auto err = m_document->load(path);
-    if (err != QPdfDocument::Error::None) return false;
+    if (err != QPdfDocument::Error::None) {
+        qWarning() << "DocumentView: could not open" << path << "-" << err;
+        // Put the previous document back so the view keeps showing it.
+        if (!m_filePath.isEmpty() && m_filePath != path)
+            m_document->load(m_filePath);
+        return false;
+    }
+    m_session->clear();
     m_filePath  = path;
+    m_targetPath.clear();
+    m_workingCopyDirty = false;
+    SessionStore::discard(previousWorkingFile);
     m_pageCount = m_document->pageCount();
     m_imageLayer->setSource(m_renderer, m_session, m_ocrEngine, m_filePath);
     m_layoutEngine->setPageCount(m_pageCount);
@@ -495,6 +519,9 @@ bool DocumentView::openFile(const QString &path)
     m_renderer   = new PdfRenderer(m_popplerDoc.get());
     m_selection->setSource(m_renderer, m_popplerDoc.get());
     m_filePath   = path;
+    m_targetPath.clear();
+    m_workingCopyDirty = false;
+    SessionStore::discard(previousWorkingFile);
     m_pageCount  = m_popplerDoc->numPages();
     m_imageLayer->setSource(m_renderer, m_session, m_ocrEngine, m_filePath);
     m_layoutEngine->setSource(m_renderer, m_session);
@@ -509,6 +536,9 @@ bool DocumentView::openFile(const QString &path)
 
 #else
     m_filePath  = path;
+    m_targetPath.clear();
+    m_workingCopyDirty = false;
+    SessionStore::discard(previousWorkingFile);
     m_pageCount = 1;
     m_dropHint->show();
     retranslateUi();
@@ -638,6 +668,20 @@ void DocumentView::setEditMode(bool on)
     if (!on) setTool(m_tool); // restore tool cursor when leaving edit mode
 }
 
+bool DocumentView::openWorkingCopy(const QString &contentPath,
+                                   const QString &targetPath)
+{
+    if (!openFile(contentPath)) return false;
+    if (targetPath.isEmpty() || targetPath == contentPath) return true;
+
+    m_targetPath       = targetPath;
+    m_workingCopyDirty = true;
+    // openFile announced the working file — re-announce under the document's
+    // own name so the title bar shows the PDF the user opened.
+    Q_EMIT fileOpened(m_targetPath, m_pageCount);
+    return true;
+}
+
 bool DocumentView::saveToFile(const QString &path)
 {
 #ifdef HAVE_QT_PDF
@@ -648,9 +692,14 @@ bool DocumentView::saveToFile(const QString &path)
     // Reload from the saved file so subsequent saves and re-edits work on
     // the updated PDF (with the replacement text) rather than the original.
     m_session->clear();
+    const QString previousWorkingFile = (path != m_filePath) ? m_filePath : QString();
     m_filePath = path;
+    m_targetPath.clear();
+    m_workingCopyDirty = false;
     m_document->close();
     m_document->load(path);
+    // Only now that the reader let go of it may the working file be removed.
+    SessionStore::discard(previousWorkingFile);
     resetContentProvider();
     m_layoutEngine->rerenderAll();
     return true;
@@ -661,7 +710,10 @@ bool DocumentView::saveToFile(const QString &path)
 
     // Reload from the saved file so subsequent saves work on the updated content.
     m_session->clear();
+    const QString previousWorkingFile = (path != m_filePath) ? m_filePath : QString();
     m_filePath = path;
+    m_targetPath.clear();
+    m_workingCopyDirty = false;
     auto doc = Poppler::Document::load(path);
     if (doc) {
         doc->setRenderHint(Poppler::Document::Antialiasing);
@@ -671,6 +723,8 @@ bool DocumentView::saveToFile(const QString &path)
         m_popplerDoc = std::move(doc);
         m_renderer   = new PdfRenderer(m_popplerDoc.get());
     }
+    // Only now that the reader let go of it may the working file be removed.
+    SessionStore::discard(previousWorkingFile);
     resetContentProvider();
     m_layoutEngine->rerenderAll();
     return true;
@@ -682,6 +736,9 @@ bool DocumentView::saveToFile(const QString &path)
 
 bool DocumentView::hasUnsavedEdits() const
 {
+    // Page changes live in the working copy, not in the session — without this
+    // the close prompt would let a reorganized document go unsaved silently.
+    if (m_workingCopyDirty) return true;
 #ifdef HAVE_PDF_RENDERING
     return m_session && m_session->hasAnyEdits();
 #else
@@ -697,18 +754,23 @@ bool DocumentView::savePopplerRaster(const QString &outputPath)
 
     constexpr qreal kPts2Px = 300.0 / 72.0;  // 300 DPI
 
+    // Staged: the renderer reads from the open document while this writes, and
+    // the two can be the same file (saving over the document you opened).
+    const QString staging = SafeWrite::stagingPath(outputPath);
+    if (staging.isEmpty()) return false;
+
     const QSizeF firstPts = m_renderer->pageSizePts(0);
-    QPdfWriter writer(outputPath);
+    QPdfWriter writer(staging);
     writer.setCreator(QStringLiteral("OpenPDF Studio"));
     writer.setResolution(300);
     writer.setPageSize(QPageSize(firstPts, QPageSize::Point));
     writer.setPageMargins(QMarginsF(0, 0, 0, 0));
 
     QPainter painter(&writer);
-    if (!painter.isActive()) return false;
+    if (!painter.isActive()) { SafeWrite::discard(staging); return false; }
 
     for (int i = 0; i < m_pageCount; ++i) {
-        if (i > 0 && !writer.newPage()) return false;
+        if (i > 0 && !writer.newPage()) { SafeWrite::discard(staging); return false; }
         QImage img = m_renderer->renderPage(i, kPts2Px);
         if (img.isNull()) continue;
         m_session->applyToImage(i, img, kPts2Px);
@@ -716,7 +778,7 @@ bool DocumentView::savePopplerRaster(const QString &outputPath)
         painter.drawImage(pageRect, img);
     }
     painter.end();
-    return true;
+    return SafeWrite::commit(staging, outputPath);
 }
 #endif // HAVE_POPPLER
 

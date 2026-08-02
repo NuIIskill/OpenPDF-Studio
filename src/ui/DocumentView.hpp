@@ -48,6 +48,12 @@ public:
     ~DocumentView() override;
 
     bool   openFile(const QString &path);
+    /// Shows `contentPath` while the document keeps `targetPath` as its
+    /// identity and save target. Used for changes that only exist as a written
+    /// PDF (page reordering, rotation, insertion): the reorganized file is a
+    /// session working copy, the user's PDF stays untouched until they save.
+    /// The document counts as having unsaved changes until then.
+    bool   openWorkingCopy(const QString &contentPath, const QString &targetPath);
     void   clearDocument();
     void   setZoom(int percent);
     void   setZoomSettings(int step, bool ctrlWheel, bool toPointer,
@@ -66,7 +72,14 @@ public:
     void   setEditorBold(bool on);
     void   setEditorItalic(bool on);
 
-    QString     currentFile()      const { return m_filePath; }
+    /// Document identity and save target — the file the user opened, which is
+    /// not necessarily the file currently being rendered (see contentFile()).
+    QString     currentFile()      const
+    { return m_targetPath.isEmpty() ? m_filePath : m_targetPath; }
+    /// The PDF on disk the view is reading from. This is what anything that
+    /// needs the current page content (export, presentation, organizer) must
+    /// open — it holds the working copy while changes are uncommitted.
+    QString     contentFile()      const { return m_filePath; }
     int         pageCount()        const override { return m_pageCount; }
     // 0-based index of the page the user is looking at.
     int         currentPage()      const;
@@ -168,7 +181,11 @@ private:
     QWidget  *m_gridCanvas { nullptr };
 
     // Document state
-    QString m_filePath;
+    QString m_filePath;      // file being rendered (may be a session working copy)
+    QString m_targetPath;    // save target while m_filePath is a working copy
+    // Changes that live only in the working copy, not in m_session — they make
+    // the document dirty even though the session holds no edits.
+    bool    m_workingCopyDirty { false };
     int     m_zoom      { 100 };
     int     m_pageCount { 0 };
     int     m_lastReportedPage { -1 };   // 0-based; -1 = nothing reported yet

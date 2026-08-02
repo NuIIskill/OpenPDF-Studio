@@ -36,6 +36,10 @@ set(SOURCES
     src/app/App.hpp
     src/app/AppSettings.cpp
     src/app/AppSettings.hpp
+    src/app/SafeWrite.cpp
+    src/app/SafeWrite.hpp
+    src/app/SessionStore.cpp
+    src/app/SessionStore.hpp
 
     src/engine/view/PdfRenderer.cpp
     src/engine/view/PdfRenderer.hpp
@@ -49,6 +53,8 @@ set(SOURCES
     src/engine/edit/TextBoxFrame.hpp
     src/engine/edit/DocxExporter.cpp
     src/engine/edit/DocxExporter.hpp
+    src/engine/edit/DocxLayout.cpp
+    src/engine/edit/DocxLayout.hpp
     src/engine/edit/DocumentExporter.cpp
     src/engine/edit/DocumentExporter.hpp
 

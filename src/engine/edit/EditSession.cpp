@@ -1,5 +1,6 @@
 #include "EditSession.hpp"
 #include "ContentMap.hpp"
+#include "app/SafeWrite.hpp"
 
 #include <QPainter>
 #include <QFont>
@@ -718,9 +719,17 @@ bool EditSession::saveVector(const QString &sourcePath, const QString &outputPat
             pageObj.replaceKey("/Contents", input.makeIndirectObject(newStream));
         }
 
-        QPDFWriter writer(input, outputPath.toLocal8Bit().constData());
-        writer.write();
-        return true;
+        // Never write onto outputPath directly — when it is also the source
+        // (any second save of the same document), truncating it pulls the
+        // objects qpdf still has to read out from under it and the result is
+        // an empty document. See SafeWrite.
+        const QString staging = SafeWrite::stagingPath(outputPath);
+        if (staging.isEmpty()) return false;
+        {
+            QPDFWriter writer(input, staging.toLocal8Bit().constData());
+            writer.write();
+        }
+        return SafeWrite::commit(staging, outputPath);
 
     } catch (const std::exception &ex) {
         qWarning() << "[QPDF] saveVector failed:" << ex.what();
@@ -1259,7 +1268,12 @@ bool EditSession::saveRaster(const QString &outputPath,
 {
     if (!doc || pageCount <= 0) return false;
 
-    QPdfWriter writer(outputPath);
+    // Staged for the same reason as the vector path: `doc` renders lazily from
+    // the file, which may well be the file being written.
+    const QString staging = SafeWrite::stagingPath(outputPath);
+    if (staging.isEmpty()) return false;
+
+    QPdfWriter writer(staging);
     writer.setCreator(QStringLiteral("OpenPDF Studio"));
     writer.setResolution(300);
 
@@ -1268,13 +1282,13 @@ bool EditSession::saveRaster(const QString &outputPath,
     writer.setPageMargins(QMarginsF(0, 0, 0, 0));
 
     QPainter painter(&writer);
-    if (!painter.isActive()) return false;
+    if (!painter.isActive()) { SafeWrite::discard(staging); return false; }
 
     constexpr qreal kSaveDpi = 300.0;
     constexpr qreal kPts2Px  = kSaveDpi / 72.0;
 
     for (int i = 0; i < pageCount; ++i) {
-        if (i > 0 && !writer.newPage()) return false;
+        if (i > 0 && !writer.newPage()) { SafeWrite::discard(staging); return false; }
 
         const QSizeF pts = doc->pagePointSize(i);
         const QSize  px(int(pts.width() * kPts2Px), int(pts.height() * kPts2Px));
@@ -1290,7 +1304,7 @@ bool EditSession::saveRaster(const QString &outputPath,
     }
 
     painter.end();
-    return true;
+    return SafeWrite::commit(staging, outputPath);
 }
 
 #endif // HAVE_QT_PDF

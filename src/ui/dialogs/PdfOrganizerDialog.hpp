@@ -12,9 +12,9 @@ class QLabel;
 class QToolButton;
 QT_END_NAMESPACE
 
-#ifdef HAVE_QT_PDF
-#include <QPdfDocument>
-#endif
+// Opened source documents are held through OrganizerDoc, which wraps whichever
+// PDF backend the build uses (Qt6Pdf or Poppler). Defined in the .cpp.
+class OrganizerDoc;
 
 // ── One page entry ────────────────────────────────────────────────────────────
 struct PageEntry {
@@ -37,7 +37,20 @@ public:
     ~PdfOrganizerDialog() override;
 
     void retranslateUi();
-    QString savedPath() const { return m_sourcePath; }
+
+    /// The PDF the organized document belongs to. Defaults to the path passed
+    /// to the constructor; set it explicitly when that path is a session
+    /// working copy rather than the document the user opened.
+    void setTargetPath(const QString &path) { m_targetPath = path; }
+    QString targetPath() const { return m_targetPath; }
+
+    /// File holding the organized document after the dialog was accepted:
+    /// a session working file for "Save", the chosen file for "Save as".
+    QString resultPath() const { return m_resultPath; }
+
+    /// True when resultPath() is a session working file, i.e. the pages were
+    /// taken into the session but targetPath() has not been written yet.
+    bool resultIsWorkingCopy() const { return m_resultIsWorking; }
 
 protected:
     void changeEvent(QEvent *e) override;
@@ -82,16 +95,26 @@ private:
     void saveAs();
     void save();
     bool writePdf(const QString &outPath);
+    // Reopens a written file and checks page count — a broken result must not
+    // reach the document view as a silently blank document.
+    bool verifyWritten(const QString &path) const;
+#ifdef HAVE_QPDF
+    // Vector page assembly (qpdf). writePdf falls back to rasterising when
+    // this fails or qpdf is unavailable.
+    bool writeVectorPdf(const QString &outPath);
+#endif
     QPixmap renderThumb(const PageEntry &e);
 
     // State
     QList<PageEntry>  m_pages;
     QList<PageCard *> m_cards;
     int               m_lastClickedIndex { -1 };
-    QString           m_sourcePath;   // path to overwrite on "Save" (empty = unknown)
+    QString           m_targetPath;      // document the changes belong to ("" = none yet)
+    QString           m_resultPath;      // file written on accept
+    bool              m_resultIsWorking { false };  // m_resultPath is a session file
 
-#ifdef HAVE_QT_PDF
-    QMap<QString, QPdfDocument *> m_docs;
+#ifdef HAVE_PDF_RENDERING
+    QMap<QString, OrganizerDoc *> m_docs;
 #endif
 
 

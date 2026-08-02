@@ -34,13 +34,106 @@ namespace OrgConst {
 #include <QStyle>
 #include <QMargins>
 #include <QPageSize>
+#include <QFileInfo>
+#include <QDebug>
+#include <memory>
 
 #include "ui/theme/Theme.hpp"
+#include "app/SafeWrite.hpp"
+#include "app/SessionStore.hpp"
 
+// QPdfWriter lives in QtGui, not in Qt6Pdf — writing works with either
+// rendering backend.
+#include <QPdfWriter>
+
+#ifdef HAVE_PDF_RENDERING
+#include "engine/view/PdfRenderer.hpp"
+#endif
 #ifdef HAVE_QT_PDF
 #include <QPdfDocument>
-#include <QPdfWriter>
 #endif
+
+#ifdef HAVE_QPDF
+#include <qpdf/QPDF.hh>
+#include <qpdf/QPDFWriter.hh>
+#include <qpdf/QPDFPageDocumentHelper.hh>
+#include <qpdf/QPDFPageObjectHelper.hh>
+#include <qpdf/QPDFAcroFormDocumentHelper.hh>
+#include <qpdf/QPDFObjectHandle.hh>
+#include <map>
+#include <memory>
+#endif
+
+#ifdef HAVE_PDF_RENDERING
+// ─────────────────────────────────────────────────────────────────────────────
+// OrganizerDoc — backend-neutral handle for one opened PDF
+//
+// The organizer needs nothing but page count, page size and a rasteriser, and
+// Qt6Pdf as well as Poppler provide all three. Gating the dialog on Qt6Pdf
+// alone left the Windows build (which is compiled against Poppler) with an
+// organizer that could neither show pages nor save: "PDF writing requires
+// Qt6Pdf."
+// ─────────────────────────────────────────────────────────────────────────────
+class OrganizerDoc
+{
+public:
+    static OrganizerDoc *load(const QString &path)
+    {
+#ifdef HAVE_QT_PDF
+        auto *doc = new QPdfDocument();
+        if (doc->load(path) != QPdfDocument::Error::None) {
+            delete doc;
+            return nullptr;
+        }
+        return new OrganizerDoc(doc);
+#else
+        // Poppler can throw on malformed files — a failed load must stay a
+        // "could not open" message box, never terminate the app.
+        try {
+            auto doc = Poppler::Document::load(path);
+            if (!doc || doc->isLocked()) return nullptr;
+            doc->setRenderHint(Poppler::Document::Antialiasing);
+            doc->setRenderHint(Poppler::Document::TextAntialiasing);
+            return new OrganizerDoc(std::move(doc));
+        } catch (...) { return nullptr; }
+#endif
+    }
+
+    ~OrganizerDoc()
+    {
+        m_renderer.reset();   // the renderer only borrows the document
+#ifdef HAVE_QT_PDF
+        delete m_doc;
+#endif
+    }
+
+    int pageCount() const
+    {
+#ifdef HAVE_QT_PDF
+        return m_doc->pageCount();
+#else
+        try { return m_doc->numPages(); } catch (...) { return 0; }
+#endif
+    }
+
+    QSizeF pageSizePts(int page) const { return m_renderer->pageSizePts(page); }
+    // scale = output pixels per PDF point.
+    QImage render(int page, qreal scale) const { return m_renderer->renderPage(page, scale); }
+
+private:
+#ifdef HAVE_QT_PDF
+    explicit OrganizerDoc(QPdfDocument *doc)
+        : m_doc(doc), m_renderer(std::make_unique<PdfRenderer>(doc)) {}
+    QPdfDocument *m_doc;
+#else
+    explicit OrganizerDoc(std::unique_ptr<Poppler::Document> doc)
+        : m_doc(std::move(doc)),
+          m_renderer(std::make_unique<PdfRenderer>(m_doc.get())) {}
+    std::unique_ptr<Poppler::Document> m_doc;
+#endif
+    std::unique_ptr<PdfRenderer> m_renderer;
+};
+#endif // HAVE_PDF_RENDERING
 
 // ─────────────────────────────────────────────────────────────────────────────
 // DragDots — 2-column × 3-row dot-grid grip icon, painted directly
@@ -246,14 +339,14 @@ PdfOrganizerDialog::PdfOrganizerDialog(const QString &initialPath, QWidget *pare
     buildUi();
 
     if (!initialPath.isEmpty()) {
-        m_sourcePath = initialPath;
+        m_targetPath = initialPath;
         addPdfPages(initialPath);
     }
 }
 
 PdfOrganizerDialog::~PdfOrganizerDialog()
 {
-#ifdef HAVE_QT_PDF
+#ifdef HAVE_PDF_RENDERING
     qDeleteAll(m_docs);
 #endif
 }
@@ -571,18 +664,17 @@ QWidget *PdfOrganizerDialog::buildFooter()
 
 void PdfOrganizerDialog::addPdfPages(const QString &path)
 {
-#ifdef HAVE_QT_PDF
+#ifdef HAVE_PDF_RENDERING
     if (!m_docs.contains(path)) {
-        auto *doc = new QPdfDocument(this);
-        if (doc->load(path) != QPdfDocument::Error::None) {
-            delete doc;
+        OrganizerDoc *doc = OrganizerDoc::load(path);
+        if (!doc) {
             QMessageBox::warning(this, tr("Open PDF"),
                                  tr("Could not open: ") + path);
             return;
         }
         m_docs[path] = doc;
     }
-    QPdfDocument *doc = m_docs[path];
+    OrganizerDoc *doc = m_docs[path];
     for (int i = 0; i < doc->pageCount(); ++i) {
         PageEntry e;
         e.pdfPath  = path;
@@ -922,13 +1014,11 @@ QPixmap PdfOrganizerDialog::renderThumb(const PageEntry &e)
         QFont f; f.setPointSize(11); p.setFont(f);
         p.drawText(thumb.rect(), Qt::AlignCenter, QStringLiteral("□"));
     }
-#ifdef HAVE_QT_PDF
+#ifdef HAVE_PDF_RENDERING
     else if (m_docs.contains(e.pdfPath)) {
-        QPdfDocument *doc = m_docs[e.pdfPath];
+        OrganizerDoc *doc   = m_docs[e.pdfPath];
         const qreal   scale = OrgConst::RENDER_DPI / 72.0;
-        const QSizeF  ps    = doc->pagePointSize(e.pageIndex);
-        const QSize   sz(qRound(ps.width() * scale), qRound(ps.height() * scale));
-        QImage img = doc->render(e.pageIndex, sz);
+        QImage img = doc->render(e.pageIndex, scale);
 
         // Apply rotation
         if (e.rotation != 0) {
@@ -951,9 +1041,154 @@ QPixmap PdfOrganizerDialog::renderThumb(const PageEntry &e)
 
 // ── Save ──────────────────────────────────────────────────────────────────────
 
+#ifdef HAVE_QPDF
+// Assembles the output from the source page objects themselves: text, fonts,
+// vector graphics, links and annotations are carried over unchanged, so the
+// saved file stays selectable, searchable and small. Rotation becomes a
+// /Rotate entry rather than rotated pixels.
+//
+// Returns false on any qpdf failure (encrypted or damaged source, unwritable
+// target); writePdf() then falls back to the raster path.
+bool PdfOrganizerDialog::writeVectorPdf(const QString &outPath)
+{
+    try {
+        QPDF out;
+        out.emptyPDF();
+        QPDFPageDocumentHelper outPages(out);
+        QPDFAcroFormDocumentHelper outForms(out);
+
+        // One QPDF per source file, opened lazily and shared by all pages that
+        // come from it. Held alongside its form helper because
+        // fixCopiedAnnotations needs the source document's AcroForm view.
+        struct Source {
+            std::unique_ptr<QPDF>                       pdf;
+            std::unique_ptr<QPDFAcroFormDocumentHelper> forms;
+            std::vector<QPDFPageObjectHelper>           pages;
+        };
+        std::map<QString, Source> sources;
+
+        auto sourceFor = [&](const QString &path) -> Source * {
+            auto it = sources.find(path);
+            if (it != sources.end()) return &it->second;
+
+            Source s;
+            s.pdf = std::make_unique<QPDF>();
+            s.pdf->processFile(path.toLocal8Bit().constData());
+            s.forms = std::make_unique<QPDFAcroFormDocumentHelper>(*s.pdf);
+            s.pages = QPDFPageDocumentHelper(*s.pdf).getAllPages();
+            return &sources.emplace(path, std::move(s)).first->second;
+        };
+
+        // Blank pages inherit the size of the page before them (the one after
+        // them if they lead the document), so an inserted sheet matches the
+        // document instead of defaulting to A4 in a Letter file.
+        auto blankSizePt = [&](int at) -> QSizeF {
+            for (int i = at - 1; i >= 0; --i)
+                if (!m_pages[i].isBlank && m_docs.contains(m_pages[i].pdfPath))
+                    return m_docs[m_pages[i].pdfPath]->pageSizePts(m_pages[i].pageIndex);
+            for (int i = at + 1; i < m_pages.size(); ++i)
+                if (!m_pages[i].isBlank && m_docs.contains(m_pages[i].pdfPath))
+                    return m_docs[m_pages[i].pdfPath]->pageSizePts(m_pages[i].pageIndex);
+            return QSizeF(595.0, 842.0);            // A4 fallback
+        };
+
+        for (int i = 0; i < m_pages.size(); ++i) {
+            const PageEntry &e = m_pages[i];
+
+            if (e.isBlank) {
+                const QSizeF sz = blankSizePt(i);
+                QPDFObjectHandle page = QPDFObjectHandle::newDictionary();
+                page.replaceKey("/Type", QPDFObjectHandle::newName("/Page"));
+                page.replaceKey("/MediaBox", QPDFObjectHandle::newFromRectangle(
+                    QPDFObjectHandle::Rectangle(0, 0, sz.width(), sz.height())));
+                page.replaceKey("/Resources", QPDFObjectHandle::newDictionary());
+                page.replaceKey("/Contents", QPDFObjectHandle::newStream(&out, ""));
+                outPages.addPage(QPDFPageObjectHelper(out.makeIndirectObject(page)), false);
+            } else {
+                Source *src = sourceFor(e.pdfPath);
+                const auto idx = static_cast<std::size_t>(e.pageIndex);
+                if (e.pageIndex < 0 || idx >= src->pages.size()) continue;
+                outPages.addPage(src->pages[idx], false);
+            }
+
+            // addPage may copy rather than adopt the object, so the page has to
+            // be fetched back from the output document before it is modified.
+            auto added = outPages.getAllPages();
+            if (added.empty()) continue;
+            QPDFPageObjectHelper newPage = added.back();
+
+            if (!e.isBlank) {
+                Source *src = sourceFor(e.pdfPath);
+                const auto idx = static_cast<std::size_t>(e.pageIndex);
+                if (idx < src->pages.size()) {
+                    // Without this, copies of a page share one annotation set and
+                    // form fields drop out entirely (no page → field reference).
+                    outForms.fixCopiedAnnotations(
+                        newPage.getObjectHandle(),
+                        src->pages[idx].getObjectHandle(),
+                        *src->forms);
+                }
+            }
+
+            if (e.rotation != 0)
+                newPage.rotatePage(e.rotation, true);   // relative to /Rotate
+        }
+
+        // Staged — "Save as" onto one of the source files would otherwise
+        // truncate the very document these pages are still being copied from.
+        const QString staging = SafeWrite::stagingPath(outPath);
+        if (staging.isEmpty()) return false;
+        {
+            QPDFWriter writer(out, staging.toLocal8Bit().constData());
+            writer.write();
+        }
+        return SafeWrite::commit(staging, outPath);
+
+    } catch (const std::exception &ex) {
+        qWarning() << "[QPDF] organizer vector save failed:" << ex.what();
+        return false;
+    }
+}
+#endif // HAVE_QPDF
+
+// Opens what was just written and checks it is a PDF with the expected number
+// of pages. A file the reader cannot open would otherwise reach the document
+// view as a blank document with no indication of what went wrong.
+bool PdfOrganizerDialog::verifyWritten(const QString &path) const
+{
+#ifdef HAVE_PDF_RENDERING
+    if (!QFileInfo::exists(path) || QFileInfo(path).size() == 0) {
+        qWarning() << "[Organizer] nothing was written to" << path;
+        return false;
+    }
+    std::unique_ptr<OrganizerDoc> check(OrganizerDoc::load(path));
+    if (!check) {
+        qWarning() << "[Organizer] the written file cannot be opened:" << path;
+        return false;
+    }
+    if (check->pageCount() != m_pages.size()) {
+        qWarning() << "[Organizer] wrote" << check->pageCount()
+                   << "pages, expected" << m_pages.size();
+        return false;
+    }
+    return true;
+#else
+    Q_UNUSED(path)
+    return true;
+#endif
+}
+
 bool PdfOrganizerDialog::writePdf(const QString &outPath)
 {
-#ifdef HAVE_QT_PDF
+#ifdef HAVE_QPDF
+    if (writeVectorPdf(outPath) && verifyWritten(outPath)) {
+        qInfo() << "[Organizer] saved" << m_pages.size() << "pages (vector) to"
+                << outPath;
+        return true;
+    }
+    qWarning() << "[Organizer] falling back to raster save for" << outPath;
+#endif
+#ifdef HAVE_PDF_RENDERING
     constexpr int   SAVE_DPI = 150;
     constexpr qreal scale    = SAVE_DPI / 72.0;
 
@@ -963,15 +1198,20 @@ bool PdfOrganizerDialog::writePdf(const QString &outPath)
     auto outputPageSizePt = [&](const PageEntry &e) -> QSizeF {
         if (e.isBlank || !m_docs.contains(e.pdfPath))
             return QSizeF(595.0, 842.0);        // A4 fallback
-        QSizeF pt = m_docs[e.pdfPath]->pagePointSize(e.pageIndex);
+        QSizeF pt = m_docs[e.pdfPath]->pageSizePts(e.pageIndex);
         if (e.rotation == 90 || e.rotation == 270)
             pt.transpose();                     // landscape ↔ portrait
         return pt;
     };
 
+    // Staged for the same reason as the vector path: the pages are rendered
+    // from documents that may include the file being written.
+    const QString staging = SafeWrite::stagingPath(outPath);
+    if (staging.isEmpty()) return false;
+
     // Page size for page 1 must be set BEFORE QPainter::begin() so the first
     // page is opened at the correct size immediately.
-    QPdfWriter writer(outPath);
+    QPdfWriter writer(staging);
     writer.setCreator(QStringLiteral("OpenPDF Studio"));
     writer.setResolution(SAVE_DPI);
     if (!m_pages.isEmpty())
@@ -985,7 +1225,12 @@ bool PdfOrganizerDialog::writePdf(const QString &outPath)
     writer.setPageMargins(QMarginsF(0, 0, 0, 0));
 
     QPainter painter(&writer);
-    if (!painter.isActive()) return false;
+    if (!painter.isActive()) { SafeWrite::discard(staging); return false; }
+
+    // A page that cannot be rendered would silently come out white. Producing a
+    // document that merely looks empty is worse than failing the save, so the
+    // misses are counted and reported instead of written.
+    int lostPages = 0;
 
     for (int i = 0; i < m_pages.size(); ++i) {
         const PageEntry &e = m_pages[i];
@@ -998,17 +1243,24 @@ bool PdfOrganizerDialog::writePdf(const QString &outPath)
             writer.newPage();
         }
 
-        if (e.isBlank || !m_docs.contains(e.pdfPath))
-            continue;   // blank page: leave it white
+        if (e.isBlank)
+            continue;   // blank page: leave it white — intentional
 
-        QPdfDocument *doc    = m_docs[e.pdfPath];
-        const QSizeF  origPt = doc->pagePointSize(e.pageIndex);
+        if (!m_docs.contains(e.pdfPath)) {
+            qWarning() << "[Organizer] page" << (i + 1) << "has no open source:"
+                       << e.pdfPath;
+            ++lostPages;
+            continue;
+        }
 
         // Render in the native (pre-user-rotation) orientation.
-        const QSize renderSz(qRound(origPt.width()  * scale),
-                             qRound(origPt.height() * scale));
-        QImage img = doc->render(e.pageIndex, renderSz);
-        if (img.isNull()) continue;
+        QImage img = m_docs[e.pdfPath]->render(e.pageIndex, scale);
+        if (img.isNull()) {
+            qWarning() << "[Organizer] page" << (i + 1) << "of" << e.pdfPath
+                       << "(index" << e.pageIndex << ") did not render";
+            ++lostPages;
+            continue;
+        }
 
         // Apply user rotation — for 90°/270° this transposes the image dimensions
         // to match the transposed page size set above.
@@ -1024,15 +1276,39 @@ bool PdfOrganizerDialog::writePdf(const QString &outPath)
                                 painter.device()->height()), img);
     }
     painter.end();
+
+    if (lostPages > 0) {
+        SafeWrite::discard(staging);
+        QMessageBox::warning(this, tr("Save failed"),
+                             tr("%1 of %2 pages could not be rendered, so the "
+                                "document would have been saved blank. Your PDF "
+                                "was not changed.")
+                                 .arg(lostPages).arg(m_pages.size()));
+        return false;
+    }
+    if (!SafeWrite::commit(staging, outPath) || !verifyWritten(outPath)) {
+        QMessageBox::warning(this, tr("Save failed"),
+                             tr("The organized document could not be written to "
+                                "\"%1\". Your PDF was not changed.")
+                                 .arg(QFileInfo(outPath).fileName()));
+        return false;
+    }
+    qInfo() << "[Organizer] saved" << m_pages.size() << "pages (raster) to" << outPath;
     return true;
 #else
     Q_UNUSED(outPath)
     QMessageBox::information(this, tr("Not Available"),
-                             tr("PDF writing requires Qt6Pdf."));
+                             tr("PDF writing requires a PDF backend "
+                                "(Qt6Pdf or Poppler)."));
     return false;
 #endif
 }
 
+// "Save" takes the page changes into the session, it does not touch the file
+// the user opened: the result goes to a session working file that the document
+// view then shows. The target PDF is written when the user saves the document
+// itself — until then the change is undoable by closing without saving, and the
+// working file is what crash recovery will pick up.
 void PdfOrganizerDialog::save()
 {
     if (m_pages.isEmpty()) {
@@ -1041,15 +1317,27 @@ void PdfOrganizerDialog::save()
         return;
     }
 
-    if (m_sourcePath.isEmpty()) {
+    // Nothing to take the changes into (organizer opened without a document),
+    // or no writable session directory: ask for a destination rather than
+    // parking the user's work somewhere they will not find it again.
+    if (m_targetPath.isEmpty()) {
+        saveAs();
+        return;
+    }
+    const QString workPath = SessionStore::newWorkingFile(m_targetPath);
+    if (workPath.isEmpty()) {
         saveAs();
         return;
     }
 
-    if (writePdf(m_sourcePath))
+    if (writePdf(workPath)) {
+        m_resultPath      = workPath;
+        m_resultIsWorking = true;
         accept();
+    }
 }
 
+// "Save as" is an explicit destination, so it writes the file for real.
 void PdfOrganizerDialog::saveAs()
 {
     if (m_pages.isEmpty()) {
@@ -1059,11 +1347,13 @@ void PdfOrganizerDialog::saveAs()
     }
 
     const QString outPath = QFileDialog::getSaveFileName(
-        this, tr("Save PDF As"), m_sourcePath, tr("PDF files (*.pdf)"));
+        this, tr("Save PDF As"), m_targetPath, tr("PDF files (*.pdf)"));
     if (outPath.isEmpty()) return;
 
     if (writePdf(outPath)) {
-        m_sourcePath = outPath;
+        m_targetPath      = outPath;
+        m_resultPath      = outPath;
+        m_resultIsWorking = false;
         accept();
     }
 }

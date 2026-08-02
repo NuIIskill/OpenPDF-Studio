@@ -3,6 +3,7 @@
 #ifdef HAVE_PDF_RENDERING
 #  include "ContentMap.hpp"
 #  include "ContentModel.hpp"
+#  include "DocxLayout.hpp"
 #  include "EditSession.hpp"
 #  include "engine/ocr/OcrEngine.hpp"
 #  include "engine/view/PdfRenderer.hpp"
@@ -18,6 +19,84 @@
 #include <QFileInfo>
 #include <QLineF>
 #include <QPainter>
+
+#include <algorithm>
+
+#ifdef HAVE_PDF_RENDERING
+namespace {
+
+// Style donor for a decoded text rect: a detected item that actually covers
+// it. The previous nearest-centre match had no distance limit and no overlap
+// test, so a table header cell several lines away could hand a body paragraph
+// its brown fill colour and its font size.
+const ContentItem *styleDonor(const QList<ContentItem> &detected,
+                              const QRectF &rect)
+{
+    const ContentItem *best = nullptr;
+    double bestScore = 0.0;
+    for (const ContentItem &candidate : detected) {
+        if (!candidate.isTextual()) continue;
+        const QRectF hit = candidate.bounds.intersected(rect);
+        if (hit.isEmpty()) continue;
+        // Vertical agreement weighs more than horizontal: one detected line
+        // may be split across several decoded runs and vice versa, but a run
+        // and its donor always share the same baseline band.
+        const double vShare = hit.height() / qMax(1e-6, rect.height());
+        const double hShare = hit.width()  / qMax(1e-6, rect.width());
+        const double score  = vShare * 0.65 + hShare * 0.35;
+        if (score > bestScore) {
+            bestScore = score;
+            best = &candidate;
+        }
+    }
+    // Must be genuinely covered, not merely adjacent.
+    return bestScore >= 0.5 ? best : nullptr;
+}
+
+// Qt reports one selection polygon per visual line for most PDFs, but one per
+// GLYPH for others (Writer output among them). A single glyph cannot be
+// selected reliably — getSelection runs from the character under the start
+// point to the one under the end point, and for a 6 pt box the end point
+// already sits in the next glyph's cell, so every query returns two characters
+// and the line arrives as "DDiieesseer AAbbssaattz". Merging the glyph boxes
+// back into the line runs the rest of the pipeline expects avoids the problem
+// instead of trying to out-guess it.
+QList<QRectF> mergeGlyphBoxes(QList<QRectF> boxes)
+{
+    std::sort(boxes.begin(), boxes.end(), [](const QRectF &a, const QRectF &b) {
+        if (std::abs(a.center().y() - b.center().y()) > 1.5)
+            return a.center().y() < b.center().y();
+        return a.left() < b.left();
+    });
+
+    // Merge only up to a typical glyph advance, which yields word-sized runs.
+    // Merging whole lines instead swallowed the gap between two narrow table
+    // columns, and the classifier — which splits lines into cells itself — no
+    // longer had anything to split.
+    QList<double> widths;
+    for (const QRectF &r : boxes) widths.append(r.width());
+    std::sort(widths.begin(), widths.end());
+    const double advance = widths.isEmpty() ? 4.0 : widths[widths.size() / 2];
+
+    QList<QRectF> runs;
+    for (const QRectF &box : boxes) {
+        if (!runs.isEmpty()) {
+            QRectF &current = runs.last();
+            const double lineH = qMax(current.height(), box.height());
+            const bool sameLine =
+                std::abs(current.center().y() - box.center().y()) <= lineH * 0.6;
+            if (sameLine && box.left() - current.right() <= advance * 0.9) {
+                current = current.united(box);
+                continue;
+            }
+        }
+        runs.append(box);
+    }
+    return runs;
+}
+
+} // namespace
+#endif
 
 QList<DocxPage> DocumentExporter::allPageContent() const
 {
@@ -40,10 +119,40 @@ QList<DocxPage> DocumentExporter::allPageContent() const
             const QPdfSelection all = m_src.document->getAllText(i);
             QList<ContentCluster> clusters;
             if (all.isValid()) {
+                QList<QRectF> boxes;
                 for (const QPolygonF &polygon : all.bounds()) {
                     const QRectF rect = polygon.boundingRect();
-                    if (rect.isEmpty()) continue;
-                    const QRectF query = rect;
+                    if (!rect.isEmpty()) boxes.append(rect);
+                }
+                // Per-glyph polygons are merged into line runs first — see
+                // mergeGlyphBoxes. Judged on the median box, so a page that
+                // happens to contain one narrow line is not misread.
+                bool fromGlyphs = false;
+                {
+                    QList<double> widths, heights;
+                    for (const QRectF &r : boxes) {
+                        widths.append(r.width());
+                        heights.append(r.height());
+                    }
+                    std::sort(widths.begin(), widths.end());
+                    std::sort(heights.begin(), heights.end());
+                    if (!boxes.isEmpty()
+                            && widths[widths.size() / 2]
+                                   < heights[heights.size() / 2] * 1.6) {
+                        boxes = mergeGlyphBoxes(std::move(boxes));
+                        fromGlyphs = true;
+                    }
+                }
+
+                for (const QRectF &rect : boxes) {
+                    // A line box hugs its glyphs so tightly that querying it
+                    // verbatim drops the last character ("ca. 200 kcal" came
+                    // back as "ca. 200 kca"); a point of slack recovers it.
+                    // Word-sized runs merged out of glyph boxes must NOT be
+                    // widened — the slack reaches into the following run and
+                    // repeats its first character ("mit fett" → "mitfettt").
+                    const QRectF query = fromGlyphs
+                        ? rect : rect.adjusted(-0.5, 0.0, 1.0, 0.0);
                     const QPdfSelection selection = m_src.document->getSelection(
                         i, query.topLeft(), query.bottomRight());
                     QString text = selection.text();
@@ -58,9 +167,25 @@ QList<DocxPage> DocumentExporter::allPageContent() const
                     text.replace(QChar(0xFFFF), QString{});
                     text = text.split(QRegularExpression(QStringLiteral("[\\r\\n]+")),
                                       Qt::SkipEmptyParts).value(0).trimmed();
+                    // A narrow single glyph — a lone "C" in a table cell — often
+                    // returns nothing for its exact polygon. Retry once with a
+                    // slightly wider query before assuming anything about it;
+                    // isolated cells have no neighbour close enough to bleed in.
+                    if (text.isEmpty()) {
+                        const QRectF wider = rect.adjusted(-1.2, -0.8, 1.2, 0.8);
+                        text = m_src.document->getSelection(i, wider.topLeft(),
+                                                            wider.bottomRight()).text();
+                        text.replace(QChar(0xFFFE), QStringLiteral("-"));
+                        text.replace(QChar(0xFFFF), QString{});
+                        text = text.split(QRegularExpression(QStringLiteral("[\\r\\n]+")),
+                                          Qt::SkipEmptyParts).value(0).trimmed();
+                    }
                     // OpenSymbol bullet polygons intentionally have no Unicode
                     // selection text in Qt although the page-wide text stream
-                    // contains U+2022. Their tiny square geometry is unambiguous.
+                    // contains U+2022. Their tiny square geometry is unambiguous
+                    // — but only once the retry above has come back empty too,
+                    // or real letters get turned into bullets and the classifier
+                    // then folds their whole table row into one bullet line.
                     if (text.isEmpty() && rect.width() <= 6.0 && rect.height() <= 6.0)
                         text = QStringLiteral("•");
                     if (text.isEmpty()) continue;
@@ -68,29 +193,38 @@ QList<DocxPage> DocumentExporter::allPageContent() const
                     ContentCluster cluster;
                     cluster.bounds = rect;
                     cluster.text = text;
-                    cluster.fontSizePt = qMax(2.0, rect.height() * 0.74);
                     cluster.exactWidth = true;
 
-                    const ContentItem *style = nullptr;
-                    double bestDistance = 1e18;
-                    for (const ContentItem &candidate : detected) {
-                        if (!candidate.isTextual()) continue;
-                        const double distance = QLineF(candidate.bounds.center(),
-                                                       rect.center()).length();
-                        if (distance < bestDistance) {
-                            bestDistance = distance;
-                            style = &candidate;
-                        }
-                    }
-                    if (style) {
+                    if (const ContentItem *style = styleDonor(detected, rect)) {
                         cluster.rawFontName = style->rawFontName;
                         cluster.textColor = style->textColor;
-                        if (style->fontSizePt > 0.0)
-                            cluster.fontSizePt = qMin(style->fontSizePt,
-                                                      rect.height() * 0.82);
+                        cluster.fontSizePt = style->fontSizePt;   // 0 = unknown
                     }
                     clusters.append(std::move(cluster));
                 }
+            }
+
+            // Font size comes from the PDF's own /Tf operand. Deriving it from
+            // the height of Qt's selection polygon measures the ink of whatever
+            // glyphs the line happens to contain: "Geschmack" (no descender)
+            // and "nussig, leicht bitter, cremig" sit in the same 8 pt table
+            // row, yet their polygons differ by a third — which is exactly how
+            // one table ended up rendered in three different sizes. Lines with
+            // no donor fall back to geometry, scaled by the median size/height
+            // ratio actually measured on this page rather than a fixed guess.
+            {
+                QList<double> ratios;
+                for (const ContentCluster &c : clusters)
+                    if (c.fontSizePt > 0.0 && c.bounds.height() > 0.5)
+                        ratios.append(c.fontSizePt / c.bounds.height());
+                double ratio = 0.95;
+                if (!ratios.isEmpty()) {
+                    std::sort(ratios.begin(), ratios.end());
+                    ratio = ratios[ratios.size() / 2];
+                }
+                for (ContentCluster &c : clusters)
+                    if (c.fontSizePt <= 0.0)
+                        c.fontSizePt = qMax(2.0, c.bounds.height() * ratio);
             }
             // Keep one export item per visual PDF line/cell. Vertical merging
             // is useful for the editor, but Word's line spacing would move
@@ -99,21 +233,15 @@ QList<DocxPage> DocumentExporter::allPageContent() const
                 std::move(clusters), false);
             if (!decoded.isEmpty()) {
                 // The classifier resolves font style from rawFontName. Copy the
-                // nearest detected fill explicitly because it is page-paint
+                // covering detected fill explicitly because it is page-paint
                 // metadata rather than a property of Qt's text polygons.
+                // ContentMap already assigns bgColor by containment (fill rect
+                // shrunk 2 pt so borders never match); matching by centre
+                // distance here threw that away and let a table header donate
+                // its brown to a body line, which then got erased in brown.
                 for (ContentItem &item : decoded) {
-                    const ContentItem *style = nullptr;
-                    double bestDistance = 1e18;
-                    for (const ContentItem &candidate : detected) {
-                        if (!candidate.isTextual()) continue;
-                        const double distance = QLineF(candidate.bounds.center(),
-                                                       item.bounds.center()).length();
-                        if (distance < bestDistance) {
-                            bestDistance = distance;
-                            style = &candidate;
-                        }
-                    }
-                    if (style) item.bgColor = style->bgColor;
+                    if (const ContentItem *style = styleDonor(detected, item.bounds))
+                        item.bgColor = style->bgColor;
                 }
 
                 // Some PDFs have no usable ToUnicode map: Qt renders the glyphs
@@ -151,18 +279,11 @@ QList<DocxPage> DocumentExporter::allPageContent() const
                             item.text = block.text;
                             item.fontSizePt = qMax(2.0, block.pdfBounds.height() * 0.72);
 
-                            const ContentItem *style = nullptr;
-                            double bestDistance = 1e18;
-                            for (const ContentItem &candidate : detected) {
-                                if (!candidate.isTextual()) continue;
-                                const double distance = QLineF(candidate.bounds.center(),
-                                                               item.bounds.center()).length();
-                                if (distance < bestDistance) {
-                                    bestDistance = distance;
-                                    style = &candidate;
-                                }
-                            }
+                            const ContentItem *style = styleDonor(detected,
+                                                                  item.bounds);
                             if (style) {
+                                if (style->fontSizePt > 0.0)
+                                    item.fontSizePt = style->fontSizePt;
                                 item.fontFamily = style->fontFamily;
                                 item.rawFontName = style->rawFontName;
                                 item.bold = style->bold;
@@ -195,7 +316,8 @@ QList<DocxPage> DocumentExporter::allPageContent() const
         // native PDF glyphs at their exact renderer-reported rectangles. DOCX
         // text boxes are placed over this cleaned layer and remain editable.
         constexpr qreal exportScale = 2.0;
-        page.background = m_src.renderer->renderPage(i, exportScale);
+        const QImage originalRaster = m_src.renderer->renderPage(i, exportScale);
+        page.background = originalRaster;
         if (!page.background.isNull()) {
             QPainter painter(&page.background);
             painter.setRenderHint(QPainter::Antialiasing, false);
@@ -269,6 +391,18 @@ QList<DocxPage> DocumentExporter::allPageContent() const
                 }
             }
         }
+
+        // Structural analysis: paragraphs, tables and the artwork that is left
+        // once every recognised text run has been painted out. An empty result
+        // makes the writer fall back to the positioned raster export.
+        DocxLayoutInput layout;
+        layout.items      = page.items;
+        layout.original   = originalRaster;
+        layout.erased     = page.background;
+        layout.pageSizePt = page.pageSizePt;
+        layout.scale      = exportScale;
+        page.blocks = buildDocxBlocks(layout, &page.marginsPt);
+
         result.append(std::move(page));
     }
 #endif
