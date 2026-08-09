@@ -3,8 +3,8 @@
 #include "AppSettings.hpp"
 #include "ui/MainWindow.hpp"
 #include "ui/DocumentView.hpp"
-#include "ui/TopToolbar.hpp"
-#include "ui/StatusBar.hpp"
+#include "ui/bars/TopToolbar.hpp"
+#include "ui/bars/StatusBar.hpp"
 
 #include <QApplication>
 #include <QDebug>

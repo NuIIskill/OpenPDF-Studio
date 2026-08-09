@@ -36,6 +36,12 @@ set(SOURCES
     src/app/App.hpp
     src/app/AppSettings.cpp
     src/app/AppSettings.hpp
+    src/app/PdfPwStore.cpp
+    src/app/PdfPwStore.hpp
+    src/app/SafeWrite.cpp
+    src/app/SafeWrite.hpp
+    src/app/SessionStore.cpp
+    src/app/SessionStore.hpp
 
     src/engine/view/PdfRenderer.cpp
     src/engine/view/PdfRenderer.hpp
@@ -49,6 +55,12 @@ set(SOURCES
     src/engine/edit/TextBoxFrame.hpp
     src/engine/edit/DocxExporter.cpp
     src/engine/edit/DocxExporter.hpp
+    src/engine/edit/DocxLayout.cpp
+    src/engine/edit/DocxLayout.hpp
+    src/engine/edit/DocumentExporter.cpp
+    src/engine/edit/DocumentExporter.hpp
+    src/engine/edit/PdfExporter.cpp
+    src/engine/edit/PdfExporter.hpp
 
     src/engine/edit/EditSession.cpp
     src/engine/edit/EditSession.hpp
@@ -60,27 +72,36 @@ set(SOURCES
 
     src/ui/MainWindow.cpp
     src/ui/MainWindow.hpp
-    src/ui/FormatBar.cpp
-    src/ui/FormatBar.hpp
     src/ui/DocumentView.cpp
     src/ui/DocumentView.hpp
-    src/ui/LeftSidebar.cpp
-    src/ui/LeftSidebar.hpp
-    src/ui/LeftSidebar.hpp
-    src/ui/RightSidebar.cpp
-    src/ui/RightSidebar.hpp
-    src/ui/TextPropertiesPanel.cpp
-    src/ui/TextPropertiesPanel.hpp
-    src/ui/TopToolbar.cpp
-    src/ui/TopToolbar.hpp
-    src/ui/ToolPanel.cpp
-    src/ui/ToolPanel.hpp
-    src/ui/StatusBar.cpp
-    src/ui/StatusBar.hpp
-    src/ui/SettingsPanel.cpp
-    src/ui/SettingsPanel.hpp
     src/ui/PresentationWindow.cpp
     src/ui/PresentationWindow.hpp
+
+    src/ui/bars/TopToolbar.cpp
+    src/ui/bars/TopToolbar.hpp
+    src/ui/bars/FormatBar.cpp
+    src/ui/bars/FormatBar.hpp
+    src/ui/bars/StatusBar.cpp
+    src/ui/bars/StatusBar.hpp
+
+    src/ui/panels/LeftSidebar.cpp
+    src/ui/panels/LeftSidebar.hpp
+    src/ui/panels/RightSidebar.cpp
+    src/ui/panels/RightSidebar.hpp
+    src/ui/panels/ToolPanel.cpp
+    src/ui/panels/ToolPanel.hpp
+    src/ui/panels/SettingsPanel.cpp
+    src/ui/panels/SettingsPanel.hpp
+    src/ui/panels/TextPropertiesPanel.cpp
+    src/ui/panels/TextPropertiesPanel.hpp
+
+    src/ui/view/PageCanvas.hpp
+    src/ui/view/PageLayoutEngine.cpp
+    src/ui/view/PageLayoutEngine.hpp
+    src/ui/view/ImageAnnotationLayer.cpp
+    src/ui/view/ImageAnnotationLayer.hpp
+    src/ui/view/TextSelectionController.cpp
+    src/ui/view/TextSelectionController.hpp
 
     src/ui/widgets/PagePlaceholder.cpp
     src/ui/widgets/PagePlaceholder.hpp
@@ -97,11 +118,12 @@ set(SOURCES
     src/ui/tools/ImageAnnotation.hpp
     src/ui/tools/UndoCommands.hpp
 
-    src/ui/ExportDialog.cpp
-    src/ui/ExportDialog.hpp
-
-    src/ui/organizer/PdfOrganizerDialog.cpp
-    src/ui/organizer/PdfOrganizerDialog.hpp
+    src/ui/dialogs/ExportDialog.cpp
+    src/ui/dialogs/ExportDialog.hpp
+    src/ui/dialogs/PasswordDialog.cpp
+    src/ui/dialogs/PasswordDialog.hpp
+    src/ui/dialogs/PdfOrganizerDialog.cpp
+    src/ui/dialogs/PdfOrganizerDialog.hpp
 
     src/ui/theme/Theme.cpp
     src/ui/theme/Theme.hpp
@@ -206,6 +228,12 @@ if(WIN32)
     configure_file(resources/windows/openpdf-studio.rc.in
                    "${CMAKE_CURRENT_BINARY_DIR}/openpdf-studio.rc" @ONLY)
     target_sources(OpenPDFStudio PRIVATE "${CMAKE_CURRENT_BINARY_DIR}/openpdf-studio.rc")
+    # windres embeds the .ico into the .res, but CMake does not scan .rc files
+    # for their includes — without this the resource is never recompiled when
+    # only the icon changes, and the exe silently keeps the previous icon.
+    set_source_files_properties("${CMAKE_CURRENT_BINARY_DIR}/openpdf-studio.rc"
+        PROPERTIES OBJECT_DEPENDS
+                   "${CMAKE_CURRENT_SOURCE_DIR}/resources/windows/openpdf-studio.ico")
 endif()
 
 if(MINGW)
@@ -245,6 +273,61 @@ install(FILES packaging/appimage/README.md
     DESTINATION share/doc/OpenPDFStudio
     OPTIONAL
 )
+
+# ── CPack: RPM + DEB ─────────────────────────────────────────────────────────
+# Gebaut über packaging/linux/package-linux.sh (nicht direkt cpack aufrufen —
+# das Skript setzt Prefix/Ausgabepfad und schiebt die Artefakte nach dist/).
+if(UNIX AND NOT APPLE)
+    set(CPACK_PACKAGE_NAME "openpdf-studio")
+    set(CPACK_PACKAGE_VERSION "${PROJECT_VERSION}")
+    set(CPACK_PACKAGE_DESCRIPTION_SUMMARY "${PROJECT_DESCRIPTION}")
+    set(CPACK_PACKAGE_VENDOR "nullskill")
+    set(CPACK_PACKAGE_CONTACT "nullskill <nullskilll@gmail.com>")
+    set(CPACK_PACKAGE_DESCRIPTION
+"OpenPDF Studio is a native Qt6 PDF viewer and editor: inline text editing,
+page organizer, annotations, OCR and export to PDF, DOCX and image formats.")
+    set(CPACK_PACKAGE_HOMEPAGE_URL "https://openpdf-studio.nullskill.de")
+    set(CPACK_RESOURCE_FILE_LICENSE "${CMAKE_CURRENT_SOURCE_DIR}/LICENSE")
+    set(CPACK_PACKAGING_INSTALL_PREFIX "/usr")
+    set(CPACK_PACKAGE_FILE_NAME
+        "openpdf-studio-${PROJECT_VERSION}-${CMAKE_SYSTEM_PROCESSOR}")
+    set(CPACK_STRIP_FILES ON)
+
+    # ── RPM (Fedora/RHEL/openSUSE) ───────────────────────────────────────────
+    set(CPACK_RPM_PACKAGE_LICENSE "MIT")
+    set(CPACK_RPM_PACKAGE_GROUP "Applications/Productivity")
+    set(CPACK_RPM_PACKAGE_URL "${CPACK_PACKAGE_HOMEPAGE_URL}")
+    # Der RPM-Generator übernimmt CPACK_PACKAGE_DESCRIPTION nicht automatisch.
+    set(CPACK_RPM_PACKAGE_DESCRIPTION "${CPACK_PACKAGE_DESCRIPTION}")
+    set(CPACK_RPM_FILE_NAME RPM-DEFAULT)
+    # rpmbuild leitet Requires automatisch aus den ELF-Sonames ab.
+    set(CPACK_RPM_PACKAGE_AUTOREQ ON)
+    # Diese Verzeichnisse gehören filesystem/hicolor-icon-theme — nicht mitpaketieren.
+    set(CPACK_RPM_EXCLUDE_FROM_AUTO_FILELIST_ADDITION
+        /usr/share/applications
+        /usr/share/icons
+        /usr/share/icons/hicolor
+        /usr/share/icons/hicolor/256x256
+        /usr/share/icons/hicolor/256x256/apps
+        /usr/share/doc
+    )
+
+    # ── DEB (Debian/Ubuntu) ──────────────────────────────────────────────────
+    # dpkg-shlibdeps funktioniert beim Bauen auf Fedora nicht (keine Debian-
+    # Shlib-Datenbank) → Depends werden explizit gepflegt. Alternativen-Syntax
+    # deckt die t64-Umbenennung ab Ubuntu 24.04 mit ab.
+    set(CPACK_DEBIAN_PACKAGE_SECTION "graphics")
+    set(CPACK_DEBIAN_PACKAGE_PRIORITY "optional")
+    set(CPACK_DEBIAN_PACKAGE_HOMEPAGE "${CPACK_PACKAGE_HOMEPAGE_URL}")
+    set(CPACK_DEBIAN_FILE_NAME DEB-DEFAULT)
+    set(CPACK_DEBIAN_PACKAGE_SHLIBDEPS OFF)
+    set(CPACK_DEBIAN_PACKAGE_DEPENDS
+        "libqt6core6 | libqt6core6t64, libqt6gui6, libqt6widgets6, libqt6printsupport6")
+    set(CPACK_DEBIAN_PACKAGE_RECOMMENDS
+        "libqt6pdf6, libqpdf29 | libqpdf29t64, libtesseract5 | libtesseract5t64")
+
+    include(CPack)
+endif()
 
 # Translation update helper — run: cmake --build . --target update_translations
 # Pre-compiled .qm files are already embedded via resources/openpdf-studio.qrc.

@@ -12,10 +12,14 @@ class QRubberBand;
 class QFrame;
 QT_END_NAMESPACE
 
-class ImageAnnotation;
+class ImageAnnotationLayer;
+class PageLayoutEngine;
+class TextSelectionController;
 
 #include "engine/ocr/OcrEngine.hpp"
 #include "engine/edit/DocxExporter.hpp"
+#include "engine/edit/DocumentExporter.hpp"
+#include "ui/view/PageCanvas.hpp"
 
 #ifdef HAVE_PDF_RENDERING
 #  include "engine/view/PdfRenderer.hpp"
@@ -32,7 +36,7 @@ class ImageAnnotation;
 #  endif
 #endif
 
-class DocumentView : public QScrollArea
+class DocumentView : public QScrollArea, public PageCanvas
 {
     Q_OBJECT
 
@@ -44,6 +48,12 @@ public:
     ~DocumentView() override;
 
     bool   openFile(const QString &path);
+    /// Shows `contentPath` while the document keeps `targetPath` as its
+    /// identity and save target. Used for changes that only exist as a written
+    /// PDF (page reordering, rotation, insertion): the reorganized file is a
+    /// session working copy, the user's PDF stays untouched until they save.
+    /// The document counts as having unsaved changes until then.
+    bool   openWorkingCopy(const QString &contentPath, const QString &targetPath);
     void   clearDocument();
     void   setZoom(int percent);
     void   setZoomSettings(int step, bool ctrlWheel, bool toPointer,
@@ -62,8 +72,15 @@ public:
     void   setEditorBold(bool on);
     void   setEditorItalic(bool on);
 
-    QString     currentFile()      const { return m_filePath; }
-    int         pageCount()        const { return m_pageCount; }
+    /// Document identity and save target — the file the user opened, which is
+    /// not necessarily the file currently being rendered (see contentFile()).
+    QString     currentFile()      const
+    { return m_targetPath.isEmpty() ? m_filePath : m_targetPath; }
+    /// The PDF on disk the view is reading from. This is what anything that
+    /// needs the current page content (export, presentation, organizer) must
+    /// open — it holds the working copy while changes are uncommitted.
+    QString     contentFile()      const { return m_filePath; }
+    int         pageCount()        const override { return m_pageCount; }
     // 0-based index of the page the user is looking at.
     int         currentPage()      const;
     // Scrolls the given 0-based page to the top of the viewport.
@@ -72,10 +89,21 @@ public:
     QUndoStack *undoStack()        const { return m_undoStack; }
     bool        hasUnsavedEdits()  const;
     bool        pdfRenderingAvailable() const;
-    QList<DocxPage> allPageContent();
-    bool exportPagesToImages(const QString &outputPath, int quality = 85);
+    QList<DocxPage> allPageContent(const QList<int> &pages = {});
+    bool exportPagesToImages(const QString &outputPath, int quality = 85,
+                             const QList<int> &pages = {});
     // Called by undo/redo commands to refresh a page after session state is restored.
     void        rerenderPage(int page);
+    // Select tool: text marked on the page (empty when nothing is selected).
+    QString     selectedText() const;
+    void        copySelectedText();
+
+    // ── PageCanvas ────────────────────────────────────────────────────────────
+    QWidget *canvasWidget()   const override { return m_canvas; }
+    QLabel  *pageLabel(int page) const override;
+    int      pageLabelCount() const override;
+    qreal    screenScale()    const override;
+    std::pair<int, QLabel *> pageAtCanvasPos(const QPoint &canvasPos) const override;
 
 Q_SIGNALS:
     void fileOpened(const QString &path, int pageCount);
@@ -93,28 +121,25 @@ protected:
     void dragMoveEvent(QDragMoveEvent *e) override;
     void dropEvent(QDropEvent *e) override;
     void changeEvent(QEvent *e) override;
+    void keyPressEvent(QKeyEvent *e) override;
     void resizeEvent(QResizeEvent *e) override;
     void wheelEvent(QWheelEvent *e) override;
 
 private:
-    // Page rendering
-    void   buildPages();
-    void   rerenderAll();
+    // Re-render a page with the active edit's original text blanked out.
     void   rerenderPageWithBlank(int page, const QRectF &pdfBoundsPts);
 
-    // Grid view
-    void   buildGridItems();
-    void   relayoutGrid();
+#ifdef HAVE_PDF_RENDERING
+    // Bundles the engine-level objects the exporter borrows.
+    DocumentExporter::Sources exportSources() const;
+#endif
 
-    // Image tool
-    void   placeImage(const QImage &img, const QPoint &canvasPos);
-    void   placeImageInRect(const QImage &img, const QRect &viewportRect);
-    void   updateImageOverlayPositions();
-    void   clearDetectedImageFrames();
-    void   scanCurrentPageForImages();
-    void   connectImageAnnotation(ImageAnnotation *ann);
-    void   showImageContextMenu(ImageAnnotation *ann, const QPoint &globalPos);
+    // Context menu for the open editor / marked page text. Images bring their
+    // own menu — that one lives in ImageAnnotationLayer.
     void   showGeneralContextMenu(const QPoint &globalPos);
+    // 0-based index of the first page whose top is at or below the scroll
+    // position — what the image scan treats as "the visible page".
+    int    firstVisiblePage() const;
 
     // Edit-mode interaction
     void   handleEditClick(const QPoint &canvasPos);
@@ -130,7 +155,6 @@ private:
     void   refreshEditorFontLive();
 
     // Canvas helpers
-    std::pair<int, QLabel *> pageAtCanvasPos(const QPoint &canvasPos) const;
     // Clamp r so it stays fully inside the PDF page (both position and size).
     void clampToPdfPage(int page, QRectF &r) const;
     // Emits pageChanged() when scrolling brought a different page to the front.
@@ -145,28 +169,24 @@ private:
     QVBoxLayout *m_layout    { nullptr };
     QLabel      *m_dropHint  { nullptr };
     QRubberBand *m_rubberBand{ nullptr };
-    QList<QLabel *>  m_pageLabels;
 
-    // Image tool: each placed image, tracked in PDF coordinate space.
-    struct PlacedImage {
-        int page;
-        QRectF pdfBounds;   // position/size in PDF points
-        QImage image;
-        QWidget *widget { nullptr };  // ImageAnnotation overlay
-    };
-    QList<PlacedImage> m_placedImages;
-    QList<QFrame *>    m_detectedImageFrames;  // transient highlights for existing images
-    QImage             m_imageClipboard;        // internal copy/cut clipboard for image tool
+    // Owns the page widgets — single column and grid.
+    PageLayoutEngine *m_layoutEngine { nullptr };
 
-    // Grid view
-    struct GridItem { QWidget *card; QLabel *thumb; QLabel *label; QPixmap original; };
-    ViewMode        m_viewMode   { ViewMode::Single };
-    QWidget        *m_gridCanvas { nullptr };
-    QList<GridItem> m_gridItems;
-    QHash<QObject *, int> m_gridCardIndex;
+    // Placed images and detected image regions, tracked in PDF coordinate space.
+    ImageAnnotationLayer *m_imageLayer { nullptr };
+
+    // Grid view — the widgets live in m_layoutEngine; the mode itself stays
+    // here because it drives which widget the scroll area shows.
+    ViewMode  m_viewMode   { ViewMode::Single };
+    QWidget  *m_gridCanvas { nullptr };
 
     // Document state
-    QString m_filePath;
+    QString m_filePath;      // file being rendered (may be a session working copy)
+    QString m_targetPath;    // save target while m_filePath is a working copy
+    // Changes that live only in the working copy, not in m_session — they make
+    // the document dirty even though the session holds no edits.
+    bool    m_workingCopyDirty { false };
     int     m_zoom      { 100 };
     int     m_pageCount { 0 };
     int     m_lastReportedPage { -1 };   // 0-based; -1 = nothing reported yet
@@ -182,18 +202,14 @@ private:
     // View-mode interaction
     QPoint m_panStart;
     QPoint m_panScrollOrigin;
-    QPoint m_selectStart;
+
+    // Select-tool text marking, including its highlight overlays.
+    TextSelectionController *m_selection { nullptr };
 
     // Text-tool drag-to-create state (viewport coords)
     bool   m_textTracking { false };
     bool   m_textDragging { false };
     QPoint m_textDragStart;
-
-    // Image-tool drag-to-frame state (canvas coords)
-    bool   m_imageTracking { false };
-    bool   m_imageDragging  { false };
-    QPoint m_imageDragStart;
-    QRect  m_imageDragPageRect;  // page bounds for clamping rubber band
 
     // Edit-mode state
     int     m_activeEditPage { -1 };        // page under the box NOW (follows drags)

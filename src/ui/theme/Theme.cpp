@@ -58,8 +58,10 @@ QPixmap renderSvg(const QString &name, const QColor &color, int size, qreal dpr)
     }
 
     const int physSize = qRound(size * dpr);
-    // Lucide icons have a 24×24 viewBox — scale to physSize
-    const float scale = static_cast<float>(physSize) / 24.0f;
+    // Scale the SVG's own viewBox up to physSize — Lucide icons are 24×24,
+    // the app logo is 256×256.
+    const float viewBox = image->width > 0.0f ? image->width : 24.0f;
+    const float scale = static_cast<float>(physSize) / viewBox;
 
     NSVGrasterizer *rast = nsvgCreateRasterizer();
     QByteArray pixels(physSize * physSize * 4, '\0');
@@ -153,6 +155,21 @@ void apply(const QString &mode)
         p.setColor(QPalette::ToolTipText,     QColor(0x11, 0x18, 0x27));
         p.setColor(QPalette::PlaceholderText, QColor(0x9C, 0xA3, 0xAF));
     }
+
+    // setColor() without a group writes Active, Inactive AND Disabled alike, so
+    // up to here every disabled control renders exactly like an enabled one —
+    // a greyed-out checkbox was pixel-identical to a live one. The disabled
+    // group is therefore filled in explicitly, app-wide.
+    const QColor dimText  = isDark ? QColor(0x6E, 0x6E, 0x6E) : QColor(0x9C, 0xA3, 0xAF);
+    const QColor dimFill  = isDark ? QColor(0x30, 0x30, 0x30) : QColor(0xF3, 0xF4, 0xF6);
+    for (QPalette::ColorRole role : { QPalette::WindowText, QPalette::Text,
+                                      QPalette::ButtonText, QPalette::HighlightedText })
+        p.setColor(QPalette::Disabled, role, dimText);
+    p.setColor(QPalette::Disabled, QPalette::Base,      dimFill);
+    p.setColor(QPalette::Disabled, QPalette::Button,    dimFill);
+    p.setColor(QPalette::Disabled, QPalette::Highlight, isDark ? QColor(0x3A, 0x3A, 0x3A)
+                                                              : QColor(0xD1, 0xD5, 0xDB));
+
     QApplication::setPalette(p);
     qApp->setStyleSheet(loadStyleSheet());
 }

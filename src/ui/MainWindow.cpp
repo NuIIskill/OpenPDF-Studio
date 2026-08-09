@@ -1,21 +1,24 @@
 #include "MainWindow.hpp"
 
 #include "PresentationWindow.hpp"
-#include "TopToolbar.hpp"
-#include "LeftSidebar.hpp"
 #include "DocumentView.hpp"
-#include "RightSidebar.hpp"
-#include "TextPropertiesPanel.hpp"
-#include "FormatBar.hpp"
-#include "StatusBar.hpp"
-#include "SettingsPanel.hpp"
-#include "ui/organizer/PdfOrganizerDialog.hpp"
-#include "ui/ExportDialog.hpp"
+#include "ui/bars/TopToolbar.hpp"
+#include "ui/bars/FormatBar.hpp"
+#include "ui/bars/StatusBar.hpp"
+#include "ui/panels/LeftSidebar.hpp"
+#include "ui/panels/RightSidebar.hpp"
+#include "ui/panels/TextPropertiesPanel.hpp"
+#include "ui/panels/SettingsPanel.hpp"
+#include "ui/dialogs/PdfOrganizerDialog.hpp"
+#include "ui/dialogs/ExportDialog.hpp"
 #include "engine/edit/DocxExporter.hpp"
+#include "engine/edit/PdfExporter.hpp"
 #include "ui/theme/Theme.hpp"
 #include "app/AppSettings.hpp"
 
 #include <QApplication>
+#include <QDesktopServices>
+#include <QUrl>
 #include <QDebug>
 #include <QFileDialog>
 #include <QFileInfo>
@@ -399,8 +402,9 @@ void MainWindow::onRedo()
 void MainWindow::onStartPresentation()
 {
     DocumentView *dv = currentDocView();
-    if (!dv || dv->currentFile().isEmpty()) return;
-    auto *pw = new PresentationWindow(dv->currentFile(), dv->currentPage());
+    if (!dv || dv->contentFile().isEmpty()) return;
+    // Present what the user sees, including changes not written to their file yet.
+    auto *pw = new PresentationWindow(dv->contentFile(), dv->currentPage());
     pw->show();
 }
 
@@ -469,53 +473,103 @@ void MainWindow::onModeSelected(const QString &mode)
     } else if (mode == QLatin1String("export")) {
         DocumentView *dv   = currentDocView();
         const QString file = dv ? dv->currentFile() : QString{};
-        const int pages    = dv ? dv->pageCount() : 1;
-        ExportDialog dlg(file, pages, this);
-        if (dlg.exec() == QDialog::Accepted && dv) {
-            const QString path   = dlg.selectedPath();
-            const QString format = dlg.selectedFormat();
-            if (!path.isEmpty()) {
-                if (format == QLatin1String("word")) {
-                    const QList<DocxPage> pages = dv->allPageContent();
-                    const QString title = QFileInfo(dv->currentFile()).completeBaseName();
-                    if (DocxExporter::exportToDocx(path, pages, title))
-                        QMessageBox::information(this, tr("Export successful"),
-                            tr("Document exported to \"%1\".").arg(QFileInfo(path).fileName()));
-                    else
-                        QMessageBox::warning(this, tr("Export failed"),
-                            tr("Could not write to \"%1\".").arg(path));
-                } else if (format == QLatin1String("image")) {
-                    if (dv->exportPagesToImages(path, dlg.selectedImageQuality()))
-                        QMessageBox::information(this, tr("Export successful"),
-                            pages > 1
-                                ? tr("%1 pages exported as PNG images.").arg(pages)
-                                : tr("Document exported to \"%1\".").arg(QFileInfo(path).fileName()));
-                    else
-                        QMessageBox::warning(this, tr("Export failed"),
-                            tr("Could not export PNG images to \"%1\".").arg(
-                                QFileInfo(path).absolutePath()));
-                } else {
-                    if (dv->saveToFile(path))
-                        QMessageBox::information(this, tr("Export successful"),
-                            tr("Document exported to \"%1\".").arg(QFileInfo(path).fileName()));
-                    else
-                        QMessageBox::warning(this, tr("Export failed"),
-                            tr("Could not write to \"%1\".").arg(path));
-                }
-            }
-        }
+        const int pageCount = dv ? dv->pageCount() : 1;
+        ExportDialog dlg(file, pageCount, dv ? dv->currentPage() : 0, this);
+        if (dlg.exec() == QDialog::Accepted && dv)
+            runExport(dv, dlg.request());
     } else if (mode == QLatin1String("organize")) {
         DocumentView *dv = currentDocView();
-        const QString file = dv ? dv->currentFile() : QString{};
-        auto *dlg = new PdfOrganizerDialog(file, this);
+        // Organize what is on screen (the working copy, if there is one), but
+        // keep the document's own file as the target the changes belong to.
+        auto *dlg = new PdfOrganizerDialog(dv ? dv->contentFile() : QString{}, this);
+        if (dv) dlg->setTargetPath(dv->currentFile());
         dlg->setAttribute(Qt::WA_DeleteOnClose);
         connect(dlg, &QDialog::finished, this, [this, dv, dlg](int result) {
             if (result != QDialog::Accepted || !dv) return;
-            const QString path = dlg->savedPath();
-            if (!path.isEmpty())
+            const QString path = dlg->resultPath();
+            if (path.isEmpty()) return;
+            if (dlg->resultIsWorkingCopy())
+                dv->openWorkingCopy(path, dlg->targetPath());
+            else
                 dv->openFile(path);
         });
         dlg->open();
+    }
+}
+
+// ── Export ────────────────────────────────────────────────────────────────────
+
+void MainWindow::runExport(DocumentView *dv, const ExportRequest &req)
+{
+    if (!dv || req.path.isEmpty()) return;
+
+    const QString shownName = QFileInfo(req.path).fileName();
+    bool ok = false;
+    QString failure;
+
+    if (req.format == QLatin1String("word")) {
+        const QList<DocxPage> content = dv->allPageContent(req.pages);
+        const QString title = QFileInfo(dv->currentFile()).completeBaseName();
+        DocxExportOptions docxOpt;
+        docxOpt.compressImages = req.compressImages;
+        docxOpt.imageQuality   = req.imageQuality;
+        ok = DocxExporter::exportToDocx(req.path, content, title, docxOpt);
+        failure = tr("Could not write to \"%1\".").arg(req.path);
+
+    } else if (req.format == QLatin1String("image")) {
+        ok = dv->exportPagesToImages(req.path, req.imageQuality, req.pages);
+        failure = tr("Could not export PNG images to \"%1\".")
+                      .arg(QFileInfo(req.path).absolutePath());
+
+    } else {
+        // The rendered file, not the save target — it carries uncommitted edits.
+        const QString source = dv->contentFile();
+        PdfExportOptions opt;
+        opt.pages           = req.pages;
+        opt.includeComments = req.includeComments;
+        opt.keepForms       = req.keepForms;
+        opt.embedFonts      = req.embedFonts;
+        opt.compressImages  = req.compressImages;
+        opt.imageQuality    = req.imageQuality;
+        opt.userPassword    = req.password;
+
+        // The option-aware path needs qpdf. Without it — or when the source is
+        // damaged enough that qpdf refuses it — fall back to the plain save,
+        // but only when nothing was asked for that the fallback cannot honour.
+        const bool plainRequest = req.pages.size() == dv->pageCount()
+                               && req.includeComments && req.keepForms
+                               && req.embedFonts && req.password.isEmpty();
+        ok = pdfExportAvailable() && exportPdf(source, req.path, opt);
+        if (!ok && plainRequest) ok = dv->saveToFile(req.path);
+        failure = ok ? QString{}
+                     : pdfExportAvailable()
+                         ? tr("Could not write \"%1\".").arg(shownName)
+                         // Naming the missing piece beats a generic failure:
+                         // the Windows package ships without qpdf, so a page
+                         // range or password on a PDF cannot be produced there.
+                         : tr("Could not write \"%1\".\n\n"
+                              "Selecting pages or setting a password for a PDF "
+                              "needs qpdf, which this build does not include. "
+                              "Exporting as Word or PNG is unaffected.")
+                               .arg(shownName);
+    }
+
+    if (!ok) {
+        QMessageBox::warning(this, tr("Export failed"), failure);
+        return;
+    }
+
+    const int pages = req.pages.size();
+    QMessageBox::information(this, tr("Export successful"),
+        req.format == QLatin1String("image") && pages > 1
+            ? tr("%1 pages exported as PNG images.").arg(pages)
+            : tr("Document exported to \"%1\".").arg(shownName));
+
+    if (req.openAfterExport) {
+        // A multi-page image export has no single result file; open the folder.
+        const bool many = req.format == QLatin1String("image") && pages > 1;
+        const QString target = many ? QFileInfo(req.path).absolutePath() : req.path;
+        QDesktopServices::openUrl(QUrl::fromLocalFile(target));
     }
 }
 

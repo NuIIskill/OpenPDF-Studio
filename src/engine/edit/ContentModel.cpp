@@ -1,4 +1,5 @@
 #include "ContentModel.hpp"
+#include "app/PdfPwStore.hpp"
 
 #include <QDebug>
 #include <QElapsedTimer>
@@ -72,7 +73,9 @@ QList<ContentItem> QpdfContentProvider::buildPage(int page)
     try {
         if (!m_qpdf) {
             auto qpdf = std::make_unique<QPDF>();
-            qpdf->processFile(m_path.toLocal8Bit().constData());
+            const std::string pw = PdfPwStore::forQpdf(m_path);
+            qpdf->processFile(m_path.toLocal8Bit().constData(),
+                              pw.empty() ? nullptr : pw.c_str());
             m_qpdf = std::move(qpdf);
         }
         QPDF &input = *m_qpdf;

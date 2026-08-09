@@ -26,8 +26,9 @@ void apply(const QString &mode);
 
 // ── SVG icon helpers ──────────────────────────────────────────────────────
 
-/// Render a Lucide SVG from Qt resources at the given color and size.
-/// The SVG must be at :/icons/<name>.svg.
+/// Render an SVG from Qt resources at the given color and size, scaling its
+/// viewBox to fit. The SVG must be at :/icons/<name>.svg. `color` replaces
+/// currentColor (Lucide icons); SVGs with fixed fills ignore it.
 QPixmap renderSvg(const QString &name, const QColor &color,
                   int size, qreal dpr = 1.0);
 
