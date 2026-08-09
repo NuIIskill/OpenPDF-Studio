@@ -1,5 +1,7 @@
 #pragma once
 
+#include "ui/dialogs/ExportDialog.hpp"
+
 #include <QMainWindow>
 #include <QMap>
 #include <QTranslator>
@@ -64,6 +66,8 @@ private:
     void onZoomIn();
     void onZoomOut();
     void onModeSelected(const QString &mode);
+    // Carries out an export the dialog has already validated.
+    void runExport(DocumentView *dv, const ExportRequest &req);
     void onToolSelected(const QString &tool);
     void onStartPresentation();
 

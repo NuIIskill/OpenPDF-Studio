@@ -1,20 +1,12 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" width="256" height="256">
-  <!-- Background rounded square -->
-  <rect width="256" height="256" rx="48" ry="48" fill="#3B82F6"/>
-  <!-- White document body -->
-  <rect x="60" y="44" width="116" height="148" rx="8" ry="8" fill="white"/>
-  <!-- Dog-ear fold -->
-  <polygon points="176,44 176,80 212,80" fill="#BFDBFE"/>
-  <!-- Document with fold (overlay) -->
-  <path d="M60 44 h116 v36 l36 0 v112 a8 8 0 0 1-8 8 h-144 a8 8 0 0 1-8-8 v-140 a8 8 0 0 1 8-8z" fill="white"/>
-  <polyline points="176,44 176,80 212,80" fill="#BFDBFE" stroke="#BFDBFE" stroke-width="1"/>
-  <!-- PDF text on document -->
-  <text x="88" y="130" font-family="Arial Black, Arial, sans-serif" font-weight="900"
-        font-size="32" fill="#EF4444" letter-spacing="1">PDF</text>
-  <!-- Pencil (edit indicator) -->
-  <g transform="translate(152, 152) rotate(-45)">
-    <rect x="-8" y="-52" width="16" height="44" rx="2" fill="#F59E0B"/>
-    <polygon points="-8,-8 8,-8 0,12" fill="#92400E"/>
-    <rect x="-8" y="-60" width="16" height="8" rx="2" fill="#D1D5DB"/>
-  </g>
+  <!-- App logo: blue rounded square + white "O" mark.
+       The O is pure geometry, not <text> — the icon is rasterized by NanoSVG
+       (src/3rdparty/nanosvg), which has no text support, and a font-based
+       glyph would render differently on every machine anyway. Two concentric
+       ellipses with fill-rule="evenodd" punch the counter: outer 97x106,
+       inner 51x70, giving 23px side stems and 18px top/bottom. -->
+  <rect width="256" height="256" rx="56" ry="56" fill="#2563EB"/>
+  <path fill="#FFFFFF" fill-rule="evenodd"
+        d="M79.5 128 A48.5 53 0 1 1 176.5 128 A48.5 53 0 1 1 79.5 128 Z
+           M102.5 128 A25.5 35 0 1 1 153.5 128 A25.5 35 0 1 1 102.5 128 Z"/>
 </svg>

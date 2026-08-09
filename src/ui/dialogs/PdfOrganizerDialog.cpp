@@ -1,4 +1,5 @@
 #include "PdfOrganizerDialog.hpp"
+#include "app/PdfPwStore.hpp"
 
 namespace OrgConst {
     constexpr int CARD_W    = 220;
@@ -1073,7 +1074,9 @@ bool PdfOrganizerDialog::writeVectorPdf(const QString &outPath)
 
             Source s;
             s.pdf = std::make_unique<QPDF>();
-            s.pdf->processFile(path.toLocal8Bit().constData());
+            const std::string pw = PdfPwStore::forQpdf(path);
+            s.pdf->processFile(path.toLocal8Bit().constData(),
+                               pw.empty() ? nullptr : pw.c_str());
             s.forms = std::make_unique<QPDFAcroFormDocumentHelper>(*s.pdf);
             s.pages = QPDFPageDocumentHelper(*s.pdf).getAllPages();
             return &sources.emplace(path, std::move(s)).first->second;

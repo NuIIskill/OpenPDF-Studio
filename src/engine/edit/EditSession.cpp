@@ -1,4 +1,5 @@
 #include "EditSession.hpp"
+#include "app/PdfPwStore.hpp"
 #include "ContentMap.hpp"
 #include "app/SafeWrite.hpp"
 
@@ -583,7 +584,9 @@ bool EditSession::saveVector(const QString &sourcePath, const QString &outputPat
 {
     try {
         QPDF input;
-        input.processFile(sourcePath.toLocal8Bit().constData());
+        const std::string pw = PdfPwStore::forQpdf(sourcePath);
+        input.processFile(sourcePath.toLocal8Bit().constData(),
+                          pw.empty() ? nullptr : pw.c_str());
 
         QPDFPageDocumentHelper pdh(input);
         auto pages  = pdh.getAllPages();

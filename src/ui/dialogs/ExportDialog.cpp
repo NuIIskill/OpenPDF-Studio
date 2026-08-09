@@ -1,5 +1,6 @@
 #include "ExportDialog.hpp"
 #include "ui/theme/Theme.hpp"
+#include "engine/edit/PdfExporter.hpp"
 
 #include <QButtonGroup>
 #include <QCheckBox>
@@ -20,15 +21,211 @@
 
 // ── ExportDialog ──────────────────────────────────────────────────────────────
 
-ExportDialog::ExportDialog(const QString &currentFile, int pageCount, QWidget *parent)
+ExportDialog::ExportDialog(const QString &currentFile, int pageCount,
+                           int currentPage, QWidget *parent)
     : QDialog(parent)
     , m_currentFile(currentFile)
     , m_pageCount(qMax(1, pageCount))
+    , m_currentPage(qBound(0, currentPage, qMax(0, pageCount - 1)))
+    , m_sourceBytes(currentFile.isEmpty() ? 0 : QFileInfo(currentFile).size())
 {
     setWindowTitle(tr("Export"));
     setModal(true);
     setFixedSize(720, 760);
     buildUi();
+    updateOptionAvailability();
+    updateEstimate();
+}
+
+// ── page selection ────────────────────────────────────────────────────────────
+
+QList<int> ExportDialog::parseRange(bool *ok) const
+{
+    if (ok) *ok = false;
+    QList<int> pages;
+    const QString text = m_rangeEdit ? m_rangeEdit->text().trimmed() : QString{};
+    if (text.isEmpty()) return pages;
+
+    const QStringList parts = text.split(QLatin1Char(','), Qt::SkipEmptyParts);
+    for (const QString &rawPart : parts) {
+        const QString part = rawPart.trimmed();
+        if (part.isEmpty()) continue;
+        bool okFrom = false, okTo = false;
+        int from = 0, to = 0;
+        const int dash = part.indexOf(QLatin1Char('-'));
+        if (dash < 0) {
+            from = to = part.toInt(&okFrom);
+            okTo = okFrom;
+        } else {
+            from = part.left(dash).trimmed().toInt(&okFrom);
+            to   = part.mid(dash + 1).trimmed().toInt(&okTo);
+        }
+        if (!okFrom || !okTo) return {};
+        if (from > to) std::swap(from, to);
+        if (from < 1 || to > m_pageCount) return {};
+        for (int p = from; p <= to; ++p)
+            if (!pages.contains(p - 1)) pages.append(p - 1);
+    }
+    if (pages.isEmpty()) return pages;
+    if (ok) *ok = true;
+    return pages;
+}
+
+QList<int> ExportDialog::selectedPages() const
+{
+    if (m_currentRadio && m_currentRadio->isChecked())
+        return { m_currentPage };
+    if (m_rangeRadio && m_rangeRadio->isChecked()) {
+        bool ok = false;
+        const QList<int> pages = parseRange(&ok);
+        if (ok) return pages;
+    }
+    QList<int> all;
+    for (int i = 0; i < m_pageCount; ++i) all.append(i);
+    return all;
+}
+
+ExportRequest ExportDialog::request() const
+{
+    ExportRequest r;
+    r.path            = selectedPath();
+    r.format          = m_selectedFormat;
+    r.pages           = selectedPages();
+    r.imageQuality    = selectedImageQuality();
+    r.compressImages  = m_compressChk  && m_compressChk->isChecked();
+    r.includeComments = m_commentsChk  && m_commentsChk->isChecked();
+    r.keepForms       = m_formsChk     && m_formsChk->isChecked();
+    r.embedFonts      = m_fontsChk     && m_fontsChk->isChecked();
+    r.openAfterExport = m_openAfterChk && m_openAfterChk->isChecked();
+    if (m_passwordChk && m_passwordChk->isChecked())
+        r.password = m_passEdit ? m_passEdit->text() : QString{};
+    return r;
+}
+
+// ── availability and estimate ─────────────────────────────────────────────────
+
+// Not every switch means something for every target. Greying the irrelevant
+// ones out is honest; leaving them clickable but inert is what made the whole
+// panel look broken.
+void ExportDialog::updateOptionAvailability()
+{
+    // Rewriting a PDF's annotations, forms, fonts or encryption is qpdf's job.
+    // Builds without it — the Windows package among them — cannot honour these
+    // at all, so they are switched off there rather than accepted and ignored.
+    const bool pdf   = m_selectedFormat == QLatin1String("pdf")
+                       && pdfExportAvailable();
+    const bool image = m_selectedFormat == QLatin1String("image");
+
+    if (m_commentsChk) m_commentsChk->setEnabled(pdf);
+    if (m_formsChk)    m_formsChk->setEnabled(pdf);
+    if (m_fontsChk)    m_fontsChk->setEnabled(pdf);
+    if (m_passwordChk) m_passwordChk->setEnabled(pdf);
+    if (!pdf && m_passwordChk && m_passwordChk->isChecked())
+        m_passwordChk->setChecked(false);
+    updatePasswordFields();
+
+    // Quality and compression apply to every target: the render resolution for
+    // images, JPEG recompression inside a PDF, and the scale and encoding of
+    // the pictures a DOCX embeds.
+    Q_UNUSED(image)
+    if (m_qualityCombo) m_qualityCombo->setEnabled(true);
+    if (m_compressChk)  m_compressChk->setEnabled(true);
+
+    // The options with no counterpart outside PDF are greyed out. The reason is
+    // in the tooltip; the labels stay untouched.
+    const QString pdfOnly = !pdfExportAvailable()
+        ? tr("Not available in this build — rewriting a PDF's annotations, "
+             "forms, fonts or encryption needs qpdf.")
+        : tr("Only available when exporting as PDF — a %1 file has no "
+             "equivalent.").arg(m_selectedFormat == QLatin1String("word")
+                                    ? tr("Word") : tr("PNG"));
+    for (QCheckBox *box : { m_commentsChk, m_formsChk, m_fontsChk, m_passwordChk })
+        if (box) box->setToolTip(pdf ? QString{} : pdfOnly);
+}
+
+void ExportDialog::updateEstimate()
+{
+    if (!m_sizeLabel) return;
+    if (m_currentFile.isEmpty() || m_sourceBytes <= 0) {
+        m_sizeLabel->setText(tr("Estimated file size: —"));
+        return;
+    }
+
+    bool rangeOk = true;
+    if (m_rangeRadio && m_rangeRadio->isChecked()) parseRange(&rangeOk);
+    if (!rangeOk) {
+        m_sizeLabel->setText(tr("Estimated file size: — (check the page range)"));
+        return;
+    }
+
+    const int pages = qMax(1, selectedPages().size());
+    const int quality = selectedImageQuality();
+    const double perPage = double(m_sourceBytes) / qMax(1, m_pageCount);
+    // How much of a page is picture rather than text. A scan runs to hundreds
+    // of kilobytes per page and is essentially all image; a generated report is
+    // a few kilobytes and almost none. The factors below were fitted against
+    // measured exports of both kinds rather than guessed.
+    const double imageShare = qBound(0.0, (perPage - 20000.0) / 200000.0, 0.9);
+    double bytes = 0.0;
+
+    if (m_selectedFormat == QLatin1String("image")) {
+        const double scale = quality >= 95 ? 3.0 : quality >= 80 ? 2.0
+                           : quality >= 55 ? 1.5 : 1.0;
+        const double pixels = 595.0 * 842.0 * scale * scale;
+        // Measured: ~0.10 B/px for a vector page, ~0.19 for a scanned one.
+        bytes = pixels * (0.10 + qMin(0.15, perPage / 4.0e6)) * pages;
+    } else if (m_selectedFormat == QLatin1String("word")) {
+        // Embedded pictures dominate a DOCX. Their weight at High quality was
+        // measured at ~21 KB per structured page and ~157 KB per scanned one;
+        // the factors below are that curve, again fitted rather than guessed.
+        const double base = 20000.0 + perPage * 0.35;
+        double factor = 1.0;
+        if (m_compressChk && m_compressChk->isChecked())
+            factor = quality >= 95 ? 3.7 : quality >= 80 ? 1.0
+                   : quality >= 55 ? 0.47 : 0.28;
+        else
+            factor = 1.2 + 1.9 * imageShare;    // lossless PNG
+        bytes = pages * base * factor;
+    } else {
+        // qpdf rewrites every stream, which alone takes off roughly 15 %.
+        double factor = 0.85;
+        if (m_compressChk && m_compressChk->isChecked()) {
+            // Re-encoding at maximum quality is never smaller, so it is skipped.
+            const double jpeg = quality >= 100 ? 1.0
+                              : 0.45 + 0.30 * (quality - 40.0) / 60.0;
+            factor *= (1.0 - imageShare) + imageShare * jpeg;
+        }
+        if (m_fontsChk && !m_fontsChk->isChecked())
+            factor *= 0.75 - 0.35 * (1.0 - imageShare);   // text-heavy gains most
+        if (m_commentsChk && !m_commentsChk->isChecked()) factor *= 0.97;
+        if (m_passwordChk && m_passwordChk->isChecked())  factor *= 1.02;
+        bytes = perPage * pages * factor;
+    }
+
+    const auto human = [](double v) {
+        if (v >= 1024.0 * 1024.0)
+            return QStringLiteral("%1 MB").arg(v / (1024.0 * 1024.0), 0, 'f', 1);
+        if (v >= 1024.0)
+            return QStringLiteral("%1 KB").arg(v / 1024.0, 0, 'f', 0);
+        return QStringLiteral("%1 B").arg(qRound(v));
+    };
+    // Deliberately labelled as an approximation — the real size depends on the
+    // document's own content, which is not known until it has been written.
+    m_sizeLabel->setText(tr("Estimated file size: ~%1  (%2 of %3 pages)")
+                             .arg(human(qMax(1024.0, bytes)))
+                             .arg(pages).arg(m_pageCount));
+}
+
+void ExportDialog::selectFormatForTest(const QString &id)
+{
+    // Goes through the card itself rather than calling the handler directly, so
+    // a captured screenshot shows the same state a real click produces.
+    if (!m_formatGroup) return;
+    for (QAbstractButton *btn : m_formatGroup->buttons())
+        if (btn->property("formatId").toString() == id && btn->isEnabled()) {
+            btn->setChecked(true);
+            return;
+        }
 }
 
 QString ExportDialog::selectedPath() const
@@ -99,6 +296,7 @@ QPushButton *ExportDialog::makeFormatCard(const QString &iconChar, const QString
     textLbl->setAttribute(Qt::WA_TransparentForMouseEvents);
     inner->addWidget(textLbl, 0, Qt::AlignCenter);
 
+    btn->setProperty("formatId", id);
     m_formatGroup->addButton(btn);
     m_formatGroup->setId(btn, m_formatGroup->buttons().size() - 1);
 
@@ -126,6 +324,8 @@ void ExportDialog::onFormatSelected(const QString &id)
     else
         name += QStringLiteral(".pdf");
     m_filenameEdit->setText(name);
+    updateOptionAvailability();
+    updateEstimate();
 }
 
 void ExportDialog::updatePasswordFields()
@@ -162,13 +362,39 @@ void ExportDialog::onExport()
         return;
     }
 
+    if (m_rangeRadio && m_rangeRadio->isChecked()) {
+        bool ok = false;
+        parseRange(&ok);
+        if (!ok) {
+            QMessageBox::warning(this, tr("Invalid page range"),
+                tr("\"%1\" is not a valid range for a document with %2 pages.\n"
+                   "Use page numbers like 1-3, 5, 8-10.")
+                    .arg(m_rangeEdit->text().trimmed()).arg(m_pageCount));
+            return;
+        }
+    }
+
+    if (m_passwordChk && m_passwordChk->isChecked()) {
+        if (m_passEdit->text().isEmpty()) {
+            QMessageBox::warning(this, tr("Missing password"),
+                tr("Please enter a password, or switch password protection off."));
+            return;
+        }
+        if (m_passEdit->text() != m_passConfirm->text()) {
+            QMessageBox::warning(this, tr("Passwords do not match"),
+                tr("The password and its confirmation are different."));
+            return;
+        }
+    }
+
     const QString path = selectedPath();
     QStringList existing;
-    if (m_selectedFormat == QLatin1String("image") && m_pageCount > 1) {
+    const QList<int> pages = selectedPages();
+    if (m_selectedFormat == QLatin1String("image") && pages.size() > 1) {
         const QFileInfo out(path);
-        for (int page = 1; page <= m_pageCount; ++page) {
+        for (int page : pages) {
             const QString candidate = out.dir().filePath(
-                out.completeBaseName() + QStringLiteral("_page_%1.png").arg(page));
+                out.completeBaseName() + QStringLiteral("_page_%1.png").arg(page + 1));
             if (QFileInfo::exists(candidate)) existing.append(candidate);
         }
     } else if (QFileInfo::exists(path)) {
@@ -276,9 +502,13 @@ void ExportDialog::buildUi()
         QWidget#XFooter {
             border-top: 1px solid palette(mid);
         }
+        /* palette(mid) is a border shade, not a text shade — against the
+           footer it came out barely legible. windowText carries the theme's
+           actual contrast in both light and dark. */
         QLabel#XSizeLabel {
             font-size: 12px;
-            color: palette(mid);
+            font-weight: 500;
+            color: palette(windowText);
         }
         /* Browse button */
         QPushButton#XBrowse {
@@ -396,25 +626,31 @@ void ExportDialog::buildUi()
         auto *lv = new QVBoxLayout; lv->setSpacing(6);
         lv->addWidget(makeSectionHeader(tr("4."), tr("Page Range")));
         auto *pg = new QButtonGroup(this); pg->setExclusive(true);
-        auto *allR = new QRadioButton(tr("All pages"));   allR->setChecked(true);
-        auto *curR = new QRadioButton(tr("Current page"));
-        m_rangeRadio = new QRadioButton(tr("Range"));
-        pg->addButton(allR); pg->addButton(curR); pg->addButton(m_rangeRadio);
-        lv->addWidget(allR); lv->addWidget(curR);
+        m_allRadio     = new QRadioButton(tr("All pages"));   m_allRadio->setChecked(true);
+        m_currentRadio = new QRadioButton(tr("Current page"));
+        m_rangeRadio   = new QRadioButton(tr("Range"));
+        pg->addButton(m_allRadio); pg->addButton(m_currentRadio);
+        pg->addButton(m_rangeRadio);
+        lv->addWidget(m_allRadio); lv->addWidget(m_currentRadio);
         auto *rangeRow = new QHBoxLayout; rangeRow->setSpacing(8);
         rangeRow->addWidget(m_rangeRadio);
         m_rangeEdit = new QLineEdit(QStringLiteral("1-%1").arg(m_pageCount));
         m_rangeEdit->setObjectName(QStringLiteral("XRangeInput"));
+        m_rangeEdit->setToolTip(tr("For example: 1-3, 5, 8-10"));
         m_rangeEdit->setEnabled(false);
         rangeRow->addWidget(m_rangeEdit); rangeRow->addStretch();
         lv->addLayout(rangeRow);
         connect(m_rangeRadio, &QRadioButton::toggled, m_rangeEdit, &QLineEdit::setEnabled);
+        connect(m_allRadio,     &QRadioButton::toggled, this, &ExportDialog::updateEstimate);
+        connect(m_currentRadio, &QRadioButton::toggled, this, &ExportDialog::updateEstimate);
+        connect(m_rangeRadio,   &QRadioButton::toggled, this, &ExportDialog::updateEstimate);
+        connect(m_rangeEdit,    &QLineEdit::textChanged, this, &ExportDialog::updateEstimate);
         lv->addStretch();
         row->addLayout(lv, 1);
 
         // Right: quality
         auto *rv = new QVBoxLayout; rv->setSpacing(6);
-        rv->addWidget(makeSectionHeader(tr("5."), tr("Quality && Compression")));
+        rv->addWidget(makeSectionHeader(tr("5."), tr("Quality & Compression")));
         auto *qRow = new QHBoxLayout; qRow->setSpacing(8);
         qRow->addWidget(new QLabel(tr("Quality")));
         m_qualityCombo = new QComboBox;
@@ -428,6 +664,9 @@ void ExportDialog::buildUi()
         m_compressChk = new QCheckBox(tr("Compress images"));
         m_compressChk->setChecked(true);
         rv->addWidget(m_compressChk);
+        connect(m_qualityCombo, &QComboBox::currentIndexChanged,
+                this, &ExportDialog::updateEstimate);
+        connect(m_compressChk, &QCheckBox::toggled, this, &ExportDialog::updateEstimate);
         rv->addStretch();
         row->addLayout(rv, 1);
 
@@ -449,6 +688,8 @@ void ExportDialog::buildUi()
         rv->addWidget(m_fontsChk); rv->addWidget(m_openAfterChk);
         row->addLayout(lv, 1); row->addLayout(rv, 1);
         bl->addLayout(row);
+        connect(m_commentsChk, &QCheckBox::toggled, this, &ExportDialog::updateEstimate);
+        connect(m_fontsChk,    &QCheckBox::toggled, this, &ExportDialog::updateEstimate);
     }
     mkSep();
 
@@ -473,6 +714,7 @@ void ExportDialog::buildUi()
         bl->addLayout(row);
     }
     connect(m_passwordChk, &QCheckBox::toggled, this, &ExportDialog::updatePasswordFields);
+    connect(m_passwordChk, &QCheckBox::toggled, this, &ExportDialog::updateEstimate);
 
     root->addWidget(body, 1);
 

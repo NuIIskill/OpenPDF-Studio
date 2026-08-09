@@ -1,4 +1,5 @@
 #include "ImageAnnotationLayer.hpp"
+#include "app/PdfPwStore.hpp"
 
 #include "ui/tools/ImageAnnotation.hpp"
 
@@ -598,7 +599,9 @@ static QList<QRectF> detectPdfImageRegions(const QString &pdfPath, int pageIndex
     QList<QRectF> result;
     try {
         QPDF pdf;
-        pdf.processFile(pdfPath.toLocal8Bit().constData());
+        const std::string pw = PdfPwStore::forQpdf(pdfPath);
+        pdf.processFile(pdfPath.toLocal8Bit().constData(),
+                        pw.empty() ? nullptr : pw.c_str());
 
         QPDFPageDocumentHelper pdh(pdf);
         auto pages = pdh.getAllPages();

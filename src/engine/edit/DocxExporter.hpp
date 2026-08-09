@@ -62,15 +62,24 @@ struct DocxPage {
     QMarginsF        marginsPt { 56.0, 45.0, 56.0, 45.0 };
 };
 
+// What the export dialog can steer for the Word target. Only the parts a DOCX
+// can actually express are here — a .docx has no equivalent of PDF encryption
+// or of a PDF's embedded font programs, so those stay out rather than being
+// offered and silently ignored.
+struct DocxExportOptions {
+    bool compressImages { true };   // embed pictures as JPEG instead of PNG
+    int  imageQuality   { 85 };     // drives both the picture scale and JPEG level
+};
+
 // Exports PDF content as an editable .docx file.
 // Pure C++/Qt — no external tools or libraries required.
-// Uses ZIP store compression (method=0), accepted by all Word/LibreOffice versions.
 class DocxExporter
 {
 public:
     static bool exportToDocx(const QString &outputPath,
                              const QList<DocxPage> &pages,
-                             const QString &title = {});
+                             const QString &title = {},
+                             const DocxExportOptions &options = {});
 
     // Compatibility entry point for callers which have no page geometry.
     static bool exportToDocx(const QString       &outputPath,

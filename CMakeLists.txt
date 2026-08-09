@@ -36,6 +36,8 @@ set(SOURCES
     src/app/App.hpp
     src/app/AppSettings.cpp
     src/app/AppSettings.hpp
+    src/app/PdfPwStore.cpp
+    src/app/PdfPwStore.hpp
     src/app/SafeWrite.cpp
     src/app/SafeWrite.hpp
     src/app/SessionStore.cpp
@@ -57,6 +59,8 @@ set(SOURCES
     src/engine/edit/DocxLayout.hpp
     src/engine/edit/DocumentExporter.cpp
     src/engine/edit/DocumentExporter.hpp
+    src/engine/edit/PdfExporter.cpp
+    src/engine/edit/PdfExporter.hpp
 
     src/engine/edit/EditSession.cpp
     src/engine/edit/EditSession.hpp
@@ -116,6 +120,8 @@ set(SOURCES
 
     src/ui/dialogs/ExportDialog.cpp
     src/ui/dialogs/ExportDialog.hpp
+    src/ui/dialogs/PasswordDialog.cpp
+    src/ui/dialogs/PasswordDialog.hpp
     src/ui/dialogs/PdfOrganizerDialog.cpp
     src/ui/dialogs/PdfOrganizerDialog.hpp
 
@@ -222,6 +228,12 @@ if(WIN32)
     configure_file(resources/windows/openpdf-studio.rc.in
                    "${CMAKE_CURRENT_BINARY_DIR}/openpdf-studio.rc" @ONLY)
     target_sources(OpenPDFStudio PRIVATE "${CMAKE_CURRENT_BINARY_DIR}/openpdf-studio.rc")
+    # windres embeds the .ico into the .res, but CMake does not scan .rc files
+    # for their includes — without this the resource is never recompiled when
+    # only the icon changes, and the exe silently keeps the previous icon.
+    set_source_files_properties("${CMAKE_CURRENT_BINARY_DIR}/openpdf-studio.rc"
+        PROPERTIES OBJECT_DEPENDS
+                   "${CMAKE_CURRENT_SOURCE_DIR}/resources/windows/openpdf-studio.ico")
 endif()
 
 if(MINGW)

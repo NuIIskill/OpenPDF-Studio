@@ -98,13 +98,17 @@ QList<QRectF> mergeGlyphBoxes(QList<QRectF> boxes)
 } // namespace
 #endif
 
-QList<DocxPage> DocumentExporter::allPageContent() const
+QList<DocxPage> DocumentExporter::allPageContent(const QList<int> &pages) const
 {
     QList<DocxPage> result;
 #ifdef HAVE_PDF_RENDERING
     if (!m_src.renderer || m_src.pageCount <= 0) return result;
-    result.reserve(m_src.pageCount);
-    for (int i = 0; i < m_src.pageCount; ++i) {
+    QList<int> wanted = pages;
+    if (wanted.isEmpty())
+        for (int p = 0; p < m_src.pageCount; ++p) wanted.append(p);
+    result.reserve(wanted.size());
+    for (int i : wanted) {
+        if (i < 0 || i >= m_src.pageCount) continue;
         DocxPage page;
         page.pageSizePt = m_src.renderer->pageSizePts(i);
         if (m_src.provider)
@@ -410,18 +414,25 @@ QList<DocxPage> DocumentExporter::allPageContent() const
 }
 
 bool DocumentExporter::exportPagesToImages(const QString &outputPath,
-                                           int quality) const
+                                           int quality,
+                                           const QList<int> &pages) const
 {
 #ifdef HAVE_PDF_RENDERING
     if (!m_src.renderer || m_src.pageCount <= 0 || outputPath.isEmpty()) return false;
+    QList<int> wanted = pages;
+    if (wanted.isEmpty())
+        for (int p = 0; p < m_src.pageCount; ++p) wanted.append(p);
+    if (wanted.isEmpty()) return false;
+
     const QFileInfo out(outputPath);
     const qreal scale = quality >= 95 ? 3.0 : quality >= 80 ? 2.0
                                       : quality >= 55 ? 1.5 : 1.0;
-    for (int i = 0; i < m_src.pageCount; ++i) {
+    for (int i : wanted) {
+        if (i < 0 || i >= m_src.pageCount) continue;
         QImage image = m_src.renderer->renderPage(i, scale);
         if (image.isNull()) return false;
         if (m_src.session) m_src.session->applyToImage(i, image, scale);
-        const QString path = m_src.pageCount == 1
+        const QString path = wanted.size() == 1
             ? outputPath
             : out.dir().filePath(out.completeBaseName()
                                  + QStringLiteral("_page_%1.png").arg(i + 1));
@@ -431,6 +442,7 @@ bool DocumentExporter::exportPagesToImages(const QString &outputPath,
 #else
     Q_UNUSED(outputPath);
     Q_UNUSED(quality);
+    Q_UNUSED(pages);
     return false;
 #endif
 }

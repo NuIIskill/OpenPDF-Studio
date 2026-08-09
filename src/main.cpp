@@ -1,7 +1,10 @@
 #include "app/App.hpp"
 #include "ui/MainWindow.hpp"
 #include "ui/DocumentView.hpp"
+#include "ui/dialogs/ExportDialog.hpp"
 #include "engine/edit/DocxExporter.hpp"
+#include "engine/edit/PdfExporter.hpp"
+#include "app/PdfPwStore.hpp"
 #include "ui/theme/Theme.hpp"
 
 #include <QApplication>
@@ -9,7 +12,6 @@
 #include <QFontDatabase>
 #include <QIcon>
 #include <QLocale>
-#include <QPainter>
 #include <QPixmap>
 #include <QSettings>
 #include <QTranslator>
@@ -101,38 +103,88 @@ int main(int argc, char *argv[])
     }
 
     // ── App icon (blue rounded square + white "O") ────────────────────────
+    // Rendered from the same openpdf-studio.svg that produces the Linux PNG
+    // and the Windows .ico, so all three stay in sync.  This used to be drawn
+    // with QPainter using a bold "Inter" glyph, which silently fell back to a
+    // different font — and so a different logo — on any machine without Inter.
     {
         QIcon appIcon;
-        for (const int sz : { 16, 24, 32, 48, 64, 128, 256 }) {
-            QPixmap px(sz, sz);
-            px.fill(Qt::transparent);
-            QPainter p(&px);
-            p.setRenderHint(QPainter::Antialiasing);
-            p.setPen(Qt::NoPen);
-            p.setBrush(QColor(QStringLiteral("#2563EB")));
-            const qreal r = sz * 0.22;
-            p.drawRoundedRect(QRectF(0, 0, sz, sz), r, r);
-            p.setPen(Qt::white);
-            QFont f;
-            f.setBold(true);
-            f.setPixelSize(qRound(sz * 0.56));
-            f.setFamily(QStringLiteral("Inter"));
-            p.setFont(f);
-            p.drawText(QRect(0, 0, sz, sz), Qt::AlignCenter, QStringLiteral("O"));
-            p.end();
-            appIcon.addPixmap(px);
-        }
+        for (const int sz : { 16, 24, 32, 48, 64, 128, 256 })
+            appIcon.addPixmap(Theme::renderSvg(QStringLiteral("openpdf-studio"),
+                                               Qt::white, sz));
         qapp.setWindowIcon(appIcon);
+    }
+
+    // Renders the export dialog to a PNG so its appearance can be checked
+    // without a display: OpenPDFStudio --shot-export-dialog out.png [word|image]
+    if (qapp.arguments().size() >= 3
+            && qapp.arguments().at(1) == QLatin1String("--shot-export-dialog")) {
+        ExportDialog dlg(QStringLiteral("/tmp/demo.pdf"), 4, 0);
+        if (qapp.arguments().size() >= 4)
+            dlg.selectFormatForTest(qapp.arguments().at(3));
+        dlg.show();
+        qapp.processEvents();
+        const bool ok = dlg.grab().save(qapp.arguments().at(2));
+        return ok ? 0 : 3;
+    }
+
+    // Headless regression/export entry point for the PDF target, exercising the
+    // same option path as the dialog:
+    //   OpenPDFStudio --export-pdf in.pdf out.pdf [pages=1,3-4] [nocomments]
+    //                 [noforms] [nofonts] [nocompress] [q=60] [pw=secret]
+    const QStringList args = qapp.arguments();
+    if (args.size() >= 4 && args.at(1) == QLatin1String("--export-pdf")) {
+        PdfExportOptions opt;
+        for (int a = 4; a < args.size(); ++a) {
+            const QString o = args.at(a);
+            if      (o == QLatin1String("nocomments")) opt.includeComments = false;
+            else if (o == QLatin1String("noforms"))    opt.keepForms       = false;
+            else if (o == QLatin1String("nofonts"))    opt.embedFonts      = false;
+            else if (o == QLatin1String("nocompress")) opt.compressImages  = false;
+            else if (o.startsWith(QLatin1String("q=")))
+                opt.imageQuality = o.mid(2).toInt();
+            else if (o.startsWith(QLatin1String("pw=")))
+                opt.userPassword = o.mid(3);
+            else if (o.startsWith(QLatin1String("srcpw=")))
+                PdfPwStore::set(args.at(2), o.mid(6));
+            else if (o.startsWith(QLatin1String("pages="))) {
+                for (const QString &part : o.mid(6).split(u',', Qt::SkipEmptyParts)) {
+                    const int dash = part.indexOf(u'-');
+                    const int from = dash < 0 ? part.toInt() : part.left(dash).toInt();
+                    const int to   = dash < 0 ? from : part.mid(dash + 1).toInt();
+                    for (int p = from; p <= to; ++p) opt.pages.append(p - 1);
+                }
+            }
+        }
+        return exportPdf(args.at(2), args.at(3), opt) ? 0 : 3;
     }
 
     // Headless regression/export entry point. It uses the same content path as
     // the UI: OpenPDFStudio --export-docx input.pdf output.docx
-    const QStringList args = qapp.arguments();
-    if (args.size() == 4 && args.at(1) == QLatin1String("--export-docx")) {
+    // An optional trailing pages=1,3-4 selects a subset, as the dialog does.
+    if (args.size() >= 4 && args.at(1) == QLatin1String("--export-docx")) {
+        QList<int> pages;
+        DocxExportOptions docxOpt;
+        for (int a = 4; a < args.size(); ++a) {
+            if (args.at(a).startsWith(QLatin1String("srcpw="))) {
+                PdfPwStore::set(args.at(2), args.at(a).mid(6));
+                continue;
+            }
+            if (args.at(a) == QLatin1String("nocompress")) { docxOpt.compressImages = false; continue; }
+            if (args.at(a).startsWith(QLatin1String("q="))) { docxOpt.imageQuality = args.at(a).mid(2).toInt(); continue; }
+            if (!args.at(a).startsWith(QLatin1String("pages="))) continue;
+            for (const QString &part : args.at(a).mid(6).split(u',', Qt::SkipEmptyParts)) {
+                const int dash = part.indexOf(u'-');
+                const int from = dash < 0 ? part.toInt() : part.left(dash).toInt();
+                const int to   = dash < 0 ? from : part.mid(dash + 1).toInt();
+                for (int p = from; p <= to; ++p) pages.append(p - 1);
+            }
+        }
         DocumentView view;
         if (!view.openFile(args.at(2))) return 2;
         const bool ok = DocxExporter::exportToDocx(
-            args.at(3), view.allPageContent(), QFileInfo(args.at(2)).completeBaseName());
+            args.at(3), view.allPageContent(pages),
+            QFileInfo(args.at(2)).completeBaseName(), docxOpt);
         return ok ? 0 : 3;
     }
 

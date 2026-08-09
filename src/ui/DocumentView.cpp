@@ -1,10 +1,15 @@
 #include "DocumentView.hpp"
+
+#include "app/PdfPwStore.hpp"
 #include "app/SafeWrite.hpp"
 #include "app/SessionStore.hpp"
 #include "tools/ImageAnnotation.hpp"
 #include "view/ImageAnnotationLayer.hpp"
 #include "view/PageLayoutEngine.hpp"
 #include "view/TextSelectionController.hpp"
+#include "dialogs/PasswordDialog.hpp"
+
+#include <QFileInfo>
 
 #ifdef HAVE_QPDF
 #  include <qpdf/QPDF.hh>
@@ -482,12 +487,37 @@ bool DocumentView::openFile(const QString &path)
     // still described the previous file — the view went blank with no error.
     // QPdfDocument requires an explicit close before loading another file.
     m_document->close();
-    const auto err = m_document->load(path);
+    // A password already known for this file (reopen, working copy) is tried
+    // before the user is asked again.
+    m_document->setPassword(PdfPwStore::get(path));
+    auto err = m_document->load(path);
+
+    // Encrypted documents used to fail here with nothing but a log line: the
+    // view went blank and never said why. Ask, and keep asking until it opens
+    // or the user gives up.
+    for (int attempt = 0; err == QPdfDocument::Error::IncorrectPassword; ++attempt) {
+        PasswordDialog prompt(QFileInfo(path).fileName(), attempt > 0, this);
+        if (prompt.exec() != QDialog::Accepted) break;      // cancelled
+        const QString entered = prompt.password();
+
+        m_document->close();
+        m_document->setPassword(entered);
+        err = m_document->load(path);
+        if (err == QPdfDocument::Error::None) {
+            // Every other reader of this file — content scanner, edit session,
+            // exporter — picks the password up from here.
+            PdfPwStore::set(path, entered);
+        }
+    }
+
     if (err != QPdfDocument::Error::None) {
         qWarning() << "DocumentView: could not open" << path << "-" << err;
         // Put the previous document back so the view keeps showing it.
-        if (!m_filePath.isEmpty() && m_filePath != path)
+        m_document->close();
+        if (!m_filePath.isEmpty() && m_filePath != path) {
+            m_document->setPassword(PdfPwStore::get(m_filePath));
             m_document->load(m_filePath);
+        }
         return false;
     }
     m_session->clear();
@@ -508,6 +538,22 @@ bool DocumentView::openFile(const QString &path)
 
 #elif defined(HAVE_POPPLER)
     auto doc = Poppler::Document::load(path);
+
+    // The Poppler backend needs the same password handling as the Qt one — it
+    // is what the Windows build ships. Without this an encrypted document just
+    // returned false here and the window stayed empty with no explanation.
+    if (doc && doc->isLocked()) {
+        const QByteArray known = PdfPwStore::get(path).toUtf8();
+        if (!known.isEmpty()) doc->unlock(known, known);
+    }
+    for (int attempt = 0; doc && doc->isLocked(); ++attempt) {
+        PasswordDialog prompt(QFileInfo(path).fileName(), attempt > 0, this);
+        if (prompt.exec() != QDialog::Accepted) break;          // cancelled
+        const QByteArray entered = prompt.password().toUtf8();
+        doc->unlock(entered, entered);
+        if (!doc->isLocked()) PdfPwStore::set(path, prompt.password());
+    }
+
     if (!doc || doc->isLocked()) return false;
     doc->setRenderHint(Poppler::Document::Antialiasing);
     doc->setRenderHint(Poppler::Document::TextAntialiasing);
@@ -671,6 +717,12 @@ void DocumentView::setEditMode(bool on)
 bool DocumentView::openWorkingCopy(const QString &contentPath,
                                    const QString &targetPath)
 {
+    // qpdf keeps a document's encryption when it rewrites it, so the working
+    // copy of a protected file is protected too — with the same password. Carry
+    // it across, or the user is asked again for a file they never chose.
+    if (!targetPath.isEmpty() && !PdfPwStore::has(contentPath))
+        PdfPwStore::set(contentPath, PdfPwStore::get(targetPath));
+
     if (!openFile(contentPath)) return false;
     if (targetPath.isEmpty() || targetPath == contentPath) return true;
 
@@ -715,7 +767,13 @@ bool DocumentView::saveToFile(const QString &path)
     m_targetPath.clear();
     m_workingCopyDirty = false;
     auto doc = Poppler::Document::load(path);
-    if (doc) {
+    // Saving keeps a document's encryption, so the file just written is still
+    // locked. No prompt here — the password is already known.
+    if (doc && doc->isLocked()) {
+        const QByteArray known = PdfPwStore::get(path).toUtf8();
+        if (!known.isEmpty()) doc->unlock(known, known);
+    }
+    if (doc && !doc->isLocked()) {
         doc->setRenderHint(Poppler::Document::Antialiasing);
         doc->setRenderHint(Poppler::Document::TextAntialiasing);
         m_contentProvider.reset();   // references the old doc — drop it first
@@ -1105,21 +1163,24 @@ DocumentExporter::Sources DocumentView::exportSources() const
 }
 #endif
 
-QList<DocxPage> DocumentView::allPageContent()
+QList<DocxPage> DocumentView::allPageContent(const QList<int> &pages)
 {
 #ifdef HAVE_PDF_RENDERING
-    return DocumentExporter(exportSources()).allPageContent();
+    return DocumentExporter(exportSources()).allPageContent(pages);
 #else
+    Q_UNUSED(pages)
     return {};
 #endif
 }
 
-bool DocumentView::exportPagesToImages(const QString &outputPath, int quality)
+bool DocumentView::exportPagesToImages(const QString &outputPath, int quality,
+                                       const QList<int> &pages)
 {
 #ifdef HAVE_PDF_RENDERING
-    return DocumentExporter(exportSources()).exportPagesToImages(outputPath, quality);
+    return DocumentExporter(exportSources())
+        .exportPagesToImages(outputPath, quality, pages);
 #else
-    Q_UNUSED(outputPath) Q_UNUSED(quality)
+    Q_UNUSED(outputPath) Q_UNUSED(quality) Q_UNUSED(pages)
     return false;
 #endif
 }

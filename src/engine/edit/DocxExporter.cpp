@@ -2,6 +2,7 @@
 
 #include <QByteArray>
 #include <QBuffer>
+#include <QPainter>
 #include <QFile>
 
 #include <algorithm>
@@ -118,6 +119,46 @@ static bool encodePng(const QImage &image, QByteArray *out)
     QBuffer buffer(out);
     buffer.open(QIODevice::WriteOnly);
     return !image.isNull() && image.save(&buffer, "PNG");
+}
+
+// Pictures are cropped from a 2x raster so the layout analysis always has the
+// detail it needs. What the quality setting changes is what actually lands in
+// the file: how far the picture is scaled back down, and whether it is stored
+// lossless or as JPEG. Returns the file extension used.
+static QString encodePicture(const QImage &image, const DocxExportOptions &opt,
+                             QByteArray *out)
+{
+    if (image.isNull()) return {};
+
+    // 85 keeps the source resolution; below that the picture shrinks with it.
+    const double factor = opt.imageQuality >= 95 ? 1.25
+                        : opt.imageQuality >= 80 ? 1.0
+                        : opt.imageQuality >= 55 ? 0.75 : 0.5;
+    QImage scaled = image;
+    if (!qFuzzyCompare(factor, 1.0)) {
+        const QSize target(qMax(1, qRound(image.width()  * factor)),
+                           qMax(1, qRound(image.height() * factor)));
+        scaled = image.scaled(target, Qt::IgnoreAspectRatio,
+                              Qt::SmoothTransformation);
+    }
+
+    QBuffer buffer(out);
+    buffer.open(QIODevice::WriteOnly);
+    if (opt.compressImages) {
+        // JPEG has no alpha; the pictures are opaque page crops, but compose
+        // over white so a stray alpha channel cannot turn into black.
+        QImage opaque(scaled.size(), QImage::Format_RGB32);
+        opaque.fill(Qt::white);
+        QPainter p(&opaque);
+        p.drawImage(0, 0, scaled);
+        p.end();
+        if (opaque.save(&buffer, "JPEG", qBound(10, opt.imageQuality, 100)))
+            return QStringLiteral("jpeg");
+        buffer.close();
+        out->clear();
+        buffer.open(QIODevice::WriteOnly);
+    }
+    return scaled.save(&buffer, "PNG") ? QStringLiteral("png") : QString{};
 }
 
 static QString xmlEsc(const QString &s)
@@ -572,7 +613,8 @@ static QString pictureXml(const DocxBlock &block, const QString &relId, int id)
 }
 
 static QByteArray buildStructuredDocument(const QList<DocxPage> &pages,
-                                          QList<MediaPart> *media)
+                                          QList<MediaPart> *media,
+                                          const DocxExportOptions &opt)
 {
     QString x = QStringLiteral(
         "<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"yes\"?>"
@@ -609,9 +651,10 @@ static QByteArray buildStructuredDocument(const QList<DocxPage> &pages,
         for (const DocxBlock &block : page.blocks) {
             if (block.kind != DocxBlock::Kind::Picture) continue;
             QByteArray png;
-            if (!encodePng(block.picture, &png)) continue;
+            const QString ext = encodePicture(block.picture, opt, &png);
+            if (ext.isEmpty()) continue;
             MediaPart part;
-            part.name  = QStringLiteral("image%1.png").arg(mediaId);
+            part.name  = QStringLiteral("image%1.%2").arg(mediaId).arg(ext);
             part.relId = QStringLiteral("rIdImg%1").arg(mediaId);
             part.png   = std::move(png);
             anchors += pictureXml(block, part.relId, mediaId);
@@ -682,7 +725,8 @@ static QByteArray buildStructuredDocument(const QList<DocxPage> &pages,
 }
 
 static QByteArray buildPositionedDocument(const QList<DocxPage> &pages,
-                                          QList<MediaPart> *media)
+                                          QList<MediaPart> *media,
+                                          const DocxExportOptions &opt)
 {
     QString x = QStringLiteral(
         "<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"yes\"?>"
@@ -706,11 +750,16 @@ static QByteArray buildPositionedDocument(const QList<DocxPage> &pages,
         x += QStringLiteral("<w:p><w:pPr><w:spacing w:before=\"0\" w:after=\"0\"/>"
                             "</w:pPr>");
         QByteArray backgroundPng;
-        if (!pages[pg].background.isNull()
-                && encodePng(pages[pg].background, &backgroundPng)) {
+        // The scanned-page fallback carries the heaviest images in the whole
+        // exporter, so it honours the quality setting just like the structured
+        // path — leaving it on lossless PNG made the option look dead on
+        // exactly the documents where it matters most.
+        const QString bgExt = pages[pg].background.isNull()
+            ? QString{} : encodePicture(pages[pg].background, opt, &backgroundPng);
+        if (!bgExt.isEmpty()) {
             const QSizeF ps = pages[pg].pageSizePt.isEmpty()
                                   ? QSizeF(595.0, 842.0) : pages[pg].pageSizePt;
-            media->append({ QStringLiteral("page%1.png").arg(pg + 1),
+            media->append({ QStringLiteral("page%1.%2").arg(pg + 1).arg(bgExt),
                             QStringLiteral("rIdPage%1").arg(pg + 1),
                             backgroundPng });
             x += QStringLiteral("<w:r><w:pict><v:rect id=\"pdfBackground")
@@ -791,6 +840,7 @@ static bool writeDocx(const QString &outputPath, const QByteArray &documentXml,
         "<Default Extension=\"rels\" ContentType=\"application/vnd.openxmlformats-package.relationships+xml\"/>"
         "<Default Extension=\"xml\" ContentType=\"application/xml\"/>"
         "<Default Extension=\"png\" ContentType=\"image/png\"/>"
+        "<Default Extension=\"jpeg\" ContentType=\"image/jpeg\"/>"
         "<Override PartName=\"/word/document.xml\""
         " ContentType=\"application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml\"/>"
         "<Override PartName=\"/word/styles.xml\""
@@ -888,7 +938,8 @@ static bool writeDocx(const QString &outputPath, const QByteArray &documentXml,
 
 bool DocxExporter::exportToDocx(const QString &outputPath,
                                 const QList<DocxPage> &pages,
-                                const QString &title)
+                                const QString &title,
+                                const DocxExportOptions &options)
 {
     Q_UNUSED(title);
     QList<MediaPart> media;
@@ -900,11 +951,11 @@ bool DocxExporter::exportToDocx(const QString &outputPath,
     for (const DocxPage &page : pages)
         if (page.blocks.isEmpty()) structured = false;
     if (structured)
-        return writeDocx(outputPath, buildStructuredDocument(pages, &media), media);
+        return writeDocx(outputPath, buildStructuredDocument(pages, &media, options), media);
 
     if (prefersSemanticLayout(pages))
         return writeDocx(outputPath, buildSemanticDocument(pages), {});
-    return writeDocx(outputPath, buildPositionedDocument(pages, &media), media);
+    return writeDocx(outputPath, buildPositionedDocument(pages, &media, options), media);
 }
 
 bool DocxExporter::exportToDocx(const QString &outputPath,

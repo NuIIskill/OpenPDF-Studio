@@ -48,9 +48,13 @@ public:
 #endif
 
     // Positioned, still-editable content per page for the DOCX export.
-    QList<DocxPage> allPageContent() const;
+    // pages holds zero-based indices in output order; empty means every page.
+    QList<DocxPage> allPageContent(const QList<int> &pages = {}) const;
     // One PNG per page. quality drives both the render scale and PNG level.
-    bool exportPagesToImages(const QString &outputPath, int quality = 85) const;
+    // Files are numbered by the page's own position in the document, so a
+    // range export keeps the names the user expects.
+    bool exportPagesToImages(const QString &outputPath, int quality = 85,
+                             const QList<int> &pages = {}) const;
 
 private:
 #ifdef HAVE_PDF_RENDERING

@@ -89,8 +89,9 @@ public:
     QUndoStack *undoStack()        const { return m_undoStack; }
     bool        hasUnsavedEdits()  const;
     bool        pdfRenderingAvailable() const;
-    QList<DocxPage> allPageContent();
-    bool exportPagesToImages(const QString &outputPath, int quality = 85);
+    QList<DocxPage> allPageContent(const QList<int> &pages = {});
+    bool exportPagesToImages(const QString &outputPath, int quality = 85,
+                             const QList<int> &pages = {});
     // Called by undo/redo commands to refresh a page after session state is restored.
     void        rerenderPage(int page);
     // Select tool: text marked on the page (empty when nothing is selected).
