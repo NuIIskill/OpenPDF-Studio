@@ -129,6 +129,18 @@ private:
     // Re-render a page with the active edit's original text blanked out.
     void   rerenderPageWithBlank(int page, const QRectF &pdfBoundsPts);
 
+    // Zoom, keeping the document point under `viewportAnchor` in place.
+    void   applyZoom(int percent, const QPoint &viewportAnchor);
+    // The visible part of the canvas, in canvas coordinates. Drives which
+    // pages the layout engine keeps rendered.
+    QRect  visibleCanvasRect() const;
+    void   syncVisibleRect();
+    // Make the scroll area take the new page sizes into account NOW — it would
+    // otherwise resize its canvas (and with it the scrollbar ranges) only once
+    // the event loop runs, and any setValue() until then is clamped to the old
+    // range.
+    void   updateScrollRange();
+
 #ifdef HAVE_PDF_RENDERING
     // Bundles the engine-level objects the exporter borrows.
     DocumentExporter::Sources exportSources() const;

@@ -302,7 +302,9 @@ DocumentView::DocumentView(QWidget *parent)
     m_gridCanvas->setObjectName(QStringLiteral("GridCanvas"));
 
     connect(verticalScrollBar(), &QScrollBar::valueChanged,
-            this, [this]() { reportCurrentPage(); });
+            this, [this]() { reportCurrentPage(); syncVisibleRect(); });
+    connect(horizontalScrollBar(), &QScrollBar::valueChanged,
+            this, [this]() { syncVisibleRect(); });
 
     viewport()->installEventFilter(this);
     m_canvas->installEventFilter(this);     // also catch events on the canvas itself
@@ -531,6 +533,10 @@ bool DocumentView::openFile(const QString &path)
     resetContentProvider();
     m_dropHint->hide();
     m_layoutEngine->buildPages();
+    // Once the scroll area has laid the new pages out, hand the engine the
+    // window it actually renders — until then the page positions are all 0.
+    QMetaObject::invokeMethod(this, [this]() { syncVisibleRect(); },
+                              Qt::QueuedConnection);
     Q_EMIT fileOpened(m_filePath, m_pageCount);
     m_lastReportedPage = 0;          // freshly opened documents start at the top
     Q_EMIT pageChanged(1, m_pageCount);
@@ -575,6 +581,10 @@ bool DocumentView::openFile(const QString &path)
     resetContentProvider();
     m_dropHint->hide();
     m_layoutEngine->buildPages();
+    // See the Qt-PDF branch: the render window is only measurable once the
+    // scroll area has laid the new pages out.
+    QMetaObject::invokeMethod(this, [this]() { syncVisibleRect(); },
+                              Qt::QueuedConnection);
     Q_EMIT fileOpened(m_filePath, m_pageCount);
     m_lastReportedPage = 0;          // freshly opened documents start at the top
     Q_EMIT pageChanged(1, m_pageCount);
@@ -599,28 +609,74 @@ bool DocumentView::openFile(const QString &path)
 
 void DocumentView::setZoom(int percent)
 {
-    if (m_zoom == percent) return;
+    // Zoom from the toolbar, the menu or a shortcut: hold the middle of the
+    // viewport. Without an anchor the canvas keeps its top-left corner and the
+    // passage the user was reading slides out of view.
+    applyZoom(percent, QPoint(viewport()->width() / 2, viewport()->height() / 2));
+}
+
+void DocumentView::applyZoom(int percent, const QPoint &viewportAnchor)
+{
+    if (m_zoom == percent || percent <= 0) return;
+    const int   oldZoom  = m_zoom;
+    const qreal oldScale = screenScale();
+
+    // What sits under the anchor right now, in PDF points on a page — the one
+    // thing that must not move. Canvas margins and page gaps do not scale with
+    // the zoom, so scaling the scroll position alone drifts.
+    const QPoint canvasAnchor = -m_canvas->pos() + viewportAnchor;
+    auto [anchorPage, anchorLbl] = pageAtCanvasPos(canvasAnchor);
+    QPointF anchorPt;
+    if (anchorPage >= 0 && anchorLbl && oldScale > 0)
+        anchorPt = (QPointF(canvasAnchor) - QPointF(anchorLbl->pos())) / oldScale;
+
     m_zoom = percent;
-    m_layoutEngine->setZoom(percent);
+    m_layoutEngine->setZoom(percent);   // resizes the pages, renders them shortly after
     Q_EMIT zoomChanged(percent);
-    if (!m_filePath.isEmpty()) m_layoutEngine->rerenderAll();
-    // Page labels are re-laid out asynchronously after rerenderAll(), so the
-    // highlights are repositioned once more when that layout has settled.
+    updateScrollRange();
+
+    const QLabel *anchorNow = anchorPage >= 0 ? pageLabel(anchorPage) : nullptr;
+    int tx, ty;
+    if (anchorNow) {
+        const QPointF target = QPointF(anchorNow->pos()) + anchorPt * screenScale();
+        tx = qRound(target.x()) - viewportAnchor.x();
+        ty = qRound(target.y()) - viewportAnchor.y();
+    } else {
+        // The anchor sat in a margin or between two pages: no page point to
+        // hold on to, so scale the scroll position instead.
+        const qreal ratio = qreal(percent) / oldZoom;
+        tx = qRound(ratio * (horizontalScrollBar()->value() + viewportAnchor.x()))
+             - viewportAnchor.x();
+        ty = qRound(ratio * (verticalScrollBar()->value() + viewportAnchor.y()))
+             - viewportAnchor.y();
+    }
+    horizontalScrollBar()->setValue(tx);
+    verticalScrollBar()->setValue(ty);
+    // The scroll area can still be a layout pass behind, in which case the
+    // values above were clamped to the old range. Retry once it has caught
+    // up — the target is absolute, so this is idempotent.
+    if (horizontalScrollBar()->value() != tx || verticalScrollBar()->value() != ty) {
+        QTimer::singleShot(0, this, [this, tx, ty]() {
+            horizontalScrollBar()->setValue(tx);
+            verticalScrollBar()->setValue(ty);
+            syncVisibleRect();
+        });
+    }
+    syncVisibleRect();
+
+    // Page labels can be re-laid out once more after this, so the highlights
+    // are repositioned again when that layout has settled.
     m_selection->relayout();
     QTimer::singleShot(0, this, [this]() { m_selection->relayout(); });
 
 #ifdef HAVE_PDF_RENDERING
-    // rerenderAll() re-renders pages from the PDF without the blank that
-    // rerenderPageWithBlank() painted.  Re-apply it so the original text stays
-    // hidden behind the editor at the new zoom level.
+    // The blank that hides the original text sticks to its page inside the
+    // layout engine, so a re-render at the new zoom keeps it — only the editor
+    // frame has to follow.
     if (m_activeEditPage >= 0 && m_editorFrame->isVisible()) {
-        if (m_activeEditSourcePage >= 0)
-            rerenderPageWithBlank(m_activeEditSourcePage, m_activeEditOriginalBounds);
-
-        // Reposition the editor frame for the new zoom.  The label positions
-        // returned by lbl->pos() are stale immediately after rerenderAll()
-        // because Qt's layout manager updates geometry asynchronously.
-        // A 0 ms timer defers the reposition until after the layout has settled.
+        // Reposition the editor frame for the new zoom.  A 0 ms timer defers
+        // the reposition until after the layout has settled — the frame may
+        // still be growing to the text it holds.
         const int activePage = m_activeEditPage;
         QTimer::singleShot(0, this, [this, activePage]() {
             if (m_activeEditPage != activePage || !m_editorFrame->isVisible()) return;
@@ -663,18 +719,18 @@ void DocumentView::wheelEvent(QWheelEvent *e)
         const int delta = e->angleDelta().y();
         if (delta == 0) { QScrollArea::wheelEvent(e); return; }
 
-        const int oldZoom = m_zoom;
-        if (delta > 0) setZoom(qMin(m_zoom + m_zoomStep, 300));
-        else           setZoom(qMax(m_zoom - m_zoomStep, 25));
+        const int step = qMax(1, m_zoomStep);
+        const int next = delta > 0 ? qMin(m_zoom + step, 300)
+                                   : qMax(m_zoom - step, 25);
 
-        if (m_zoomToPointer && m_zoom != oldZoom) {
-            const QPoint pos = viewport()->mapFromGlobal(QCursor::pos());
-            const qreal ratio = qreal(m_zoom) / oldZoom;
-            horizontalScrollBar()->setValue(
-                qRound(ratio * (horizontalScrollBar()->value() + pos.x()) - pos.x()));
-            verticalScrollBar()->setValue(
-                qRound(ratio * (verticalScrollBar()->value() + pos.y()) - pos.y()));
-        }
+        // Anchor on the pointer position CARRIED BY THE EVENT. QCursor::pos()
+        // has no meaning on Wayland (a client cannot query the pointer), so it
+        // used to anchor the zoom at a stale point and threw the page around.
+        const QPoint anchor =
+            m_zoomToPointer
+                ? viewport()->mapFromGlobal(e->globalPosition().toPoint())
+                : QPoint(viewport()->width() / 2, viewport()->height() / 2);
+        applyZoom(next, anchor);
 
         e->accept();
         return;
@@ -1226,6 +1282,33 @@ void DocumentView::resizeEvent(QResizeEvent *e)
     QScrollArea::resizeEvent(e);
     if (m_viewMode == ViewMode::Grid)
         m_layoutEngine->relayoutGrid(viewport()->width());
+    else
+        syncVisibleRect();
+}
+
+QRect DocumentView::visibleCanvasRect() const
+{
+    // The canvas is a child of the viewport and scrolling moves it, so its
+    // negated position is the viewport origin in canvas coordinates. Reading
+    // it from the widget instead of the scrollbars also covers the case where
+    // the canvas is smaller than the viewport and gets centred.
+    return QRect(-m_canvas->pos(), viewport()->size());
+}
+
+void DocumentView::syncVisibleRect()
+{
+    if (m_viewMode != ViewMode::Single) return;
+    m_layoutEngine->setVisibleRect(visibleCanvasRect());
+}
+
+void DocumentView::updateScrollRange()
+{
+    if (m_layout) m_layout->activate();
+    // QScrollArea recomputes the canvas size and the scrollbar ranges when it
+    // handles a layout request; the posted one only arrives after the current
+    // event returns, which is too late for the scroll anchoring above.
+    QEvent layoutRequest(QEvent::LayoutRequest);
+    QCoreApplication::sendEvent(this, &layoutRequest);
 }
 
 // ── Page rendering (delegated to PageLayoutEngine) ────────────────────────────
@@ -1281,6 +1364,10 @@ void DocumentView::setViewMode(ViewMode mode)
         takeWidget();
         setWidget(m_canvas);
         m_canvas->show();
+        // Same as above: the canvas position is only meaningful after the
+        // scroll area has taken the widget back.
+        QMetaObject::invokeMethod(this, [this]() { syncVisibleRect(); },
+                                  Qt::QueuedConnection);
     }
     Q_EMIT viewModeChanged(mode);
 }
