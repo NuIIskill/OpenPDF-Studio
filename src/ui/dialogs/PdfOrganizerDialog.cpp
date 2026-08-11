@@ -1,5 +1,6 @@
 #include "PdfOrganizerDialog.hpp"
 #include "app/PdfPwStore.hpp"
+#include "ui/dialogs/PasswordDialog.hpp"
 
 namespace OrgConst {
     constexpr int CARD_W    = 220;
@@ -78,11 +79,19 @@ namespace OrgConst {
 class OrganizerDoc
 {
 public:
-    static OrganizerDoc *load(const QString &path)
+    // needsPassword distinguishes "locked" from "broken", so the caller can
+    // offer a prompt for the former without pestering the user about the latter.
+    static OrganizerDoc *load(const QString &path, const QString &password = {},
+                              bool *needsPassword = nullptr)
     {
+        if (needsPassword) *needsPassword = false;
 #ifdef HAVE_QT_PDF
         auto *doc = new QPdfDocument();
-        if (doc->load(path) != QPdfDocument::Error::None) {
+        doc->setPassword(password);
+        const auto err = doc->load(path);
+        if (err != QPdfDocument::Error::None) {
+            if (needsPassword)
+                *needsPassword = err == QPdfDocument::Error::IncorrectPassword;
             delete doc;
             return nullptr;
         }
@@ -92,7 +101,15 @@ public:
         // "could not open" message box, never terminate the app.
         try {
             auto doc = Poppler::Document::load(path);
-            if (!doc || doc->isLocked()) return nullptr;
+            if (!doc) return nullptr;
+            if (doc->isLocked()) {
+                const QByteArray pw = password.toUtf8();
+                if (!pw.isEmpty()) doc->unlock(pw, pw);
+            }
+            if (doc->isLocked()) {
+                if (needsPassword) *needsPassword = true;
+                return nullptr;
+            }
             doc->setRenderHint(Poppler::Document::Antialiasing);
             doc->setRenderHint(Poppler::Document::TextAntialiasing);
             return new OrganizerDoc(std::move(doc));
@@ -667,7 +684,19 @@ void PdfOrganizerDialog::addPdfPages(const QString &path)
 {
 #ifdef HAVE_PDF_RENDERING
     if (!m_docs.contains(path)) {
-        OrganizerDoc *doc = OrganizerDoc::load(path);
+        // The document the organizer was opened on has usually been unlocked
+        // already, so the stored password is tried before anyone is asked. Only
+        // a genuinely locked file gets a prompt; a damaged one goes straight to
+        // the error, which is why load() reports the two cases apart.
+        bool needsPassword = false;
+        OrganizerDoc *doc = OrganizerDoc::load(path, PdfPwStore::get(path),
+                                               &needsPassword);
+        for (int attempt = 0; !doc && needsPassword; ++attempt) {
+            PasswordDialog prompt(QFileInfo(path).fileName(), attempt > 0, this);
+            if (prompt.exec() != QDialog::Accepted) return;   // cancelled
+            doc = OrganizerDoc::load(path, prompt.password(), &needsPassword);
+            if (doc) PdfPwStore::set(path, prompt.password());
+        }
         if (!doc) {
             QMessageBox::warning(this, tr("Open PDF"),
                                  tr("Could not open: ") + path);
@@ -1164,7 +1193,20 @@ bool PdfOrganizerDialog::verifyWritten(const QString &path) const
         qWarning() << "[Organizer] nothing was written to" << path;
         return false;
     }
-    std::unique_ptr<OrganizerDoc> check(OrganizerDoc::load(path));
+    // qpdf keeps the source's encryption, so the file just written is locked
+    // with the same password. Verifying it without one reported every save of a
+    // protected document as a failure. Its own entry first, then whatever the
+    // source pages were unlocked with.
+    bool needsPassword = false;
+    std::unique_ptr<OrganizerDoc> check(
+        OrganizerDoc::load(path, PdfPwStore::get(path), &needsPassword));
+    for (const PageEntry &e : m_pages) {
+        if (check || !needsPassword) break;
+        const QString pw = PdfPwStore::get(e.pdfPath);
+        if (pw.isEmpty()) continue;
+        check.reset(OrganizerDoc::load(path, pw, &needsPassword));
+        if (check) PdfPwStore::set(path, pw);
+    }
     if (!check) {
         qWarning() << "[Organizer] the written file cannot be opened:" << path;
         return false;
