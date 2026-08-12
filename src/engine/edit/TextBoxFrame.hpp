@@ -36,7 +36,7 @@ public:
     // typing extends the line instead of wrapping it — a wrap the commit
     // would paint into the document.
     void growToFitText();
-    void setGrowHorizontal(bool on) { m_growHorizontal = on; }
+    void setGrowHorizontal(bool on);
 
 Q_SIGNALS:
     void committed(const QString &text);
@@ -62,6 +62,8 @@ private:
     Handle hitTest(const QPoint &pos) const;
     void   applyCursor(Handle h);
     QRect  innerRect() const;
+    // Minimum inner height for a given font pixel size (see the .cpp).
+    static int minInnerHeight(int fontPixelSize);
 
     InlineEditor *m_editor      { nullptr };
     Handle        m_drag        { Handle::None };

@@ -161,10 +161,6 @@ TextBlock PdfTextExtractor::textAt(int page, const QPointF &pdfPt,
     if (!wideRow && wordHeight > 1.0)
         reportBounds.setHeight(wordHeight);
 
-    qWarning() << "[EXTRACT] pdfPt=" << pdfPt << "polyR=" << polyR << "cellR=" << cellR
-               << "wide=" << wideRow << "wordH=" << wordHeight
-               << "clusters=" << sel.bounds().size() << "text=" << text.left(40);
-
     return { page, reportBounds, text };
 }
 

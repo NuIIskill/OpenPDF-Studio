@@ -144,11 +144,6 @@ void InlineEditor::wheelEvent(QWheelEvent *e)
 
 void InlineEditor::focusOutEvent(QFocusEvent *e)
 {
-    QWidget *newFocus = qApp->focusWidget();
-    qWarning() << "[IE] focusOutEvent reason=" << (int)e->reason()
-               << "suppress=" << m_suppressFocusOut
-               << "newFocus=" << (newFocus ? newFocus->metaObject()->className() : "null")
-               << (newFocus ? newFocus->objectName() : "");
     if (m_suppressFocusOut || m_dragMode) {
         m_suppressFocusOut = false;
         QTextEdit::focusOutEvent(e);
