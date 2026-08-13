@@ -228,15 +228,16 @@ QList<ContentItem> classifyContentClusters(QList<ContentCluster> clusters,
             it.type        = (rs.table && rs.segs.size() >= 2)
                                  ? ContentItem::Type::TableCell
                                  : ContentItem::Type::Text;
-            it.bounds      = seg.bounds;
-            it.text        = seg.text.trimmed();
-            it.fontSizePt  = src.fontSizePt;
-            it.rawFontName = src.rawFontName;
-            it.textColor   = src.textColor;
+            it.bounds        = seg.bounds;
+            it.text          = seg.text.trimmed();
+            it.fontSizePt    = src.fontSizePt;
+            it.fontSizeExact = src.fontSizeExact;
+            it.rawFontName   = src.rawFontName;
+            it.textColor     = src.textColor;
             const ResolvedFont rf = resolvePdfFont(src.rawFontName);
-            it.fontFamily  = rf.family;
-            it.bold        = rf.bold;
-            it.italic      = rf.italic;
+            it.fontFamily    = rf.family;
+            it.bold          = rf.bold;
+            it.italic        = rf.italic;
             if (it.isValid() && !it.text.isEmpty())
                 items.append(std::move(it));
         }
@@ -828,9 +829,12 @@ void scanStream(const std::string &cs, ScanOut &out, const M &baseCtm,
                     clu.bounds      = QRectF(p.x(), qtY - effective * 0.88,
                                              estW, effective * 1.05);
                     clu.text        = text;
-                    clu.fontSizePt  = effective;
-                    clu.rawFontName = curFont;
-                    clu.textColor   = gs.fill;
+                    // /Tf size through Tlm and CTM — the real thing, not an
+                    // estimate: it can be written back to the file unchanged.
+                    clu.fontSizePt    = effective;
+                    clu.fontSizeExact = true;
+                    clu.rawFontName   = curFont;
+                    clu.textColor     = gs.fill;
                     out.clusters.append(std::move(clu));
                 }
             }
@@ -919,7 +923,8 @@ void appendAnnotationItems(QList<ContentItem> &fields, QList<ContentItem> &media
                         const double v = w.toDouble(&ok);
                         if (ok) { prev = v; continue; }
                         if (w == QLatin1String("Tf") && prev > 0.0) {
-                            item.fontSizePt = prev;
+                            item.fontSizePt    = prev;
+                            item.fontSizeExact = true;
                             break;
                         }
                     }

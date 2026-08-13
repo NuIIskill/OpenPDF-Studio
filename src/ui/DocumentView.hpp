@@ -129,6 +129,18 @@ private:
     // Re-render a page with the active edit's original text blanked out.
     void   rerenderPageWithBlank(int page, const QRectF &pdfBoundsPts);
 
+    // Zoom, keeping the document point under `viewportAnchor` in place.
+    void   applyZoom(int percent, const QPoint &viewportAnchor);
+    // The visible part of the canvas, in canvas coordinates. Drives which
+    // pages the layout engine keeps rendered.
+    QRect  visibleCanvasRect() const;
+    void   syncVisibleRect();
+    // Make the scroll area take the new page sizes into account NOW — it would
+    // otherwise resize its canvas (and with it the scrollbar ranges) only once
+    // the event loop runs, and any setValue() until then is clamped to the old
+    // range.
+    void   updateScrollRange();
+
 #ifdef HAVE_PDF_RENDERING
     // Bundles the engine-level objects the exporter borrows.
     DocumentExporter::Sources exportSources() const;
@@ -227,7 +239,18 @@ private:
     // false → editor was created fresh via drag (createTextFrame); no erasure needed —
     //         the text is drawn as a transparent overlay so it can sit on top of content.
     bool    m_activeEditNeedsBlank { false };
+    // true → the editor was opened on content that is already in the document
+    // (handleEditClick). Committing such an edit erases the original, so a
+    // commit that changes NOTHING must be dropped instead: re-drawing identical
+    // text would still swap the embedded font for ours (see commitCurrentEdit).
+    bool    m_activeEditInPlace { false };
     QString m_activeEditOriginalText;
+    // State as the editor was PRESENTED — the reference for "did anything
+    // actually change?". Bounds are the presented ones (they can be wider than
+    // m_activeEditOriginalBounds, which stays at the original glyph rect).
+    QRectF  m_activeEditPresentedBounds;
+    int     m_activeEditPresentedFontSizePt { 0 };
+    QColor  m_activeEditPresentedColor;
     QString m_activeEditFieldName;   // non-empty: editing an AcroForm text field
     int     m_currentEditorFontSizePt { 12 };
     QColor  m_currentEditorColor     { 0x11, 0x11, 0x11 };

@@ -25,6 +25,11 @@ struct ContentItem {
     QRectF  bounds;          // page-space PDF points, Y=0 at top
     QString text;            // text content, lines joined with '\n'
     double  fontSizePt { 0.0 };
+    // true  → fontSizePt is the size the PDF itself states (/Tf through the
+    //         text and transform matrices), so it can be written back as is.
+    // false → it was estimated from glyph boxes; consumers that care about the
+    //         RENDERED height must calibrate it (see DocumentView).
+    bool    fontSizeExact { false };
     QString fontFamily;      // resolved Qt font family ("" = unknown)
     QString rawFontName;     // PDF BaseFont as written in the file
     bool    bold       { false };
@@ -67,6 +72,7 @@ struct ContentCluster {
     QRectF  bounds;          // page-space, Y=0 at top
     QString text;
     double  fontSizePt { 0.0 };
+    bool    fontSizeExact { false };   // see ContentItem::fontSizeExact
     QString rawFontName;     // PDF BaseFont (may be empty)
     QColor  textColor;
     bool    exactWidth { false };  // true when bounds.width is glyph-exact

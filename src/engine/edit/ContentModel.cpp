@@ -179,7 +179,10 @@ QList<ContentItem> PopplerContentProvider::buildPageUnguarded(int page)
         if (const auto *text = dynamic_cast<const Poppler::FormFieldText *>(field.get())) {
             item.text = text->text();
             const double fs = text->getFontSize();
-            if (fs > 0.0) item.fontSizePt = fs;
+            if (fs > 0.0) {                 // from the field's /DA — exact
+                item.fontSizePt    = fs;
+                item.fontSizeExact = true;
+            }
         }
         if (item.isValid())
             fields.append(std::move(item));

@@ -15,21 +15,25 @@ QSize PdfRenderer::pageDisplaySize(int page, int zoomPercent) const
 {
     const qreal scale = screenScale(zoomPercent);
     const QSizeF pts  = pageSizePts(page);
-    return QSize(static_cast<int>(pts.width() * scale),
-                 static_cast<int>(pts.height() * scale));
+    // Round, don't truncate: the page widget is sized from this while the
+    // pixmap comes out of renderPage(), and a size one pixel apart makes
+    // QLabel centre the pixmap and clip a row off the page.
+    return QSize(qRound(pts.width() * scale), qRound(pts.height() * scale));
 }
 
 QImage PdfRenderer::renderPage(int page, qreal scale) const
 {
     const QSizeF pts = pageSizePts(page);
-    const QSize  px(static_cast<int>(pts.width()  * scale),
-                    static_cast<int>(pts.height() * scale));
+    const QSize  px(qRound(pts.width()  * scale),
+                    qRound(pts.height() * scale));
     return m_doc->render(page, px);
 }
 
 #elif defined(HAVE_POPPLER)
 
 #include <QDebug>
+
+#include <cmath>
 
 PdfRenderer::PdfRenderer(Poppler::Document *doc)
     : m_doc(doc)
@@ -45,8 +49,11 @@ QSize PdfRenderer::pageDisplaySize(int page, int zoomPercent) const
 {
     const qreal scale = screenScale(zoomPercent);
     const QSizeF pts  = pageSizePts(page);
-    return QSize(static_cast<int>(pts.width() * scale),
-                 static_cast<int>(pts.height() * scale));
+    // Poppler rounds the bitmap size UP (797 px for 796.8): truncating here
+    // left the page widget a pixel short of its own pixmap, and QLabel centres
+    // a pixmap that does not fit and clips a row off the page.
+    return QSize(static_cast<int>(std::ceil(pts.width()  * scale)),
+                 static_cast<int>(std::ceil(pts.height() * scale)));
 }
 
 QImage PdfRenderer::renderPage(int page, qreal scale) const

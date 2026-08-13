@@ -302,7 +302,9 @@ DocumentView::DocumentView(QWidget *parent)
     m_gridCanvas->setObjectName(QStringLiteral("GridCanvas"));
 
     connect(verticalScrollBar(), &QScrollBar::valueChanged,
-            this, [this]() { reportCurrentPage(); });
+            this, [this]() { reportCurrentPage(); syncVisibleRect(); });
+    connect(horizontalScrollBar(), &QScrollBar::valueChanged,
+            this, [this]() { syncVisibleRect(); });
 
     viewport()->installEventFilter(this);
     m_canvas->installEventFilter(this);     // also catch events on the canvas itself
@@ -531,6 +533,10 @@ bool DocumentView::openFile(const QString &path)
     resetContentProvider();
     m_dropHint->hide();
     m_layoutEngine->buildPages();
+    // Once the scroll area has laid the new pages out, hand the engine the
+    // window it actually renders — until then the page positions are all 0.
+    QMetaObject::invokeMethod(this, [this]() { syncVisibleRect(); },
+                              Qt::QueuedConnection);
     Q_EMIT fileOpened(m_filePath, m_pageCount);
     m_lastReportedPage = 0;          // freshly opened documents start at the top
     Q_EMIT pageChanged(1, m_pageCount);
@@ -575,6 +581,10 @@ bool DocumentView::openFile(const QString &path)
     resetContentProvider();
     m_dropHint->hide();
     m_layoutEngine->buildPages();
+    // See the Qt-PDF branch: the render window is only measurable once the
+    // scroll area has laid the new pages out.
+    QMetaObject::invokeMethod(this, [this]() { syncVisibleRect(); },
+                              Qt::QueuedConnection);
     Q_EMIT fileOpened(m_filePath, m_pageCount);
     m_lastReportedPage = 0;          // freshly opened documents start at the top
     Q_EMIT pageChanged(1, m_pageCount);
@@ -599,28 +609,74 @@ bool DocumentView::openFile(const QString &path)
 
 void DocumentView::setZoom(int percent)
 {
-    if (m_zoom == percent) return;
+    // Zoom from the toolbar, the menu or a shortcut: hold the middle of the
+    // viewport. Without an anchor the canvas keeps its top-left corner and the
+    // passage the user was reading slides out of view.
+    applyZoom(percent, QPoint(viewport()->width() / 2, viewport()->height() / 2));
+}
+
+void DocumentView::applyZoom(int percent, const QPoint &viewportAnchor)
+{
+    if (m_zoom == percent || percent <= 0) return;
+    const int   oldZoom  = m_zoom;
+    const qreal oldScale = screenScale();
+
+    // What sits under the anchor right now, in PDF points on a page — the one
+    // thing that must not move. Canvas margins and page gaps do not scale with
+    // the zoom, so scaling the scroll position alone drifts.
+    const QPoint canvasAnchor = -m_canvas->pos() + viewportAnchor;
+    auto [anchorPage, anchorLbl] = pageAtCanvasPos(canvasAnchor);
+    QPointF anchorPt;
+    if (anchorPage >= 0 && anchorLbl && oldScale > 0)
+        anchorPt = (QPointF(canvasAnchor) - QPointF(anchorLbl->pos())) / oldScale;
+
     m_zoom = percent;
-    m_layoutEngine->setZoom(percent);
+    m_layoutEngine->setZoom(percent);   // resizes the pages, renders them shortly after
     Q_EMIT zoomChanged(percent);
-    if (!m_filePath.isEmpty()) m_layoutEngine->rerenderAll();
-    // Page labels are re-laid out asynchronously after rerenderAll(), so the
-    // highlights are repositioned once more when that layout has settled.
+    updateScrollRange();
+
+    const QLabel *anchorNow = anchorPage >= 0 ? pageLabel(anchorPage) : nullptr;
+    int tx, ty;
+    if (anchorNow) {
+        const QPointF target = QPointF(anchorNow->pos()) + anchorPt * screenScale();
+        tx = qRound(target.x()) - viewportAnchor.x();
+        ty = qRound(target.y()) - viewportAnchor.y();
+    } else {
+        // The anchor sat in a margin or between two pages: no page point to
+        // hold on to, so scale the scroll position instead.
+        const qreal ratio = qreal(percent) / oldZoom;
+        tx = qRound(ratio * (horizontalScrollBar()->value() + viewportAnchor.x()))
+             - viewportAnchor.x();
+        ty = qRound(ratio * (verticalScrollBar()->value() + viewportAnchor.y()))
+             - viewportAnchor.y();
+    }
+    horizontalScrollBar()->setValue(tx);
+    verticalScrollBar()->setValue(ty);
+    // The scroll area can still be a layout pass behind, in which case the
+    // values above were clamped to the old range. Retry once it has caught
+    // up — the target is absolute, so this is idempotent.
+    if (horizontalScrollBar()->value() != tx || verticalScrollBar()->value() != ty) {
+        QTimer::singleShot(0, this, [this, tx, ty]() {
+            horizontalScrollBar()->setValue(tx);
+            verticalScrollBar()->setValue(ty);
+            syncVisibleRect();
+        });
+    }
+    syncVisibleRect();
+
+    // Page labels can be re-laid out once more after this, so the highlights
+    // are repositioned again when that layout has settled.
     m_selection->relayout();
     QTimer::singleShot(0, this, [this]() { m_selection->relayout(); });
 
 #ifdef HAVE_PDF_RENDERING
-    // rerenderAll() re-renders pages from the PDF without the blank that
-    // rerenderPageWithBlank() painted.  Re-apply it so the original text stays
-    // hidden behind the editor at the new zoom level.
+    // The blank that hides the original text sticks to its page inside the
+    // layout engine, so a re-render at the new zoom keeps it — only the editor
+    // frame has to follow.
     if (m_activeEditPage >= 0 && m_editorFrame->isVisible()) {
-        if (m_activeEditSourcePage >= 0)
-            rerenderPageWithBlank(m_activeEditSourcePage, m_activeEditOriginalBounds);
-
-        // Reposition the editor frame for the new zoom.  The label positions
-        // returned by lbl->pos() are stale immediately after rerenderAll()
-        // because Qt's layout manager updates geometry asynchronously.
-        // A 0 ms timer defers the reposition until after the layout has settled.
+        // Reposition the editor frame for the new zoom.  A 0 ms timer defers
+        // the reposition until after the layout has settled — the frame may
+        // still be growing to the text it holds.
         const int activePage = m_activeEditPage;
         QTimer::singleShot(0, this, [this, activePage]() {
             if (m_activeEditPage != activePage || !m_editorFrame->isVisible()) return;
@@ -663,18 +719,18 @@ void DocumentView::wheelEvent(QWheelEvent *e)
         const int delta = e->angleDelta().y();
         if (delta == 0) { QScrollArea::wheelEvent(e); return; }
 
-        const int oldZoom = m_zoom;
-        if (delta > 0) setZoom(qMin(m_zoom + m_zoomStep, 300));
-        else           setZoom(qMax(m_zoom - m_zoomStep, 25));
+        const int step = qMax(1, m_zoomStep);
+        const int next = delta > 0 ? qMin(m_zoom + step, 300)
+                                   : qMax(m_zoom - step, 25);
 
-        if (m_zoomToPointer && m_zoom != oldZoom) {
-            const QPoint pos = viewport()->mapFromGlobal(QCursor::pos());
-            const qreal ratio = qreal(m_zoom) / oldZoom;
-            horizontalScrollBar()->setValue(
-                qRound(ratio * (horizontalScrollBar()->value() + pos.x()) - pos.x()));
-            verticalScrollBar()->setValue(
-                qRound(ratio * (verticalScrollBar()->value() + pos.y()) - pos.y()));
-        }
+        // Anchor on the pointer position CARRIED BY THE EVENT. QCursor::pos()
+        // has no meaning on Wayland (a client cannot query the pointer), so it
+        // used to anchor the zoom at a stale point and threw the page around.
+        const QPoint anchor =
+            m_zoomToPointer
+                ? viewport()->mapFromGlobal(e->globalPosition().toPoint())
+                : QPoint(viewport()->width() / 2, viewport()->height() / 2);
+        applyZoom(next, anchor);
 
         e->accept();
         return;
@@ -1226,6 +1282,33 @@ void DocumentView::resizeEvent(QResizeEvent *e)
     QScrollArea::resizeEvent(e);
     if (m_viewMode == ViewMode::Grid)
         m_layoutEngine->relayoutGrid(viewport()->width());
+    else
+        syncVisibleRect();
+}
+
+QRect DocumentView::visibleCanvasRect() const
+{
+    // The canvas is a child of the viewport and scrolling moves it, so its
+    // negated position is the viewport origin in canvas coordinates. Reading
+    // it from the widget instead of the scrollbars also covers the case where
+    // the canvas is smaller than the viewport and gets centred.
+    return QRect(-m_canvas->pos(), viewport()->size());
+}
+
+void DocumentView::syncVisibleRect()
+{
+    if (m_viewMode != ViewMode::Single) return;
+    m_layoutEngine->setVisibleRect(visibleCanvasRect());
+}
+
+void DocumentView::updateScrollRange()
+{
+    if (m_layout) m_layout->activate();
+    // QScrollArea recomputes the canvas size and the scrollbar ranges when it
+    // handles a layout request; the posted one only arrives after the current
+    // event returns, which is too late for the scroll anchoring above.
+    QEvent layoutRequest(QEvent::LayoutRequest);
+    QCoreApplication::sendEvent(this, &layoutRequest);
 }
 
 // ── Page rendering (delegated to PageLayoutEngine) ────────────────────────────
@@ -1281,6 +1364,10 @@ void DocumentView::setViewMode(ViewMode mode)
         takeWidget();
         setWidget(m_canvas);
         m_canvas->show();
+        // Same as above: the canvas position is only meaningful after the
+        // scroll area has taken the widget back.
+        QMetaObject::invokeMethod(this, [this]() { syncVisibleRect(); },
+                                  Qt::QueuedConnection);
     }
     Q_EMIT viewModeChanged(mode);
 }
@@ -1424,10 +1511,137 @@ static QColor sampleBackgroundColor(const QImage &img, const QRect &region)
     return QColor::fromRgb(best);
 }
 
+// ── Font-size calibration ─────────────────────────────────────────────────────
+// How tall text LOOKS is not decided by its point size alone: the ink-to-em
+// ratio differs from font to font, and the family we paint an edit with is
+// rarely the embedded one (the Poppler backend reports no family at all, and
+// the vector save substitutes Standard-14 fonts). On top of that, only the
+// qpdf scanner knows the real /Tf size — every other source estimates it from
+// line boxes. So the size is derived from what is actually on the page: the
+// measured ink height of the original glyphs.
+
+// Vertical ink runs inside `region`: a run is a sequence of rows carrying
+// pixels that stand out from the region's background, reported as its height
+// in rows and the number of ink pixels it holds.
+struct InkRun { int height; qint64 pixels; };
+
+static QList<InkRun> inkRuns(const QImage &img, const QRect &region)
+{
+    const QRect sr = region.intersected(img.rect());
+    if (sr.width() < 4 || sr.height() < 4) return {};
+
+    const auto lumAt = [&img](int x, int y) {
+        const QRgb c = pixelOverWhite(img, x, y);
+        return (qRed(c) * 299 + qGreen(c) * 587 + qBlue(c) * 114) / 1000;
+    };
+
+    // Background = most frequent luminance in the region. Taking the mode (not
+    // "white") keeps the measurement working on colored table rows and on dark
+    // headers with light text.
+    QMap<int, int> hist;
+    for (int y = sr.top(); y <= sr.bottom(); ++y)
+        for (int x = sr.left(); x <= sr.right(); ++x)
+            hist[lumAt(x, y)]++;
+    int bgLum = 255, bgN = 0;
+    for (auto it = hist.cbegin(); it != hist.cend(); ++it)
+        if (it.value() > bgN) { bgN = it.value(); bgLum = it.key(); }
+
+    QList<InkRun> runs;
+    int start = -1;
+    qint64 pixels = 0;
+    for (int y = sr.top(); y <= sr.bottom(); ++y) {
+        int ink = 0;
+        for (int x = sr.left(); x <= sr.right(); ++x)
+            if (std::abs(lumAt(x, y) - bgLum) > 40) ++ink;
+        // Two pixels per row: a single one is antialiasing noise.
+        if (ink >= 2) {
+            if (start < 0) { start = y; pixels = 0; }
+            pixels += ink;
+        } else if (start >= 0) {
+            runs.append({ y - start, pixels });
+            start = -1;
+        }
+    }
+    if (start >= 0) runs.append({ sr.bottom() + 1 - start, pixels });
+    return runs;
+}
+
+// Height in pixels of the main ink run inside `region` — the run holding the
+// most ink, which for text is the body of the letters.
+//
+// Both sides of the calibration go through this same function, and that is the
+// whole point: it does not matter that the run excludes umlaut dots or that a
+// detected line box clips them off, as long as page and probe are measured
+// alike. Anything trying to capture the FULL ink extent instead would have to
+// bridge accents across gaps that are indistinguishable from tight line
+// spacing, and line boxes cut accents off anyway.
+static double inkLineHeightPx(const QImage &img, const QRect &region)
+{
+    const QList<InkRun> runs = inkRuns(img, region);
+    if (runs.isEmpty()) return 0.0;
+
+    // Ink count, not height: it keeps accents, rules and cell borders from
+    // being mistaken for the text — they are thin AND sparse.
+    const InkRun *main = &runs.first();
+    for (const InkRun &r : runs)
+        if (r.pixels > main->pixels) main = &r;
+    return double(main->height);
+}
+
+// Ink height of one text line inside `boundsPt`, in PDF points, measured on a
+// render of the page at `scale` px/pt. 0 when nothing measurable was found.
+static double measuredInkHeightPt(const QImage &img, const QRectF &boundsPt,
+                                  qreal scale)
+{
+    if (img.isNull() || boundsPt.isEmpty() || scale <= 0.0) return 0.0;
+    const QRectF px(boundsPt.topLeft() * scale, boundsPt.size() * scale);
+    return inkLineHeightPx(img, px.toAlignedRect()) / scale;
+}
+
+// Ink height of `text` per 1 pt of font size when drawn with `f` — the
+// counterpart of measuredInkHeightPt for the font the commit paints with.
+// It DRAWS the text and measures the result instead of asking the font for its
+// metrics: a tight bounding rect is only as truthful as the platform's font
+// backend, and where that backend has no font at all it reports a full em box
+// while painting something much smaller. Rendering compares what the user will
+// actually see against what the page actually shows.
+static double fontInkHeightPerPt(const QString &text, QFont f)
+{
+    constexpr int kRef = 64;   // large enough that hinting rounding is noise
+    f.setPixelSize(kRef);
+    const QFontMetricsF fm(f);
+
+    QList<double> heights;
+    const QStringList lines = text.split(u'\n');
+    for (const QString &raw : lines) {
+        // The vertical extremes come from a handful of glyphs; capping the
+        // length keeps the probe image small on very long lines.
+        const QString ln = raw.trimmed().left(120);
+        if (ln.isEmpty()) continue;
+
+        const int w = qBound(4 * kRef,
+                             qCeil(fm.horizontalAdvance(ln)) + 2 * kRef,
+                             8000);
+        QImage probe(w, 4 * kRef, QImage::Format_RGB32);
+        probe.fill(Qt::white);
+        {
+            QPainter p(&probe);
+            p.setFont(f);
+            p.setPen(Qt::black);
+            p.drawText(QRect(kRef / 2, kRef, w, 2 * kRef),
+                       Qt::AlignLeft | Qt::AlignTop, ln);
+        }
+        const double ink = inkLineHeightPx(probe, probe.rect());
+        if (ink > 0.0) heights.append(ink / double(kRef));
+    }
+    if (heights.isEmpty()) return 0.0;
+    std::sort(heights.begin(), heights.end());
+    return heights[heights.size() / 2];
+}
+
 void DocumentView::handleEditClick(const QPoint &canvasPos)
 {
 #ifdef HAVE_PDF_RENDERING
-    qWarning() << "[EDIT] handleEditClick canvasPos=" << canvasPos;
     auto [pageIdx, pageLbl] = pageAtCanvasPos(canvasPos);
     if (pageIdx < 0) return;
 
@@ -1513,9 +1727,6 @@ void DocumentView::handleEditClick(const QPoint &canvasPos)
     if (!block.isValid() && contentItem.isValid() && contentItem.isTextual()
             && !contentItem.text.isEmpty())
         block = TextBlock{ pageIdx, contentItem.bounds, contentItem.text };
-
-    qWarning() << "[EDIT] block valid=" << block.isValid() << "isSession=" << isSessionEdit
-               << "itemType=" << int(contentItem.type) << "text=" << block.text.left(40);
 
     if (!block.isValid()) return;
 
@@ -1613,10 +1824,27 @@ void DocumentView::handleEditClick(const QPoint &canvasPos)
     if (isSessionEdit)
         m_activeEditFieldName = sessionEdit.formField;
 
+    // Page rendered at 3 px per pt — shared by the font-size calibration and
+    // the color samplers below, rendered lazily and at most once. Low-dpi
+    // renders consist mostly of antialiasing pixels and make both unreliable.
+    constexpr qreal kSampleScale = 3.0;
+    QImage sampImg;
+    const auto sampleImage = [&]() -> const QImage & {
+        if (sampImg.isNull())
+            sampImg = m_renderer->renderPage(block.page, kSampleScale);
+        return sampImg;
+    };
+
     // Font size: stored session value > region-model detection > line-height
     // estimate from the block bounds.
+    // sizeIsExact tracks whether the result is the size the PDF itself states.
+    // Only the qpdf scanner can know it, and only then may it be written back
+    // to the file unchanged — everything else is an estimate that has to be
+    // calibrated against the rendered ink further down.
+    bool sizeIsExact = false;
     if (isSessionEdit && sessionEdit.fontSizePt > 0.0) {
         m_currentEditorFontSizePt = qMax(4, int(sessionEdit.fontSizePt));
+        sizeIsExact = true;               // already settled when it was created
     } else {
         const double detectedPt = (contentItem.isValid() && contentItem.fontSizePt > 0.0)
                                       ? contentItem.fontSizePt : 0.0;
@@ -1626,6 +1854,7 @@ void DocumentView::handleEditClick(const QPoint &canvasPos)
                                    || (block.pdfBounds.height() >= 20.0);
             if (plausible) {
                 m_currentEditorFontSizePt = qMax(4, int(detectedPt));
+                sizeIsExact = contentItem.fontSizeExact;
             } else {
                 m_currentEditorFontSizePt = qMax(4, qRound(qMin(polyEst, 28.0)));
             }
@@ -1640,10 +1869,11 @@ void DocumentView::handleEditClick(const QPoint &canvasPos)
     if (!isSessionEdit && !contentItem.isFormField()) {
         const double lineGlyphH = block.pdfBounds.height();
         if (lineGlyphH > 4.0 && lineGlyphH < 60.0
-                && m_currentEditorFontSizePt > lineGlyphH * 1.5)
+                && m_currentEditorFontSizePt > lineGlyphH * 1.5) {
             m_currentEditorFontSizePt = qMax(4, qRound(lineGlyphH * 1.05));
+            sizeIsExact = false;          // overridden → back to an estimate
+        }
     }
-    Q_EMIT editorFontSizeChanged(m_currentEditorFontSizePt);
 
     // Font family/style: stored session value > region-model detection.
     if (isSessionEdit) {
@@ -1662,6 +1892,39 @@ void DocumentView::handleEditClick(const QPoint &canvasPos)
         m_currentEditorItalic     = false;
         m_editorFontChangedByUser = false;
     }
+    // Calibrate estimated sizes against the ORIGINAL ink (see the helpers
+    // above). What must be preserved is how tall the text LOOKS, and the point
+    // size alone does not decide that: the editor paints with a different
+    // family than the document (always so on the Poppler backend, which
+    // reports none) and equal point sizes render visibly different ink there.
+    // Editing a line must never resize it, so pick the size whose ink height
+    // matches what the page actually shows.
+    // Exact sizes are left alone: they are what the vector save writes back
+    // into the file, where a size fitted to OUR font would be wrong.
+    if (!sizeIsExact && !isSessionEdit && !contentItem.isFormField()
+            && !displayText.isEmpty() && !sampleImage().isNull()) {
+        const double inkPt = measuredInkHeightPt(sampleImage(), m_activeEditBounds,
+                                                 kSampleScale);
+        QFont probe(m_currentEditorFontFamily.isEmpty()
+                        ? QStringLiteral("Helvetica") : m_currentEditorFontFamily);
+        probe.setStyleHint(QFont::SansSerif);
+        probe.setBold(m_currentEditorBold);
+        probe.setItalic(m_currentEditorItalic);
+        const double inkPerPt = fontInkHeightPerPt(displayText, probe);
+        if (inkPt > 1.0 && inkPerPt > 0.05) {
+            // The measurement corrects the estimate, it does not replace it:
+            // ink that can't be told apart from its surroundings (text over an
+            // image, a band of graphics inside the bounds) must not be able to
+            // blow the size up or collapse it.
+            const int fitted = qRound(inkPt / inkPerPt);
+            m_currentEditorFontSizePt =
+                qBound(qMax(4, qRound(m_currentEditorFontSizePt * 0.6)),
+                       fitted,
+                       qMax(5, qRound(m_currentEditorFontSizePt * 1.5)));
+        }
+    }
+    Q_EMIT editorFontSizeChanged(m_currentEditorFontSizePt);
+
     Q_EMIT editorFontChanged(m_currentEditorFontFamily.isEmpty()
                                  ? QStringLiteral("Helvetica")
                                  : m_currentEditorFontFamily,
@@ -1689,17 +1952,6 @@ void DocumentView::handleEditClick(const QPoint &canvasPos)
         }
         m_activeEditOriginalBounds = m_activeEditBounds;
     }
-
-    // Page rendered at 3 px per pt — shared by the color samplers below,
-    // rendered lazily and at most once. Low-dpi renders consist mostly of
-    // antialiasing pixels and make color detection unreliable.
-    constexpr qreal kSampleScale = 3.0;
-    QImage sampImg;
-    const auto sampleImage = [&]() -> const QImage & {
-        if (sampImg.isNull())
-            sampImg = m_renderer->renderPage(block.page, kSampleScale);
-        return sampImg;
-    };
 
     // Text color: stored session color > exact content-stream fill color >
     // pixel sampling of the rendered page (last resort).
@@ -1806,6 +2058,15 @@ void DocumentView::handleEditClick(const QPoint &canvasPos)
     m_editorFrame->present(displayText, canvasBounds, fontSize, m_currentEditorColor,
                            m_currentEditorFontFamily,
                            m_currentEditorBold, m_currentEditorItalic);
+
+    // Reference state for the "nothing changed" check in commitCurrentEdit.
+    // Captured AFTER present(): the frame grows to fit its content on open and
+    // reports the grown geometry back through boundsChanged, so this is the
+    // resting state — any later deviation really is the user's doing.
+    m_activeEditInPlace             = true;
+    m_activeEditPresentedBounds     = m_activeEditBounds;
+    m_activeEditPresentedFontSizePt = m_currentEditorFontSizePt;
+    m_activeEditPresentedColor      = m_currentEditorColor;
 #else
     Q_UNUSED(canvasPos)
 #endif
@@ -1852,6 +2113,41 @@ void DocumentView::commitCurrentEdit(const QString &newText)
     m_editorFrame->hide();  // may trigger recursive commit, which exits early ↑
 
     const QString trimNew = newText.trimmed();
+
+    // Nothing changed → drop the edit instead of committing it. Committing
+    // would erase the original glyphs and re-draw the text with OUR font, so a
+    // click that only opened and closed the editor would visibly rewrite the
+    // line (different family, ligatures and umlauts gone if the text came from
+    // OCR). The document must stay byte-identical unless the user really
+    // edited something.
+    if (m_activeEditInPlace) {
+        // Bounds come back from integer widget geometry, so compare with a
+        // tolerance of about two screen pixels — anything the user actually
+        // dragged or resized moves much further than that.
+        const double tol = qMax(1.0, 2.0 / PdfRenderer::screenScale(m_zoom));
+        const auto nearly = [tol](const QRectF &a, const QRectF &b) {
+            return std::abs(a.left()   - b.left())   < tol
+                && std::abs(a.top()    - b.top())    < tol
+                && std::abs(a.width()  - b.width())  < tol
+                && std::abs(a.height() - b.height()) < tol;
+        };
+        const bool untouched =
+               page == srcPage
+            && trimNew == m_activeEditOriginalText.trimmed()
+            && nearly(bounds, m_activeEditPresentedBounds)
+            && !m_editorFontChangedByUser
+            && m_currentEditorFontSizePt == m_activeEditPresentedFontSizePt
+            && m_currentEditorColor      == m_activeEditPresentedColor;
+        if (untouched) {
+            m_activeEditInPlace = false;
+            m_activeEditFieldName.clear();
+            m_session->restoreSuspended();   // undo the open-time suspension
+            m_lastCommittedPage = -1;        // nothing committed to protect
+            rerenderPage(srcPage);           // drops the live blank fill
+            return;
+        }
+    }
+    m_activeEditInPlace = false;
 
     // m_undoSnapBefore was captured in handleEditClick/createTextFrame — BEFORE
     // suspendEditsAt() and before any live edits — so it is the true pre-edit state.
@@ -1924,6 +2220,7 @@ void DocumentView::cancelCurrentEdit()
     const int srcPage = m_activeEditSourcePage;
     m_activeEditPage       = -1;
     m_activeEditSourcePage = -1;
+    m_activeEditInPlace    = false;
     m_session->restoreSuspended();
     m_editorFrame->hide();
     if (page >= 0)
@@ -1955,6 +2252,7 @@ void DocumentView::createTextFrame(const QRect &viewportDragRect)
     clampToPdfPage(pageIdx, m_activeEditBounds);
     m_activeEditOriginalBounds = m_activeEditBounds;
     m_activeEditOriginalText  = QString();
+    m_activeEditInPlace       = false;   // fresh box — there is nothing to leave alone
     m_activeEditNeedsBlank    = false;   // new text box overlay — don't erase background
     m_activeEditEraseRects.clear();
     m_activeEditFieldName.clear();
@@ -2019,7 +2317,6 @@ bool DocumentView::eventFilter(QObject *obj, QEvent *e)
                 m_textDragStart = cvsPos;   // stored in canvas coords
                 m_textTracking  = true;
                 m_textDragging  = false;
-                qWarning() << "[EF] text press cvsPos=" << cvsPos << "editMode=" << m_editMode;
                 return true;
             }
 

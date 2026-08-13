@@ -55,6 +55,17 @@ void TextBoxFrame::setFontSize(int px)
     growToFitText();
 }
 
+void TextBoxFrame::setGrowHorizontal(bool on)
+{
+    m_growHorizontal = on;
+    // A single-line edit must not wrap, at any zoom. Font sizes are whole
+    // pixels, so the text is relatively wider than its box at low zoom and the
+    // line broke in two — which grew the frame to two lines and, on commit,
+    // painted a line break that is not in the document. growToFitText widens
+    // the frame for these edits instead.
+    m_editor->setLineWrapMode(on ? QTextEdit::NoWrap : QTextEdit::WidgetWidth);
+}
+
 void TextBoxFrame::growToFitText()
 {
     int newW = width();
@@ -91,22 +102,37 @@ void TextBoxFrame::growToFitText()
                               // edit bounds in DocumentView
 }
 
+// Smallest inner height that still shows and can be grabbed. Tied to the text
+// it holds, not a fixed number of pixels: a pixel floor is worth more and more
+// document space the further the user zooms out, so a fixed one draws a box
+// several times the height of the line it edits.
+int TextBoxFrame::minInnerHeight(int fontPixelSize)
+{
+    return qMax(10, fontPixelSize + 4);
+}
+
 void TextBoxFrame::repositionForZoom(const QRectF &canvasBounds, int px)
 {
     QRect outer = canvasBounds.toAlignedRect();
     if (m_decorations)
         outer = outer.adjusted(-kPad, -kPad, kPad, kPad);
     outer.setWidth(qMax(outer.width(),  m_minInnerW + 2 * kPad));
-    outer.setHeight(qMax(outer.height(),  20 + 2 * kPad));
+    outer.setHeight(qMax(outer.height(), minInnerHeight(px) + 2 * kPad));
 
-    // m_presenting suppresses boundsChanged so DocumentView doesn't update
-    // m_activeEditBounds from this programmatic reposition.
+    // m_presenting suppresses boundsChanged for the WHOLE reposition, growth
+    // included. A zoom must not redefine what is being edited: the frame's
+    // minimum size, its padding and the growth headroom are fixed PIXEL
+    // amounts, so feeding the grown geometry back as PDF points made the
+    // tracked bounds bigger at every zoom step (worst at low zoom, where a
+    // pixel is worth more points) until the box covered half the page — and
+    // it marked an untouched edit as changed. The bounds are already known in
+    // document space; here the frame only re-renders them at a new scale.
     m_presenting = true;
     setGeometry(outer);
     m_editor->setGeometry(innerRect());
     m_editor->setFontSize(px);
-    m_presenting = false;
     growToFitText();   // keep all text visible at the new zoom level
+    m_presenting = false;
     update();
 }
 void TextBoxFrame::setForbiddenZones(const QList<QRect> &z) { m_forbidden = z; }
@@ -127,7 +153,7 @@ void TextBoxFrame::present(const QString &text, const QRectF &canvasBounds, int 
     if (m_decorations) {
         outer = outer.adjusted(-kPad, -kPad, kPad, kPad);
         outer.setWidth(qMax(outer.width(),  m_minInnerW + 2 * kPad));
-        outer.setHeight(qMax(outer.height(),  20 + 2 * kPad));
+        outer.setHeight(qMax(outer.height(), minInnerHeight(fontSize) + 2 * kPad));
     }
 
     // Guard boundsChanged during present() — the outer rect expands by kPad on all

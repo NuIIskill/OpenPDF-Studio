@@ -4,11 +4,15 @@
 #include <QList>
 #include <QObject>
 #include <QPixmap>
+#include <QRect>
 #include <QRectF>
+
+#include <utility>
 
 QT_BEGIN_NAMESPACE
 class QFrame;
 class QLabel;
+class QTimer;
 class QVBoxLayout;
 class QWidget;
 QT_END_NAMESPACE
@@ -35,7 +39,18 @@ public:
     void setSource(PdfRenderer *renderer, EditSession *session);
 #endif
     void setPageCount(int count) { m_pageCount = count; }
-    void setZoom(int percent) { m_zoom = percent; }
+    // Resizes the page widgets to the new zoom right away and shows the pages
+    // that are already rendered scaled as a stand-in; the real render of the
+    // visible pages follows shortly after (see scheduleRender). Re-rendering
+    // every page on every wheel tick is what made zooming freeze the view.
+    void setZoom(int percent);
+    int  zoom() const { return m_zoom; }
+
+    // The part of the canvas the user can actually see, in canvas coordinates.
+    // Only pages inside it (plus half a screen of slack) hold a rendered
+    // pixmap — at 300 % one A4 page is ~30 MB, so keeping all of them ran the
+    // process out of memory and left pages half-drawn.
+    void setVisibleRect(const QRect &canvasRect);
 
     // ── Single-column pages ───────────────────────────────────────────────────
     void buildPages();
@@ -46,6 +61,10 @@ public:
     // Called when starting an edit so the original text disappears from view —
     // the editor widget sits over a clean white area instead of over the old
     // text. eraseRects are the tight glyph rects; empty falls back to bounds.
+    //
+    // The blank sticks to the page: every later render of it (zoom, scrolling
+    // back to it) paints it again, until rerenderPage() clears it. Otherwise a
+    // zoom while the editor is open would bring the original text back.
     void rerenderPageWithBlank(int page, const QRectF &pdfBoundsPts,
                                const QList<QRectF> &eraseRects);
 
@@ -70,11 +89,36 @@ protected:
     bool eventFilter(QObject *obj, QEvent *e) override;
 
 private:
+    // Sizes every page widget for the current zoom and, where a rendered
+    // pixmap exists, shows it scaled until the real render replaces it.
+    void resizePages();
+    // Renders the pages inside the visible window that are not up to date and
+    // frees the pixmaps of the pages that left it.
+    void renderPending();
+    // Real render of one page, including the sticky blank and session edits.
+    void renderNow(int page);
+    void scheduleRender(int delayMs);
+    // First/last page index inside the visible window; {0, -1} when empty.
+    std::pair<int, int> visibleRange() const;
+
     QWidget     *m_canvas     { nullptr };
     QVBoxLayout *m_layout     { nullptr };
     QWidget     *m_gridCanvas { nullptr };
 
     QList<QLabel *> m_pageLabels;
+
+    // Last real render per page — kept as the source for the scaled stand-in
+    // during zooming, so repeated wheel ticks never scale an already scaled
+    // pixmap. Bounded to the visible window by renderPending().
+    struct Rendered { QPixmap pixmap; int zoom = 0; };
+    QHash<int, Rendered> m_rendered;
+
+    QRect   m_visibleRect;              // canvas coords; empty = not measured yet
+    QTimer *m_renderTimer { nullptr };
+
+    // Erase patch that survives re-renders of its page (see rerenderPageWithBlank).
+    struct Blank { int page = -1; QRectF bounds; QList<QRectF> rects; };
+    Blank m_blank;
 
     struct GridItem { QFrame *card; QLabel *thumb; QLabel *label; QPixmap original; };
     QList<GridItem>       m_gridItems;
