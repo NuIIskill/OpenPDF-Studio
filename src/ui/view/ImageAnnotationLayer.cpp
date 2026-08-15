@@ -96,23 +96,69 @@ void ImageAnnotationLayer::place(const QImage &img, const QPoint &canvasPos)
 #endif
     const QRectF pdfBounds(ptX, ptY, ptW, ptH);
 
-    // Create overlay widget.
-    const int px = qRound(ptX * scale), py = qRound(ptY * scale);
-    const int pw = qRound(ptW * scale), ph = qRound(ptH * scale);
-    auto *ann = new ImageAnnotation(QString(), m_canvas->canvasWidget());
-    ann->setOriginalPixmap(QPixmap::fromImage(img));
-    ann->setEditActive(m_toolActive);
-    ann->setPageRect(lbl->geometry());
-    ann->setGeometry(lbl->pos().x() + px, lbl->pos().y() + py, pw, ph);
-    ann->show();
-
-    m_placed.append({ pageIdx, pdfBounds, img, ann });
-    connectAnnotation(ann);
+    addEntry(pageIdx, pdfBounds, img);
 
 #ifdef HAVE_PDF_RENDERING
     if (m_session) m_session->addImageEdit(pageIdx, pdfBounds, img);
     Q_EMIT pageNeedsRerender(pageIdx);
+    Q_EMIT imageAdded(pageIdx);
 #endif
+}
+
+// Geometry comes from the PDF bounds unless the caller already has the exact
+// canvas rect it dragged (placeInRect) — rounding through the scale twice
+// would shift such an image by a pixel.
+void ImageAnnotationLayer::addEntry(int page, const QRectF &pdfBounds,
+                                    const QImage &img, const QRect &canvasRect)
+{
+    const QLabel *lbl = page >= 0 && page < m_canvas->pageLabelCount()
+                            ? m_canvas->pageLabel(page) : nullptr;
+    if (!lbl) return;
+
+    const qreal scale = m_canvas->screenScale();
+    const QRect geo = canvasRect.isNull()
+        ? QRect(lbl->pos().x() + qRound(pdfBounds.left() * scale),
+                lbl->pos().y() + qRound(pdfBounds.top()  * scale),
+                qRound(pdfBounds.width()  * scale),
+                qRound(pdfBounds.height() * scale))
+        : canvasRect;
+
+    auto *ann = new ImageAnnotation(QString(), m_canvas->canvasWidget());
+    ann->setOriginalPixmap(QPixmap::fromImage(img));
+    ann->setEditActive(m_toolActive);
+    ann->setPageRect(lbl->geometry());
+    ann->setGeometry(geo);
+    ann->show();
+
+    m_placed.append({ page, pdfBounds, img, ann });
+    connectAnnotation(ann);
+}
+
+void ImageAnnotationLayer::restoreImages(const QList<Placed> &images)
+{
+    QList<int> touched;
+    for (const Entry &e : std::as_const(m_placed))
+        if (!touched.contains(e.page)) touched.append(e.page);
+
+    for (const Entry &e : std::as_const(m_placed)) delete e.widget;
+    m_placed.clear();
+
+#ifdef HAVE_PDF_RENDERING
+    if (m_session) m_session->clearImageEdits();
+#endif
+
+    for (const Placed &p : images) {
+        addEntry(p.page, p.pdfBounds, p.image);
+        if (!touched.contains(p.page)) touched.append(p.page);
+#ifdef HAVE_PDF_RENDERING
+        if (m_session) m_session->addImageEdit(p.page, p.pdfBounds, p.image);
+#endif
+    }
+
+    // Both the pages that lost an image and the ones that gained one have to be
+    // painted again — the overlay is baked into the rendered page.
+    for (int page : std::as_const(touched))
+        Q_EMIT pageNeedsRerender(page);
 }
 
 void ImageAnnotationLayer::placeInRect(const QImage &img, const QRect &canvasRect)
@@ -131,19 +177,12 @@ void ImageAnnotationLayer::placeInRect(const QImage &img, const QRect &canvasRec
     const QRectF pdfBounds(localTL.x() / scale, localTL.y() / scale,
                            canvasRect.width() / scale, canvasRect.height() / scale);
 
-    auto *ann = new ImageAnnotation(QString(), m_canvas->canvasWidget());
-    ann->setOriginalPixmap(QPixmap::fromImage(img));
-    ann->setEditActive(m_toolActive);
-    ann->setPageRect(lbl->geometry());
-    ann->setGeometry(canvasRect);
-    ann->show();
-
-    m_placed.append({ pageIdx, pdfBounds, img, ann });
-    connectAnnotation(ann);
+    addEntry(pageIdx, pdfBounds, img, canvasRect);
 
 #ifdef HAVE_PDF_RENDERING
     if (m_session) m_session->addImageEdit(pageIdx, pdfBounds, img);
     Q_EMIT pageNeedsRerender(pageIdx);
+    Q_EMIT imageAdded(pageIdx);
 #endif
 }
 
@@ -156,6 +195,7 @@ void ImageAnnotationLayer::connectAnnotation(ImageAnnotation *ann)
             if (m_session) m_session->removeImageEdit(m_placed[i].page,
                                                       m_placed[i].pdfBounds);
             Q_EMIT pageNeedsRerender(m_placed[i].page);
+            Q_EMIT imageRemoved(m_placed[i].page);
 #endif
             m_placed.removeAt(i);
             break;

@@ -1,5 +1,7 @@
 #pragma once
 
+#include "app/DocumentHistory.hpp"
+
 #include <QDialog>
 #include <QMap>
 #include <QList>
@@ -51,6 +53,11 @@ public:
     /// True when resultPath() is a session working file, i.e. the pages were
     /// taken into the session but targetPath() has not been written yet.
     bool resultIsWorkingCopy() const { return m_resultIsWorking; }
+
+    /// What the dialog did to the document, for the change history. One entry
+    /// per organizer run on purpose: everything the run did lands in a single
+    /// written file, so a single file is what going back to it can restore.
+    DocumentHistory::Change appliedChange() const;
 
 protected:
     void changeEvent(QEvent *e) override;
@@ -110,6 +117,9 @@ private:
     QList<PageCard *> m_cards;
     int               m_lastClickedIndex { -1 };
     QString           m_targetPath;      // document the changes belong to ("" = none yet)
+    // The document as it came in, to diff the result against.
+    QString           m_initialPath;
+    int               m_initialCount { 0 };
     QString           m_resultPath;      // file written on accept
     bool              m_resultIsWorking { false };  // m_resultPath is a session file
 

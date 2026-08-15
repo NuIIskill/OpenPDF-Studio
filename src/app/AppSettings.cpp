@@ -142,6 +142,35 @@ void AppSettings::setWheelAction(const QString &a)
     settings().setValue(QStringLiteral("zoom/wheelAction"), a);
 }
 
+// ── Panels ────────────────────────────────────────────────────────────────
+
+bool AppSettings::preservePanelLayout() const
+{
+    return settings().value(QStringLiteral("panels/preserveLayout"), true).toBool();
+}
+void AppSettings::setPreservePanelLayout(bool v)
+{
+    settings().setValue(QStringLiteral("panels/preserveLayout"), v);
+}
+
+bool AppSettings::rightPanelCollapsed() const
+{
+    return settings().value(QStringLiteral("panels/rightCollapsed"), false).toBool();
+}
+void AppSettings::setRightPanelCollapsed(bool v)
+{
+    settings().setValue(QStringLiteral("panels/rightCollapsed"), v);
+}
+
+QByteArray AppSettings::splitterState() const
+{
+    return settings().value(QStringLiteral("panels/splitterState")).toByteArray();
+}
+void AppSettings::setSplitterState(const QByteArray &state)
+{
+    settings().setValue(QStringLiteral("panels/splitterState"), state);
+}
+
 // ── Sync ──────────────────────────────────────────────────────────────────
 
 void AppSettings::sync()

@@ -35,7 +35,30 @@ public:
         QRectF  pdfBounds;
         QRectF  sourceRect;
         QString newText;
+        // Size written to the FILE — the size the PDF itself states whenever
+        // that is known, so a save can put it back unchanged.
         double  fontSizePt { 0.0 };
+        // Size the live view paints with. It is deliberately a second number:
+        // the family on screen is hardly ever the embedded one, and the same
+        // point size in a different face renders visibly taller or shorter
+        // ink. This one is fitted to the ink the original actually showed.
+        // 0 → use fontSizePt.
+        double  renderSizePt { 0.0 };
+        // Where the replaced text started, as an offset from pdfBounds'
+        // top-left: x = pen position, y = BASELINE. Kept relative so dragging
+        // or resizing the frame carries it along. Only meaningful when
+        // hasTextOrigin is set; without it both paint paths fall back to
+        // guessing the baseline from the box, and land a few points off.
+        QPointF textOriginOffset;
+        bool    hasTextOrigin { false };
+        // Baseline-to-baseline distance of the replaced block. 0 → use the
+        // font's own spacing, which is tighter than most documents' and walks
+        // every line after the first up the page.
+        double  lineSpacingPt { 0.0 };
+        // The text this edit replaces. Every glyph in it is one the original
+        // font is proven to carry, which is what lets the vector save keep
+        // that font instead of substituting a standard-14 face.
+        QString originalText;
         QColor  textColor;
         QColor  bgColor;      // background color used for blank fill
         QString fontFamily;   // Qt family for live paint ("" = default Helvetica)
@@ -44,6 +67,9 @@ public:
         // true → user changed font family/style; vector save switches to a
         // standard-14 font. false → keep the PDF's original font resource.
         bool    fontChanged { false };
+        // true → user set the size by hand, so it outranks the /Tf size found
+        // in the stream even when the original font is kept.
+        bool    sizeChanged { false };
         // Non-empty → this edit sets the value of an AcroForm text field;
         // vector save updates /V + appearances instead of the content stream.
         QString formField;
@@ -57,9 +83,14 @@ public:
             return page == o.page && pdfBounds == o.pdfBounds &&
                    sourceRect == o.sourceRect && newText == o.newText &&
                    qFuzzyCompare(fontSizePt + 1.0, o.fontSizePt + 1.0) &&
+                   qFuzzyCompare(renderSizePt + 1.0, o.renderSizePt + 1.0) &&
+                   textOriginOffset == o.textOriginOffset &&
+                   hasTextOrigin == o.hasTextOrigin &&
+                   qFuzzyCompare(lineSpacingPt + 1.0, o.lineSpacingPt + 1.0) &&
                    textColor == o.textColor && bgColor == o.bgColor &&
                    fontFamily == o.fontFamily && bold == o.bold &&
                    italic == o.italic && fontChanged == o.fontChanged &&
+                   sizeChanged == o.sizeChanged &&
                    formField == o.formField && eraseRects == o.eraseRects;
         }
         bool operator!=(const Edit &o) const { return !(*this == o); }
@@ -89,6 +120,12 @@ public:
     void restoreSuspended();
 
     // ── Image edits ────────────────────────────────────────────────────────────
+    // Counter bumped by every image mutation. Text edits are tracked through
+    // the undo stack, which knows exactly when the document is back at its
+    // saved state; images are placed straight into the session with no undo
+    // command behind them, so this is what tells a caller they happened.
+    // Monotonic, never reset — equal values mean nothing changed in between.
+    quint64 imageRevision() const { return m_imageRevision; }
     void addImageEdit(int page, const QRectF &pdfBounds, const QImage &image);
     void removeImageEdit(int page, const QRectF &pdfBounds);
     bool hasImageEditsOnPage(int page) const;
@@ -189,4 +226,5 @@ private:
     QList<Edit>       m_edits;
     QList<Edit>       m_suspendedEdits;  // saved by suspendEditsAt(), restored by restoreSuspended()
     QList<ImageEdit>  m_imageEdits;
+    quint64           m_imageRevision { 0 };
 };

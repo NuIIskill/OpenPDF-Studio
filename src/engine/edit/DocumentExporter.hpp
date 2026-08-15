@@ -16,6 +16,11 @@ QT_BEGIN_NAMESPACE
 class QPdfDocument;
 QT_END_NAMESPACE
 #  endif
+#  ifdef HAVE_QT_PRINT
+QT_BEGIN_NAMESPACE
+class QPrinter;
+QT_END_NAMESPACE
+#  endif
 #endif
 
 // Pulls page content out of renderer + session for the DOCX and image exports.
@@ -55,6 +60,13 @@ public:
     // range export keeps the names the user expects.
     bool exportPagesToImages(const QString &outputPath, int quality = 85,
                              const QList<int> &pages = {}) const;
+#if defined(HAVE_PDF_RENDERING) && defined(HAVE_QT_PRINT)
+    // Paints one PDF page per sheet onto an already configured printer, fitted
+    // into its printable area. The caller owns the printer and has run the
+    // print dialog on it; this only produces the pages.
+    // pages holds zero-based indices in output order; empty means every page.
+    bool printPages(QPrinter *printer, const QList<int> &pages = {}) const;
+#endif
 
 private:
 #ifdef HAVE_PDF_RENDERING

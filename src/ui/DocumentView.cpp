@@ -275,6 +275,7 @@ static QList<QRectF> popplerGlyphRects(Poppler::Document *doc, int page,
 DocumentView::DocumentView(QWidget *parent)
     : QScrollArea(parent)
     , m_undoStack(new QUndoStack(this))
+    , m_history(new DocumentHistory(this))
 {
     setObjectName(QStringLiteral("DocumentView"));
     setFrameShape(QFrame::NoFrame);
@@ -318,6 +319,19 @@ DocumentView::DocumentView(QWidget *parent)
     m_imageLayer = new ImageAnnotationLayer(this, this);
     connect(m_imageLayer, &ImageAnnotationLayer::pageNeedsRerender,
             this, &DocumentView::rerenderPage);
+    connect(m_imageLayer, &ImageAnnotationLayer::imageAdded, this, [this](int page) {
+        recordChange({ DocumentHistory::Kind::ImageInserted, page });
+    });
+    connect(m_imageLayer, &ImageAnnotationLayer::imageRemoved, this, [this](int page) {
+        recordChange({ DocumentHistory::Kind::ImageRemoved, page });
+    });
+
+    // Undo and redo move the document between states the history already
+    // knows, so the history follows the stack instead of recording anything.
+    connect(m_undoStack, &QUndoStack::indexChanged, this, [this](int index) {
+        if (m_restoring || m_pushingEdit || m_history->isEmpty()) return;
+        m_history->setCurrentIndex(m_history->indexForUndoIndex(index));
+    });
 
     m_layoutEngine = new PageLayoutEngine(m_canvas, m_layout, m_gridCanvas, this);
     // One place to keep every page-anchored overlay in sync with a relayout —
@@ -398,6 +412,13 @@ DocumentView::DocumentView(QWidget *parent)
 
 DocumentView::~DocumentView()
 {
+    // A view can go away without clearDocument() — closing a tab deletes it,
+    // and quitting takes every view down with the window. Its session working
+    // copy has to go with it either way, or one file is left behind per saved
+    // document. discard() only touches files inside the session directory, so
+    // handing it a user's own document does nothing. A view that dies without
+    // running this (a crash) leaves the copy for recovery, which is the point.
+    SessionStore::discard(m_filePath);
     delete m_ocrEngine;
 #ifdef HAVE_PDF_RENDERING
     // The provider references the backend document (raw pointer on Poppler) —
@@ -436,32 +457,27 @@ void DocumentView::clearDocument()
     m_contentProvider.reset();
 #endif
 #ifdef HAVE_QT_PDF
-    m_session->clearSuspended();
-    m_session->clear();
+    discardEditHistory();
     m_document->close();
     m_ocrCache.clear();
 #elif defined(HAVE_POPPLER)
-    m_session->clearSuspended();
-    m_session->clear();
+    discardEditHistory();
     m_ocrCache.clear();
-    // Drop the handles into m_renderer before the object behind it dies.
-    m_selection->setSource(nullptr, nullptr);
-    m_layoutEngine->setSource(nullptr, m_session);
-    delete m_renderer;
-    m_renderer = nullptr;
-    m_popplerDoc.reset();
+    setPopplerSource(nullptr);   // closes the document and frees its handles
 #endif
     SessionStore::discard(m_filePath);
     m_filePath.clear();
     m_targetPath.clear();
     m_workingCopyDirty = false;
+    // The log describes a document that is no longer open; its snapshots go
+    // with it, or the session directory fills up with states nothing points at.
+    m_history->reset();
 #ifdef HAVE_PDF_RENDERING
     // m_renderer is already gone on the Poppler path — drop the stale handles.
     m_imageLayer->setSource(m_renderer, m_session, m_ocrEngine, QString());
 #endif
     m_pageCount = 0;
     m_lastReportedPage = -1;
-    m_undoStack->clear();
 
     m_layoutEngine->clearPages();
 
@@ -522,7 +538,7 @@ bool DocumentView::openFile(const QString &path)
         }
         return false;
     }
-    m_session->clear();
+    discardEditHistory();
     m_filePath  = path;
     m_targetPath.clear();
     m_workingCopyDirty = false;
@@ -537,6 +553,7 @@ bool DocumentView::openFile(const QString &path)
     // window it actually renders — until then the page positions are all 0.
     QMetaObject::invokeMethod(this, [this]() { syncVisibleRect(); },
                               Qt::QueuedConnection);
+    noteDocumentOpened();
     Q_EMIT fileOpened(m_filePath, m_pageCount);
     m_lastReportedPage = 0;          // freshly opened documents start at the top
     Q_EMIT pageChanged(1, m_pageCount);
@@ -563,20 +580,15 @@ bool DocumentView::openFile(const QString &path)
     if (!doc || doc->isLocked()) return false;
     doc->setRenderHint(Poppler::Document::Antialiasing);
     doc->setRenderHint(Poppler::Document::TextAntialiasing);
-    m_session->clear();
+    discardEditHistory();
     m_ocrCache.clear();
-    m_contentProvider.reset();   // references the old doc — drop it first
-    delete m_renderer;
-    m_popplerDoc = std::move(doc);
-    m_renderer   = new PdfRenderer(m_popplerDoc.get());
-    m_selection->setSource(m_renderer, m_popplerDoc.get());
     m_filePath   = path;
     m_targetPath.clear();
     m_workingCopyDirty = false;
+    setPopplerSource(std::move(doc));
+    // Only now that the reader let go of it may the working file be removed.
     SessionStore::discard(previousWorkingFile);
     m_pageCount  = m_popplerDoc->numPages();
-    m_imageLayer->setSource(m_renderer, m_session, m_ocrEngine, m_filePath);
-    m_layoutEngine->setSource(m_renderer, m_session);
     m_layoutEngine->setPageCount(m_pageCount);
     resetContentProvider();
     m_dropHint->hide();
@@ -585,6 +597,7 @@ bool DocumentView::openFile(const QString &path)
     // scroll area has laid the new pages out.
     QMetaObject::invokeMethod(this, [this]() { syncVisibleRect(); },
                               Qt::QueuedConnection);
+    noteDocumentOpened();
     Q_EMIT fileOpened(m_filePath, m_pageCount);
     m_lastReportedPage = 0;          // freshly opened documents start at the top
     Q_EMIT pageChanged(1, m_pageCount);
@@ -598,6 +611,7 @@ bool DocumentView::openFile(const QString &path)
     m_pageCount = 1;
     m_dropHint->show();
     retranslateUi();
+    noteDocumentOpened();
     Q_EMIT fileOpened(m_filePath, m_pageCount);
     m_lastReportedPage = 0;          // freshly opened documents start at the top
     Q_EMIT pageChanged(1, m_pageCount);
@@ -694,7 +708,7 @@ void DocumentView::applyZoom(int percent, const QPoint &viewportAnchor)
                 m_activeEditBounds.topLeft() * scale + QPointF(lbl->pos()),
                 m_activeEditBounds.size() * scale);
             m_editorFrame->repositionForZoom(
-                cb, qMax(6, qRound(m_currentEditorFontSizePt * scale)));
+                cb, qMax(6, qRound(m_currentEditorRenderSizePt * scale)));
         });
     }
 #endif
@@ -771,8 +785,17 @@ void DocumentView::setEditMode(bool on)
 }
 
 bool DocumentView::openWorkingCopy(const QString &contentPath,
-                                   const QString &targetPath)
+                                   const QString &targetPath,
+                                   const DocumentHistory::Change &change)
 {
+    // openFile records the state; it needs to know whether this file is a new
+    // document or the result of a change to the one already open.
+    m_openChange = change;
+    struct ClearOnReturn {
+        DocumentHistory::Change *c;
+        ~ClearOnReturn() { *c = DocumentHistory::Change{}; }
+    } clearOnReturn { &m_openChange };
+
     // qpdf keeps a document's encryption when it rewrites it, so the working
     // copy of a protected file is protected too — with the same password. Carry
     // it across, or the user is asked again for a file they never chose.
@@ -792,14 +815,31 @@ bool DocumentView::openWorkingCopy(const QString &contentPath,
 
 bool DocumentView::saveToFile(const QString &path)
 {
+#ifdef HAVE_PDF_RENDERING
+    // From here on the document on disk may stop being the one the history's
+    // first entry stands for, so that entry gets its own copy now.
+    m_history->materializeSnapshot();
+#endif
 #ifdef HAVE_QT_PDF
     commitCurrentEdit(m_editorFrame->currentText());
+
+    // Saving writes the session out; it does not end it. The document keeps
+    // rendering from its own base with the edits layered on, so undo and redo
+    // reach across the save for as long as the file stays open.
+    const bool detached = detachSourceFrom(path);
     if (!m_session->saveToFile(path, m_document, m_pageCount, m_filePath))
         return false;
 
-    // Reload from the saved file so subsequent saves and re-edits work on
-    // the updated PDF (with the replacement text) rather than the original.
-    m_session->clear();
+    if (detached) {
+        markSaved(path);
+        return true;
+    }
+
+    // The base could not be put out of harm's way, so it is gone: the file we
+    // read from has just been overwritten with the edits baked in. Start over
+    // from the result — and drop the history with it, or undo would paint
+    // those same edits on top a second time (see discardEditHistory).
+    discardEditHistory();
     const QString previousWorkingFile = (path != m_filePath) ? m_filePath : QString();
     m_filePath = path;
     m_targetPath.clear();
@@ -810,42 +850,220 @@ bool DocumentView::saveToFile(const QString &path)
     SessionStore::discard(previousWorkingFile);
     resetContentProvider();
     m_layoutEngine->rerenderAll();
+    recordSavedOverBase(path);
     return true;
 #elif defined(HAVE_POPPLER)
     commitCurrentEdit(m_editorFrame->currentText());
     if (!m_popplerDoc || !m_renderer) return false;
-    if (!savePopplerRaster(path)) return false;
 
-    // Reload from the saved file so subsequent saves work on the updated content.
-    m_session->clear();
+    // Saving writes the session out; it does not end it. See the Qt path above.
+    const bool detached = detachSourceFrom(path);
+
+    // The new document is written beside the target first, because the render
+    // reads from the document that is still open — and that may be the very
+    // file being saved to.
+    const QString staging = SafeWrite::stagingPath(path);
+    if (staging.isEmpty()) return false;
+    if (!writePopplerRaster(staging)) { SafeWrite::discard(staging); return false; }
+
+    // With the base moved aside, the target is not a file this process holds
+    // open, so the swap needs none of the close-and-reopen dance below — the
+    // one Windows forces when Poppler is still reading the file being replaced.
+    if (detached) {
+        if (!SafeWrite::commit(staging, path)) return false;
+        markSaved(path);
+        return true;
+    }
+
+    // Windows refuses to rename or delete a file that is still open: Poppler
+    // holds the document it renders from without allowing deletion, so saving
+    // over the open document failed at the swap below and the save silently did
+    // nothing. Let go of the file first — it is reopened either way, from the
+    // new file when the swap worked and from the old one when it did not.
     const QString previousWorkingFile = (path != m_filePath) ? m_filePath : QString();
-    m_filePath = path;
-    m_targetPath.clear();
-    m_workingCopyDirty = false;
-    auto doc = Poppler::Document::load(path);
-    // Saving keeps a document's encryption, so the file just written is still
-    // locked. No prompt here — the password is already known.
-    if (doc && doc->isLocked()) {
-        const QByteArray known = PdfPwStore::get(path).toUtf8();
-        if (!known.isEmpty()) doc->unlock(known, known);
+    const QString reopenPath = m_filePath;
+    setPopplerSource(nullptr);
+
+    if (!SafeWrite::commit(staging, path)) {
+        setPopplerSource(loadPopplerDocument(reopenPath));
+        resetContentProvider();
+        return false;
     }
-    if (doc && !doc->isLocked()) {
-        doc->setRenderHint(Poppler::Document::Antialiasing);
-        doc->setRenderHint(Poppler::Document::TextAntialiasing);
-        m_contentProvider.reset();   // references the old doc — drop it first
-        delete m_renderer;
-        m_popplerDoc = std::move(doc);
-        m_renderer   = new PdfRenderer(m_popplerDoc.get());
+
+    // Reload from the saved file so subsequent saves work on the updated
+    // content. The edits are part of the file now, which is exactly why the
+    // undo history goes with them — see discardEditHistory.
+    discardEditHistory();
+    auto reloaded = loadPopplerDocument(path);
+    if (reloaded) {
+        m_filePath = path;
+        m_targetPath.clear();
+        m_workingCopyDirty = false;
+        setPopplerSource(std::move(reloaded));
+        // Only now that the reader let go of it may the working file be removed.
+        SessionStore::discard(previousWorkingFile);
+    } else {
+        // The file was written, but it cannot be read back. Keep showing the
+        // document that was open instead of leaving the view blank — and keep
+        // its working file, which is what that view is reading from.
+        qWarning() << "[SAVE] wrote" << path << "but could not reopen it";
+        setPopplerSource(loadPopplerDocument(reopenPath));
     }
-    // Only now that the reader let go of it may the working file be removed.
-    SessionStore::discard(previousWorkingFile);
     resetContentProvider();
     m_layoutEngine->rerenderAll();
+    recordSavedOverBase(path);
     return true;
 #else
     Q_UNUSED(path)
     return false;
 #endif
+}
+
+#ifdef HAVE_PDF_RENDERING
+void DocumentView::markSaved(const QString &path)
+{
+    // The session lives on, so "saved" is a mark on it rather than the absence
+    // of edits: the undo stack's clean index follows undo AND redo, so stepping
+    // back past the save reports unsaved changes again and stepping forward to
+    // it reports none.
+    m_undoStack->setClean();
+    m_savedImageRevision = m_session->imageRevision();
+    m_workingCopyDirty   = false;
+    // m_filePath is the session's own base now; `path` is the document the user
+    // thinks of as open, which is what the title bar has to show.
+    m_targetPath = (QFileInfo(path).absoluteFilePath()
+                        == QFileInfo(m_filePath).absoluteFilePath())
+                       ? QString() : path;
+
+    DocumentHistory::Change saved;
+    saved.kind  = DocumentHistory::Kind::Saved;
+    saved.count = m_pageCount;
+    saved.text  = QFileInfo(path).fileName();
+    recordChange(saved);
+
+    Q_EMIT fileOpened(currentFile(), m_pageCount);
+}
+#endif
+
+// ── Change history ────────────────────────────────────────────────────────────
+
+QList<DocumentHistory::ImageState> DocumentView::imageStates() const
+{
+    QList<DocumentHistory::ImageState> out;
+    const QList<ImageAnnotationLayer::Placed> placed = m_imageLayer->placedImages();
+    out.reserve(placed.size());
+    for (const auto &p : placed)
+        out.append({ p.page, p.pdfBounds, p.image });
+    return out;
+}
+
+void DocumentView::recordSavedOverBase(const QString &path)
+{
+    // This save could not keep the document it was layered on: the edits are
+    // in the file now and the session started over. The written file is
+    // therefore the state to come back to — the undo indices recorded before
+    // it belong to a stack that no longer exists.
+    DocumentHistory::Change saved;
+    saved.kind  = DocumentHistory::Kind::Saved;
+    saved.count = m_pageCount;
+    saved.text  = QFileInfo(path).fileName();
+    recordChange(saved, m_filePath);
+}
+
+void DocumentView::recordChange(const DocumentHistory::Change &c,
+                                const QString &snapshotSource)
+{
+    // Restoring a state walks the document through changes it has already
+    // recorded — writing them down again would append the past to the log.
+    if (m_restoring || m_filePath.isEmpty()) return;
+    m_history->record(c, m_undoStack->index(), imageStates(), snapshotSource);
+}
+
+void DocumentView::noteDocumentOpened()
+{
+    if (m_restoring) return;
+
+    if (m_openChange.kind != DocumentHistory::Kind::Opened) {
+        // A change produced this file (page operations). The history keeps
+        // running; the file itself becomes the state to come back to.
+        m_history->record(m_openChange, m_undoStack->index(), imageStates(),
+                          m_filePath);
+        return;
+    }
+
+    // A document the user opened: everything recorded so far belongs to the
+    // one before it.
+    m_history->reset();
+    DocumentHistory::Change opened;
+    opened.kind  = DocumentHistory::Kind::Opened;
+    opened.count = m_pageCount;
+    opened.text  = QFileInfo(currentFile()).fileName();
+    // The file is on disk and nothing has touched it — no reason to copy it
+    // until something is about to.
+    m_history->record(opened, m_undoStack->index(), imageStates(), m_filePath,
+                      DocumentHistory::Snapshot::Deferred);
+}
+
+bool DocumentView::restoreHistoryState(int index)
+{
+    if (!m_history->canRestore(index)) return false;
+    if (index == m_history->currentIndex()) return true;
+
+    const DocumentHistory::Entry entry = m_history->entries().value(index);
+
+    if (m_history->restoringDropsEdits(index)) {
+        // The state lives in a different document file. It is reopened from a
+        // copy, never from the snapshot itself — a snapshot that becomes the
+        // file being edited would be modified by the next save, and the state
+        // it stands for would be gone.
+        const QString snapshot = m_history->baseFileFor(index);
+        const QString work     = SessionStore::newWorkingFile(currentFile());
+        if (snapshot.isEmpty() || work.isEmpty()) return false;
+        QFile::remove(work);
+        if (!QFile::copy(snapshot, work)) return false;
+#ifdef HAVE_PDF_RENDERING
+        PdfPwStore::set(work, PdfPwStore::get(currentFile()));
+#endif
+
+        const QString target = currentFile();
+        m_restoring = true;
+        const bool ok = openWorkingCopy(work, target);
+        m_restoring = false;
+        if (!ok) {
+            SessionStore::discard(work);
+            return false;
+        }
+        // The reopened file carries the page state and the entry carries the
+        // images; only the text edits of that moment are gone, because they
+        // were never written to any file. The user agreed to that before we
+        // got here (see DocumentHistory::restoringDropsEdits).
+#ifdef HAVE_PDF_RENDERING
+        QList<ImageAnnotationLayer::Placed> restored;
+        restored.reserve(entry.images.size());
+        for (const DocumentHistory::ImageState &s : entry.images)
+            restored.append({ s.page, s.pdfBounds, s.image });
+        m_imageLayer->restoreImages(restored);
+#endif
+        m_history->setCurrentIndex(index);
+        m_workingCopyDirty = true;
+        return true;
+    }
+
+    // Same file: the state is a position in the session. The undo stack holds
+    // the text edits, the entry itself holds the images.
+    m_restoring = true;
+    m_undoStack->setIndex(entry.undoIndex);
+#ifdef HAVE_PDF_RENDERING
+    QList<ImageAnnotationLayer::Placed> images;
+    images.reserve(entry.images.size());
+    for (const DocumentHistory::ImageState &s : entry.images)
+        images.append({ s.page, s.pdfBounds, s.image });
+    m_imageLayer->restoreImages(images);
+#endif
+    m_restoring = false;
+
+    m_history->setCurrentIndex(index);
+    return true;
 }
 
 bool DocumentView::hasUnsavedEdits() const
@@ -854,37 +1072,48 @@ bool DocumentView::hasUnsavedEdits() const
     // the close prompt would let a reorganized document go unsaved silently.
     if (m_workingCopyDirty) return true;
 #ifdef HAVE_PDF_RENDERING
-    return m_session && m_session->hasAnyEdits();
+    if (!m_session) return false;
+    // Text edits: the undo stack knows whether the document is back at the
+    // state that was written. Images carry no undo command, so they are
+    // compared against the revision the save recorded.
+    return !m_undoStack->isClean()
+        || m_session->imageRevision() != m_savedImageRevision;
 #else
     return false;
 #endif
 }
 
 #ifdef HAVE_POPPLER
-bool DocumentView::savePopplerRaster(const QString &outputPath)
+bool DocumentView::writePopplerRaster(const QString &outputPath)
 {
     if (!m_popplerDoc || !m_renderer || !m_session || m_pageCount <= 0)
         return false;
 
     constexpr qreal kPts2Px = 300.0 / 72.0;  // 300 DPI
 
-    // Staged: the renderer reads from the open document while this writes, and
-    // the two can be the same file (saving over the document you opened).
-    const QString staging = SafeWrite::stagingPath(outputPath);
-    if (staging.isEmpty()) return false;
-
-    const QSizeF firstPts = m_renderer->pageSizePts(0);
-    QPdfWriter writer(staging);
+    QPdfWriter writer(outputPath);
     writer.setCreator(QStringLiteral("OpenPDF Studio"));
     writer.setResolution(300);
-    writer.setPageSize(QPageSize(firstPts, QPageSize::Point));
     writer.setPageMargins(QMarginsF(0, 0, 0, 0));
 
+    // Page size is per page, not per document: a size taken from page 1 and
+    // kept squeezes every differently sized page (a landscape sheet, a scan)
+    // onto that first box. It has to be set before the page it applies to
+    // begins — for the first page that means before the painter starts it.
+    const auto setSizeFor = [&writer](const QSizeF &pts) {
+        writer.setPageSize(QPageSize(pts, QPageSize::Point, QString(),
+                                     QPageSize::ExactMatch));
+    };
+    setSizeFor(m_renderer->pageSizePts(0));
+
     QPainter painter(&writer);
-    if (!painter.isActive()) { SafeWrite::discard(staging); return false; }
+    if (!painter.isActive()) return false;
 
     for (int i = 0; i < m_pageCount; ++i) {
-        if (i > 0 && !writer.newPage()) { SafeWrite::discard(staging); return false; }
+        if (i > 0) {
+            setSizeFor(m_renderer->pageSizePts(i));
+            if (!writer.newPage()) return false;
+        }
         QImage img = m_renderer->renderPage(i, kPts2Px);
         if (img.isNull()) continue;
         m_session->applyToImage(i, img, kPts2Px);
@@ -892,7 +1121,40 @@ bool DocumentView::savePopplerRaster(const QString &outputPath)
         painter.drawImage(pageRect, img);
     }
     painter.end();
-    return SafeWrite::commit(staging, outputPath);
+    return true;
+}
+
+std::unique_ptr<Poppler::Document> DocumentView::loadPopplerDocument(const QString &path)
+{
+    if (path.isEmpty()) return nullptr;
+    auto doc = Poppler::Document::load(path);
+    if (doc && doc->isLocked()) {
+        const QByteArray known = PdfPwStore::get(path).toUtf8();
+        if (!known.isEmpty()) doc->unlock(known, known);
+    }
+    if (!doc || doc->isLocked()) return nullptr;
+    doc->setRenderHint(Poppler::Document::Antialiasing);
+    doc->setRenderHint(Poppler::Document::TextAntialiasing);
+    return doc;
+}
+
+void DocumentView::setPopplerSource(std::unique_ptr<Poppler::Document> doc)
+{
+    m_contentProvider.reset();   // references the old doc — drop it first
+    // Drop the handles into m_renderer before the object behind it dies.
+    m_selection->setSource(nullptr, nullptr);
+    m_layoutEngine->setSource(nullptr, m_session);
+    m_imageLayer->setSource(nullptr, m_session, m_ocrEngine, QString());
+    delete m_renderer;
+    m_renderer = nullptr;
+
+    m_popplerDoc = std::move(doc);
+    if (!m_popplerDoc) return;   // closed: the file is free to be replaced now
+
+    m_renderer = new PdfRenderer(m_popplerDoc.get());
+    m_selection->setSource(m_renderer, m_popplerDoc.get());
+    m_layoutEngine->setSource(m_renderer, m_session);
+    m_imageLayer->setSource(m_renderer, m_session, m_ocrEngine, m_filePath);
 }
 #endif // HAVE_POPPLER
 
@@ -1081,13 +1343,17 @@ void DocumentView::setEditorFontSize(int ptSize)
         // Scale the edit bounds proportionally so line-wrapping is preserved.
         // Both width and height scale with the font ratio so character counts
         // per line stay the same and formatting doesn't change.
-        if (m_currentEditorFontSizePt > 0 && ptSize != m_currentEditorFontSizePt) {
-            const qreal ratio = (qreal)ptSize / m_currentEditorFontSizePt;
+        if (m_currentEditorRenderSizePt > 0 && ptSize != m_currentEditorRenderSizePt) {
+            const qreal ratio = (qreal)ptSize / m_currentEditorRenderSizePt;
             const QPointF anchor = m_activeEditBounds.topLeft();
             m_activeEditBounds = QRectF(anchor, m_activeEditBounds.size() * ratio);
             clampToPdfPage(m_activeEditPage, m_activeEditBounds);
         }
-        m_currentEditorFontSizePt = ptSize;
+        // A size the user typed is meant literally, in the document's own
+        // font — no calibration to a substitute face on top of it.
+        m_currentEditorFontSizePt   = ptSize;
+        m_currentEditorRenderSizePt = ptSize;
+        m_editorSizeChangedByUser   = true;
         const QLabel *lbl = pageLabel(m_activeEditPage);
         if (lbl) {
             m_editorFrame->setPageRect(lbl->geometry());
@@ -1097,7 +1363,9 @@ void DocumentView::setEditorFontSize(int ptSize)
             m_editorFrame->repositionForZoom(cb, qMax(6, qRound(ptSize * scale)));
         }
     } else {
-        m_currentEditorFontSizePt = ptSize;
+        m_currentEditorFontSizePt   = ptSize;
+        m_currentEditorRenderSizePt = ptSize;
+        m_editorSizeChangedByUser   = true;
     }
 #else
     Q_UNUSED(ptSize)
@@ -1240,6 +1508,18 @@ bool DocumentView::exportPagesToImages(const QString &outputPath, int quality,
     return false;
 #endif
 }
+
+#ifdef HAVE_QT_PRINT
+bool DocumentView::printDocument(QPrinter *printer, const QList<int> &pages)
+{
+#  ifdef HAVE_PDF_RENDERING
+    return DocumentExporter(exportSources()).printPages(printer, pages);
+#  else
+    Q_UNUSED(printer) Q_UNUSED(pages)
+    return false;
+#  endif
+}
+#endif
 
 void DocumentView::retranslateUi()
 {
@@ -1521,9 +1801,9 @@ static QColor sampleBackgroundColor(const QImage &img, const QRect &region)
 // measured ink height of the original glyphs.
 
 // Vertical ink runs inside `region`: a run is a sequence of rows carrying
-// pixels that stand out from the region's background, reported as its height
-// in rows and the number of ink pixels it holds.
-struct InkRun { int height; qint64 pixels; };
+// pixels that stand out from the region's background, reported as its first
+// row, its height in rows, and the number of ink pixels it holds.
+struct InkRun { int top; int height; qint64 pixels; };
 
 static QList<InkRun> inkRuns(const QImage &img, const QRect &region)
 {
@@ -1558,60 +1838,132 @@ static QList<InkRun> inkRuns(const QImage &img, const QRect &region)
             if (start < 0) { start = y; pixels = 0; }
             pixels += ink;
         } else if (start >= 0) {
-            runs.append({ y - start, pixels });
+            runs.append({ start, y - start, pixels });
             start = -1;
         }
     }
-    if (start >= 0) runs.append({ sr.bottom() + 1 - start, pixels });
+    if (start >= 0) runs.append({ start, sr.bottom() + 1 - start, pixels });
     return runs;
 }
 
-// Height in pixels of the main ink run inside `region` — the run holding the
-// most ink, which for text is the body of the letters.
+// Leftmost column between rows `top` and `bottom` that carries ink, or -1.
+static int inkLeftPx(const QImage &img, const QRect &region, int top, int bottom)
+{
+    const QRect sr = region.intersected(img.rect());
+    if (sr.isEmpty()) return -1;
+
+    const auto lumAt = [&img](int x, int y) {
+        const QRgb c = pixelOverWhite(img, x, y);
+        return (qRed(c) * 299 + qGreen(c) * 587 + qBlue(c) * 114) / 1000;
+    };
+    QMap<int, int> hist;
+    for (int y = sr.top(); y <= sr.bottom(); ++y)
+        for (int x = sr.left(); x <= sr.right(); ++x)
+            hist[lumAt(x, y)]++;
+    int bgLum = 255, bgN = 0;
+    for (auto it = hist.cbegin(); it != hist.cend(); ++it)
+        if (it.value() > bgN) { bgN = it.value(); bgLum = it.key(); }
+
+    const int y0 = qMax(sr.top(), top);
+    const int y1 = qMin(sr.bottom(), bottom);
+    for (int x = sr.left(); x <= sr.right(); ++x) {
+        int ink = 0;
+        for (int y = y0; y <= y1; ++y)
+            if (std::abs(lumAt(x, y) - bgLum) > 40) ++ink;
+        if (ink >= 1) return x;
+    }
+    return -1;
+}
+
+// The main ink run inside `region` — the run holding the most ink, which for
+// text is the body of the letters. `top` is its first row (-1 = nothing found),
+// `height` its extent, `left` the first column carrying ink within it.
 //
 // Both sides of the calibration go through this same function, and that is the
-// whole point: it does not matter that the run excludes umlaut dots or that a
-// detected line box clips them off, as long as page and probe are measured
-// alike. Anything trying to capture the FULL ink extent instead would have to
-// bridge accents across gaps that are indistinguishable from tight line
-// spacing, and line boxes cut accents off anyway.
-static double inkLineHeightPx(const QImage &img, const QRect &region)
+// whole point: page and probe must be measured alike, down to which part of the
+// glyphs counts. Taking the densest run rather than the full ink extent is what
+// makes that possible — an accent sits beyond a gap that is indistinguishable
+// from tight line spacing, so no honest rule could include it on the page side.
+// The caller's job is to hand this function a region with room to spare, or the
+// run comes back clipped on one side only (see measuredInkPt).
+struct InkLine { int top { -1 }; int height { 0 }; int left { -1 }; };
+
+static InkLine inkLinePx(const QImage &img, const QRect &region)
 {
     const QList<InkRun> runs = inkRuns(img, region);
-    if (runs.isEmpty()) return 0.0;
+    if (runs.isEmpty()) return {};
 
     // Ink count, not height: it keeps accents, rules and cell borders from
     // being mistaken for the text — they are thin AND sparse.
     const InkRun *main = &runs.first();
     for (const InkRun &r : runs)
         if (r.pixels > main->pixels) main = &r;
-    return double(main->height);
+
+    InkLine out;
+    out.top    = main->top;
+    out.height = main->height;
+    out.left   = inkLeftPx(img, region, main->top, main->top + main->height - 1);
+    return out;
 }
 
-// Ink height of one text line inside `boundsPt`, in PDF points, measured on a
-// render of the page at `scale` px/pt. 0 when nothing measurable was found.
-static double measuredInkHeightPt(const QImage &img, const QRectF &boundsPt,
-                                  qreal scale)
+// The ink of one text line inside `boundsPt`, in PDF points, measured on a
+// render of the page at `scale` px/pt. height 0 = nothing measurable found.
+struct MeasuredInk { double top { 0.0 }; double height { 0.0 }; double left { 0.0 }; };
+
+static MeasuredInk measuredInkPt(const QImage &img, const QRectF &boundsPt,
+                                 qreal scale)
 {
-    if (img.isNull() || boundsPt.isEmpty() || scale <= 0.0) return 0.0;
-    const QRectF px(boundsPt.topLeft() * scale, boundsPt.size() * scale);
-    return inkLineHeightPx(img, px.toAlignedRect()) / scale;
+    if (img.isNull() || boundsPt.isEmpty() || scale <= 0.0) return {};
+    const auto measure = [&](const QRectF &r) -> MeasuredInk {
+        const QRectF px(r.topLeft() * scale, r.size() * scale);
+        const InkLine ink = inkLinePx(img, px.toAlignedRect());
+        if (ink.top < 0) return {};
+        return { ink.top / scale, ink.height / scale,
+                 ink.left >= 0 ? ink.left / scale : r.left() };
+    };
+
+    const MeasuredInk tight = measure(boundsPt);
+    if (tight.height <= 0.0) return tight;
+
+    // A line box cuts accents and descenders off, so measuring inside it
+    // reports LESS ink than the text really has — while the reference this is
+    // compared against is drawn with room to spare. That gap alone shrinks
+    // every edited line by a few percent. Measuring again with headroom closes
+    // it, as long as the extra rows did not drag a neighbouring line in: a
+    // second line of text roughly doubles the run, real accents add a fraction.
+    const double pad = qMax(1.0, boundsPt.height() * 0.25);
+    const MeasuredInk padded = measure(boundsPt.adjusted(0, -pad, 0, pad));
+    if (padded.height > tight.height && padded.height <= tight.height * 1.35)
+        return padded;
+    return tight;
 }
 
-// Ink height of `text` per 1 pt of font size when drawn with `f` — the
-// counterpart of measuredInkHeightPt for the font the commit paints with.
+// What `f` puts on the page, per 1 pt of font size, when the text is drawn with
+// its pen at the origin: how tall the ink is, how far above the baseline it
+// starts, and how far right of the pen it starts.
+//
 // It DRAWS the text and measures the result instead of asking the font for its
 // metrics: a tight bounding rect is only as truthful as the platform's font
 // backend, and where that backend has no font at all it reports a full em box
 // while painting something much smaller. Rendering compares what the user will
 // actually see against what the page actually shows.
-static double fontInkHeightPerPt(const QString &text, QFont f)
+//
+// The last two numbers turn a measured ink position back into a pen position,
+// which is how backends that cannot read the text matrix (Poppler) still get an
+// anchor to put replacement text on.
+struct FontInk {
+    double heightPerPt { 0.0 };   // ink height
+    double risePerPt   { 0.0 };   // baseline → ink top (positive = above)
+    double bearingPerPt{ 0.0 };   // pen x → ink left
+};
+
+static FontInk fontInkPerPt(const QString &text, QFont f)
 {
     constexpr int kRef = 64;   // large enough that hinting rounding is noise
     f.setPixelSize(kRef);
     const QFontMetricsF fm(f);
 
-    QList<double> heights;
+    QList<double> heights, rises, bearings;
     const QStringList lines = text.split(u'\n');
     for (const QString &raw : lines) {
         // The vertical extremes come from a handful of glyphs; capping the
@@ -1622,21 +1974,34 @@ static double fontInkHeightPerPt(const QString &text, QFont f)
         const int w = qBound(4 * kRef,
                              qCeil(fm.horizontalAdvance(ln)) + 2 * kRef,
                              8000);
+        // Pen at (kRef/2, 2*kRef) — drawn from the baseline, so the measured
+        // ink box is directly relative to the anchor the caller needs.
+        constexpr int kPenX = kRef / 2;
+        constexpr int kBase = 2 * kRef;
         QImage probe(w, 4 * kRef, QImage::Format_RGB32);
         probe.fill(Qt::white);
         {
             QPainter p(&probe);
             p.setFont(f);
             p.setPen(Qt::black);
-            p.drawText(QRect(kRef / 2, kRef, w, 2 * kRef),
-                       Qt::AlignLeft | Qt::AlignTop, ln);
+            p.drawText(QPointF(kPenX, kBase), ln);
         }
-        const double ink = inkLineHeightPx(probe, probe.rect());
-        if (ink > 0.0) heights.append(ink / double(kRef));
+        const InkLine ink = inkLinePx(probe, probe.rect());
+        if (ink.height > 0 && ink.top >= 0) {
+            heights.append(ink.height / double(kRef));
+            rises.append((kBase - ink.top) / double(kRef));
+            if (ink.left >= 0)
+                bearings.append((ink.left - kPenX) / double(kRef));
+        }
     }
-    if (heights.isEmpty()) return 0.0;
-    std::sort(heights.begin(), heights.end());
-    return heights[heights.size() / 2];
+    if (heights.isEmpty()) return {};
+
+    const auto median = [](QList<double> v) {
+        if (v.isEmpty()) return 0.0;
+        std::sort(v.begin(), v.end());
+        return v[v.size() / 2];
+    };
+    return { median(heights), median(rises), median(bearings) };
 }
 
 void DocumentView::handleEditClick(const QPoint &canvasPos)
@@ -1821,6 +2186,7 @@ void DocumentView::handleEditClick(const QPoint &canvasPos)
         }
     }
     m_activeEditOriginalText = displayText;
+    m_activeEditPdfText      = isSessionEdit ? sessionEdit.originalText : displayText;
     if (isSessionEdit)
         m_activeEditFieldName = sessionEdit.formField;
 
@@ -1842,8 +2208,10 @@ void DocumentView::handleEditClick(const QPoint &canvasPos)
     // to the file unchanged — everything else is an estimate that has to be
     // calibrated against the rendered ink further down.
     bool sizeIsExact = false;
+    m_editorSizeChangedByUser = false;
     if (isSessionEdit && sessionEdit.fontSizePt > 0.0) {
-        m_currentEditorFontSizePt = qMax(4, int(sessionEdit.fontSizePt));
+        m_currentEditorFontSizePt = qMax(4.0, sessionEdit.fontSizePt);
+        m_editorSizeChangedByUser = sessionEdit.sizeChanged;
         sizeIsExact = true;               // already settled when it was created
     } else {
         const double detectedPt = (contentItem.isValid() && contentItem.fontSizePt > 0.0)
@@ -1853,15 +2221,17 @@ void DocumentView::handleEditClick(const QPoint &canvasPos)
             const bool   plausible = (detectedPt <= polyEst * 4.0)
                                    || (block.pdfBounds.height() >= 20.0);
             if (plausible) {
-                m_currentEditorFontSizePt = qMax(4, int(detectedPt));
+                // Kept fractional: rounding a 16.5 pt heading down to 16 is a
+                // visible shrink, and it is the number written back to the file.
+                m_currentEditorFontSizePt = qMax(4.0, detectedPt);
                 sizeIsExact = contentItem.fontSizeExact;
             } else {
-                m_currentEditorFontSizePt = qMax(4, qRound(qMin(polyEst, 28.0)));
+                m_currentEditorFontSizePt = qMax(4.0, qMin(polyEst, 28.0));
             }
         } else {
             const int    lineCount = qMax(1, displayText.count(u'\n') + 1);
             const double lineH     = qMin(m_activeEditBounds.height() / lineCount, 20.0);
-            m_currentEditorFontSizePt = qMax(4, qRound(lineH / 0.72));
+            m_currentEditorFontSizePt = qMax(4.0, lineH / 0.72);
         }
     }
     // Sanity: the clicked line's glyph height caps the font size — a
@@ -1870,7 +2240,7 @@ void DocumentView::handleEditClick(const QPoint &canvasPos)
         const double lineGlyphH = block.pdfBounds.height();
         if (lineGlyphH > 4.0 && lineGlyphH < 60.0
                 && m_currentEditorFontSizePt > lineGlyphH * 1.5) {
-            m_currentEditorFontSizePt = qMax(4, qRound(lineGlyphH * 1.05));
+            m_currentEditorFontSizePt = qMax(4.0, lineGlyphH * 1.05);
             sizeIsExact = false;          // overridden → back to an estimate
         }
     }
@@ -1892,38 +2262,87 @@ void DocumentView::handleEditClick(const QPoint &canvasPos)
         m_currentEditorItalic     = false;
         m_editorFontChangedByUser = false;
     }
-    // Calibrate estimated sizes against the ORIGINAL ink (see the helpers
-    // above). What must be preserved is how tall the text LOOKS, and the point
-    // size alone does not decide that: the editor paints with a different
-    // family than the document (always so on the Poppler backend, which
-    // reports none) and equal point sizes render visibly different ink there.
-    // Editing a line must never resize it, so pick the size whose ink height
-    // matches what the page actually shows.
-    // Exact sizes are left alone: they are what the vector save writes back
-    // into the file, where a size fitted to OUR font would be wrong.
-    if (!sizeIsExact && !isSessionEdit && !contentItem.isFormField()
-            && !displayText.isEmpty() && !sampleImage().isNull()) {
-        const double inkPt = measuredInkHeightPt(sampleImage(), m_activeEditBounds,
-                                                 kSampleScale);
+    // Calibrate against the ORIGINAL ink (see the helpers above). What must be
+    // preserved is how tall the text LOOKS, and the point size alone does not
+    // decide that: the editor paints with a different family than the document
+    // (always so on the Poppler backend, which reports none) and equal point
+    // sizes render visibly different ink there. Editing a line must never
+    // resize it, so the size we PAINT with is the one whose ink height matches
+    // what the page actually shows.
+    //
+    // That fitted size is not the one the file gets. An exact size is what the
+    // PDF itself states, and the vector save must write it back untouched — a
+    // size bent to fit a substitute face would be wrong in the document's own
+    // font. So the two part ways here: fitted on screen, exact on disk. Only an
+    // estimated size, which is nothing but a guess, is replaced outright.
+    m_currentEditorRenderSizePt = m_currentEditorFontSizePt;
+    const bool measurable = !isSessionEdit && !contentItem.isFormField()
+                         && !displayText.isEmpty() && !sampleImage().isNull();
+    MeasuredInk origInk;
+    FontInk     probeInk;
+    if (measurable) {
+        origInk = measuredInkPt(sampleImage(), m_activeEditBounds, kSampleScale);
         QFont probe(m_currentEditorFontFamily.isEmpty()
                         ? QStringLiteral("Helvetica") : m_currentEditorFontFamily);
         probe.setStyleHint(QFont::SansSerif);
         probe.setBold(m_currentEditorBold);
         probe.setItalic(m_currentEditorItalic);
-        const double inkPerPt = fontInkHeightPerPt(displayText, probe);
-        if (inkPt > 1.0 && inkPerPt > 0.05) {
+        probeInk = fontInkPerPt(displayText, probe);
+        if (origInk.height > 1.0 && probeInk.heightPerPt > 0.05) {
             // The measurement corrects the estimate, it does not replace it:
             // ink that can't be told apart from its surroundings (text over an
             // image, a band of graphics inside the bounds) must not be able to
             // blow the size up or collapse it.
-            const int fitted = qRound(inkPt / inkPerPt);
-            m_currentEditorFontSizePt =
-                qBound(qMax(4, qRound(m_currentEditorFontSizePt * 0.6)),
+            const double fitted = origInk.height / probeInk.heightPerPt;
+            m_currentEditorRenderSizePt =
+                qBound(qMax(4.0, m_currentEditorFontSizePt * 0.6),
                        fitted,
-                       qMax(5, qRound(m_currentEditorFontSizePt * 1.5)));
+                       qMax(5.0, m_currentEditorFontSizePt * 1.5));
+            if (!sizeIsExact)
+                m_currentEditorFontSizePt = m_currentEditorRenderSizePt;
         }
     }
-    Q_EMIT editorFontSizeChanged(m_currentEditorFontSizePt);
+
+    // Anchor for the replacement text: where the original actually starts,
+    // x on the pen and y on the BASELINE of its FIRST line. The content scanner
+    // reads it straight out of the text matrix; where no scanner exists
+    // (Poppler), the probe above just measured how far our own font puts ink
+    // above and right of its pen, so the first line's measured ink position
+    // converts back into a pen position.
+    m_activeEditLineSpacingPt = isSessionEdit ? sessionEdit.lineSpacingPt
+                                              : contentItem.lineSpacingPt;
+
+    m_activeEditHasOrigin = false;
+    QPointF textOrigin;
+    if (isSessionEdit) {
+        m_activeEditHasOrigin = sessionEdit.hasTextOrigin;
+        textOrigin = sessionEdit.pdfBounds.topLeft() + sessionEdit.textOriginOffset;
+    } else if (!contentItem.textOrigin.isNull()
+               && contentItem.textOrigin.y() >= m_activeEditBounds.top() - 1.0
+               && contentItem.textOrigin.y()
+                      <= m_activeEditBounds.top() + m_currentEditorRenderSizePt * 1.6) {
+        // Guarded against a paragraph whose first line is not the one the
+        // scanner reported — anchoring line 1 to line 3's baseline would drop
+        // the whole block down the page.
+        m_activeEditHasOrigin = true;
+        textOrigin = contentItem.textOrigin;
+    } else if (measurable && probeInk.risePerPt > 0.05) {
+        const MeasuredInk first = measuredInkPt(
+            sampleImage(),
+            QRectF(m_activeEditBounds.left(), m_activeEditBounds.top(),
+                   m_activeEditBounds.width(),
+                   qMin(m_activeEditBounds.height(),
+                        m_currentEditorRenderSizePt * 1.5)),
+            kSampleScale);
+        if (first.height > 1.0) {
+            m_activeEditHasOrigin = true;
+            textOrigin = QPointF(
+                first.left - probeInk.bearingPerPt * m_currentEditorRenderSizePt,
+                first.top  + probeInk.risePerPt    * m_currentEditorRenderSizePt);
+        }
+    }
+
+    Q_EMIT editorFontSizeChanged(qRound(m_currentEditorFontSizePt));
 
     Q_EMIT editorFontChanged(m_currentEditorFontFamily.isEmpty()
                                  ? QStringLiteral("Helvetica")
@@ -1933,9 +2352,10 @@ void DocumentView::handleEditClick(const QPoint &canvasPos)
     // Expand edit bounds to cover the full rendered line height.  Glyph
     // polygons capture only the inked area (cap height ≈ 72% of font size);
     // large headings can leave original characters peeking out beneath the
-    // blank fill without this.
-    if (m_currentEditorFontSizePt > 0) {
-        const double minH = m_currentEditorFontSizePt * 1.15;
+    // blank fill without this. Sizes here are the ones being PAINTED — this
+    // is about what the frame has to cover on screen.
+    if (m_currentEditorRenderSizePt > 0) {
+        const double minH = m_currentEditorRenderSizePt * 1.15;
         if (m_activeEditBounds.height() < minH) {
             m_activeEditBounds.setHeight(minH);
             clampToPdfPage(m_activeEditPage, m_activeEditBounds);
@@ -1944,7 +2364,7 @@ void DocumentView::handleEditClick(const QPoint &canvasPos)
         // font size — catches polygon bounds that span whole table blocks.
         // Multi-line paragraph bounds from the region model are trusted.
         if (!paragraphBounds) {
-            const double capH = m_currentEditorFontSizePt * 5.0;
+            const double capH = m_currentEditorRenderSizePt * 5.0;
             if (m_activeEditBounds.height() > capH) {
                 m_activeEditBounds.setHeight(capH);
                 clampToPdfPage(m_activeEditPage, m_activeEditBounds);
@@ -1967,7 +2387,7 @@ void DocumentView::handleEditClick(const QPoint &canvasPos)
                                                px.toAlignedRect());
     }
 
-    const int fontSize = qMax(6, qRound(m_currentEditorFontSizePt * scale));
+    const int fontSize = qMax(6, qRound(m_currentEditorRenderSizePt * scale));
 
     // Background color: stored session color > content-stream fill (light
     // fills only — dark detections are usually borders, not backgrounds) >
@@ -2000,12 +2420,13 @@ void DocumentView::handleEditClick(const QPoint &canvasPos)
     // QTextEdit wraps the last word onto a bogus new line — and the commit
     // paints that wrap into the document. Widen the edit bounds so every
     // original line fits the editor font on ONE line (clamped to the page).
-    if (m_currentEditorFontSizePt > 0 && !displayText.isEmpty()) {
+    if (m_currentEditorRenderSizePt > 0 && !displayText.isEmpty()) {
         QFont measure(m_currentEditorFontFamily.isEmpty()
                           ? QStringLiteral("Helvetica")
                           : m_currentEditorFontFamily);
         measure.setStyleHint(QFont::SansSerif);
-        measure.setPixelSize(m_currentEditorFontSizePt);   // 1 px == 1 pt here
+        // 1 px == 1 pt here
+        measure.setPixelSize(qMax(1, qRound(m_currentEditorRenderSizePt)));
         measure.setBold(m_currentEditorBold);
         measure.setItalic(m_currentEditorItalic);
         const QFontMetricsF fm(measure);
@@ -2013,11 +2434,17 @@ void DocumentView::handleEditClick(const QPoint &canvasPos)
         const QStringList lines = displayText.split(u'\n');
         for (const QString &ln : lines)
             needW = qMax(needW, fm.horizontalAdvance(ln));
-        needW += m_currentEditorFontSizePt * 0.6;   // caret/AA headroom
+        needW += m_currentEditorRenderSizePt * 0.6;   // caret/AA headroom
         if (needW > m_activeEditBounds.width())
             m_activeEditBounds.setWidth(
                 qMin(needW, pageSize.width() - m_activeEditBounds.left() - 2.0));
     }
+
+    // Freeze the anchor against the final box. Stored as an offset, it now
+    // rides along with every later move or resize of the frame for free.
+    m_activeEditOriginOffset = m_activeEditHasOrigin
+                                   ? textOrigin - m_activeEditBounds.topLeft()
+                                   : QPointF();
 
     hideHoverHighlight();
 
@@ -2073,6 +2500,57 @@ void DocumentView::handleEditClick(const QPoint &canvasPos)
 }
 
 #ifdef HAVE_PDF_RENDERING
+void DocumentView::discardEditHistory()
+{
+    m_session->clearSuspended();
+    m_session->clear();
+    // The placed images ARE the session's image edits, drawn as widgets. Left
+    // behind they would hang over a document that no longer contains them —
+    // and the next save would paint them into it a second time.
+    m_imageLayer->clear();
+    m_undoStack->clear();
+    m_savedImageRevision = m_session->imageRevision();
+}
+
+bool DocumentView::detachSourceFrom(const QString &saveTarget)
+{
+    if (m_filePath.isEmpty() || saveTarget.isEmpty()) return false;
+    // Already on a working copy — the save cannot reach it.
+    if (SessionStore::isWorkingFile(m_filePath)) return true;
+    // Writing somewhere else entirely leaves the base alone.
+    if (QFileInfo(m_filePath).absoluteFilePath()
+            != QFileInfo(saveTarget).absoluteFilePath())
+        return true;
+
+    const QString work = SessionStore::newWorkingFile(m_filePath);
+    if (work.isEmpty()) return false;
+    QFile::remove(work);
+    if (!QFile::copy(m_filePath, work)) return false;
+    PdfPwStore::set(work, PdfPwStore::get(m_filePath));
+
+    const QString original = m_filePath;
+#ifdef HAVE_QT_PDF
+    m_document->close();
+    m_document->setPassword(PdfPwStore::get(work));
+    if (m_document->load(work) != QPdfDocument::Error::None) {
+        m_document->close();
+        m_document->setPassword(PdfPwStore::get(original));
+        m_document->load(original);
+        SessionStore::discard(work);
+        return false;
+    }
+#elif defined(HAVE_POPPLER)
+    auto copy = loadPopplerDocument(work);
+    if (!copy) { SessionStore::discard(work); return false; }
+    setPopplerSource(std::move(copy));
+#endif
+    m_filePath = work;
+    // The content scanner holds the old path open; on Windows that alone would
+    // block the save from replacing it.
+    resetContentProvider();
+    return true;
+}
+
 EditSession::Edit DocumentView::makeSessionEdit(int page, const QRectF &bounds,
                                                 const QRectF &sourceRect,
                                                 const QString &text) const
@@ -2083,12 +2561,18 @@ EditSession::Edit DocumentView::makeSessionEdit(int page, const QRectF &bounds,
     e.sourceRect  = sourceRect;
     e.newText     = text;                       // null → blank (erase-only) edit
     e.fontSizePt  = m_currentEditorFontSizePt;
+    e.renderSizePt = m_currentEditorRenderSizePt;
+    e.textOriginOffset = m_activeEditOriginOffset;
+    e.hasTextOrigin    = m_activeEditHasOrigin;
+    e.lineSpacingPt    = m_activeEditLineSpacingPt;
+    e.originalText     = m_activeEditPdfText;
     e.textColor   = m_currentEditorColor;
     e.bgColor     = m_currentBgColor;
     e.fontFamily  = m_currentEditorFontFamily;
     e.bold        = m_currentEditorBold;
     e.italic      = m_currentEditorItalic;
     e.fontChanged = m_editorFontChangedByUser;
+    e.sizeChanged = m_editorSizeChangedByUser;
     e.formField   = m_activeEditFieldName;
     return e;
 }
@@ -2136,7 +2620,8 @@ void DocumentView::commitCurrentEdit(const QString &newText)
             && trimNew == m_activeEditOriginalText.trimmed()
             && nearly(bounds, m_activeEditPresentedBounds)
             && !m_editorFontChangedByUser
-            && m_currentEditorFontSizePt == m_activeEditPresentedFontSizePt
+            && qFuzzyCompare(m_currentEditorFontSizePt + 1.0,
+                             m_activeEditPresentedFontSizePt + 1.0)
             && m_currentEditorColor      == m_activeEditPresentedColor;
         if (untouched) {
             m_activeEditInPlace = false;
@@ -2189,9 +2674,19 @@ void DocumentView::commitCurrentEdit(const QString &newText)
     // Snapshot AFTER state.  Only push an undo command if the session actually
     // changed — avoid polluting the stack with no-op "clicked and walked away" entries.
     const auto snapAfter = m_session->snapshotEdits();
-    if (snapAfter != snapBefore)
+    if (snapAfter != snapBefore) {
+        // A push moves the stack index too, but it is a NEW state — the
+        // history must append it, not look for one it already knows.
+        m_pushingEdit = true;
         m_undoStack->push(new EditUndoCmd(m_session, this, srcPage, page,
                                           snapBefore, snapAfter));
+        m_pushingEdit = false;
+        // Recorded after the push so the entry carries the stack index the
+        // state sits at — that index is what takes the document back here.
+        recordChange({ trimNew.isEmpty() ? DocumentHistory::Kind::TextRemoved
+                                         : DocumentHistory::Kind::TextEdited,
+                       page });
+    }
 
     // Remember the original PDF block bounds so that the mouseRelease handler
     // for THIS SAME CLICK can avoid re-opening an editor for the block we just
@@ -2252,6 +2747,7 @@ void DocumentView::createTextFrame(const QRect &viewportDragRect)
     clampToPdfPage(pageIdx, m_activeEditBounds);
     m_activeEditOriginalBounds = m_activeEditBounds;
     m_activeEditOriginalText  = QString();
+    m_activeEditPdfText       = QString();  // nothing replaced → no font to keep
     m_activeEditInPlace       = false;   // fresh box — there is nothing to leave alone
     m_activeEditNeedsBlank    = false;   // new text box overlay — don't erase background
     m_activeEditEraseRects.clear();
@@ -2265,8 +2761,14 @@ void DocumentView::createTextFrame(const QRect &viewportDragRect)
     m_currentEditorBold       = false;
     m_currentEditorItalic     = false;
     m_editorFontChangedByUser = false;
-    m_currentEditorFontSizePt = 12;
-    Q_EMIT editorFontSizeChanged(m_currentEditorFontSizePt);
+    m_editorSizeChangedByUser = false;
+    m_currentEditorFontSizePt   = 12.0;
+    m_currentEditorRenderSizePt = 12.0;
+    // A box drawn on empty canvas has no original text to sit on the line of.
+    m_activeEditHasOrigin     = false;
+    m_activeEditOriginOffset  = QPointF();
+    m_activeEditLineSpacingPt = 0.0;
+    Q_EMIT editorFontSizeChanged(qRound(m_currentEditorFontSizePt));
     Q_EMIT editorFontChanged(QStringLiteral("Helvetica"), false, false);
 
     hideHoverHighlight();

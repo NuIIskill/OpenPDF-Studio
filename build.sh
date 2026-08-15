@@ -68,6 +68,22 @@ if [ "${BUILD_APPIMAGE}" = "1" ]; then
         "https://github.com/AppImage/appimagetool/releases/download/continuous/appimagetool-${ARCH}.AppImage")
     export LINUXDEPLOY_PLUGIN_QT="${QT_PLUGIN}"
 
+    # appimagetool lädt die type2-Runtime bei JEDEM Lauf neu von GitHub und
+    # bricht ab, wenn das fehlschlägt ("server returned status code 0").
+    # Einmal cachen und per --runtime-file reinreichen macht den Pack-Schritt
+    # unabhängig davon.
+    RUNTIME_FILE="${TOOLS_DIR}/appimage-runtime-${ARCH}"
+    if [ ! -s "${RUNTIME_FILE}" ]; then
+        RUNTIME_URL="https://github.com/AppImage/type2-runtime/releases/download/continuous/runtime-${ARCH}"
+        echo "==> Downloading AppImage runtime…" >&2
+        mkdir -p "${TOOLS_DIR}"
+        if command -v curl &>/dev/null; then
+            curl -fsSL --retry 3 -o "${RUNTIME_FILE}" "${RUNTIME_URL}" || rm -f "${RUNTIME_FILE}"
+        elif command -v wget &>/dev/null; then
+            wget -q -O "${RUNTIME_FILE}" "${RUNTIME_URL}" || rm -f "${RUNTIME_FILE}"
+        fi
+    fi
+
     # ── Pre-seed Wayland Qt plugins + libs before linuxdeploy resolves deps ──
     QT_INSTALL_PLUGINS=$(qmake6 -query QT_INSTALL_PLUGINS 2>/dev/null || \
                          qmake  -query QT_INSTALL_PLUGINS 2>/dev/null || \
@@ -187,6 +203,8 @@ APPRUN_EOF
     mkdir -p dist
     VERSION="$(tr -d '[:space:]' < version.txt)"
     APPIMAGE_OUT="dist/OpenPDF_Studio-${VERSION}-${ARCH}.AppImage"
-    ARCH="${ARCH}" "${APPIMAGETOOL}" "${APPDIR}" "${APPIMAGE_OUT}"
+    APPIMAGETOOL_ARGS=()
+    [ -s "${RUNTIME_FILE}" ] && APPIMAGETOOL_ARGS+=(--runtime-file "${RUNTIME_FILE}")
+    ARCH="${ARCH}" "${APPIMAGETOOL}" "${APPIMAGETOOL_ARGS[@]}" "${APPDIR}" "${APPIMAGE_OUT}"
     echo "==> AppImage ready: ${APPIMAGE_OUT}"
 fi

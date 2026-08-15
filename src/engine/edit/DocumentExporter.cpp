@@ -13,6 +13,9 @@
 #    include <QPdfSelection>
 #    include <QRegularExpression>
 #  endif
+#  ifdef HAVE_QT_PRINT
+#    include <QPrinter>
+#  endif
 #endif
 
 #include <QDir>
@@ -446,3 +449,80 @@ bool DocumentExporter::exportPagesToImages(const QString &outputPath,
     return false;
 #endif
 }
+
+#if defined(HAVE_PDF_RENDERING) && defined(HAVE_QT_PRINT)
+bool DocumentExporter::printPages(QPrinter *printer, const QList<int> &pages) const
+{
+    if (!printer || !m_src.renderer || m_src.pageCount <= 0) return false;
+
+    QList<int> wanted;
+    for (int p : pages)
+        if (p >= 0 && p < m_src.pageCount) wanted.append(p);
+    if (pages.isEmpty())
+        for (int p = 0; p < m_src.pageCount; ++p) wanted.append(p);
+    if (wanted.isEmpty()) return false;
+
+    // Rasterising at the printer's own resolution is what makes the print
+    // sharp, but 600 dpi on A4 is a ~140 MB image per page and nothing of it
+    // is visible on paper. Cap at 300 dpi and let QPainter do the last step.
+    const qreal dpi   = qBound(72.0, qreal(printer->resolution()), 300.0);
+    const qreal scale = dpi / PdfRenderer::kPtsPerInch;
+
+    QPainter painter;
+    if (!painter.begin(printer)) return false;
+    painter.setRenderHint(QPainter::SmoothPixmapTransform, true);
+
+    bool firstPage = true;
+    for (int i : wanted) {
+        // newPage() goes *between* sheets — calling it up front ejects a blank
+        // one. A page that fails to render still gets its sheet so that what
+        // comes out matches the page numbers the user asked for.
+        if (!firstPage && !printer->newPage()) {
+            painter.end();
+            return false;
+        }
+        firstPage = false;
+
+        QImage image = m_src.renderer->renderPage(i, scale);
+        if (image.isNull()) continue;
+        // Same source of truth as the image export: the session holds edits
+        // that are not in the rendered file yet, and printing must show them.
+        if (m_src.session) m_src.session->applyToImage(i, image, scale);
+
+        const QRectF target = painter.viewport();
+        if (target.isEmpty()) continue;
+
+        // Auto-rotate like every other PDF printer does: a landscape page on a
+        // portrait sheet otherwise prints at ~70 % with two empty bands, and
+        // orientation is per document in the print dialog while a PDF may mix
+        // both. Only rotate when it genuinely buys size.
+        const QSizeF pageSz(image.size());
+        const auto fitScale = [&target](const QSizeF &s) {
+            return qMin(target.width() / s.width(), target.height() / s.height());
+        };
+        const bool rotate = fitScale(pageSz.transposed()) > fitScale(pageSz) * 1.05;
+
+        QSizeF drawn = rotate ? pageSz.transposed() : pageSz;
+        drawn.scale(target.size(), Qt::KeepAspectRatio);
+        const QRectF dest(target.x() + (target.width()  - drawn.width())  / 2.0,
+                          target.y() + (target.height() - drawn.height()) / 2.0,
+                          drawn.width(), drawn.height());
+
+        if (rotate) {
+            painter.save();
+            painter.translate(dest.center());
+            painter.rotate(90);
+            // Under a 90° rotation the local rect's width becomes the drawn
+            // height and vice versa, so it lands exactly on dest.
+            painter.drawImage(QRectF(-dest.height() / 2.0, -dest.width() / 2.0,
+                                     dest.height(), dest.width()), image);
+            painter.restore();
+        } else {
+            painter.drawImage(dest, image);
+        }
+    }
+
+    painter.end();
+    return true;
+}
+#endif

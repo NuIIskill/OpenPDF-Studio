@@ -20,6 +20,7 @@
 #include <QKeySequence>
 #include <QLineEdit>
 #include <QPainter>
+#include <QPainterPath>
 #include <QSpinBox>
 
 // ── OptionCard ────────────────────────────────────────────────────────────────
@@ -455,6 +456,80 @@ protected:
         const int ky = (height() - kd) / 2;
         const int kx = on ? (width() - kd - 2) : 2;
         p.drawEllipse(kx, ky, kd, kd);
+    }
+};
+
+// ── SettingCheckBox ───────────────────────────────────────────────────────────
+// Painted by hand for the same reason ToggleSwitch is: a style-sheet indicator
+// would need a bitmap check mark, and the app deliberately ships without Qt SVG.
+
+class SettingCheckBox : public QAbstractButton
+{
+    Q_OBJECT
+public:
+    explicit SettingCheckBox(const QString &text, QWidget *parent = nullptr)
+        : QAbstractButton(parent)
+    {
+        setCheckable(true);
+        setText(text);
+        setCursor(Qt::PointingHandCursor);
+        setSizePolicy(QSizePolicy::Preferred, QSizePolicy::Fixed);
+    }
+
+    static constexpr int kBox     = 20;   // indicator edge length
+    static constexpr int kSpacing = 14;   // indicator → label gap
+
+    [[nodiscard]] QSize sizeHint() const override
+    {
+        const QFontMetrics fm(labelFont());
+        return { kBox + kSpacing + fm.horizontalAdvance(text()),
+                 qMax(kBox, fm.height()) };
+    }
+
+protected:
+    void paintEvent(QPaintEvent *) override
+    {
+        const bool on = isChecked();
+        const bool dk = Theme::DarkMode;
+
+        QPainter p(this);
+        p.setRenderHint(QPainter::Antialiasing);
+
+        const QRectF box(0.5, (height() - kBox) / 2.0 + 0.5, kBox - 1, kBox - 1);
+        if (on) {
+            p.setPen(Qt::NoPen);
+            p.setBrush(QColor(QStringLiteral("#2563EB")));
+            p.drawRoundedRect(box, 5, 5);
+
+            QPen check(Qt::white, 2.2, Qt::SolidLine, Qt::RoundCap, Qt::RoundJoin);
+            p.setPen(check);
+            const qreal x = box.left(), y = box.top(), w = box.width(), h = box.height();
+            QPainterPath path;
+            path.moveTo(x + w * 0.26, y + h * 0.52);
+            path.lineTo(x + w * 0.44, y + h * 0.70);
+            path.lineTo(x + w * 0.76, y + h * 0.32);
+            p.drawPath(path);
+        } else {
+            p.setPen(QPen(QColor(dk ? QStringLiteral("#4B5563")
+                                    : QStringLiteral("#D1D5DB")), 1.5));
+            p.setBrush(QColor(dk ? QStringLiteral("#1F2124")
+                                 : QStringLiteral("#FFFFFF")));
+            p.drawRoundedRect(box, 5, 5);
+        }
+
+        p.setFont(labelFont());
+        p.setPen(QColor(dk ? QStringLiteral("#E5E7EB") : QStringLiteral("#111827")));
+        p.drawText(QRect(kBox + kSpacing, 0, width() - kBox - kSpacing, height()),
+                   Qt::AlignLeft | Qt::AlignVCenter, text());
+    }
+
+private:
+    [[nodiscard]] QFont labelFont() const
+    {
+        QFont f = font();
+        f.setPointSizeF(f.pointSizeF() > 0 ? f.pointSizeF() : 10);
+        f.setBold(true);
+        return f;
     }
 };
 
@@ -1141,6 +1216,39 @@ QWidget *SettingsPanel::buildAdvancedPage()
     vbox->addWidget(desc);
     vbox->addSpacing(24);
 
+    // ── Interface ─────────────────────────────────────────────────────────────
+    auto *interfaceLabel = new QLabel(tr("INTERFACE"), page);
+    interfaceLabel->setObjectName(QStringLiteral("SettingsGroupLabel"));
+    vbox->addWidget(interfaceLabel);
+    vbox->addSpacing(14);
+
+    m_preserveLayoutCheck = new SettingCheckBox(tr("Preserve panel layout"), page);
+    m_preserveLayoutCheck->setChecked(m_settings->preservePanelLayout());
+    vbox->addWidget(m_preserveLayoutCheck, 0, Qt::AlignLeft);
+    vbox->addSpacing(6);
+
+    auto *preserveDesc = new QLabel(
+        tr("Restore expanded and collapsed panels after restart."), page);
+    preserveDesc->setObjectName(QStringLiteral("SettingsSectionDesc"));
+    vbox->addWidget(preserveDesc);
+    // Keep the description under the label, not under the check box.
+    preserveDesc->setContentsMargins(SettingCheckBox::kBox + SettingCheckBox::kSpacing,
+                                     0, 0, 0);
+    vbox->addSpacing(24);
+
+    auto *sep = new QFrame(page);
+    sep->setObjectName(QStringLiteral("SettingsSeparator"));
+    sep->setFrameShape(QFrame::HLine);
+    sep->setFixedHeight(1);
+    vbox->addWidget(sep);
+    vbox->addSpacing(24);
+
+    // ── Reset ─────────────────────────────────────────────────────────────────
+    auto *resetLabel = new QLabel(tr("RESET"), page);
+    resetLabel->setObjectName(QStringLiteral("SettingsGroupLabel"));
+    vbox->addWidget(resetLabel);
+    vbox->addSpacing(14);
+
     auto *resetAllBtn = new QPushButton(tr("Reset All Settings to Defaults"), page);
     resetAllBtn->setFixedWidth(280);
     resetAllBtn->setStyleSheet(Theme::DarkMode
@@ -1158,6 +1266,7 @@ QWidget *SettingsPanel::buildAdvancedPage()
         Q_EMIT themeChangeRequested(m_pendingTheme);
         m_pendingLang = QStringLiteral("en");
         selectLangCode(m_pendingLang);
+        if (m_preserveLayoutCheck) m_preserveLayoutCheck->setChecked(true);
     });
     vbox->addWidget(resetAllBtn);
     vbox->addStretch(1);
@@ -1280,6 +1389,14 @@ void SettingsPanel::applyAndClose()
             m_settings->setWheelAction(m_wheelActionCombo->currentData().toString());
     }
 
+    // Panel layout
+    bool panelLayoutChanged = false;
+    if (m_preserveLayoutCheck) {
+        const bool preserve = m_preserveLayoutCheck->isChecked();
+        panelLayoutChanged = (preserve != m_settings->preservePanelLayout());
+        m_settings->setPreservePanelLayout(preserve);
+    }
+
     m_settings->sync();
 
     if (m_pendingLang != m_originalLang)
@@ -1287,6 +1404,10 @@ void SettingsPanel::applyAndClose()
 
     Q_EMIT shortcutsChanged();      // always reload shortcuts in MainWindow
     Q_EMIT zoomSettingsChanged();   // always reload zoom settings in MainWindow
+    // Switching the option on captures the layout that is on screen right now,
+    // so the very next start already restores what the user is looking at.
+    if (panelLayoutChanged)
+        Q_EMIT panelLayoutSettingChanged();
 
     accept();
 }

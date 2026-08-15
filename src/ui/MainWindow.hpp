@@ -66,16 +66,29 @@ private:
     void onZoomIn();
     void onZoomOut();
     void onModeSelected(const QString &mode);
+    // The document's change log, with the buttons that walk it. Window-modal
+    // like the organizer: it acts on the document in the tab it was opened on.
+    void openHistoryDialog();
     // Carries out an export the dialog has already validated.
     void runExport(DocumentView *dv, const ExportRequest &req);
     void onToolSelected(const QString &tool);
     void onStartPresentation();
 
+    // Writes the document and reports a failure to the user. Every save goes
+    // through here: a save that quietly does nothing is indistinguishable from
+    // one that worked until the file is opened again somewhere else.
+    bool saveDocument(DocumentView *dv, const QString &path);
     bool confirmAndSave(DocumentView *dv);
     void openTextPanel();
     void closeTextPanel();
     void loadShortcuts();
     void loadZoomSettings();
+
+    // Panel layout persistence — collapsing the right strip is a deliberate
+    // choice by the user, so it survives a restart unless they opt out.
+    void setRightSidebarCollapsed(bool collapsed);
+    void applyPanelLayout();
+    void savePanelLayout();
 
     AppSettings          *m_appSettings  { nullptr };
     TopToolbar           *m_topToolbar   { nullptr };

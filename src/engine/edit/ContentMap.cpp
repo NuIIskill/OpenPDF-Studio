@@ -88,6 +88,7 @@ struct Seg {
     QRectF  bounds;
     QString text;
     int     firstIdx { -1 };   // index into cluster list (style source)
+    QPointF origin;            // pen origin of the leftmost run in the segment
 };
 
 struct RowSegs {
@@ -152,13 +153,13 @@ QList<ContentItem> classifyContentClusters(QList<ContentCluster> clusters,
         for (int k = 0; k < row.idx.size(); ++k) {
             const ContentCluster &c = cl[row.idx[k]];
             if (cur.firstIdx < 0) {
-                cur = Seg{ c.bounds, c.text, row.idx[k] };
+                cur = Seg{ c.bounds, c.text, row.idx[k], c.origin };
                 continue;
             }
             const double gap = c.bounds.left() - cur.bounds.right();
             if (gap >= std::max(row.lineH * 1.5, 10.0)) {
                 rs.segs.append(cur);
-                cur = Seg{ c.bounds, c.text, row.idx[k] };
+                cur = Seg{ c.bounds, c.text, row.idx[k], c.origin };
             } else {
                 if (gap > row.lineH * 0.18 && !cur.text.endsWith(u' ')
                         && !c.text.startsWith(u' '))
@@ -229,6 +230,7 @@ QList<ContentItem> classifyContentClusters(QList<ContentCluster> clusters,
                                  ? ContentItem::Type::TableCell
                                  : ContentItem::Type::Text;
             it.bounds        = seg.bounds;
+            it.textOrigin    = seg.origin;
             it.text          = seg.text.trimmed();
             it.fontSizePt    = src.fontSizePt;
             it.fontSizeExact = src.fontSizeExact;
@@ -263,6 +265,10 @@ QList<ContentItem> classifyContentClusters(QList<ContentCluster> clusters,
     });
 
     QList<ContentItem> merged;
+    // Top of the line most recently merged into each item — the reference for
+    // the block's own line spacing, which the bounds alone no longer show once
+    // several lines have been united.
+    QList<double> lastLineTop;
     for (ContentItem &item : items) {
         ContentItem *host = nullptr;
         const int windowStart = std::max(0, int(merged.size()) - 12);
@@ -304,11 +310,19 @@ QList<ContentItem> classifyContentClusters(QList<ContentCluster> clusters,
         }
 
         if (host) {
+            const int hi = int(host - merged.constData());
+            const double step = item.bounds.top() - lastLineTop[hi];
+            if (step > 0.5)
+                host->lineSpacingPt = host->lineSpacingPt > 0.0
+                                          ? (host->lineSpacingPt + step) / 2.0
+                                          : step;
+            lastLineTop[hi] = item.bounds.top();
             host->bounds = host->bounds.united(item.bounds);
             host->text  += u'\n' + item.text;
             if (host->type == ContentItem::Type::Text)
                 host->type = ContentItem::Type::Paragraph;
         } else {
+            lastLineTop.append(item.bounds.top());
             merged.append(std::move(item));
         }
     }
@@ -828,6 +842,7 @@ void scanStream(const std::string &cs, ScanOut &out, const M &baseCtm,
                     ContentCluster clu;
                     clu.bounds      = QRectF(p.x(), qtY - effective * 0.88,
                                              estW, effective * 1.05);
+                    clu.origin      = QPointF(p.x(), qtY);
                     clu.text        = text;
                     // /Tf size through Tlm and CTM — the real thing, not an
                     // estimate: it can be written back to the file unchanged.

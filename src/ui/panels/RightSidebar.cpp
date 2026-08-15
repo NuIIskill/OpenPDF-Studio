@@ -19,9 +19,10 @@ RightSidebar::RightSidebar(QWidget *parent)
 
     struct ModeItem { const char *icon; const char *label; const char *id; };
     const ModeItem modes[] = {
-        { "pencil", QT_TR_NOOP("Edit"),     "edit"     },
-        { "upload", QT_TR_NOOP("Export"),   "export"   },
-        { "layers", QT_TR_NOOP("Organize"), "organize" },
+        { "pencil",  QT_TR_NOOP("Edit"),     "edit"     },
+        { "upload",  QT_TR_NOOP("Export"),   "export"   },
+        { "layers",  QT_TR_NOOP("Organize"), "organize" },
+        { "history", QT_TR_NOOP("History"),  "history"  },
     };
 
     for (const auto &m : modes) {

@@ -42,6 +42,8 @@ set(SOURCES
     src/app/SafeWrite.hpp
     src/app/SessionStore.cpp
     src/app/SessionStore.hpp
+    src/app/DocumentHistory.cpp
+    src/app/DocumentHistory.hpp
 
     src/engine/view/PdfRenderer.cpp
     src/engine/view/PdfRenderer.hpp
@@ -124,6 +126,8 @@ set(SOURCES
     src/ui/dialogs/PasswordDialog.hpp
     src/ui/dialogs/PdfOrganizerDialog.cpp
     src/ui/dialogs/PdfOrganizerDialog.hpp
+    src/ui/dialogs/HistoryDialog.cpp
+    src/ui/dialogs/HistoryDialog.hpp
 
     src/ui/theme/Theme.cpp
     src/ui/theme/Theme.hpp

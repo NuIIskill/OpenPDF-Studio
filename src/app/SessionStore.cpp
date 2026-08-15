@@ -21,9 +21,20 @@ QString directory()
     return dir.absolutePath();
 }
 
-QString newWorkingFile(const QString &sourcePath)
+QString snapshotDirectory()
 {
-    const QString dir = directory();
+    const QString base = directory();
+    if (base.isEmpty()) return {};
+
+    QDir dir(base + QStringLiteral("/history"));
+    if (!dir.exists() && !QDir().mkpath(dir.absolutePath())) return {};
+    return dir.absolutePath();
+}
+
+// Shared by the working files and the history snapshots: same naming rules,
+// different directory.
+static QString allocateIn(const QString &dir, const QString &sourcePath)
+{
     if (dir.isEmpty()) return {};
 
     QString stem = QFileInfo(sourcePath).completeBaseName();
@@ -48,17 +59,54 @@ QString newWorkingFile(const QString &sourcePath)
     return {};
 }
 
+QString newWorkingFile(const QString &sourcePath)
+{
+    return allocateIn(directory(), sourcePath);
+}
+
+QString newSnapshotFile(const QString &sourcePath)
+{
+    return allocateIn(snapshotDirectory(), sourcePath);
+}
+
+// The working directory holds the snapshot directory, so "in the session
+// directory" is not enough to tell the two apart — compare the exact parent.
+static bool isIn(const QString &dir, const QString &path)
+{
+    if (path.isEmpty() || dir.isEmpty()) return false;
+    return QFileInfo(path).absolutePath() == dir;
+}
+
 bool isWorkingFile(const QString &path)
 {
-    if (path.isEmpty()) return false;
-    const QString dir = directory();
-    if (dir.isEmpty()) return false;
-    return QFileInfo(path).absolutePath() == dir;
+    return isIn(directory(), path);
+}
+
+bool isSnapshotFile(const QString &path)
+{
+    return isIn(snapshotDirectory(), path);
 }
 
 void discard(const QString &path)
 {
     if (isWorkingFile(path)) QFile::remove(path);
+}
+
+void discardSnapshot(const QString &path)
+{
+    if (isSnapshotFile(path)) QFile::remove(path);
+}
+
+void pruneSnapshots(int maxAgeDays)
+{
+    const QString dir = snapshotDirectory();
+    if (dir.isEmpty()) return;
+
+    const QDateTime cutoff = QDateTime::currentDateTime().addDays(-maxAgeDays);
+    const QFileInfoList files =
+        QDir(dir).entryInfoList(QDir::Files | QDir::NoSymLinks);
+    for (const QFileInfo &fi : files)
+        if (fi.lastModified() < cutoff) QFile::remove(fi.absoluteFilePath());
 }
 
 } // namespace SessionStore

@@ -1,6 +1,7 @@
 #include "App.hpp"
 
 #include "AppSettings.hpp"
+#include "SessionStore.hpp"
 #include "ui/MainWindow.hpp"
 #include "ui/DocumentView.hpp"
 #include "ui/bars/TopToolbar.hpp"
@@ -21,6 +22,9 @@ App::~App()
 
 void App::startup()
 {
+    // History states of runs that were killed before they could clean up.
+    SessionStore::pruneSnapshots();
+
     m_mainWindow = std::make_unique<MainWindow>(m_settings.get());
     loadSettings();
     m_mainWindow->show();

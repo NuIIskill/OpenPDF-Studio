@@ -10,12 +10,16 @@ class QLabel;
 class QVBoxLayout;
 class QRubberBand;
 class QFrame;
+#ifdef HAVE_QT_PRINT
+class QPrinter;
+#endif
 QT_END_NAMESPACE
 
 class ImageAnnotationLayer;
 class PageLayoutEngine;
 class TextSelectionController;
 
+#include "app/DocumentHistory.hpp"
 #include "engine/ocr/OcrEngine.hpp"
 #include "engine/edit/DocxExporter.hpp"
 #include "engine/edit/DocumentExporter.hpp"
@@ -53,7 +57,12 @@ public:
     /// PDF (page reordering, rotation, insertion): the reorganized file is a
     /// session working copy, the user's PDF stays untouched until they save.
     /// The document counts as having unsaved changes until then.
-    bool   openWorkingCopy(const QString &contentPath, const QString &targetPath);
+    ///
+    /// `change` describes what produced the new file. Passing one keeps the
+    /// change history running and files the working copy under it; without one
+    /// the document counts as newly opened and the history starts over.
+    bool   openWorkingCopy(const QString &contentPath, const QString &targetPath,
+                           const DocumentHistory::Change &change = {});
     void   clearDocument();
     void   setZoom(int percent);
     void   setZoomSettings(int step, bool ctrlWheel, bool toPointer,
@@ -87,11 +96,23 @@ public:
     void        goToPage(int page);
     ViewMode    viewMode()         const { return m_viewMode; }
     QUndoStack *undoStack()        const { return m_undoStack; }
+    /// Change log of the open document — what the history panel shows.
+    DocumentHistory *history()     const { return m_history; }
+    /// Puts the document back into the state history entry `index` describes.
+    /// Text and image edits are taken from the session, page changes by
+    /// reopening the snapshot that entry belongs to. False when the state
+    /// could not be restored; the document is then left as it was.
+    bool        restoreHistoryState(int index);
     bool        hasUnsavedEdits()  const;
     bool        pdfRenderingAvailable() const;
     QList<DocxPage> allPageContent(const QList<int> &pages = {});
     bool exportPagesToImages(const QString &outputPath, int quality = 85,
                              const QList<int> &pages = {});
+#ifdef HAVE_QT_PRINT
+    /// Prints the document as the user currently sees it, uncommitted edits
+    /// included. `pages` holds zero-based indices; empty means the whole file.
+    bool printDocument(QPrinter *printer, const QList<int> &pages = {});
+#endif
     // Called by undo/redo commands to refresh a page after session state is restored.
     void        rerenderPage(int page);
     // Select tool: text marked on the page (empty when nothing is selected).
@@ -172,8 +193,35 @@ private:
     // Emits pageChanged() when scrolling brought a different page to the front.
     void reportCurrentPage();
     void scrollToPage(int page, bool allowRetry);
+
+    // ── Change history ────────────────────────────────────────────────────────
+    // Records a state the user can come back to. Every place that changes the
+    // document calls this, which is why it is one line: a change that forgets
+    // to report itself is a gap nothing can fill in later.
+    void recordChange(const DocumentHistory::Change &c,
+                      const QString &snapshotSource = QString());
+    // Called by openFile once the document is on screen. Either starts a fresh
+    // history or files the new file under m_openChange (see openWorkingCopy).
+    void noteDocumentOpened();
+    // Records a save that had to overwrite the document it was reading from,
+    // so the written file becomes the state the history points at.
+    void recordSavedOverBase(const QString &path);
+    // Session image overlays in the form the history stores them.
+    QList<DocumentHistory::ImageState> imageStates() const;
+
 #ifdef HAVE_POPPLER
-    bool savePopplerRaster(const QString &outputPath);
+    // Renders every page into a fresh PDF at `outputPath`, edits applied.
+    // Writes nothing but that file — the caller owns the swap onto the target,
+    // which must happen with the document closed (see saveToFile).
+    bool writePopplerRaster(const QString &outputPath);
+    // Loads `path` with a password already known for it. No prompting: this is
+    // for reopening a file the user has already unlocked.
+    std::unique_ptr<Poppler::Document> loadPopplerDocument(const QString &path);
+    // THE place where the open document is exchanged. Everything that keeps a
+    // raw pointer to the document or the renderer is re-pointed here, in the
+    // same breath as the swap — a holder left behind reads freed memory on the
+    // next repaint. Passing nullptr closes the document and releases the file.
+    void setPopplerSource(std::unique_ptr<Poppler::Document> doc);
 #endif
 
     // Widgets
@@ -245,14 +293,32 @@ private:
     // text would still swap the embedded font for ours (see commitCurrentEdit).
     bool    m_activeEditInPlace { false };
     QString m_activeEditOriginalText;
+    // The text as the DOCUMENT had it, which survives every re-edit — unlike
+    // m_activeEditOriginalText, which becomes whatever was typed last. It is
+    // the proof of which glyphs the file's own font carries, so re-editing a
+    // line must not let characters we typed ourselves pass as evidence.
+    QString m_activeEditPdfText;
     // State as the editor was PRESENTED — the reference for "did anything
     // actually change?". Bounds are the presented ones (they can be wider than
     // m_activeEditOriginalBounds, which stays at the original glyph rect).
     QRectF  m_activeEditPresentedBounds;
-    int     m_activeEditPresentedFontSizePt { 0 };
+    double  m_activeEditPresentedFontSizePt { 0.0 };
     QColor  m_activeEditPresentedColor;
     QString m_activeEditFieldName;   // non-empty: editing an AcroForm text field
-    int     m_currentEditorFontSizePt { 12 };
+    // Where the text being edited starts (x = pen, y = baseline), as an offset
+    // from m_activeEditBounds' top-left so moving or resizing the frame carries
+    // it along. This is what both paint paths align to; without it the
+    // replacement lands a few points below and right of the line it replaces.
+    QPointF m_activeEditOriginOffset;
+    bool    m_activeEditHasOrigin { false };
+    // Baseline-to-baseline distance of the block being edited (0 = unknown).
+    double  m_activeEditLineSpacingPt { 0.0 };
+    // Two sizes, on purpose (see EditSession::Edit): the one the file gets and
+    // the one the screen gets. They differ whenever the family being painted
+    // is not the embedded one, which is most of the time.
+    double  m_currentEditorFontSizePt   { 12.0 };
+    double  m_currentEditorRenderSizePt { 12.0 };
+    bool    m_editorSizeChangedByUser   { false };
     QColor  m_currentEditorColor     { 0x11, 0x11, 0x11 };
     QColor  m_currentBgColor;  // cell background detected from PDF content stream
     // Font of the active editor (detected from the clicked block, or chosen
@@ -270,6 +336,18 @@ private:
 
     QUndoStack *m_undoStack      { nullptr };
 
+    DocumentHistory *m_history { nullptr };
+    // What the file being opened stands for. Set by openWorkingCopy for the
+    // moment openFile is inside it; Kind::Opened means "nothing special", i.e.
+    // the user opened a document and the history starts over.
+    DocumentHistory::Change m_openChange;
+    // Restoring a state reopens files and moves the undo stack — none of which
+    // is a change to record. Set while that is going on.
+    bool m_restoring { false };
+    // Set while an edit is being pushed onto the undo stack: the index moves,
+    // but towards a state the history has not been told about yet.
+    bool m_pushingEdit { false };
+
     OcrEngine *m_ocrEngine { nullptr };
 
 #ifdef HAVE_PDF_RENDERING
@@ -278,6 +356,35 @@ private:
     EditSession::Edit makeSessionEdit(int page, const QRectF &bounds,
                                       const QRectF &sourceRect,
                                       const QString &text) const;
+
+    // Drops the pending edits AND the undo history together. Every command on
+    // the stack is written against one particular state of the document, so
+    // whenever that state is replaced — a file is opened, or a save bakes the
+    // edits into the PDF and reloads it — the history describes a document
+    // that no longer exists. Undoing then paints those edits on top of a page
+    // that already contains them, and the text appears twice. The two must
+    // never be cleared apart.
+    void discardEditHistory();
+
+    // Makes sure writing to `saveTarget` cannot destroy the document the
+    // session is layered on. Saving over the file that is open would pull the
+    // ground out from under every pending edit and every undo command, which
+    // is why the base is moved into a session working copy first — byte for
+    // byte the same document, so nothing on screen changes. Returns false only
+    // when the copy could not be made; the caller then falls back to writing
+    // the edits away and starting a fresh session.
+    bool detachSourceFrom(const QString &saveTarget);
+
+    // Records that the session as it stands has been written to `path`, without
+    // ending it: sets the clean marks hasUnsavedEdits() reads and re-announces
+    // the document under the name the user saved it as.
+    void markSaved(const QString &path);
+
+    // Session state as of the last successful save, so a document that has
+    // been saved does not keep claiming it has unsaved changes. Text edits are
+    // measured by the undo stack's clean marker (which follows undo AND redo),
+    // images by their revision counter.
+    quint64 m_savedImageRevision { 0 };
 
     PdfRenderer  *m_renderer    { nullptr };
     EditSession  *m_session     { nullptr };

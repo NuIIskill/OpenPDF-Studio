@@ -2,6 +2,7 @@
 #include "ui/MainWindow.hpp"
 #include "ui/DocumentView.hpp"
 #include "ui/dialogs/ExportDialog.hpp"
+#include "ui/dialogs/HistoryDialog.hpp"
 #include "engine/edit/DocxExporter.hpp"
 #include "engine/edit/PdfExporter.hpp"
 #include "app/PdfPwStore.hpp"
@@ -122,6 +123,28 @@ int main(int argc, char *argv[])
         ExportDialog dlg(QStringLiteral("/tmp/demo.pdf"), 4, 0);
         if (qapp.arguments().size() >= 4)
             dlg.selectFormatForTest(qapp.arguments().at(3));
+        dlg.show();
+        qapp.processEvents();
+        const bool ok = dlg.grab().save(qapp.arguments().at(2));
+        return ok ? 0 : 3;
+    }
+
+    // Same for the history dialog, with a made-up log so the timeline has
+    // something to show: OpenPDFStudio --shot-history-dialog out.png [dark]
+    if (qapp.arguments().size() >= 3
+            && qapp.arguments().at(1) == QLatin1String("--shot-history-dialog")) {
+        using Kind = DocumentHistory::Kind;
+        if (qapp.arguments().size() >= 4
+                && qapp.arguments().at(3) == QLatin1String("dark"))
+            Theme::apply(QStringLiteral("dark"));
+        DocumentHistory history;
+        history.record({ Kind::Opened, -1, 4, 0, QStringLiteral("Vertrag.pdf") }, 0);
+        history.record({ Kind::PageDeleted, 3 }, 0);
+        history.record({ Kind::PageRotated, 0, 1, 90 }, 0);
+        history.record({ Kind::ImageInserted, 1 }, 0);
+        history.record({ Kind::TextEdited, 0 }, 1);
+        HistoryDialog dlg(&history, QStringLiteral("Vertrag.pdf"));
+        dlg.setUndoRedoAvailable(true, false);
         dlg.show();
         qapp.processEvents();
         const bool ok = dlg.grab().save(qapp.arguments().at(2));
