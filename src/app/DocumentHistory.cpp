@@ -1,5 +1,5 @@
-#include "DocumentHistory.hpp"
-#include "SessionStore.hpp"
+#include "app/DocumentHistory.hpp"
+#include "app/SessionStore.hpp"
 
 #include <QFile>
 

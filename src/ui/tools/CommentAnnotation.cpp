@@ -1,4 +1,4 @@
-#include "CommentAnnotation.hpp"
+#include "ui/tools/CommentAnnotation.hpp"
 
 #include <QHBoxLayout>
 #include <QVBoxLayout>

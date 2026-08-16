@@ -1,4 +1,4 @@
-#include "InlineEditor.hpp"
+#include "ui/edit/InlineEditor.hpp"
 
 #include <QApplication>
 #include <QKeyEvent>

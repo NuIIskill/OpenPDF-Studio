@@ -10,7 +10,7 @@
 #include "ui/view/PageCanvas.hpp"
 
 #ifdef HAVE_PDF_RENDERING
-#  include "engine/view/PdfRenderer.hpp"
+#  include "engine/render/PdfRenderer.hpp"
 #  ifdef HAVE_QT_PDF
 #    include <QPdfDocument>
 #  elif defined(HAVE_POPPLER)

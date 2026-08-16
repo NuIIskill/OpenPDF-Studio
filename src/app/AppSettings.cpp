@@ -1,4 +1,4 @@
-#include "AppSettings.hpp"
+#include "app/AppSettings.hpp"
 
 #include <QSettings>
 

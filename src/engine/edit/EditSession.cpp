@@ -1,6 +1,6 @@
-#include "EditSession.hpp"
+#include "engine/edit/EditSession.hpp"
 #include "app/PdfPwStore.hpp"
-#include "ContentMap.hpp"
+#include "engine/edit/ContentMap.hpp"
 #include "app/SafeWrite.hpp"
 
 #include <QPainter>

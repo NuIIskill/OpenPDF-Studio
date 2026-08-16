@@ -1,4 +1,4 @@
-#include "app/App.hpp"
+#include "App.hpp"
 #include "ui/MainWindow.hpp"
 #include "ui/DocumentView.hpp"
 #include "ui/dialogs/ExportDialog.hpp"
@@ -6,10 +6,15 @@
 #include "engine/edit/DocxExporter.hpp"
 #include "engine/edit/PdfExporter.hpp"
 #include "app/PdfPwStore.hpp"
+#include "ui/panels/LeftSidebar.hpp"
+#include "ui/panels/RightSidebar.hpp"
 #include "ui/theme/Theme.hpp"
 
 #include <QApplication>
 #include <QFileInfo>
+#include <QTimer>
+#include <QEventLoop>
+#include <QMouseEvent>
 #include <QFontDatabase>
 #include <QIcon>
 #include <QLocale>
@@ -208,6 +213,67 @@ int main(int argc, char *argv[])
         const bool ok = DocxExporter::exportToDocx(
             args.at(3), view.allPageContent(pages),
             QFileInfo(args.at(2)).completeBaseName(), docxOpt);
+        return ok ? 0 : 3;
+    }
+
+    // Renders the whole window, with a document open, to a PNG. Everything the
+    // dialog shots cannot reach — toolbar, format bar, sidebars, the pages
+    // themselves — is only checkable this way without a display:
+    //   OpenPDFStudio --shot-window out.png in.pdf [dark]
+    //
+    // The wait is not decoration: pages are rendered by a timer after the
+    // scroll area has laid them out, so grabbing immediately yields blanks.
+    if (args.size() >= 4 && args.at(1) == QLatin1String("--shot-window")) {
+        if (args.size() >= 5 && args.at(4) == QLatin1String("dark"))
+            Theme::apply(QStringLiteral("dark"));
+        App shotApp;
+        shotApp.startup();
+        MainWindow *win = shotApp.mainWindow();
+        win->resize(1400, 900);
+        win->openPath(args.at(3));
+        QEventLoop settle;
+        QTimer::singleShot(2500, &settle, &QEventLoop::quit);
+        settle.exec();
+
+        // Optional: enter edit mode and click a page position, so the editor
+        // frame and the format bar — neither of which exists otherwise — end
+        // up in the shot. The click is posted at the viewport so it travels
+        // the real event filter instead of calling the handler directly:
+        // that is the whole path an edit opens through.
+        //   OpenPDFStudio --shot-window out.png in.pdf edit=<x>,<y>
+        for (int a = 4; a < args.size(); ++a) {
+            if (!args.at(a).startsWith(QLatin1String("edit="))) continue;
+            const QStringList xy = args.at(a).mid(5).split(u',');
+            if (xy.size() != 2) break;
+            DocumentView *dv = win->findChild<DocumentView *>();
+            if (!dv) break;
+            // Through the sidebar signal, not DocumentView::setEditMode():
+            // the window owns the edit state and it is what shows the format
+            // bar and switches the sidebar. Setting it on the view alone puts
+            // the two out of step — which is exactly what this shot is for.
+            Q_EMIT win->rightSidebar()->modeSelected(QStringLiteral("edit"));
+            QApplication::processEvents();
+            // Order matters: the tool handler puts up a modal "enable edit
+            // mode?" box when edit mode is still off, and nothing would ever
+            // answer it here. With the mode already on it goes straight
+            // through — and only then does the format bar appear.
+            Q_EMIT win->leftSidebar()->toolSelected(QStringLiteral("text"));
+            QApplication::processEvents();
+            const QPoint at(xy.at(0).toInt(), xy.at(1).toInt());
+            QWidget *vp = dv->viewport();
+            for (const QEvent::Type type : { QEvent::MouseButtonPress,
+                                             QEvent::MouseButtonRelease }) {
+                QMouseEvent me(type, QPointF(at), vp->mapToGlobal(QPointF(at)),
+                               Qt::LeftButton, Qt::LeftButton, Qt::NoModifier);
+                QApplication::sendEvent(vp, &me);
+            }
+            QEventLoop editSettle;
+            QTimer::singleShot(1500, &editSettle, &QEventLoop::quit);
+            editSettle.exec();
+            break;
+        }
+
+        const bool ok = win->grab().save(args.at(2));
         return ok ? 0 : 3;
     }
 

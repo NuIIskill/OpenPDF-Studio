@@ -1,4 +1,4 @@
-#include "ExportDialog.hpp"
+#include "ui/dialogs/ExportDialog.hpp"
 #include "ui/theme/Theme.hpp"
 #include "engine/edit/PdfExporter.hpp"
 
@@ -415,12 +415,8 @@ void ExportDialog::onExport()
 
 // ── buildUi ───────────────────────────────────────────────────────────────────
 
-void ExportDialog::buildUi()
+void ExportDialog::applyDialogStyle()
 {
-    m_formatGroup = new QButtonGroup(this);
-    m_formatGroup->setExclusive(true);
-
-    // ── stylesheet ────────────────────────────────────────────────────────
     setStyleSheet(QStringLiteral(R"css(
         QDialog {
             background: palette(window);
@@ -540,19 +536,17 @@ void ExportDialog::buildUi()
         QPushButton#XExport:hover   { background: #2563EB; }
         QPushButton#XExport:pressed { background: #1D4ED8; }
     )css"));
+}
 
-    // ── root layout ───────────────────────────────────────────────────────
-    auto *root = new QVBoxLayout(this);
-    root->setContentsMargins(0, 0, 0, 0);
-    root->setSpacing(0);
+void ExportDialog::addSeparator(QVBoxLayout *body)
+{
+    auto *f = new QFrame; f->setObjectName(QStringLiteral("XSep"));
+    f->setFrameShape(QFrame::HLine); f->setFixedHeight(1);
+    body->addWidget(f);
+}
 
-    // ── body ──────────────────────────────────────────────────────────────
-    auto *body = new QWidget;
-    auto *bl   = new QVBoxLayout(body);
-    bl->setContentsMargins(28, 22, 28, 16);
-    bl->setSpacing(16);
-
-    // ── 1. Format ─────────────────────────────────────────────────────────
+void ExportDialog::buildFormatSection(QVBoxLayout *bl)
+{
     bl->addWidget(makeSectionHeader(tr("1."), tr("Format")));
     {
         auto *row = new QHBoxLayout;
@@ -574,15 +568,10 @@ void ExportDialog::buildUi()
         bl->addLayout(row);
         pdfBtn->setChecked(true);
     }
+}
 
-    auto mkSep = [&]() {
-        auto *f = new QFrame; f->setObjectName(QStringLiteral("XSep"));
-        f->setFrameShape(QFrame::HLine); f->setFixedHeight(1);
-        bl->addWidget(f);
-    };
-    mkSep();
-
-    // ── 2. Filename  +  3. Location ──────────────────────────────────────
+void ExportDialog::buildDestinationSection(QVBoxLayout *bl)
+{
     {
         auto *row = new QHBoxLayout; row->setSpacing(16);
 
@@ -616,9 +605,10 @@ void ExportDialog::buildUi()
 
         bl->addLayout(row);
     }
-    mkSep();
+}
 
-    // ── 4. Page range  +  5. Quality ─────────────────────────────────────
+void ExportDialog::buildRangeAndQualitySection(QVBoxLayout *bl)
+{
     {
         auto *row = new QHBoxLayout; row->setSpacing(24);
 
@@ -672,9 +662,10 @@ void ExportDialog::buildUi()
 
         bl->addLayout(row);
     }
-    mkSep();
+}
 
-    // ── 6. Options ────────────────────────────────────────────────────────
+void ExportDialog::buildOptionsSection(QVBoxLayout *bl)
+{
     bl->addWidget(makeSectionHeader(tr("6."), tr("Options")));
     {
         auto *row = new QHBoxLayout; row->setSpacing(16);
@@ -691,9 +682,10 @@ void ExportDialog::buildUi()
         connect(m_commentsChk, &QCheckBox::toggled, this, &ExportDialog::updateEstimate);
         connect(m_fontsChk,    &QCheckBox::toggled, this, &ExportDialog::updateEstimate);
     }
-    mkSep();
+}
 
-    // ── 7. Security ───────────────────────────────────────────────────────
+void ExportDialog::buildSecuritySection(QVBoxLayout *bl)
+{
     bl->addWidget(makeSectionHeader(tr("7."), tr("Security (optional)")));
     m_passwordChk = new QCheckBox(tr("Enable password protection"));
     m_passwordChk->setChecked(false);
@@ -715,10 +707,10 @@ void ExportDialog::buildUi()
     }
     connect(m_passwordChk, &QCheckBox::toggled, this, &ExportDialog::updatePasswordFields);
     connect(m_passwordChk, &QCheckBox::toggled, this, &ExportDialog::updateEstimate);
+}
 
-    root->addWidget(body, 1);
-
-    // ── footer ────────────────────────────────────────────────────────────
+QWidget *ExportDialog::buildFooter()
+{
     auto *footer = new QWidget;
     footer->setObjectName(QStringLiteral("XFooter"));
     footer->setFixedHeight(64);
@@ -738,5 +730,34 @@ void ExportDialog::buildUi()
     exportBtn->setFixedSize(120, 36);
     connect(exportBtn, &QPushButton::clicked, this, &ExportDialog::onExport);
     fl->addWidget(exportBtn);
-    root->addWidget(footer);
+    return footer;
+}
+
+void ExportDialog::buildUi()
+{
+    m_formatGroup = new QButtonGroup(this);
+    m_formatGroup->setExclusive(true);
+    applyDialogStyle();
+
+    auto *root = new QVBoxLayout(this);
+    root->setContentsMargins(0, 0, 0, 0);
+    root->setSpacing(0);
+
+    auto *body = new QWidget;
+    auto *bl   = new QVBoxLayout(body);
+    bl->setContentsMargins(28, 22, 28, 16);
+    bl->setSpacing(16);
+
+    buildFormatSection(bl);
+    addSeparator(bl);
+    buildDestinationSection(bl);
+    addSeparator(bl);
+    buildRangeAndQualitySection(bl);
+    addSeparator(bl);
+    buildOptionsSection(bl);
+    addSeparator(bl);
+    buildSecuritySection(bl);
+
+    root->addWidget(body, 1);
+    root->addWidget(buildFooter());
 }

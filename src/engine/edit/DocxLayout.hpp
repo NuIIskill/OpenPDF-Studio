@@ -1,6 +1,6 @@
 #pragma once
 
-#include "DocxExporter.hpp"
+#include "engine/edit/DocxExporter.hpp"
 
 #include <QImage>
 #include <QList>

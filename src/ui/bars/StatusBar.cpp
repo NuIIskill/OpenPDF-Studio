@@ -1,4 +1,4 @@
-#include "StatusBar.hpp"
+#include "ui/bars/StatusBar.hpp"
 #include "ui/widgets/IconButton.hpp"
 #include "ui/theme/Theme.hpp"
 

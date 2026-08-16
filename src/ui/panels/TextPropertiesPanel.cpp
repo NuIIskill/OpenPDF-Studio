@@ -1,4 +1,4 @@
-#include "TextPropertiesPanel.hpp"
+#include "ui/panels/TextPropertiesPanel.hpp"
 
 #include <QComboBox>
 #include <QFrame>

@@ -1,4 +1,4 @@
-#include "OcrEngine.hpp"
+#include "engine/ocr/OcrEngine.hpp"
 
 #ifdef HAVE_TESSERACT
 #  include <tesseract/baseapi.h>

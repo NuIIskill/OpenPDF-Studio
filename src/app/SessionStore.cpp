@@ -1,4 +1,4 @@
-#include "SessionStore.hpp"
+#include "app/SessionStore.hpp"
 
 #include <QCoreApplication>
 #include <QDateTime>

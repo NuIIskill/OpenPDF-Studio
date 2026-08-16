@@ -1,4 +1,4 @@
-#include "HistoryDialog.hpp"
+#include "ui/dialogs/HistoryDialog.hpp"
 #include "ui/theme/Theme.hpp"
 
 #include <QAction>

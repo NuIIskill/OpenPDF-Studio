@@ -1,7 +1,7 @@
-#include "MainWindow.hpp"
+#include "ui/MainWindow.hpp"
 
-#include "PresentationWindow.hpp"
-#include "DocumentView.hpp"
+#include "ui/PresentationWindow.hpp"
+#include "ui/DocumentView.hpp"
 #include "ui/bars/TopToolbar.hpp"
 #include "ui/bars/FormatBar.hpp"
 #include "ui/bars/StatusBar.hpp"
@@ -236,6 +236,10 @@ DocumentView *MainWindow::addDocView()
     m_docStack->addWidget(dv);
 
     const int idx = m_topToolbar->addTab();
+
+    // A PDF dropped onto the view goes through the same path as File > Open,
+    // so it is recorded as the last opened file like any other open.
+    connect(dv, &DocumentView::pdfDropped, this, &MainWindow::openPath);
 
     connect(dv, &DocumentView::fileOpened, this, [this, dv](const QString &path, int pages) {
         const int i = m_docViews.indexOf(dv);

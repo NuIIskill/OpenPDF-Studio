@@ -3,7 +3,7 @@
 #include <QList>
 #include <QString>
 
-#include "DocxExporter.hpp"
+#include "engine/edit/DocxExporter.hpp"
 
 #ifdef HAVE_PDF_RENDERING
 class ContentProvider;
@@ -69,6 +69,31 @@ public:
 #endif
 
 private:
+#if defined(HAVE_PDF_RENDERING) && defined(HAVE_QT_PDF)
+    // The steps allPageContent() runs per page. Split out because each answers
+    // a different question and each carries its own hard-won workarounds.
+
+    /// Text model for `page`, built from Qt's decoded selection polygons.
+    ///
+    /// qpdf exposes raw string bytes, which for embedded fonts with a custom
+    /// encoding are character codes rather than Unicode — so the text itself
+    /// has to come from Qt. `detected` are the qpdf items for the same page;
+    /// they stay useful as nearby style and colour donors, and their
+    /// non-textual entries are carried over unchanged.
+    QList<ContentItem> decodedTextItems(int page, const QSizeF &pageSizePt,
+                                        const QList<ContentItem> &detected) const;
+
+    /// Whole page as one paragraph inside default margins — the last resort
+    /// when nothing structured was recognised, so the export is not empty.
+    QList<ContentItem> wholePageFallback(int page, const QSizeF &pageSizePt) const;
+
+    /// `original` with the native glyphs of every recognised text run painted
+    /// out, so DOCX text boxes can be placed over it without doubling. Images
+    /// and vector graphics survive as the raster layer underneath.
+    QImage eraseTextRuns(const QImage &original, const QList<ContentItem> &items,
+                         int page, qreal scale) const;
+#endif
+
 #ifdef HAVE_PDF_RENDERING
     Sources m_src;
 #endif

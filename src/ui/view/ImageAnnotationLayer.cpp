@@ -1,11 +1,11 @@
-#include "ImageAnnotationLayer.hpp"
+#include "ui/view/ImageAnnotationLayer.hpp"
 #include "app/PdfPwStore.hpp"
 
 #include "ui/tools/ImageAnnotation.hpp"
 
 #ifdef HAVE_PDF_RENDERING
 #  include "engine/edit/EditSession.hpp"
-#  include "engine/view/PdfRenderer.hpp"
+#  include "engine/render/PdfRenderer.hpp"
 #endif
 #include "engine/ocr/OcrEngine.hpp"
 

@@ -1,4 +1,4 @@
-#include "PdfOrganizerDialog.hpp"
+#include "ui/dialogs/PdfOrganizerDialog.hpp"
 #include "app/PdfPwStore.hpp"
 #include "ui/dialogs/PasswordDialog.hpp"
 
@@ -51,7 +51,7 @@ namespace OrgConst {
 #include <QPdfWriter>
 
 #ifdef HAVE_PDF_RENDERING
-#include "engine/view/PdfRenderer.hpp"
+#include "engine/render/PdfRenderer.hpp"
 #endif
 #ifdef HAVE_QT_PDF
 #include <QPdfDocument>

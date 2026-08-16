@@ -1,6 +1,6 @@
 #ifdef HAVE_QT_PDF
 
-#include "PdfTextExtractor.hpp"
+#include "engine/edit/PdfTextExtractor.hpp"
 #include <QPdfSelection>
 #include <algorithm>
 #include <cmath>

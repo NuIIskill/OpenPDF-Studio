@@ -1,4 +1,4 @@
-#include "PagePlaceholder.hpp"
+#include "ui/widgets/PagePlaceholder.hpp"
 
 #include <QPainter>
 #include <QPainterPath>

@@ -1,4 +1,4 @@
-#include "RightSidebar.hpp"
+#include "ui/panels/RightSidebar.hpp"
 #include "ui/theme/Theme.hpp"
 
 #include <QStyle>

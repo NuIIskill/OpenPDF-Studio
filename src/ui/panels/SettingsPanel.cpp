@@ -1,4 +1,4 @@
-#include "SettingsPanel.hpp"
+#include "ui/panels/SettingsPanel.hpp"
 #include "app/AppSettings.hpp"
 #include "ui/theme/Theme.hpp"
 

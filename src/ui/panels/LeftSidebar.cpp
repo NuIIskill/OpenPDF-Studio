@@ -1,4 +1,4 @@
-#include "LeftSidebar.hpp"
+#include "ui/panels/LeftSidebar.hpp"
 #include "ui/widgets/IconButton.hpp"
 #include "ui/theme/Theme.hpp"
 

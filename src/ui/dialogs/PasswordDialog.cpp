@@ -1,4 +1,4 @@
-#include "PasswordDialog.hpp"
+#include "ui/dialogs/PasswordDialog.hpp"
 
 #include <QDialogButtonBox>
 #include <QLabel>

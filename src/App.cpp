@@ -1,7 +1,7 @@
 #include "App.hpp"
 
-#include "AppSettings.hpp"
-#include "SessionStore.hpp"
+#include "app/AppSettings.hpp"
+#include "app/SessionStore.hpp"
 #include "ui/MainWindow.hpp"
 #include "ui/DocumentView.hpp"
 #include "ui/bars/TopToolbar.hpp"

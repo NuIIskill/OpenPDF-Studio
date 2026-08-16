@@ -1,7 +1,7 @@
 #pragma once
 
-#include "ContentMap.hpp"
-#include "TextBlock.hpp"
+#include "engine/edit/ContentMap.hpp"
+#include "engine/edit/TextBlock.hpp"
 #include <QColor>
 #include <QList>
 #include <QSet>

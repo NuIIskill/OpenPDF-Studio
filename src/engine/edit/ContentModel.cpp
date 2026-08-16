@@ -1,4 +1,4 @@
-#include "ContentModel.hpp"
+#include "engine/edit/ContentModel.hpp"
 #include "app/PdfPwStore.hpp"
 
 #include <QDebug>
