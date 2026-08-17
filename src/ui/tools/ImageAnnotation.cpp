@@ -1,4 +1,4 @@
-#include "ImageAnnotation.hpp"
+#include "ui/tools/ImageAnnotation.hpp"
 
 #include <QLabel>
 #include <QPushButton>

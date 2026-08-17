@@ -1,8 +1,8 @@
-#include "PageLayoutEngine.hpp"
+#include "ui/view/PageLayoutEngine.hpp"
 
 #ifdef HAVE_PDF_RENDERING
 #  include "engine/edit/EditSession.hpp"
-#  include "engine/view/PdfRenderer.hpp"
+#  include "engine/render/PdfRenderer.hpp"
 #endif
 
 #include <QCoreApplication>

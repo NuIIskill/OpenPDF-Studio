@@ -341,6 +341,12 @@ QLabel#SettingsSectionDesc {
     color: #9CA3AF;
 }
 
+QLabel#SettingsGroupLabel {
+    font-size: 11px;
+    font-weight: 700;
+    color: #9CA3AF;
+}
+
 QFrame#SettingsSeparator {
     color: #484848;
     background: #484848;

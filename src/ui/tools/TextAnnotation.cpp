@@ -1,4 +1,4 @@
-#include "TextAnnotation.hpp"
+#include "ui/tools/TextAnnotation.hpp"
 
 #include <QTextEdit>
 #include <QPushButton>

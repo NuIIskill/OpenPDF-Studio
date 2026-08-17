@@ -1,6 +1,6 @@
-#include "EditSession.hpp"
+#include "engine/edit/EditSession.hpp"
 #include "app/PdfPwStore.hpp"
-#include "ContentMap.hpp"
+#include "engine/edit/ContentMap.hpp"
 #include "app/SafeWrite.hpp"
 
 #include <QPainter>
@@ -28,6 +28,7 @@
 
 #include <cmath>
 #include <map>
+#include <set>
 #include <sstream>
 #include <vector>
 
@@ -432,19 +433,28 @@ static std::string bgErase(const QRectF &bounds, double pageH, const QColor &bg)
 
 // fontRef: font resource key, resolved by the caller (original resource or a
 // standard-14 font registered via ensureStdFont).
+// origin: the replaced text's own pen position (page space, Y=0 at top, y on
+// the baseline), or a null point when it is unknown — then the baseline is
+// guessed from the box, which is close but not the same line.
 static std::string buildReplacement(const QRectF &bounds, const QString &text,
                                      double pageH, double fontSizeOverride,
                                      const QColor &color,
-                                     const std::string &fontRef)
+                                     const std::string &fontRef,
+                                     const QPointF &origin, bool hasOrigin,
+                                     double lineSpacing)
 {
     const QStringList lines   = text.split(u'\n');
     const int         nLines  = lines.size();
     const double      fs      = fontSizeOverride > 0.0
                                     ? fontSizeOverride
                                     : std::max(6.0, bounds.height() / nLines * 0.78);
-    const double      x       = bounds.left();
-    const double      y0      = (pageH - bounds.top()) - fs * 0.80;
-    const double      leading = fs * 1.20;
+    const double      x       = hasOrigin ? origin.x() : bounds.left();
+    const double      y0      = hasOrigin ? (pageH - origin.y())
+                                          : (pageH - bounds.top()) - fs * 0.80;
+    // The block's measured line spacing beats a guess off the font size: at
+    // 1.2 em a paragraph set with generous leading closes up by points per
+    // line, and every line after the first sits too high.
+    const double      leading = lineSpacing > 0.0 ? lineSpacing : fs * 1.20;
 
     const double r = (color.isValid() ? color.redF()   : 0.0);
     const double g = (color.isValid() ? color.greenF() : 0.0);
@@ -543,6 +553,86 @@ static std::string ensureStdFont(QPDF &qpdf, QPDFPageObjectHelper &ph,
     return key;
 }
 
+// Can `resName` (a /Font key of this page, e.g. "/F1") render `text` correctly?
+//
+// Keeping the page's own font is the only way an edit comes back looking like
+// what it replaced — substituting a standard-14 face rewrites the whole line in
+// a different typeface. It is also the way to render nothing at all, so this
+// only says yes when both halves are provable:
+//
+//   • encoding — the replacement is written as Latin-1 bytes, so the font must
+//     interpret bytes the same way. WinAnsi does over the whole range;
+//     MacRoman and Standard only agree below 0x80 (MacRoman puts ä at 0x8A,
+//     not 0xE4) and are allowed for plain ASCII alone. Type0 (CID) fonts and
+//     fonts with an /Differences remap take arbitrary glyph indices and would
+//     render mojibake.
+//   • coverage — a subset font carries only the glyphs its document used, and a
+//     missing one draws as nothing. Every character of the new text must
+//     therefore already occur in the text being replaced, which is exactly the
+//     proof that the subset contains it. Fonts that aren't subsets carry the
+//     full encoding and need no such restriction.
+static bool fontCanRender(QPDFPageObjectHelper &ph, const std::string &resName,
+                          const QString &newText, const QString &originalText)
+{
+    try {
+        if (resName.empty() || resName[0] != '/') return false;
+        QPDFObjectHandle res = ph.getAttribute("/Resources", true);
+        if (!res.isDictionary()) return false;
+        QPDFObjectHandle fonts = res.getKey("/Font");
+        if (!fonts.isDictionary()) return false;
+        QPDFObjectHandle font = fonts.getKey(resName);
+        if (!font.isDictionary()) return false;
+
+        QPDFObjectHandle sub = font.getKey("/Subtype");
+        if (!sub.isName()) return false;
+        const std::string subtype = sub.getName();
+        if (subtype != "/Type1" && subtype != "/TrueType"
+                && subtype != "/MMType1")
+            return false;                       // /Type0 and friends: CID bytes
+
+        bool asciiOnly = true;
+        for (QChar c : newText)
+            if (c.unicode() > 0x7E) { asciiOnly = false; break; }
+
+        static const std::set<std::string> kAsciiSafe = {
+            "/MacRomanEncoding", "/StandardEncoding"
+        };
+        const auto encodingOk = [&](const std::string &name) {
+            if (name == "/WinAnsiEncoding") return true;
+            return asciiOnly && kAsciiSafe.count(name) > 0;
+        };
+
+        QPDFObjectHandle enc = font.getKey("/Encoding");
+        if (enc.isName()) {
+            if (!encodingOk(enc.getName())) return false;
+        } else if (enc.isDictionary()) {
+            if (enc.hasKey("/Differences")) return false;
+            QPDFObjectHandle base = enc.getKey("/BaseEncoding");
+            if (!base.isName() || !encodingOk(base.getName())) return false;
+        } else {
+            return false;    // built-in encoding — unknowable without the font
+        }
+
+        std::string baseFont;
+        QPDFObjectHandle bf = font.getKey("/BaseFont");
+        if (bf.isName()) baseFont = bf.getName();
+        // Subset marker: six capitals and a plus, e.g. "/AAAAAA+LiberationSans".
+        bool subset = false;
+        if (baseFont.size() > 8 && baseFont[7] == '+') {
+            subset = true;
+            for (int i = 1; i <= 6; ++i)
+                if (baseFont[i] < 'A' || baseFont[i] > 'Z') subset = false;
+        }
+        if (!subset) return true;
+
+        QSet<QChar> known;
+        for (QChar c : originalText) known.insert(c);
+        for (QChar c : newText)
+            if (c != u' ' && c != u'\n' && !known.contains(c)) return false;
+        return true;
+    } catch (...) { return false; }
+}
+
 // Updates AcroForm text-field values (/V) and regenerates their appearance
 // streams so the new value renders in every viewer. Matches by fully
 // qualified name, name suffix, or partial name (/T of the widget).
@@ -631,7 +721,11 @@ bool EditSession::saveVector(const QString &sourcePath, const QString &outputPat
             std::vector<std::string> capturedFont(edits.size());
             struct Stripped { QRectF rect; double fs; std::string font; QColor bg; };
             std::vector<Stripped> strippedCache;
-            for (size_t i = 0; !overlay && i < edits.size(); ++i) {
+            // Overlay mode keeps the stream byte-identical, but the scan still
+            // runs: its answer about which font and size the replaced text used
+            // is needed either way, or an overlay page silently re-sets the line
+            // in a substituted face.
+            for (size_t i = 0; i < edits.size(); ++i) {
                 const QRectF &b = edits[i]->pdfBounds;
                 bool found = false;
                 for (const auto &st : strippedCache) {
@@ -642,7 +736,7 @@ bool EditSession::saveVector(const QString &sourcePath, const QString &outputPat
                 }
                 if (!found) {
                     auto [filtered, fs, fn] = removeTextInBounds(cs, b, pageH);
-                    cs = std::move(filtered);
+                    if (!overlay) cs = std::move(filtered);
                     capturedFs[i]   = fs;
                     capturedFont[i] = fn;
                     strippedCache.push_back({ b, fs, fn, edits[i]->bgColor });
@@ -696,24 +790,35 @@ bool EditSession::saveVector(const QString &sourcePath, const QString &outputPat
 
             // Second pass: append replacement text — blank edits are erase-only.
             // Font size priority: toolbar override > captured > height estimate.
-            // Font resource: ALWAYS a standard-14 font mapped from the detected
-            // family. Reusing the original resource renders garbage for subset/
-            // custom-encoded fonts (our text is WinAnsi bytes, their encoding
-            // is arbitrary glyph indices).
+            // Font resource: the page's own font when it provably renders the
+            // new text (see fontCanRender) — that is what keeps an edited line
+            // in the typeface of the rest of the document. Otherwise a
+            // standard-14 face mapped from the detected family, which every
+            // reader has.
             for (size_t i = 0; i < edits.size(); ++i) {
                 if (edits[i]->newText.isNull()) continue;  // blank edit: erase only
                 const Edit &e = *edits[i];
-                const double fs = e.fontSizePt > 0.0 ? e.fontSizePt : capturedFs[i];
 
-                const std::string fontRef = ensureStdFont(
-                    input, ph, stdFontName(e.fontFamily, e.bold, e.italic));
+                const bool keepFont = !e.fontChanged
+                        && fontCanRender(ph, capturedFont[i], e.newText,
+                                         e.originalText);
+                // With the original font kept, its own /Tf size is the one that
+                // matches the surrounding text; our estimate is calibrated to a
+                // substitute face and would be the wrong scale for this one.
+                // A size the user typed still outranks both.
+                const double fs = (keepFont && !e.sizeChanged && capturedFs[i] > 0.0)
+                                      ? capturedFs[i]
+                                      : (e.fontSizePt > 0.0 ? e.fontSizePt
+                                                            : capturedFs[i]);
+                const std::string fontRef = keepFont
+                        ? capturedFont[i]
+                        : ensureStdFont(input, ph,
+                                        stdFontName(e.fontFamily, e.bold, e.italic));
 
-                qWarning() << "[SAVE] page" << pageIdx
-                           << "text=" << e.newText.left(30)
-                           << "bounds=" << e.pdfBounds
-                           << "fs=" << fs << "font=" << QString::fromStdString(fontRef);
                 cs += buildReplacement(e.pdfBounds, e.newText, pageH, fs,
-                                       e.textColor, fontRef);
+                                       e.textColor, fontRef,
+                                       e.pdfBounds.topLeft() + e.textOriginOffset,
+                                       e.hasTextOrigin, e.lineSpacingPt);
             }
             if (!invPrefix.empty())
                 cs += "Q\n";
@@ -802,7 +907,15 @@ void EditSession::addEdit(int page, const QRectF &pdfBounds, const QString &newT
                           double fontSizePt, const QColor &color, const QRectF &sourceRect,
                           const QColor &bgColor)
 {
-    m_edits.append({ page, pdfBounds, sourceRect, newText, fontSizePt, color, bgColor });
+    Edit e;
+    e.page       = page;
+    e.pdfBounds  = pdfBounds;
+    e.sourceRect = sourceRect;
+    e.newText    = newText;
+    e.fontSizePt = fontSizePt;
+    e.textColor  = color;
+    e.bgColor    = bgColor;
+    m_edits.append(std::move(e));
 }
 
 void EditSession::removeEdit(int page, const QRectF &pdfBounds)
@@ -932,7 +1045,7 @@ void EditSession::restoreSuspended()
 void EditSession::clear()
 {
     m_edits.clear();
-    m_imageEdits.clear();
+    if (!m_imageEdits.isEmpty()) { m_imageEdits.clear(); ++m_imageRevision; }
 }
 
 // ── Image-edit CRUD ───────────────────────────────────────────────────────────
@@ -940,6 +1053,7 @@ void EditSession::clear()
 void EditSession::addImageEdit(int page, const QRectF &pdfBounds, const QImage &image)
 {
     m_imageEdits.append({ page, pdfBounds, image });
+    ++m_imageRevision;
 }
 
 void EditSession::removeImageEdit(int page, const QRectF &pdfBounds)
@@ -947,6 +1061,7 @@ void EditSession::removeImageEdit(int page, const QRectF &pdfBounds)
     m_imageEdits.removeIf([&](const ImageEdit &ie) {
         return ie.page == page && ie.pdfBounds == pdfBounds;
     });
+    ++m_imageRevision;
 }
 
 bool EditSession::hasImageEditsOnPage(int page) const
@@ -958,7 +1073,9 @@ bool EditSession::hasImageEditsOnPage(int page) const
 
 void EditSession::clearImageEdits()
 {
+    if (m_imageEdits.isEmpty()) return;
     m_imageEdits.clear();
+    ++m_imageRevision;
 }
 
 // ── Queries ───────────────────────────────────────────────────────────────────
@@ -1209,9 +1326,13 @@ void EditSession::paintTextEdit(QPainter &p, const Edit &e, qreal scale)
     // Text edits are drawn as overlays so that a text box placed near (or on top
     // of) existing content does not silently destroy it.
 
+    // renderSizePt is fitted to the ink of the text being replaced; fontSizePt
+    // is the file's own number, which in a substituted family draws too big or
+    // too small. Prefer the fitted one whenever it exists.
+    const double sizePt = e.renderSizePt > 0.0 ? e.renderSizePt : e.fontSizePt;
     int pixelSize;
-    if (e.fontSizePt > 0.0) {
-        pixelSize = qMax(6, qRound(e.fontSizePt * scale));
+    if (sizePt > 0.0) {
+        pixelSize = qMax(6, qRound(sizePt * scale));
     } else {
         const int lineCount = qMax(1, e.newText.count(u'\n') + 1);
         pixelSize = qMax(8, qRound(px.height() / lineCount / 0.72));
@@ -1225,9 +1346,48 @@ void EditSession::paintTextEdit(QPainter &p, const Edit &e, qreal scale)
     f.setItalic(e.italic);
     p.setFont(f);
     p.setPen(e.textColor.isValid() ? e.textColor : QColor(0x11, 0x11, 0x11));
-    p.drawText(px.toRect(),
-               Qt::AlignLeft | Qt::AlignTop | Qt::TextWordWrap,
-               e.newText);
+
+    // Anchor on the original text's own starting point instead of the box:
+    // laid out from the box top, the first baseline lands wherever the
+    // substituted face happens to put it — several points off the line it
+    // replaces.
+    const QFontMetricsF fm(f);
+    constexpr int kFlags = Qt::AlignLeft | Qt::AlignTop | Qt::TextWordWrap;
+    QRectF target = px;
+    if (e.hasTextOrigin) {
+        const QPointF origin = (e.pdfBounds.topLeft() + e.textOriginOffset) * scale;
+        target.translate(origin.x() - px.left(),
+                         origin.y() - (px.top() + fm.ascent()));
+    }
+    // drawText clips to its rectangle, and the box is only ever as tall as the
+    // ORIGINAL line — so descenders (and any line the anchor shifted upward)
+    // get their bottoms sliced off. Wrapping must stay put, so only the height
+    // grows; the width, which decides where lines break, does not.
+    const auto laidOutHeight = [&](const QString &s) {
+        return fm.boundingRect(QRectF(0, 0, target.width(), 1e6), kFlags, s).height();
+    };
+    const auto drawBlock = [&](const QString &s, qreal top) {
+        QRectF r = target;
+        r.moveTop(top);
+        r.setHeight(qMax(target.height(), laidOutHeight(s) + fm.descent()));
+        p.drawText(r.toRect(), kFlags, s);
+    };
+
+    const double stepPt = e.lineSpacingPt;
+    if (stepPt <= 0.0 || !e.newText.contains(u'\n')) {
+        drawBlock(e.newText, target.top());
+        return;
+    }
+    // Multi-line block with a known spacing: place each line on the baseline it
+    // had in the document instead of letting the font's tighter default stack
+    // them. A line that grew long enough to wrap takes the room it needs, and
+    // the ones below move down with it rather than being written over.
+    const qreal step = stepPt * scale;
+    qreal top = target.top();
+    for (const QString &line : e.newText.split(u'\n')) {
+        drawBlock(line, top);
+        top += qMax(step, laidOutHeight(line));
+    }
 }
 
 // ── Save ──────────────────────────────────────────────────────────────────────
@@ -1279,10 +1439,17 @@ bool EditSession::saveRaster(const QString &outputPath,
     QPdfWriter writer(staging);
     writer.setCreator(QStringLiteral("OpenPDF Studio"));
     writer.setResolution(300);
-
-    const QSizeF firstPts = doc->pagePointSize(0);
-    writer.setPageSize(QPageSize(firstPts, QPageSize::Point));
     writer.setPageMargins(QMarginsF(0, 0, 0, 0));
+
+    // Page size is per page, not per document: a size taken from page 1 and
+    // kept squeezes every differently sized page (a landscape sheet, a scan)
+    // onto that first box. It has to be set before the page it applies to
+    // begins — for the first page that means before the painter starts it.
+    const auto setSizeFor = [&writer](const QSizeF &pts) {
+        writer.setPageSize(QPageSize(pts, QPageSize::Point, QString(),
+                                     QPageSize::ExactMatch));
+    };
+    setSizeFor(doc->pagePointSize(0));
 
     QPainter painter(&writer);
     if (!painter.isActive()) { SafeWrite::discard(staging); return false; }
@@ -1291,10 +1458,13 @@ bool EditSession::saveRaster(const QString &outputPath,
     constexpr qreal kPts2Px  = kSaveDpi / 72.0;
 
     for (int i = 0; i < pageCount; ++i) {
-        if (i > 0 && !writer.newPage()) { SafeWrite::discard(staging); return false; }
-
         const QSizeF pts = doc->pagePointSize(i);
-        const QSize  px(int(pts.width() * kPts2Px), int(pts.height() * kPts2Px));
+        if (i > 0) {
+            setSizeFor(pts);
+            if (!writer.newPage()) { SafeWrite::discard(staging); return false; }
+        }
+
+        const QSize px(int(pts.width() * kPts2Px), int(pts.height() * kPts2Px));
 
         QImage img = doc->render(i, px);
         if (img.isNull()) continue;

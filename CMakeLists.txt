@@ -26,117 +26,19 @@ find_package(Qt6 REQUIRED COMPONENTS Core Widgets Gui)
 find_package(Qt6 OPTIONAL_COMPONENTS Pdf PrintSupport LinguistTools)
 qt_standard_project_setup()
 
-set(SOURCES
-    src/main.cpp
-
-    src/engine/ocr/OcrEngine.cpp
-    src/engine/ocr/OcrEngine.hpp
-
-    src/app/App.cpp
-    src/app/App.hpp
-    src/app/AppSettings.cpp
-    src/app/AppSettings.hpp
-    src/app/PdfPwStore.cpp
-    src/app/PdfPwStore.hpp
-    src/app/SafeWrite.cpp
-    src/app/SafeWrite.hpp
-    src/app/SessionStore.cpp
-    src/app/SessionStore.hpp
-
-    src/engine/view/PdfRenderer.cpp
-    src/engine/view/PdfRenderer.hpp
-
-    src/engine/edit/TextBlock.hpp
-    src/engine/edit/PdfTextExtractor.cpp
-    src/engine/edit/PdfTextExtractor.hpp
-    src/engine/edit/InlineEditor.cpp
-    src/engine/edit/InlineEditor.hpp
-    src/engine/edit/TextBoxFrame.cpp
-    src/engine/edit/TextBoxFrame.hpp
-    src/engine/edit/DocxExporter.cpp
-    src/engine/edit/DocxExporter.hpp
-    src/engine/edit/DocxLayout.cpp
-    src/engine/edit/DocxLayout.hpp
-    src/engine/edit/DocumentExporter.cpp
-    src/engine/edit/DocumentExporter.hpp
-    src/engine/edit/PdfExporter.cpp
-    src/engine/edit/PdfExporter.hpp
-
-    src/engine/edit/EditSession.cpp
-    src/engine/edit/EditSession.hpp
-
-    src/engine/edit/ContentMap.cpp
-    src/engine/edit/ContentMap.hpp
-    src/engine/edit/ContentModel.cpp
-    src/engine/edit/ContentModel.hpp
-
-    src/ui/MainWindow.cpp
-    src/ui/MainWindow.hpp
-    src/ui/DocumentView.cpp
-    src/ui/DocumentView.hpp
-    src/ui/PresentationWindow.cpp
-    src/ui/PresentationWindow.hpp
-
-    src/ui/bars/TopToolbar.cpp
-    src/ui/bars/TopToolbar.hpp
-    src/ui/bars/FormatBar.cpp
-    src/ui/bars/FormatBar.hpp
-    src/ui/bars/StatusBar.cpp
-    src/ui/bars/StatusBar.hpp
-
-    src/ui/panels/LeftSidebar.cpp
-    src/ui/panels/LeftSidebar.hpp
-    src/ui/panels/RightSidebar.cpp
-    src/ui/panels/RightSidebar.hpp
-    src/ui/panels/ToolPanel.cpp
-    src/ui/panels/ToolPanel.hpp
-    src/ui/panels/SettingsPanel.cpp
-    src/ui/panels/SettingsPanel.hpp
-    src/ui/panels/TextPropertiesPanel.cpp
-    src/ui/panels/TextPropertiesPanel.hpp
-
-    src/ui/view/PageCanvas.hpp
-    src/ui/view/PageLayoutEngine.cpp
-    src/ui/view/PageLayoutEngine.hpp
-    src/ui/view/ImageAnnotationLayer.cpp
-    src/ui/view/ImageAnnotationLayer.hpp
-    src/ui/view/TextSelectionController.cpp
-    src/ui/view/TextSelectionController.hpp
-
-    src/ui/widgets/PagePlaceholder.cpp
-    src/ui/widgets/PagePlaceholder.hpp
-    src/ui/widgets/ThumbnailItem.cpp
-    src/ui/widgets/ThumbnailItem.hpp
-    src/ui/widgets/IconButton.cpp
-    src/ui/widgets/IconButton.hpp
-
-    src/ui/tools/TextAnnotation.cpp
-    src/ui/tools/TextAnnotation.hpp
-    src/ui/tools/CommentAnnotation.cpp
-    src/ui/tools/CommentAnnotation.hpp
-    src/ui/tools/ImageAnnotation.cpp
-    src/ui/tools/ImageAnnotation.hpp
-    src/ui/tools/UndoCommands.hpp
-
-    src/ui/dialogs/ExportDialog.cpp
-    src/ui/dialogs/ExportDialog.hpp
-    src/ui/dialogs/PasswordDialog.cpp
-    src/ui/dialogs/PasswordDialog.hpp
-    src/ui/dialogs/PdfOrganizerDialog.cpp
-    src/ui/dialogs/PdfOrganizerDialog.hpp
-
-    src/ui/theme/Theme.cpp
-    src/ui/theme/Theme.hpp
-)
-
 set(RESOURCES
     resources/openpdf-studio.qrc
 )
 
+# The executable starts empty; every source folder adds its own files through
+# target_sources() in its CMakeLists.txt. Keeping the list next to the code
+# means a new file is registered where it is created, and two branches adding
+# files in different folders no longer collide in one central list.
 add_executable(OpenPDFStudio
-    ${SOURCES}
     ${RESOURCES}
 )
+
+add_subdirectory(src)
 
 target_compile_definitions(OpenPDFStudio PRIVATE
     QT_DISABLE_DEPRECATED_BEFORE=0x060000
@@ -253,20 +155,24 @@ install(FILES packaging/appimage/openpdf-studio.desktop
     OPTIONAL
 )
 
+# Die Lizenzübersicht allein reicht nicht: sie verweist auf LICENSES/, also
+# muss das Verzeichnis mit ausgeliefert werden.
+install(FILES LICENSE
+    DESTINATION share/doc/OpenPDFStudio
+)
+install(DIRECTORY LICENSES
+    DESTINATION share/doc/OpenPDFStudio
+)
+
 install(FILES resources/icons/openpdf-studio.png
     DESTINATION share/icons/hicolor/256x256/apps
     OPTIONAL
 )
 
-if(BUILD_TESTING AND EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/tests/problem.pdf")
-    add_test(NAME docx_export_problem_pdf
-        COMMAND ${CMAKE_COMMAND}
-            -DAPP=$<TARGET_FILE:OpenPDFStudio>
-            -DPDF=${CMAKE_CURRENT_SOURCE_DIR}/tests/problem.pdf
-            -DOUT=${CMAKE_CURRENT_BINARY_DIR}/problem-regression.docx
-            -P ${CMAKE_CURRENT_SOURCE_DIR}/tests/DocxRegression.cmake
-    )
-    set_tests_properties(docx_export_problem_pdf PROPERTIES TIMEOUT 120)
+# tests/ is not part of the repository. Built only when it happens to be
+# present locally, so a clone without it still configures.
+if(BUILD_TESTING AND EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/tests/CMakeLists.txt")
+    add_subdirectory(tests)
 endif()
 
 install(FILES packaging/appimage/README.md
@@ -294,7 +200,9 @@ page organizer, annotations, OCR and export to PDF, DOCX and image formats.")
     set(CPACK_STRIP_FILES ON)
 
     # ── RPM (Fedora/RHEL/openSUSE) ───────────────────────────────────────────
-    set(CPACK_RPM_PACKAGE_LICENSE "MIT")
+    # Core-Lizenz. Die Business-lizenzierten Module (modules/) sind hier noch
+    # nicht enthalten — sobald eines mitpaketiert wird, gehört es in die Angabe.
+    set(CPACK_RPM_PACKAGE_LICENSE "GPL-3.0-only OR LicenseRef-OpenPDF-Commercial")
     set(CPACK_RPM_PACKAGE_GROUP "Applications/Productivity")
     set(CPACK_RPM_PACKAGE_URL "${CPACK_PACKAGE_HOMEPAGE_URL}")
     # Der RPM-Generator übernimmt CPACK_PACKAGE_DESCRIPTION nicht automatisch.

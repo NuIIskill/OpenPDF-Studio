@@ -1,6 +1,6 @@
 #pragma once
 
-#include "ContentMap.hpp"
+#include "engine/edit/ContentMap.hpp"
 
 #include <QHash>
 #include <QSizeF>

@@ -52,6 +52,18 @@ public:
     [[nodiscard]] QString wheelAction()   const;  // "scroll" | "zoom"
     void setWheelAction(const QString &action);
 
+    // ── Panels ────────────────────────────────────────────────────────────
+    // When off, the window always starts with the default panel layout and
+    // the stored state below is left untouched.
+    [[nodiscard]] bool preservePanelLayout() const;
+    void setPreservePanelLayout(bool enabled);
+
+    [[nodiscard]] bool rightPanelCollapsed() const;
+    void setRightPanelCollapsed(bool collapsed);
+
+    [[nodiscard]] QByteArray splitterState() const;
+    void setSplitterState(const QByteArray &state);
+
     void sync();
 
 private:

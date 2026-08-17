@@ -12,6 +12,7 @@ class QLabel;
 class QPushButton;
 class QAbstractButton;
 class QButtonGroup;
+class QVBoxLayout;
 QT_END_NAMESPACE
 
 // Everything the dialog collects, in one place, so the caller does not have to
@@ -49,6 +50,17 @@ public:
 
 private:
     void buildUi();
+    // buildUi() assembles the dialog from these; each one fills the body
+    // layout with its numbered section, in the order the user reads them.
+    void applyDialogStyle();
+    void buildFormatSection(QVBoxLayout *body);
+    void buildDestinationSection(QVBoxLayout *body);      // filename + location
+    void buildRangeAndQualitySection(QVBoxLayout *body);
+    void buildOptionsSection(QVBoxLayout *body);
+    void buildSecuritySection(QVBoxLayout *body);
+    QWidget *buildFooter();
+    void addSeparator(QVBoxLayout *body);
+
     QWidget *makeSectionHeader(const QString &num, const QString &title);
     QPushButton *makeFormatCard(const QString &iconChar, const QString &label,
                                 const QString &id, bool available);

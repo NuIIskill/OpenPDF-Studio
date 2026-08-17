@@ -1,4 +1,4 @@
-#include "PdfPwStore.hpp"
+#include "app/PdfPwStore.hpp"
 
 #include <QFileInfo>
 #include <QHash>

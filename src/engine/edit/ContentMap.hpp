@@ -37,6 +37,17 @@ struct ContentItem {
     QColor  textColor;       // text fill color (invalid = unknown)
     QColor  bgColor;         // background fill behind the text (invalid = none)
     QString fieldName;       // AcroForm /T (FormField only)
+    // Pen origin of the first line: where the text actually starts, with y on
+    // the BASELINE (page space, Y=0 at top). bounds only says where the ink
+    // landed, which is a side bearing and a cap height away from that — too
+    // vague to put replacement text back on the same spot. Null = unknown
+    // (backends that cannot see the text matrix); consumers then measure.
+    QPointF textOrigin;
+    // Baseline-to-baseline distance of a multi-line block, in points. 0 for
+    // single lines and where it could not be determined; consumers then fall
+    // back to the font's own line spacing, which is usually tighter than the
+    // document's and pulls every following line upward.
+    double  lineSpacingPt { 0.0 };
 
     bool isFormField() const { return type == Type::FormField; }
     bool isTextual()   const {
@@ -76,6 +87,7 @@ struct ContentCluster {
     QString rawFontName;     // PDF BaseFont (may be empty)
     QColor  textColor;
     bool    exactWidth { false };  // true when bounds.width is glyph-exact
+    QPointF origin;          // pen position, y = baseline (see ContentItem)
 };
 
 // Groups runs into lines → segments, detects table rows via column alignment

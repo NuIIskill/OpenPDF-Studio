@@ -31,6 +31,7 @@ Q_SIGNALS:
     void languageChangeRequested(const QString &lang);
     void shortcutsChanged();
     void zoomSettingsChanged();
+    void panelLayoutSettingChanged();
 
 protected:
     void changeEvent(QEvent *e) override;
@@ -97,6 +98,9 @@ private:
     QAbstractButton *m_zoomPtrToggle    { nullptr };
     QComboBox       *m_wheelActionCombo { nullptr };
     QLabel          *m_zoomExampleLabel { nullptr };
+
+    // Advanced page widgets
+    QAbstractButton *m_preserveLayoutCheck { nullptr };
 
     QString m_pendingTheme;
     QString m_pendingLang;

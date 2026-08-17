@@ -1,5 +1,5 @@
-#include "TextBoxFrame.hpp"
-#include "InlineEditor.hpp"
+#include "ui/edit/TextBoxFrame.hpp"
+#include "ui/edit/InlineEditor.hpp"
 
 #include <QPainter>
 #include <QPen>

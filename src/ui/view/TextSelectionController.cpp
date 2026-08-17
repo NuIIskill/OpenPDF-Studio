@@ -1,4 +1,4 @@
-#include "TextSelectionController.hpp"
+#include "ui/view/TextSelectionController.hpp"
 
 #include <QApplication>
 #include <QClipboard>

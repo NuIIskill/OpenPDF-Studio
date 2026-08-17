@@ -1,4 +1,4 @@
-#include "PdfOrganizerDialog.hpp"
+#include "ui/dialogs/PdfOrganizerDialog.hpp"
 #include "app/PdfPwStore.hpp"
 #include "ui/dialogs/PasswordDialog.hpp"
 
@@ -37,7 +37,9 @@ namespace OrgConst {
 #include <QMargins>
 #include <QPageSize>
 #include <QFileInfo>
+#include <QSet>
 #include <QDebug>
+#include <algorithm>
 #include <memory>
 
 #include "ui/theme/Theme.hpp"
@@ -49,7 +51,7 @@ namespace OrgConst {
 #include <QPdfWriter>
 
 #ifdef HAVE_PDF_RENDERING
-#include "engine/view/PdfRenderer.hpp"
+#include "engine/render/PdfRenderer.hpp"
 #endif
 #ifdef HAVE_QT_PDF
 #include <QPdfDocument>
@@ -359,6 +361,8 @@ PdfOrganizerDialog::PdfOrganizerDialog(const QString &initialPath, QWidget *pare
     if (!initialPath.isEmpty()) {
         m_targetPath = initialPath;
         addPdfPages(initialPath);
+        m_initialPath  = initialPath;
+        m_initialCount = static_cast<int>(m_pages.size());
     }
 }
 
@@ -1401,6 +1405,73 @@ void PdfOrganizerDialog::saveAs()
         m_resultIsWorking = false;
         accept();
     }
+}
+
+// ── What was done ─────────────────────────────────────────────────────────────
+
+DocumentHistory::Change PdfOrganizerDialog::appliedChange() const
+{
+    using Kind = DocumentHistory::Kind;
+
+    DocumentHistory::Change c;
+    c.kind  = Kind::PagesOrganized;
+    c.count = static_cast<int>(m_pages.size());
+
+    // Which of the pages the document came with are still here, and in which
+    // order. A page of the source file added a second time is a new page, not
+    // a survivor — hence the seen-set.
+    QList<int> survivors;
+    QSet<int>  seen;
+    int rotated = 0, added = 0;
+    int firstRotatedPos = -1, firstAddedPos = -1, rotation = 0;
+
+    for (int i = 0; i < m_pages.size(); ++i) {
+        const PageEntry &e = m_pages[i];
+        const bool fromSource = !e.isBlank && !m_initialPath.isEmpty()
+                             && e.pdfPath == m_initialPath && !seen.contains(e.pageIndex);
+        if (fromSource) {
+            seen.insert(e.pageIndex);
+            survivors.append(e.pageIndex);
+        } else {
+            if (added++ == 0) firstAddedPos = i;
+        }
+        if (e.rotation != 0) {
+            if (rotated++ == 0) { firstRotatedPos = i; rotation = e.rotation; }
+        }
+    }
+
+    const int deleted = qMax(0, m_initialCount - static_cast<int>(survivors.size()));
+    int firstDeleted = -1;
+    if (deleted > 0) {
+        for (int p = 0; p < m_initialCount; ++p)
+            if (!seen.contains(p)) { firstDeleted = p; break; }
+    }
+    const bool reordered = !std::is_sorted(survivors.cbegin(), survivors.cend());
+
+    // A run that did exactly one kind of thing gets named after it; anything
+    // else stays "organized", which is the honest summary of a mixed run.
+    const int kinds = (deleted > 0) + (added > 0) + (rotated > 0) + (reordered ? 1 : 0);
+    if (kinds != 1) return c;
+
+    if (rotated > 0) {
+        c.kind  = Kind::PageRotated;
+        c.count = rotated;
+        c.page  = firstRotatedPos;
+        // 270° clockwise is what a quarter turn the other way looks like once
+        // it is stored, and that is how the user made it.
+        c.value = rotation == 270 ? -90 : rotation;
+    } else if (deleted > 0) {
+        c.kind  = Kind::PageDeleted;
+        c.count = deleted;
+        c.page  = firstDeleted;
+    } else if (added > 0) {
+        c.kind  = Kind::PageAdded;
+        c.count = added;
+        c.page  = firstAddedPos;
+    } else {
+        c.kind = Kind::PagesReordered;
+    }
+    return c;
 }
 
 // ── Qt event overrides ────────────────────────────────────────────────────────

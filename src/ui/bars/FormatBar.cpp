@@ -1,4 +1,4 @@
-#include "FormatBar.hpp"
+#include "ui/bars/FormatBar.hpp"
 
 #include <QButtonGroup>
 #include <QColorDialog>

@@ -82,12 +82,26 @@ public:
     QList<Placed> placedImages() const;
     bool          isEmpty() const { return m_placed.isEmpty(); }
 
+    // Replaces every placed image with `images` — widgets and session edits
+    // both. This is how the history goes back to an earlier image state; it
+    // deliberately reports no imageAdded/imageRemoved, since restoring a state
+    // is not a change to record.
+    void restoreImages(const QList<Placed> &images);
+
 Q_SIGNALS:
     // The page content changed (image added, moved or removed).
     void pageNeedsRerender(int page);
+    // A placement the document history records. Separate from
+    // pageNeedsRerender, which also fires for moves and for restores.
+    void imageAdded(int page);
+    void imageRemoved(int page);
 
 private:
     void connectAnnotation(ImageAnnotation *ann);
+    // Creates the overlay widget for an entry and appends it to m_placed.
+    // The single place that knows how a placed image becomes a widget.
+    void addEntry(int page, const QRectF &pdfBounds, const QImage &img,
+                  const QRect &canvasRect = QRect());
 
     struct Entry {
         int     page;

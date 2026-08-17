@@ -1,4 +1,4 @@
-#include "ThumbnailItem.hpp"
+#include "ui/widgets/ThumbnailItem.hpp"
 
 #include "ui/theme/Theme.hpp"
 

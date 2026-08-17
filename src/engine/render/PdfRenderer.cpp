@@ -1,4 +1,4 @@
-#include "PdfRenderer.hpp"
+#include "engine/render/PdfRenderer.hpp"
 
 #ifdef HAVE_QT_PDF
 

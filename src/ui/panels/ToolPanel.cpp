@@ -1,4 +1,4 @@
-#include "ToolPanel.hpp"
+#include "ui/panels/ToolPanel.hpp"
 
 #include <QLabel>
 #include <QVBoxLayout>

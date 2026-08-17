@@ -1,7 +1,7 @@
-#include "MainWindow.hpp"
+#include "ui/MainWindow.hpp"
 
-#include "PresentationWindow.hpp"
-#include "DocumentView.hpp"
+#include "ui/PresentationWindow.hpp"
+#include "ui/DocumentView.hpp"
 #include "ui/bars/TopToolbar.hpp"
 #include "ui/bars/FormatBar.hpp"
 #include "ui/bars/StatusBar.hpp"
@@ -11,6 +11,7 @@
 #include "ui/panels/SettingsPanel.hpp"
 #include "ui/dialogs/PdfOrganizerDialog.hpp"
 #include "ui/dialogs/ExportDialog.hpp"
+#include "ui/dialogs/HistoryDialog.hpp"
 #include "engine/edit/DocxExporter.hpp"
 #include "engine/edit/PdfExporter.hpp"
 #include "ui/theme/Theme.hpp"
@@ -33,6 +34,9 @@
 #include <QShortcut>
 
 #ifdef HAVE_QT_PRINT
+#include <QMarginsF>
+#include <QPageLayout>
+#include <QPageRanges>
 #include <QPrintDialog>
 #include <QPrinter>
 #endif
@@ -45,6 +49,7 @@ MainWindow::MainWindow(AppSettings *settings, QWidget *parent)
     setMinimumSize(1280, 800);
     buildUi();
     connectSignals();
+    applyPanelLayout();
 
     // Apply persisted language on startup
     const QString lang = settings->language();
@@ -131,6 +136,8 @@ void MainWindow::connectSignals()
         connect(panel, &SettingsPanel::languageChangeRequested, this, &MainWindow::applyLanguage);
         connect(panel, &SettingsPanel::shortcutsChanged,     this, &MainWindow::loadShortcuts);
         connect(panel, &SettingsPanel::zoomSettingsChanged, this, &MainWindow::loadZoomSettings);
+        connect(panel, &SettingsPanel::panelLayoutSettingChanged,
+                this, &MainWindow::savePanelLayout);
         panel->open();
     });
 
@@ -211,14 +218,10 @@ void MainWindow::connectSignals()
             dv->goToPage(page - 1);          // status bar counts from 1
     });
     connect(m_statusBar, &StatusBar::panelToggleRequested,  this, [this]() {
-        m_rightSidebarCollapsed = !m_rightSidebarCollapsed;
-        if (m_rightSidebarCollapsed) {
-            m_rightSidebar->hide();
-            m_rightSidebar->setFixedWidth(0);
-        } else {
-            m_rightSidebar->setFixedWidth(RightSidebar::kWidth);
-            m_rightSidebar->show();
-        }
+        setRightSidebarCollapsed(!m_rightSidebarCollapsed);
+        // Written straight away: the layout the user just chose should also
+        // survive a crash or a kill, not only an orderly close.
+        savePanelLayout();
     });
 }
 
@@ -233,6 +236,10 @@ DocumentView *MainWindow::addDocView()
     m_docStack->addWidget(dv);
 
     const int idx = m_topToolbar->addTab();
+
+    // A PDF dropped onto the view goes through the same path as File > Open,
+    // so it is recorded as the last opened file like any other open.
+    connect(dv, &DocumentView::pdfDropped, this, &MainWindow::openPath);
 
     connect(dv, &DocumentView::fileOpened, this, [this, dv](const QString &path, int pages) {
         const int i = m_docViews.indexOf(dv);
@@ -351,18 +358,32 @@ void MainWindow::openPath(const QString &path)
     m_appSettings->sync();
 }
 
+bool MainWindow::saveDocument(DocumentView *dv, const QString &path)
+{
+    if (!dv || path.isEmpty()) return false;
+    if (dv->saveToFile(path)) return true;
+
+    QMessageBox::warning(
+        this, tr("Save failed"),
+        tr("Could not write \"%1\".\n\nThe file may be write-protected or "
+           "open in another program. The document is unchanged — try saving "
+           "it under a different name.")
+            .arg(QFileInfo(path).fileName()));
+    return false;
+}
+
 void MainWindow::onSave()
 {
     DocumentView *dv = currentDocView();
     if (!dv) return;
 
     if (!dv->currentFile().isEmpty()) {
-        dv->saveToFile(dv->currentFile());
+        saveDocument(dv, dv->currentFile());
     } else {
         const QString path = QFileDialog::getSaveFileName(
             this, tr("Save PDF As"), {}, tr("PDF files (*.pdf)"));
         if (!path.isEmpty())
-            dv->saveToFile(path);
+            saveDocument(dv, path);
     }
 }
 
@@ -373,17 +394,79 @@ void MainWindow::onSaveAs()
     const QString path = QFileDialog::getSaveFileName(
         this, tr("Save PDF As"), {}, tr("PDF files (*.pdf)"));
     if (!path.isEmpty())
-        dv->saveToFile(path);
+        saveDocument(dv, path);
 }
 
 void MainWindow::onPrint()
 {
 #ifdef HAVE_QT_PRINT
     DocumentView *dv = currentDocView();
-    if (!dv) return;
-    QPrinter printer;
+    if (!dv || dv->contentFile().isEmpty()) return;
+    const int pageCount = dv->pageCount();
+    if (pageCount <= 0) return;
+
+    QPrinter printer(QPrinter::HighResolution);
+    printer.setDocName(QFileInfo(dv->currentFile()).completeBaseName());
+    // Zero margins are clamped to the hardware minimum, which makes the
+    // printable area as large as the device allows; the page is then fitted
+    // into it, so nothing is ever cut off.
+    printer.setPageMargins(QMarginsF(0, 0, 0, 0), QPageLayout::Millimeter);
+    printer.setFromTo(1, pageCount);
+
     QPrintDialog dlg(&printer, this);
-    dlg.exec();
+    dlg.setOption(QAbstractPrintDialog::PrintPageRange);
+    dlg.setOption(QAbstractPrintDialog::PrintCurrentPage);
+    dlg.setWindowTitle(tr("Print"));
+    if (dlg.exec() != QDialog::Accepted) return;
+
+    // Zero-based page indices for the view; empty means the whole document.
+    QList<int> pages;
+    switch (printer.printRange()) {
+    case QPrinter::CurrentPage:
+        pages.append(dv->currentPage());
+        break;
+    case QPrinter::PageRange: {
+        // Qt fills pageRanges() for the "1,3,5-7" syntax the dialog accepts
+        // and leaves it empty when only a from/to range was given.
+        const QPageRanges ranges = printer.pageRanges();
+        if (!ranges.isEmpty()) {
+            for (int p = ranges.firstPage(); p <= ranges.lastPage(); ++p)
+                if (ranges.contains(p)) pages.append(p - 1);
+        } else {
+            for (int p = printer.fromPage(); p <= printer.toPage(); ++p)
+                pages.append(p - 1);
+        }
+        break;
+    }
+    default:
+        break;   // AllPages / Selection → the whole document
+    }
+
+    // Native engines (CUPS, Windows) produce the copies in the driver; only
+    // when they don't do the sheets have to be repeated in the job itself,
+    // otherwise every copy would be printed twice.
+    const int copies = printer.supportsMultipleCopies()
+        ? 1 : qMax(1, printer.copyCount());
+    if (copies > 1) {
+        if (pages.isEmpty())
+            for (int p = 0; p < pageCount; ++p) pages.append(p);
+        const QList<int> once = pages;
+        pages.clear();
+        if (printer.collateCopies()) {
+            for (int c = 0; c < copies; ++c) pages.append(once);
+        } else {
+            for (int page : once)
+                for (int c = 0; c < copies; ++c) pages.append(page);
+        }
+    }
+
+    QApplication::setOverrideCursor(Qt::WaitCursor);
+    const bool ok = dv->printDocument(&printer, pages);
+    QApplication::restoreOverrideCursor();
+
+    if (!ok)
+        QMessageBox::warning(this, tr("Print"),
+                             tr("The document could not be printed."));
 #endif
 }
 
@@ -489,12 +572,57 @@ void MainWindow::onModeSelected(const QString &mode)
             const QString path = dlg->resultPath();
             if (path.isEmpty()) return;
             if (dlg->resultIsWorkingCopy())
-                dv->openWorkingCopy(path, dlg->targetPath());
+                dv->openWorkingCopy(path, dlg->targetPath(), dlg->appliedChange());
             else
                 dv->openFile(path);
         });
         dlg->open();
+    } else if (mode == QLatin1String("history")) {
+        openHistoryDialog();
     }
+}
+
+// ── Change history ────────────────────────────────────────────────────────────
+
+void MainWindow::openHistoryDialog()
+{
+    DocumentView *dv = currentDocView();
+    if (!dv || dv->contentFile().isEmpty()) {
+        QMessageBox::information(this, tr("Change history"),
+                                 tr("Open a document to see its change history."));
+        m_rightSidebar->setMode(m_editMode ? QStringLiteral("edit") : QString{});
+        return;
+    }
+
+    m_rightSidebar->setMode(QStringLiteral("history"));
+
+    auto *dlg = new HistoryDialog(dv->history(),
+                                  QFileInfo(dv->currentFile()).fileName(), this);
+    dlg->setAttribute(Qt::WA_DeleteOnClose);
+
+    const auto syncButtons = [dv, dlg]() {
+        dlg->setUndoRedoAvailable(dv->undoStack()->canUndo(),
+                                  dv->undoStack()->canRedo());
+    };
+    syncButtons();
+    connect(dv->undoStack(), &QUndoStack::canUndoChanged, dlg, syncButtons);
+    connect(dv->undoStack(), &QUndoStack::canRedoChanged, dlg, syncButtons);
+
+    connect(dlg, &HistoryDialog::undoRequested, this, &MainWindow::onUndo);
+    connect(dlg, &HistoryDialog::redoRequested, this, &MainWindow::onRedo);
+    connect(dlg, &HistoryDialog::clearRequested, dv, [dv]() {
+        dv->history()->clear();
+    });
+    connect(dlg, &HistoryDialog::restoreRequested, this, [this, dv, dlg](int index) {
+        if (dv->restoreHistoryState(index)) return;
+        QMessageBox::warning(dlg, tr("Change history"),
+                             tr("This state could not be restored — the copy of "
+                                "the document it was kept in is no longer there."));
+    });
+    connect(dlg, &QDialog::finished, this, [this]() {
+        m_rightSidebar->setMode(m_editMode ? QStringLiteral("edit") : QString{});
+    });
+    dlg->open();
 }
 
 // ── Export ────────────────────────────────────────────────────────────────────
@@ -685,7 +813,48 @@ void MainWindow::closeEvent(QCloseEvent *e)
             return;
         }
     }
+    savePanelLayout();
     e->accept();
+}
+
+// ── Panel layout ──────────────────────────────────────────────────────────────
+
+void MainWindow::setRightSidebarCollapsed(bool collapsed)
+{
+    m_rightSidebarCollapsed = collapsed;
+    if (collapsed) {
+        m_rightSidebar->hide();
+        m_rightSidebar->setFixedWidth(0);
+    } else {
+        m_rightSidebar->setFixedWidth(RightSidebar::kWidth);
+        m_rightSidebar->show();
+    }
+}
+
+void MainWindow::applyPanelLayout()
+{
+    if (!m_appSettings || !m_appSettings->preservePanelLayout())
+        return;
+
+    setRightSidebarCollapsed(m_appSettings->rightPanelCollapsed());
+
+    const QByteArray splitter = m_appSettings->splitterState();
+    if (!splitter.isEmpty())
+        m_splitter->restoreState(splitter);
+}
+
+void MainWindow::savePanelLayout()
+{
+    if (!m_appSettings) return;
+
+    // Opting out means the stored layout stops being written as well — the
+    // next start then falls back to the defaults rather than to a stale state.
+    if (!m_appSettings->preservePanelLayout())
+        return;
+
+    m_appSettings->setRightPanelCollapsed(m_rightSidebarCollapsed);
+    m_appSettings->setSplitterState(m_splitter->saveState());
+    m_appSettings->sync();
 }
 
 void MainWindow::openTextPanel()
@@ -722,13 +891,15 @@ bool MainWindow::confirmAndSave(DocumentView *dv)
     if (btn == QMessageBox::Cancel) return false;
 
     if (btn == QMessageBox::Save) {
+        // A failed save keeps the document open — closing it would throw the
+        // changes away, which is exactly what the user just declined.
         if (!dv->currentFile().isEmpty())
-            return dv->saveToFile(dv->currentFile());
+            return saveDocument(dv, dv->currentFile());
 
         const QString path = QFileDialog::getSaveFileName(
             this, tr("Save PDF As"), {}, tr("PDF files (*.pdf)"));
         if (path.isEmpty()) return false;
-        return dv->saveToFile(path);
+        return saveDocument(dv, path);
     }
 
     return true; // Discard

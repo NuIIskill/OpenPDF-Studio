@@ -1,0 +1,81 @@
+                     OpenPDF Studio Commercial License
+                     ---------------------------------
+
+SPDX identifier: LicenseRef-OpenPDF-Commercial
+Version 1.0 — 2026-08-17
+Copyright (c) 2026 nullskill
+
+This document describes the commercial licensing option for the OpenPDF Studio
+Core. It is a reference document, not a public license: it grants no rights by
+itself. Rights under this option are granted only by a separate written
+agreement with the Licensor.
+
+
+1. Licensor
+
+   nullskill, contact: nullskilll@gmail.com  ("the Licensor").
+
+
+2. Scope
+
+   The OpenPDF Studio Core — everything in this repository except the
+   components listed as separately licensed in LICENSES/README.md — is
+   available under two alternative licenses, at the choice of the recipient:
+
+     (a) the GNU General Public License, version 3 only
+         (LICENSES/GPL-3.0.txt), or
+
+     (b) this OpenPDF Studio Commercial License.
+
+   Expressed as an SPDX identifier:
+
+       GPL-3.0-only OR LicenseRef-OpenPDF-Commercial
+
+   Option (a) costs nothing and requires nothing beyond compliance with the
+   GPL. Option (b) requires a signed agreement with the Licensor.
+
+
+3. What the commercial option is for
+
+   The GPL requires that a work you distribute which incorporates the Core is
+   itself distributed under the GPL, with complete corresponding source. The
+   commercial option exists for the cases where that is not possible or not
+   wanted, in particular:
+
+     - combining the Core with components that are not GPL-compatible,
+       including the OpenPDF Studio components licensed under
+       LICENSES/OPENPDF-BUSINESS.txt;
+
+     - shipping a product built on the Core without disclosing its source;
+
+     - distribution without the obligations of GPL sections 4 to 6.
+
+   The Licensor's own official distribution of OpenPDF Studio is made under
+   this option. That is what allows the official build to combine the Core
+   with the Business-licensed components in one program.
+
+
+4. No rights without an agreement
+
+   Nothing in this document is an offer, a promise, or a grant. Until a
+   written agreement is in place, the rights of a recipient in the Core are
+   exactly the rights that GPL-3.0-only grants — no more and no less.
+   Publication of this document is an invitation to treat (invitatio ad
+   offerendum), not a binding offer within the meaning of § 145 BGB.
+
+
+5. Terms
+
+   Scope, term, territory, fee, support, warranty and liability of the
+   commercial option are agreed individually. To request terms, write to
+   nullskilll@gmail.com.
+
+
+6. Contributions
+
+   Contributions to the Core are accepted under the same dual license. By
+   submitting a contribution to the Core, the contributor grants the Licensor
+   a perpetual, worldwide, non-exclusive, royalty-free right to use, modify
+   and distribute that contribution under both licensing options named in
+   section 2, including as part of the Licensor's commercial distribution.
+   The contributor keeps the copyright in their contribution.

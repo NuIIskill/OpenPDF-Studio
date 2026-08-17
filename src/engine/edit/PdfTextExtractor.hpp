@@ -1,6 +1,6 @@
 #pragma once
 
-#include "TextBlock.hpp"
+#include "engine/edit/TextBlock.hpp"
 #include <QPointF>
 #include <QSizeF>
 #include <QList>

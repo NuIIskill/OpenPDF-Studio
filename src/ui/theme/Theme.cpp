@@ -1,4 +1,4 @@
-#include "Theme.hpp"
+#include "ui/theme/Theme.hpp"
 
 #include <QApplication>
 #include <QFile>

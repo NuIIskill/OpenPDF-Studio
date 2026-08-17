@@ -1,96 +1,187 @@
 # OpenPDF Studio
 
-OpenPDF Studio is a free and open-source PDF editor for Linux and Windows.
+A native Qt 6 PDF viewer and editor for Linux and Windows: read a document,
+edit the text that is already in it, reorder its pages, annotate it, and export
+it to PDF, Word or PNG — in one application, without a web stack.
 
-The goal of the project is to provide a modern, easy-to-use PDF suite for everyday work: viewing, editing, organizing, annotating and exporting PDF files in one application.
+Current version: **0.2.5** — early alpha. Work on copies of important
+documents and check exported files with a second PDF viewer.
 
-> OpenPDF Studio is currently in an early development stage. Please use copies of important documents and verify exported files with another PDF viewer.
+## Licensing
+
+OpenPDF Studio Core is dual-licensed under **GPL-3.0-only** or the **OpenPDF
+Studio Commercial License**.
+
+Certain additional components — currently only `modules/rich-media/` — are
+distributed under the **OpenPDF Studio Business License**. Those components are
+free for personal use; commercial use requires a Business License after a
+30-day evaluation period.
+
+See [LICENSES/](LICENSES/) for details, and [LICENSES/README.md](LICENSES/README.md)
+for the path-by-path map.
+
+Everything you need to build, run and modify the full viewer and editor is
+Core, and Core is free software. Note that a build linked against Poppler
+instead of `Qt6::Pdf` can only be distributed under the GPL.
 
 ## Features
 
-* Open and view PDF files
-* Add text elements
-* Add and edit annotations
-* Organize PDF pages
-* Move, rotate and delete pages
-* Insert blank pages
-* Combine PDF files
-* Save edited documents
+**Viewing**
+
+* Single-page and grid view, thumbnail sidebar, presentation mode
+* Zoom via toolbar or Ctrl + mouse wheel — step size, zoom-to-pointer and the
+  no-modifier wheel action are configurable
+* Password-protected documents: the password is asked once and kept in memory
+  for the renderer, editor and exporters; it is never written to disk
+* Printing (needs `Qt6::PrintSupport`)
+
+**Editing**
+
+* In-place text editing: click a text run, type, and the change is written back
+  into the page's content stream as vector text (needs qpdf)
+* Scanned pages fall back to OCR (needs Tesseract), so text can be edited there
+  too
+* Annotations: text boxes, comments and images, with undo/redo
+* Text selection with the Select tool, hover highlighting of what is editable
+* Page organizer: reorder by drag & drop, rotate, delete, insert blank pages
+  and merge further PDFs — works on encrypted files as well
+* Change history per document, with restore to an earlier state
+* Edits to page structure go to a session working file; the file you opened is
+  untouched until you save. Saving is atomic.
+
+**Export**
+
+* PDF — page ranges, user password, and switches for comments, form fields,
+  embedded fonts and image compression (the option-aware path needs qpdf)
+* Word `.docx` — text, layout and images
+* PNG — one file per page, adjustable quality
+* Estimated output size before you export
+
+**Interface**
+
 * Light and dark theme
-* Multi-language interface
+* Configurable keyboard shortcuts
+* 11 translations besides English: German, French, Spanish, Italian,
+  Portuguese, Dutch, Polish, Russian, Chinese, Japanese, Korean
 
-## Planned features
+## Not there yet
 
-* Improved text editing
-* Form editing
-* OCR support
-* Redaction tools
-* Digital signatures
-* Better export options
-* More languages
-* Windows builds
+* Real PDF/A conformance — the PDF/A card in the export dialog currently
+  produces an ordinary PDF
+* Rich media playback (`modules/rich-media/`) — media annotations are detected
+  and protected from editing, but not played
+* Form editing, redaction, digital signatures
+* Crash recovery from the session working files
 
-## Screenshots
-
-Screenshots will be added soon.
-
-## Installation
+## Install
 
 ### Linux
 
-Download the latest release from the Releases page.
-
-After downloading, make the file executable if necessary:
+Grab a package from the Releases page:
 
 ```bash
-chmod +x OpenPDF-Studio
-./OpenPDF-Studio
+sudo dnf install openpdf-studio-0.2.5-1.x86_64.rpm      # Fedora / RHEL / openSUSE
+sudo apt install ./openpdf-studio_0.2.5_amd64.deb       # Debian / Ubuntu
 ```
 
+Or use the AppImage, which needs nothing installed:
+
+```bash
+chmod +x OpenPDF_Studio-0.2.5-x86_64.AppImage
+./OpenPDF_Studio-0.2.5-x86_64.AppImage
+```
+
+### Windows
+
+Run `OpenPDF-Studio-0.2.5-Setup.exe`, or unpack
+`OpenPDF-Studio-0.2.5-win64-portable.zip` and start `OpenPDFStudio.exe`.
+The Windows build ships without qpdf, so PDF export there cannot select page
+ranges or set a password; Word and PNG export are unaffected.
+
 ## Build from source
-
-Requirements and build instructions will be added soon.
-
-Basic development setup:
 
 ```bash
 git clone https://github.com/NuIIskill/OpenPDF-Studio.git
 cd OpenPDF-Studio
+./build.sh                 # Release → build/OpenPDFStudio
+./build.sh --appimage      # additionally packs an AppImage
 ```
 
-Then follow the project-specific build instructions.
+`build.sh` honours `BUILD_DIR`, `BUILD_TYPE` and `JOBS`, and passes any other
+argument through to CMake.
 
-## Status
+### Dependencies
 
-OpenPDF Studio is in an early alpha stage. Some features may be incomplete, unstable or subject to change.
+Required: CMake ≥ 3.20, a C++20 compiler, and Qt 6 Core / Widgets / Gui.
 
-Please report bugs and problems through GitHub Issues.
+Everything else is optional and only changes what gets compiled in — the code
+behind each `HAVE_*` define still builds when the dependency is missing:
+
+| Dependency | Enables | Fedora package |
+| --- | --- | --- |
+| `Qt6::Pdf` **or** Poppler-Qt6 | page rendering (`HAVE_PDF_RENDERING`) | `qt6-qtpdf-devel` / `poppler-qt6-devel` |
+| qpdf | vector text save, PDF export options (`HAVE_QPDF`) | `qpdf-devel` |
+| Tesseract | OCR on scanned pages (`HAVE_TESSERACT`) | `tesseract-devel`, `tesseract-langpack-deu` |
+| `Qt6::PrintSupport` | printing (`HAVE_QT_PRINT`) | part of `qt6-qtbase-devel` |
+| `Qt6::LinguistTools` | the `update_translations` target | `qt6-qttools-devel` |
+
+Without a PDF backend the application starts but shows nothing — CMake says so
+during configure (`PDF backend: none`).
+
+### Windows cross-build and packages
+
+```bash
+./build-win.sh                        # mingw64 + Qt6 cross-build → build-win/
+packaging/windows/package-win.sh      # portable ZIP + NSIS installer → dist/
+packaging/linux/package-linux.sh      # RPM + DEB via CPack → dist/
+```
+
+## Headless entry points
+
+The binary can do a few things without a display, which is how exports are
+regression-tested:
+
+```bash
+OpenPDFStudio --export-pdf  in.pdf out.pdf [pages=1,3-4] [nocomments] [noforms] \
+                                           [nofonts] [nocompress] [q=60] [pw=…] [srcpw=…]
+OpenPDFStudio --export-docx in.pdf out.docx [pages=1,3-4] [q=60] [nocompress] [srcpw=…]
+OpenPDFStudio --shot-window out.png in.pdf [dark] [edit=x,y]
+OpenPDFStudio --shot-export-dialog out.png [word|image]
+OpenPDFStudio --shot-history-dialog out.png [dark]
+```
+
+## Project layout
+
+```
+src/
+  app/        infrastructure: settings, safe writes, session, history, passwords
+  engine/     document logic, no widgets — edit/, ocr/, render/, document/
+  ui/         everything that is a widget — bars/, panels/, dialogs/, tools/,
+              view/, edit/, widgets/, theme/
+  3rdparty/   vendored (nanosvg)
+modules/
+  rich-media/ source-available module, Business License
+```
+
+`engine/` never includes `ui/` and never touches QWidget; `app/` never includes
+`ui/`. Includes are root-relative to `src/`. Each source folder carries its own
+`CMakeLists.txt` — a new file is registered where it is created, not in a
+central list. [CLAUDE.md](CLAUDE.md) has the rules in full;
+[docs/](docs/) holds the architecture notes.
 
 ## Contributing
 
-Contributions are welcome.
+Bug reports, test documents, translations, UI work and pull requests are all
+welcome. For anything larger, please open an issue first so the approach can be
+discussed.
 
-You can help by:
-
-* reporting bugs
-* testing PDF files
-* improving translations
-* improving the user interface
-* adding documentation
-* submitting pull requests
-
-Before submitting larger changes, please open an issue first so the idea can be discussed.
+Contributions to the Core are accepted under its dual license: by submitting
+one you grant the copyright holder the right to distribute it under both
+GPL-3.0-only and the Commercial License, while keeping the copyright in your
+own work. Without that the dual-licensing model could not hold.
 
 ## Security
 
-Do not upload private or sensitive PDF files when reporting bugs.
-
-If you find a security issue, please report it privately instead of creating a public issue.
-
-## License
-
-OpenPDF Studio is licensed under the MIT License.
-
-You are allowed to use, copy, modify, distribute and sell copies of the software, as long as the copyright notice and license text are included.
-
-See the LICENSE file for details.
+Please do not attach private or sensitive PDFs to bug reports. If you find a
+security issue, report it privately to nullskilll@gmail.com instead of opening
+a public issue.

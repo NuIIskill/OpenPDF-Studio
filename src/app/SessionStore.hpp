@@ -29,4 +29,24 @@ bool isWorkingFile(const QString &path);
 /// safe to call with a user document path.
 void discard(const QString &path);
 
+/// Directory holding the document-history snapshots. A sub-directory of
+/// directory() on purpose: snapshots are states the user can go back to, not
+/// documents to offer for recovery, and discard() must never reach them.
+QString snapshotDirectory();
+
+/// Allocates an unused snapshot path for `sourcePath`. Does not create the file.
+QString newSnapshotFile(const QString &sourcePath);
+
+/// True when `path` is a file inside snapshotDirectory().
+bool isSnapshotFile(const QString &path);
+
+/// Deletes `path` if it is a snapshot. Ignores everything else.
+void discardSnapshot(const QString &path);
+
+/// Deletes snapshots older than `maxAgeDays`. A history belongs to the run
+/// that built it and is cleaned up when its document closes; what stays behind
+/// is the leftovers of runs that were killed. Called once at startup — old
+/// enough that a session still running cannot be holding one.
+void pruneSnapshots(int maxAgeDays = 7);
+
 } // namespace SessionStore

@@ -55,5 +55,12 @@
         <file>icons/sliders.svg</file>
         <file>icons/folder-open.svg</file>
         <file>icons/keyboard.svg</file>
+        <file>icons/history.svg</file>
+        <file>icons/rotate-cw.svg</file>
+        <file>icons/refresh-cw.svg</file>
+        <file>icons/trash-2.svg</file>
+        <file>icons/more-horizontal.svg</file>
+        <file>icons/arrow-left-right.svg</file>
+        <file>icons/file-plus.svg</file>
     </qresource>
 </RCC>

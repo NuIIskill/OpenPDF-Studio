@@ -1,6 +1,6 @@
 #ifdef HAVE_QT_PDF
 
-#include "PdfTextExtractor.hpp"
+#include "engine/edit/PdfTextExtractor.hpp"
 #include <QPdfSelection>
 #include <algorithm>
 #include <cmath>
@@ -244,8 +244,12 @@ TextBlock PdfTextExtractor::blockInRect(int page, const QRectF &rect,
     QRectF  united;
     for (const Line &ln : lines) {
         united = united.isNull() ? ln.r : united.united(ln.r);
-        const QPointF a(ln.r.left() + 0.5,  ln.r.center().y());
-        const QPointF b(ln.r.right() - 0.5, ln.r.center().y());
+        // Anchors on the line's exact edges. Pulling the end anchor inward
+        // drops the last character of every line — the union is built from
+        // that line's glyph rects alone, so its right edge IS the last glyph
+        // and there is no neighbouring line for it to spill into.
+        const QPointF a(ln.r.left(),  ln.r.center().y());
+        const QPointF b(ln.r.right(), ln.r.center().y());
         const QPdfSelection sel = m_doc->getSelection(page, a, b);
         QString lineText = sel.isValid() ? sel.text().trimmed() : QString();
         lineText.replace(u'\n', u' ');
