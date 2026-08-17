@@ -1372,12 +1372,12 @@ Enter the password to open it:</source>
     <message>
         <location filename="../../src/ui/panels/SettingsPanel.cpp" line="1225"/>
         <source>Preserve panel layout</source>
-        <translation>Panel-Layout beibehalten</translation>
+        <translation>Panel Layout beibehalten</translation>
     </message>
     <message>
         <location filename="../../src/ui/panels/SettingsPanel.cpp" line="1231"/>
         <source>Restore expanded and collapsed panels after restart.</source>
-        <translation>Ein- und ausgeklappte Panels nach dem Neustart wiederherstellen.</translation>
+        <translation>Eingeklappte und ausgeklappte Panels nach dem Neustart wiederherstellen.</translation>
     </message>
     <message>
         <location filename="../../src/ui/panels/SettingsPanel.cpp" line="1247"/>

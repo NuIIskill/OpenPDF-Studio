@@ -87,14 +87,19 @@ private:
     /// when nothing structured was recognised, so the export is not empty.
     QList<ContentItem> wholePageFallback(int page, const QSizeF &pageSizePt) const;
 
-    /// `original` with the native glyphs of every recognised text run painted
-    /// out, so DOCX text boxes can be placed over it without doubling. Images
-    /// and vector graphics survive as the raster layer underneath.
-    QImage eraseTextRuns(const QImage &original, const QList<ContentItem> &items,
-                         int page, qreal scale) const;
 #endif
 
 #ifdef HAVE_PDF_RENDERING
+    /// `original` with the native glyphs of every recognised text run painted
+    /// out, so DOCX text boxes can be placed over it without doubling. Images
+    /// and vector graphics survive as the raster layer underneath.
+    ///
+    /// Exact glyph rectangles need the Qt PDF extractor; without it the item
+    /// bounds are erased instead, which is coarser but keeps the Poppler-only
+    /// build working.
+    QImage eraseTextRuns(const QImage &original, const QList<ContentItem> &items,
+                         int page, qreal scale) const;
+
     Sources m_src;
 #endif
 };

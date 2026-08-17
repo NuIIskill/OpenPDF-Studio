@@ -37,7 +37,10 @@ cp "$BUILD_DIR"/*.dll "$APP_DIR/"
 for d in platforms imageformats iconengines styles etc share; do
     [[ -d "$BUILD_DIR/$d" ]] && cp -r "$BUILD_DIR/$d" "$APP_DIR/"
 done
+# LICENSE ist nur die Übersicht und verweist auf LICENSES/ — beides mitgeben,
+# sonst zeigt der Installer eine Lizenz, deren Volltexte fehlen.
 cp "$ROOT/LICENSE" "$APP_DIR/"
+cp -r "$ROOT/LICENSES" "$APP_DIR/"
 
 SIZE="$(du -sh "$APP_DIR" | cut -f1)"
 echo "==> Staging: $APP_DIR ($SIZE)"

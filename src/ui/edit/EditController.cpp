@@ -9,6 +9,7 @@
 #  include "engine/edit/ContentModel.hpp"
 #  include "engine/edit/InkMetrics.hpp"
 #  include "engine/edit/PdfTextExtractor.hpp"
+#  include "engine/edit/PopplerTextLookup.hpp"
 #  include "ui/edit/TextBoxFrame.hpp"
 #  include "ui/view/HoverHighlight.hpp"
 #  include "ui/view/ZoomController.hpp"
@@ -278,8 +279,8 @@ bool EditController::resolveEditTarget(const QPoint &canvasPos, EditOpen &o)
         o.block = m_src->extractor()->textAt(pageIdx, o.pdfPt, o.pageSize, o.erasedZones);
 #elif defined(HAVE_POPPLER)
         if (m_src->popplerDoc())
-            o.block = popplerTextAt(m_src->popplerDoc(), pageIdx, o.pdfPt,
-                                    o.erasedZones);
+            o.block = PopplerText::textAt(m_src->popplerDoc(), pageIdx, o.pdfPt,
+                                          o.erasedZones);
 #endif
     }
 
@@ -374,8 +375,8 @@ void EditController::applyEditTargetBounds(EditOpen &o)
                                             o.erasedZones);
 #elif defined(HAVE_POPPLER)
             if (m_src->popplerDoc())
-                para = popplerBlockInRect(m_src->popplerDoc(), o.block.page,
-                                          o.contentItem.bounds, o.erasedZones);
+                para = PopplerText::blockInRect(m_src->popplerDoc(), o.block.page,
+                                                o.contentItem.bounds, o.erasedZones);
 #endif
             // Sanity: a "paragraph" spanning most of the page is a detection
             // failure — editing it would open a viewport-sized frame. Fall
@@ -675,7 +676,7 @@ void EditController::presentEditor(EditOpen &o)
             o.block.page, activeEditOriginalBounds, o.erasedZones);
 #elif defined(HAVE_POPPLER)
         if (m_src->popplerDoc())
-            activeEditEraseRects = popplerGlyphRects(
+            activeEditEraseRects = PopplerText::glyphRects(
                 m_src->popplerDoc(), o.block.page, activeEditOriginalBounds,
                 o.erasedZones);
 #endif

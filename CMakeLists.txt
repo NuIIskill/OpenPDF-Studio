@@ -155,6 +155,15 @@ install(FILES packaging/appimage/openpdf-studio.desktop
     OPTIONAL
 )
 
+# Die Lizenzübersicht allein reicht nicht: sie verweist auf LICENSES/, also
+# muss das Verzeichnis mit ausgeliefert werden.
+install(FILES LICENSE
+    DESTINATION share/doc/OpenPDFStudio
+)
+install(DIRECTORY LICENSES
+    DESTINATION share/doc/OpenPDFStudio
+)
+
 install(FILES resources/icons/openpdf-studio.png
     DESTINATION share/icons/hicolor/256x256/apps
     OPTIONAL
@@ -191,7 +200,9 @@ page organizer, annotations, OCR and export to PDF, DOCX and image formats.")
     set(CPACK_STRIP_FILES ON)
 
     # ── RPM (Fedora/RHEL/openSUSE) ───────────────────────────────────────────
-    set(CPACK_RPM_PACKAGE_LICENSE "MIT")
+    # Core-Lizenz. Die Business-lizenzierten Module (modules/) sind hier noch
+    # nicht enthalten — sobald eines mitpaketiert wird, gehört es in die Angabe.
+    set(CPACK_RPM_PACKAGE_LICENSE "GPL-3.0-only OR LicenseRef-OpenPDF-Commercial")
     set(CPACK_RPM_PACKAGE_GROUP "Applications/Productivity")
     set(CPACK_RPM_PACKAGE_URL "${CPACK_PACKAGE_HOMEPAGE_URL}")
     # Der RPM-Generator übernimmt CPACK_PACKAGE_DESCRIPTION nicht automatisch.

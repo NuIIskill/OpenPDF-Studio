@@ -1,0 +1,163 @@
+                      OpenPDF Studio Business License
+                      -------------------------------
+
+SPDX identifier: LicenseRef-OpenPDF-Business
+Version 1.0 — 2026-08-17
+Copyright (c) 2026 nullskill. All rights reserved.
+
+This license applies to the components of OpenPDF Studio that carry the
+identifier "LicenseRef-OpenPDF-Business", or that live in a directory holding a
+copy of this license ("the Module"). It applies to those components only. The
+OpenPDF Studio Core is licensed separately — see the LICENSE file in the
+repository root.
+
+The source code of the Module is published, and it is free for personal use.
+It is not open-source software: what you may do with it depends on who uses it
+and for what.
+
+
+1. Definitions
+
+1.1 "Licensor" — nullskill, contact nullskilll@gmail.com.
+
+1.2 "You" — the natural person or legal entity exercising the rights granted
+    by this license.
+
+1.3 "Personal Use" — use by a natural person for their own private purposes.
+    Use by or on behalf of a company, an authority, an association or any
+    other organisation is not Personal Use, and neither is use in the course
+    of paid or self-employed work.
+
+1.4 "Business Use" — any use that is not Personal Use. This includes use by
+    or on behalf of companies, freelancers, public bodies, educational
+    institutions and non-profit organisations, and any use in the course of
+    professional activity.
+
+1.5 "Evaluation Period" — 30 consecutive calendar days, beginning on the day
+    the Module is first put to Business Use by You. The Evaluation Period runs
+    once per organisation, not once per person, per device or per
+    installation.
+
+1.6 "Business License" — a paid, valid license for Business Use, obtained from
+    the Licensor.
+
+
+2. Grant for Personal Use
+
+    For Personal Use the Licensor grants You a non-exclusive, worldwide,
+    royalty-free and perpetual right to run, copy and modify the Module, and
+    to use it for any number of documents, for as long as this license is not
+    terminated under section 9. No fee, no registration and no activation is
+    required.
+
+
+3. Grant for Business Use
+
+3.1 For Business Use the Licensor grants You the rights of section 2 free of
+    charge for the duration of the Evaluation Period, so that You can evaluate
+    the Module.
+
+3.2 After the Evaluation Period has ended, Business Use requires a valid
+    Business License. Without one, Business Use is not permitted.
+
+3.3 A Business License grants the rights of section 2 for Business Use, for
+    the term and the number of users agreed when it is obtained.
+
+
+4. Source code
+
+    You may read, build and modify the source of the Module. You may pass the
+    source on, modified or unmodified, provided that:
+
+    (a) this license file travels with it, unchanged;
+    (b) copyright and license notices are preserved;
+    (c) modified copies are clearly marked as modified, and the modifications
+        are described in a way that does not suggest they come from the
+        Licensor;
+    (d) the recipient's own use remains subject to this license — free for
+        Personal Use, requiring a Business License for Business Use;
+    (e) You charge nothing for the Module itself.
+
+
+5. Restrictions
+
+    You may not:
+
+    (a) sublicense, sell, rent, lease or lend the Module, nor offer the Module
+        or a work derived from it as a product or a hosted service of Your
+        own;
+    (b) remove, disable or circumvent notices about the licensing status of
+        the Module, or assist others in doing so;
+    (c) use the Licensor's name, product names or logos beyond what is needed
+        to state truthfully what the Module is and where it comes from.
+
+
+6. The licensing notice is a reminder, not the license
+
+    The Module may show a notice about its licensing status, a countdown of
+    the Evaluation Period, or a dialog for entering a Business License. Such a
+    mechanism is a convenience reminder. Your rights and Your obligations are
+    determined by the text of this license alone. Accordingly:
+
+    (a) if the notice can be dismissed, closed or skipped, dismissing it
+        grants no rights beyond this license;
+    (b) if the mechanism is absent, fails, misreports the status, or is
+        circumvented, that likewise grants no rights beyond this license, and
+        does not remove the obligation to obtain a Business License;
+    (c) conversely, no failure, expiry or absence of that mechanism withdraws
+        any right this license grants You. The Module is not entitled to stop
+        working, to withhold features from a Personal Use installation, or to
+        make itself unusable because a check did not succeed.
+
+
+7. Your documents
+
+    The Module never restricts access to documents You created or edited with
+    it. The end of an Evaluation Period or of a Business License affects Your
+    right to use the Module — never Your files, and never their readability
+    with other software.
+
+
+8. Warranty and liability
+
+8.1 The Module is provided "as is". To the extent permitted by law, the
+    Licensor gives no warranty of any kind, in particular no warranty of
+    merchantability, fitness for a particular purpose, or freedom from
+    defects. This applies with particular force to the free uses under
+    sections 2 and 3.1.
+
+8.2 The Licensor is liable without limitation for damages caused
+    intentionally or by gross negligence, for injury to life, body or health,
+    and wherever mandatory statutory liability applies, in particular under
+    the German Product Liability Act (Produkthaftungsgesetz).
+
+8.3 For slight negligence, the Licensor is liable only for breach of an
+    obligation whose fulfilment is essential to the proper performance of this
+    license and on whose observance You may routinely rely, and only up to the
+    foreseeable damage typical for this kind of agreement.
+
+8.4 You are responsible for keeping backups of the documents You work on.
+
+
+9. Term and termination
+
+9.1 This license runs until terminated.
+
+9.2 It terminates automatically if You materially breach it and do not cure
+    the breach within 30 days of becoming aware of it.
+
+9.3 On termination You must stop using the Module and destroy the copies in
+    Your possession. Sections 6(c), 7, 8 and 10 survive termination.
+
+
+10. Applicable law
+
+    The law of the Federal Republic of Germany applies, excluding the UN
+    Convention on Contracts for the International Sale of Goods. Mandatory
+    consumer protection provisions of the country in which You have Your
+    habitual residence remain unaffected.
+
+
+11. Obtaining a Business License
+
+    Write to nullskilll@gmail.com.

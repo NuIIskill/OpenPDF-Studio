@@ -308,13 +308,17 @@ QList<ContentItem> DocumentExporter::wholePageFallback(
     return { item };
 }
 
+#endif
+
+#ifdef HAVE_PDF_RENDERING
+
 QImage DocumentExporter::eraseTextRuns(const QImage &original,
                                        const QList<ContentItem> &items,
                                        int page, qreal scale) const
 {
     QImage erased = original;
-if (erased.isNull()) return erased;
-    {
+    if (erased.isNull()) return erased;
+
     QPainter painter(&erased);
     painter.setRenderHint(QPainter::Antialiasing, false);
     if (m_src.session) {
@@ -386,11 +390,7 @@ if (erased.isNull()) return erased;
                                     clean.size() * scale), itemBg);
         }
     }
-}
-
-// Structural analysis: paragraphs, tables and the artwork that is left
-// once every recognised text run has been painted out. An empty result
-// makes the writer fall back to the positioned raster export.
+    painter.end();
     return erased;
 }
 

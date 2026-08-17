@@ -17,5 +17,7 @@ target_sources(OpenPDFStudio PRIVATE
     PdfExporter.hpp
     PdfTextExtractor.cpp
     PdfTextExtractor.hpp
+    PopplerTextLookup.cpp
+    PopplerTextLookup.hpp
     TextBlock.hpp
 )

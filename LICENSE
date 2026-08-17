@@ -1,21 +1,63 @@
-MIT License
+OpenPDF Studio — Licensing
+==========================
 
-Copyright (c) 2026 Nullskill_0_0
+Copyright (c) 2026 nullskill
 
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the Software is
-furnished to do so, subject to the following conditions:
+OpenPDF Studio is made of two differently licensed parts.
 
-The above copyright notice and this permission notice shall be included in all
-copies or substantial portions of the Software.
 
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-SOFTWARE.
+1. The Core — dual-licensed
+---------------------------
+
+Everything in this repository except the components named in section 2 is the
+OpenPDF Studio Core. You may use it under either of these licenses, at your
+choice:
+
+    SPDX-License-Identifier: GPL-3.0-only OR LicenseRef-OpenPDF-Commercial
+
+  (a) The GNU General Public License, version 3 only.
+      Full text: LICENSES/GPL-3.0.txt
+      Free of charge, no agreement needed. Distributing a work built on the
+      Core then means distributing it under the GPL, with source.
+
+  (b) The OpenPDF Studio Commercial License.
+      LICENSES/OPENPDF-COMMERCIAL.txt
+      For distribution without the GPL's obligations, or in combination with
+      components that are not GPL-compatible. Granted only by a separate
+      written agreement. The official OpenPDF Studio distribution uses this
+      path.
+
+
+2. Source-available components
+------------------------------
+
+    modules/rich-media/     SPDX-License-Identifier: LicenseRef-OpenPDF-Business
+
+Their source is published, and they are free for personal use. Business use
+requires a Business License after a 30-day evaluation period.
+Full text: LICENSES/OPENPDF-BUSINESS.txt
+
+Rich Media is currently the only such component. Everything else is Core.
+
+
+3. Third-party components
+-------------------------
+
+Qt 6 (LGPL-3.0-or-later), Poppler-Qt6 (GPL-2.0-or-later, optional backend),
+qpdf (Apache-2.0, optional), Tesseract and Leptonica (Apache-2.0 /
+BSD-2-Clause, optional) and the vendored nanosvg (zlib) keep their own
+licenses.
+
+Note: a build linked against Poppler-Qt6 can only be distributed under the
+GPL. See LICENSES/README.md.
+
+
+4. Earlier releases
+-------------------
+
+Releases published before 2026-08-17 were licensed under the MIT License. That
+grant remains valid for those releases and is not withdrawn.
+
+
+LICENSES/README.md maps every path to its license and lists the third-party
+terms in full.
