@@ -20,7 +20,9 @@ Code behind these must still compile when they are absent.
 ```
 src/
   main.cpp        entry point
-  app/            infrastructure: settings, safe writes, session, history, passwords
+  app/            infrastructure: config.ini, settings, safe writes, session,
+                  history, passwords
+  drm/            business licence: state, settings page, the two notices
   engine/         document logic, no widgets
     edit/         content model, text extraction, ink metrics, exporters, session
     ocr/          Tesseract wrapper
@@ -52,6 +54,10 @@ Check 1 and 2 with:
 grep -rn '#include "ui/' src/engine src/app     # must be empty
 grep -rln 'QWidget\|QDialog' src/engine         # must be empty
 ```
+
+`drm/` is the one folder that holds both logic and its widget. The licensing
+boundary is drawn around a directory, so everything that would have to move
+together stays together — see `modules/rich-media/README.md`.
 
 ## Adding a file
 

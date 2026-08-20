@@ -15,6 +15,7 @@ class QVBoxLayout;
 QT_END_NAMESPACE
 
 class AppSettings;
+class LicensePage;
 class ShortcutRow;
 
 class SettingsPanel : public QDialog
@@ -25,6 +26,14 @@ public:
     explicit SettingsPanel(AppSettings *settings, QWidget *parent = nullptr);
 
     void retranslateUi();
+
+    // Jumps to the License Key page. Does nothing on a personal installation,
+    // where that page is not built at all.
+    void showLicensePage();
+
+    // Selects a page by its English nav label ("Advanced", "License Key", …).
+    // For the --shot-settings harness in main.cpp.
+    void selectPageForTest(const QString &navLabel);
 
 Q_SIGNALS:
     void themeChangeRequested(const QString &mode);
@@ -76,9 +85,13 @@ private:
         QLabel      *iconLabel;
         QLabel      *textLabel;
         QString      iconName;
+        const char  *labelKey;   // untranslated source string, for retranslateUi()
     };
     QList<NavItem> m_navItems;
     int m_currentNav { 0 };
+
+    // Only built for a business installation — a personal one never sees it.
+    LicensePage *m_licensePage { nullptr };
 
     QList<QWidget *> m_themeCards;
     QList<QString>   m_themeIds;

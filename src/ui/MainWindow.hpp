@@ -84,6 +84,13 @@ private:
     void loadShortcuts();
     void loadZoomSettings();
 
+    // Settings dialog, wired up and shown. Returned so a caller can jump to a
+    // particular page.
+    SettingsPanel *openSettings();
+    // The license notices themselves live in drm/LicenseNotice.hpp; this only
+    // decides when they get their chance.
+    void showLicenseNotices();
+
     // Panel layout persistence — collapsing the right strip is a deliberate
     // choice by the user, so it survives a restart unless they opt out.
     void setRightSidebarCollapsed(bool collapsed);

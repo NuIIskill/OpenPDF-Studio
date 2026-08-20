@@ -1,13 +1,14 @@
 #include "app/AppSettings.hpp"
 
+#include "app/AppConfig.hpp"
+
 #include <QSettings>
 
 // ── Helpers ───────────────────────────────────────────────────────────────
 
 static QSettings &settings()
 {
-    static QSettings s(QStringLiteral("OpenPDF"), QStringLiteral("OpenPDFStudio"));
-    return s;
+    return AppConfig::store();
 }
 
 // ── AppSettings ───────────────────────────────────────────────────────────

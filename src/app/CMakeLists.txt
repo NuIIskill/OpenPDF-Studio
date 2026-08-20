@@ -1,4 +1,6 @@
 target_sources(OpenPDFStudio PRIVATE
+    AppConfig.cpp
+    AppConfig.hpp
     AppSettings.cpp
     AppSettings.hpp
     DocumentHistory.cpp

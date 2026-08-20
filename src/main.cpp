@@ -8,6 +8,10 @@
 #include "app/PdfPwStore.hpp"
 #include "ui/panels/LeftSidebar.hpp"
 #include "ui/panels/RightSidebar.hpp"
+#include "ui/panels/SettingsPanel.hpp"
+#include "app/AppSettings.hpp"
+#include "app/AppConfig.hpp"
+#include "drm/LicenseNotice.hpp"
 #include "ui/theme/Theme.hpp"
 
 #include <QApplication>
@@ -19,6 +23,7 @@
 #include <QIcon>
 #include <QLocale>
 #include <QPixmap>
+#include <QMessageBox>
 #include <QSettings>
 #include <QTranslator>
 #include <cstdlib>
@@ -78,8 +83,7 @@ int main(int argc, char *argv[])
     // ── Fusion style + theme (palette + QSS) ─────────────────────────────
     QApplication::setStyle(QStringLiteral("Fusion"));
     {
-        QSettings startupSettings(QStringLiteral("OpenPDF"), QStringLiteral("OpenPDFStudio"));
-        const QString savedTheme = startupSettings.value(
+        const QString savedTheme = AppConfig::store().value(
             QStringLiteral("appearance/theme"), QStringLiteral("system")).toString();
         Theme::apply(savedTheme);
     }
@@ -150,6 +154,42 @@ int main(int argc, char *argv[])
         history.record({ Kind::TextEdited, 0 }, 1);
         HistoryDialog dlg(&history, QStringLiteral("Vertrag.pdf"));
         dlg.setUndoRedoAvailable(true, false);
+        dlg.show();
+        qapp.processEvents();
+        const bool ok = dlg.grab().save(qapp.arguments().at(2));
+        return ok ? 0 : 3;
+    }
+
+    // The expiry notice as the user gets to see it, without waiting 30 days:
+    //   OPENPDF_USAGE=business OpenPDFStudio --shot-license-notice out.png [dark|light]
+    // Exit 3 means no notice was due — evaluation still running, personal use,
+    // or a key on record. The flag declares nothing of its own: it reports the
+    // state it finds, so it can be used to check that state.
+    if (qapp.arguments().size() >= 3
+            && qapp.arguments().at(1) == QLatin1String("--shot-license-notice")) {
+        if (qapp.arguments().size() >= 4)
+            Theme::apply(qapp.arguments().at(3));
+        QWidget host;   // parent only, never shown
+        LicenseNotice::showExpiryReminderIfDue(&host, {});
+        qapp.processEvents();
+        for (QWidget *w : qapp.topLevelWidgets())
+            if (auto *box = qobject_cast<QMessageBox *>(w))
+                return box->grab().save(qapp.arguments().at(2)) ? 0 : 3;
+        return 3;
+    }
+
+    // Settings dialog on any of its pages, named by the English nav label:
+    //   OpenPDFStudio --shot-settings out.png ["License Key"] [dark|light]
+    // The License Key page exists only where the state says business use —
+    // OPENPDF_USAGE=business in front of it is how that is arranged for a shot.
+    if (qapp.arguments().size() >= 3
+            && qapp.arguments().at(1) == QLatin1String("--shot-settings")) {
+        if (qapp.arguments().size() >= 5)
+            Theme::apply(qapp.arguments().at(4));
+        AppSettings settings;
+        SettingsPanel dlg(&settings);
+        if (qapp.arguments().size() >= 4)
+            dlg.selectPageForTest(qapp.arguments().at(3));
         dlg.show();
         qapp.processEvents();
         const bool ok = dlg.grab().save(qapp.arguments().at(2));

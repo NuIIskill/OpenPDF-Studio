@@ -16,6 +16,7 @@
 #include "engine/edit/PdfExporter.hpp"
 #include "ui/theme/Theme.hpp"
 #include "app/AppSettings.hpp"
+#include "drm/LicenseNotice.hpp"
 
 #include <QApplication>
 #include <QDesktopServices>
@@ -24,9 +25,11 @@
 #include <QFileDialog>
 #include <QFileInfo>
 #include <QMessageBox>
+#include <QPushButton>
 #include <QSplitter>
 #include <QStackedWidget>
 #include <QStyle>
+#include <QTimer>
 #include <QVBoxLayout>
 #include <QWidget>
 #include <QCloseEvent>
@@ -55,6 +58,32 @@ MainWindow::MainWindow(AppSettings *settings, QWidget *parent)
     const QString lang = settings->language();
     if (lang != QLatin1String("en"))
         applyLanguage(lang);
+
+    // After the window is on screen, not in front of it.
+    QTimer::singleShot(0, this, &MainWindow::showLicenseNotices);
+}
+
+// ── Settings and license ──────────────────────────────────────────────────────
+
+SettingsPanel *MainWindow::openSettings()
+{
+    auto *panel = new SettingsPanel(m_appSettings, this);
+    connect(panel, &SettingsPanel::themeChangeRequested,    this, &MainWindow::applyTheme);
+    connect(panel, &SettingsPanel::languageChangeRequested, this, &MainWindow::applyLanguage);
+    connect(panel, &SettingsPanel::shortcutsChanged,        this, &MainWindow::loadShortcuts);
+    connect(panel, &SettingsPanel::zoomSettingsChanged,     this, &MainWindow::loadZoomSettings);
+    connect(panel, &SettingsPanel::panelLayoutSettingChanged,
+            this, &MainWindow::savePanelLayout);
+    panel->open();
+    return panel;
+}
+
+void MainWindow::showLicenseNotices()
+{
+    LicenseNotice::askUsageIfUnknown(this);
+    LicenseNotice::showExpiryReminderIfDue(this, [this]() {
+        openSettings()->showLicensePage();
+    });
 }
 
 // ── UI construction ───────────────────────────────────────────────────────────
@@ -130,16 +159,7 @@ void MainWindow::connectSignals()
 
     // Left sidebar
     connect(m_leftSidebar, &LeftSidebar::toolSelected,        this, &MainWindow::onToolSelected);
-    connect(m_leftSidebar, &LeftSidebar::settingsRequested,   this, [this]() {
-        auto *panel = new SettingsPanel(m_appSettings, this);
-        connect(panel, &SettingsPanel::themeChangeRequested,    this, &MainWindow::applyTheme);
-        connect(panel, &SettingsPanel::languageChangeRequested, this, &MainWindow::applyLanguage);
-        connect(panel, &SettingsPanel::shortcutsChanged,     this, &MainWindow::loadShortcuts);
-        connect(panel, &SettingsPanel::zoomSettingsChanged, this, &MainWindow::loadZoomSettings);
-        connect(panel, &SettingsPanel::panelLayoutSettingChanged,
-                this, &MainWindow::savePanelLayout);
-        panel->open();
-    });
+    connect(m_leftSidebar, &LeftSidebar::settingsRequested, this, [this]() { openSettings(); });
 
     // Right sidebar
     connect(m_rightSidebar, &RightSidebar::modeSelected, this, &MainWindow::onModeSelected);

@@ -521,7 +521,8 @@ QSpinBox#ZoomStepSpin::up-button, QSpinBox#ZoomStepSpin::down-button {
     width: 20px;
     border: none;
 }
-QComboBox#ZoomActionCombo {
+QComboBox#ZoomActionCombo,
+QComboBox#UsageCombo {
     border: 1px solid #555555;
     border-radius: 6px;
     padding: 6px 10px;
@@ -530,4 +531,5 @@ QComboBox#ZoomActionCombo {
     color: #D8D8D8;
     min-width: 120px;
 }
-QComboBox#ZoomActionCombo::drop-down { border: none; width: 20px; }
+QComboBox#ZoomActionCombo::drop-down,
+QComboBox#UsageCombo::drop-down { border: none; width: 20px; }
