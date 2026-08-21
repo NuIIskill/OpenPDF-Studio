@@ -5,9 +5,20 @@
 #include "ui/dialogs/HistoryDialog.hpp"
 #include "engine/edit/DocxExporter.hpp"
 #include "engine/edit/PdfExporter.hpp"
+#include "ui/PresentationWindow.hpp"
+#include <QTextStream>
 #include "app/PdfPwStore.hpp"
+#ifdef HAVE_PDF_RENDERING
+#  include "engine/document/DocumentSource.hpp"
+#  include "engine/document/PdfBackend.hpp"
+#  include "engine/edit/EditSession.hpp"
+#endif
 #include "ui/panels/LeftSidebar.hpp"
 #include "ui/panels/RightSidebar.hpp"
+#include "ui/panels/SettingsPanel.hpp"
+#include "app/AppSettings.hpp"
+#include "app/AppConfig.hpp"
+#include "drm/LicenseNotice.hpp"
 #include "ui/theme/Theme.hpp"
 
 #include <QApplication>
@@ -19,6 +30,7 @@
 #include <QIcon>
 #include <QLocale>
 #include <QPixmap>
+#include <QMessageBox>
 #include <QSettings>
 #include <QTranslator>
 #include <cstdlib>
@@ -78,8 +90,7 @@ int main(int argc, char *argv[])
     // ── Fusion style + theme (palette + QSS) ─────────────────────────────
     QApplication::setStyle(QStringLiteral("Fusion"));
     {
-        QSettings startupSettings(QStringLiteral("OpenPDF"), QStringLiteral("OpenPDFStudio"));
-        const QString savedTheme = startupSettings.value(
+        const QString savedTheme = AppConfig::store().value(
             QStringLiteral("appearance/theme"), QStringLiteral("system")).toString();
         Theme::apply(savedTheme);
     }
@@ -156,6 +167,42 @@ int main(int argc, char *argv[])
         return ok ? 0 : 3;
     }
 
+    // The expiry notice as the user gets to see it, without waiting 30 days:
+    //   OPENPDF_USAGE=business OpenPDFStudio --shot-license-notice out.png [dark|light]
+    // Exit 3 means no notice was due — evaluation still running, personal use,
+    // or a key on record. The flag declares nothing of its own: it reports the
+    // state it finds, so it can be used to check that state.
+    if (qapp.arguments().size() >= 3
+            && qapp.arguments().at(1) == QLatin1String("--shot-license-notice")) {
+        if (qapp.arguments().size() >= 4)
+            Theme::apply(qapp.arguments().at(3));
+        QWidget host;   // parent only, never shown
+        LicenseNotice::showExpiryReminderIfDue(&host, {});
+        qapp.processEvents();
+        for (QWidget *w : qapp.topLevelWidgets())
+            if (auto *box = qobject_cast<QMessageBox *>(w))
+                return box->grab().save(qapp.arguments().at(2)) ? 0 : 3;
+        return 3;
+    }
+
+    // Settings dialog on any of its pages, named by the English nav label:
+    //   OpenPDFStudio --shot-settings out.png ["License Key"] [dark|light]
+    // The License Key page exists only where the state says business use —
+    // OPENPDF_USAGE=business in front of it is how that is arranged for a shot.
+    if (qapp.arguments().size() >= 3
+            && qapp.arguments().at(1) == QLatin1String("--shot-settings")) {
+        if (qapp.arguments().size() >= 5)
+            Theme::apply(qapp.arguments().at(4));
+        AppSettings settings;
+        SettingsPanel dlg(&settings);
+        if (qapp.arguments().size() >= 4)
+            dlg.selectPageForTest(qapp.arguments().at(3));
+        dlg.show();
+        qapp.processEvents();
+        const bool ok = dlg.grab().save(qapp.arguments().at(2));
+        return ok ? 0 : 3;
+    }
+
     // Headless regression/export entry point for the PDF target, exercising the
     // same option path as the dialog:
     //   OpenPDFStudio --export-pdf in.pdf out.pdf [pages=1,3-4] [nocomments]
@@ -216,6 +263,79 @@ int main(int argc, char *argv[])
         return ok ? 0 : 3;
     }
 
+    // One PNG per page, straight off the renderer — no window, no toolbar, no
+    // theme. That is what makes it comparable across platforms and across PDF
+    // backends, which --shot-window is not: that one grabs the whole UI.
+    //   OpenPDFStudio --export-images in.pdf out.png [pages=1,3-4] [q=85] [srcpw=secret]
+    // With more than one page the name gains a _page_N suffix, exactly as the
+    // export dialog writes it.
+    if (args.size() >= 4 && args.at(1) == QLatin1String("--export-images")) {
+        QList<int> pages;
+        int quality = 85;
+        for (int a = 4; a < args.size(); ++a) {
+            const QString o = args.at(a);
+            if (o.startsWith(QLatin1String("srcpw="))) {
+                PdfPwStore::set(args.at(2), o.mid(6));
+                continue;
+            }
+            if (o.startsWith(QLatin1String("q="))) { quality = o.mid(2).toInt(); continue; }
+            if (!o.startsWith(QLatin1String("pages="))) continue;
+            for (const QString &part : o.mid(6).split(u',', Qt::SkipEmptyParts)) {
+                const int dash = part.indexOf(u'-');
+                const int from = dash < 0 ? part.toInt() : part.left(dash).toInt();
+                const int to   = dash < 0 ? from : part.mid(dash + 1).toInt();
+                for (int p = from; p <= to; ++p) pages.append(p - 1);
+            }
+        }
+        DocumentView view;
+        if (!view.openFile(args.at(2))) return 2;
+        return view.exportPagesToImages(args.at(3), quality, pages) ? 0 : 3;
+    }
+
+    // Text selection, straight off the backend and printed as text. Selection
+    // is the one core feature the export entry points cannot reach, and it is
+    // also the one whose logic differs most between backends — Qt has an API
+    // for it, Poppler has to rebuild the reading order from a word list. This
+    // is where the two get compared.
+    //   OpenPDFStudio --select-text in.pdf [page=1] [from=x,y] [to=x,y] [srcpw=secret]
+    // Without from/to the whole page is selected.
+    if (args.size() >= 3 && args.at(1) == QLatin1String("--select-text")) {
+#ifdef HAVE_PDF_RENDERING
+        int page = 1;
+        std::optional<QPointF> from, to;
+        const auto parsePoint = [](const QString &v) -> std::optional<QPointF> {
+            const QStringList xy = v.split(u',');
+            if (xy.size() != 2) return std::nullopt;
+            return QPointF(xy.at(0).toDouble(), xy.at(1).toDouble());
+        };
+        for (int a = 3; a < args.size(); ++a) {
+            const QString o = args.at(a);
+            if      (o.startsWith(QLatin1String("srcpw="))) PdfPwStore::set(args.at(2), o.mid(6));
+            else if (o.startsWith(QLatin1String("page=")))  page = o.mid(5).toInt();
+            else if (o.startsWith(QLatin1String("from=")))  from = parsePoint(o.mid(5));
+            else if (o.startsWith(QLatin1String("to=")))    to   = parsePoint(o.mid(3));
+        }
+
+        DocumentSource src;
+        if (!src.open(args.at(2), nullptr)) return 2;
+        auto *backend = src.backend();
+        if (!backend) return 3;
+        const PdfBackend::Selection sel = backend->selectPage(page - 1, from, to);
+        QTextStream out(stdout);
+        out << "backend=" << backend->name() << "\n";
+        out << "rects=" << sel.rects.size() << "\n";
+        for (const QRectF &r : sel.rects) {
+            out << QStringLiteral("rect %1,%2 %3x%4\n")
+                       .arg(r.x(), 0, 'f', 1).arg(r.y(), 0, 'f', 1)
+                       .arg(r.width(), 0, 'f', 1).arg(r.height(), 0, 'f', 1);
+        }
+        out << "text<<\n" << sel.text << "\n>>text\n";
+        return sel.text.isEmpty() && sel.rects.isEmpty() ? 1 : 0;
+#else
+        return 3;
+#endif
+    }
+
     // Renders the whole window, with a document open, to a PNG. Everything the
     // dialog shots cannot reach — toolbar, format bar, sidebars, the pages
     // themselves — is only checkable this way without a display:
@@ -223,6 +343,95 @@ int main(int argc, char *argv[])
     //
     // The wait is not decoration: pages are rendered by a timer after the
     // scroll area has laid them out, so grabbing immediately yields blanks.
+    // Replaces the text line at a point and saves — the whole edit-and-save
+    // path without a window. Saving is the one thing the other entry points
+    // never touch, and the piece that differs most between backends.
+    //   OpenPDFStudio --apply-edit in.pdf out.pdf at=x,y text=Ersetzung [page=1] [srcpw=…]
+    //   OpenPDFStudio --apply-edit in.pdf out.pdf field=Feldname text=Wert
+    // The coordinates are PDF points with the origin top-left, the same as
+    // --select-text reports.
+    if (args.size() >= 4 && args.at(1) == QLatin1String("--apply-edit")) {
+#ifdef HAVE_PDF_RENDERING
+        int     page = 1;
+        QPointF at;
+        QString replacement;
+        QString fieldName;
+        for (int a = 4; a < args.size(); ++a) {
+            const QString o = args.at(a);
+            if      (o.startsWith(QLatin1String("srcpw="))) PdfPwStore::set(args.at(2), o.mid(6));
+            else if (o.startsWith(QLatin1String("page=")))  page = o.mid(5).toInt();
+            else if (o.startsWith(QLatin1String("text=")))  replacement = o.mid(5);
+            else if (o.startsWith(QLatin1String("field="))) fieldName = o.mid(6);
+            else if (o.startsWith(QLatin1String("at="))) {
+                const QStringList xy = o.mid(3).split(u',');
+                if (xy.size() == 2) at = QPointF(xy.at(0).toDouble(), xy.at(1).toDouble());
+            }
+        }
+
+        DocumentSource src;
+        if (!src.open(args.at(2), nullptr)) return 2;
+        auto *backend = src.backend();
+        if (!backend) return 3;
+
+        QTextStream out(stdout);
+        out << "backend=" << backend->name() << "\n";
+
+        // Formularfeld: kein Textobjekt, sondern der Wert eines Widgets.
+        if (!fieldName.isEmpty()) {
+            EditSession fieldSession;
+            EditSession::Edit fieldEdit;
+            fieldEdit.page      = page - 1;
+            fieldEdit.formField = fieldName;
+            fieldEdit.newText   = replacement;
+            fieldSession.addEdit(fieldEdit);
+            return backend->saveWithEdits(args.at(3), fieldSession) ? 0 : 3;
+        }
+
+        // Genau der Weg, den der Inline-Editor geht: Zeile am Punkt suchen,
+        // ihre Glyphenkästen als Löschflächen nehmen, Ersatztext eintragen.
+        const TextBlock block = backend->textAt(page - 1, at);
+        if (!block.isValid()) {
+            QTextStream(stdout) << "kein Text an dieser Stelle\n";
+            return 4;
+        }
+
+        EditSession session;
+        EditSession::Edit edit;
+        edit.page         = page - 1;
+        edit.pdfBounds    = block.pdfBounds;
+        edit.originalText = block.text;
+        edit.newText      = replacement;
+        edit.eraseRects   = backend->glyphRects(page - 1, block.pdfBounds);
+        session.addEdit(edit);
+
+        out << "ersetzt<<\n" << block.text << "\n>>ersetzt\n";
+        return backend->saveWithEdits(args.at(3), session) ? 0 : 3;
+#else
+        return 3;
+#endif
+    }
+
+    // Presentation mode as a PNG. It opens the document a second time, through
+    // its own backend, and nothing else in the app reaches that code — which is
+    // why it could stay broken on the Poppler build for so long without anyone
+    // noticing (it rendered a black screen).
+    //   OpenPDFStudio --shot-presentation out.png in.pdf [page=N]
+    if (args.size() >= 4 && args.at(1) == QLatin1String("--shot-presentation")) {
+        int page = 1;
+        for (int a = 4; a < args.size(); ++a)
+            if (args.at(a).startsWith(QLatin1String("page=")))
+                page = args.at(a).mid(5).toInt();
+
+        auto *pw = new PresentationWindow(args.at(3), page - 1);
+        pw->resize(1280, 900);
+        QEventLoop settle;
+        QTimer::singleShot(1500, &settle, &QEventLoop::quit);
+        settle.exec();
+        const bool ok = pw->grab().save(args.at(2), "PNG");
+        pw->close();
+        return ok ? 0 : 3;
+    }
+
     if (args.size() >= 4 && args.at(1) == QLatin1String("--shot-window")) {
         if (args.size() >= 5 && args.at(4) == QLatin1String("dark"))
             Theme::apply(QStringLiteral("dark"));

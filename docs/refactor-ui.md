@@ -4,7 +4,7 @@
 > `DocumentView.cpp` ist von 3420 auf 2081 Zeilen und von 171 auf 120
 > Präprozessor-Direktiven geschrumpft. Wo die Umsetzung vom Plan abweicht, steht das
 > unten beim jeweiligen Schritt unter **Umgesetzt**. Der Abschnitt „Bewusst nicht in
-> diesem Plan" gilt unverändert — die Edit-Session-Logik ist nicht angefasst.
+> diesem Plan" gilt unverändert - die Edit-Session-Logik ist nicht angefasst.
 
 Stand: 2026-07-31. Ausgangslage: `DocumentView.cpp` hat 3420 Zeilen, 68 Methoden und
 171 Präprozessor-Direktiven. Ziel ist ein Koordinator von ~400 Zeilen, der vier
@@ -15,9 +15,9 @@ Verhaltensrisiko, **Schritte 1–4** sind je ein eigener Commit mit grünem Buil
 
 ---
 
-## Schritt 0 — `src/ui/` konsistent gliedern
+## Schritt 0 - `src/ui/` konsistent gliedern
 
-Es gibt bereits `widgets/`, `tools/`, `organizer/`, `theme/` — aber 13 Klassen liegen
+Es gibt bereits `widgets/`, `tools/`, `organizer/`, `theme/` - aber 13 Klassen liegen
 trotzdem flach daneben. Entweder Unterordner sind die Regel oder es gibt keine.
 
 ### Zielbaum
@@ -46,7 +46,7 @@ src/ui/
 └── theme/                             unverändert
 ```
 
-`organizer/` löst sich auf — ein Ordner für eine Klasse trägt nichts, `dialogs/` ist die
+`organizer/` löst sich auf - ein Ordner für eine Klasse trägt nichts, `dialogs/` ist die
 passende Kategorie.
 
 ### Durchführung
@@ -61,9 +61,9 @@ Danach drei Stellen anfassen:
    projektrelativ von `src/` aus laufen, ist das ein mechanisches Suchen/Ersetzen:
    `#include "ui/TopToolbar.hpp"` → `#include "ui/bars/TopToolbar.hpp"`.
 2. **`CMakeLists.txt`** Zeilen 61–103: Pfade in der expliziten Source-Liste anpassen.
-   (Die Liste ist explizit statt `file(GLOB ...)` — das bleibt so, sie ist genau deshalb
+   (Die Liste ist explizit statt `file(GLOB ...)` - das bleibt so, sie ist genau deshalb
    der einzige Ort, an dem gepflegt werden muss.)
-3. **AUTOMOC** braucht nichts — Qt findet die `Q_OBJECT`-Klassen über die Source-Liste.
+3. **AUTOMOC** braucht nichts - Qt findet die `Q_OBJECT`-Klassen über die Source-Liste.
 
 Kein Verhaltensrisiko: Wenn es kompiliert, ist es richtig. Ein Commit.
 
@@ -74,7 +74,7 @@ Kein Verhaltensrisiko: Wenn es kompiliert, ist es richtig. Ein Commit.
 Alle vier Controller brauchen dieselben drei Dinge von der View: das Canvas-Widget als
 Parent für Overlays, die Seiten-Labels für Positionsrechnung und den Zoomfaktor. Ohne
 eine gemeinsame Abstraktion bekommt jeder Controller einen `DocumentView*` zurück-
-gereicht — dann hat man die Kopplung nur umbenannt, nicht aufgelöst.
+gereicht - dann hat man die Kopplung nur umbenannt, nicht aufgelöst.
 
 Deshalb zuerst ein schmales Interface, `src/ui/view/PageCanvas.hpp`:
 
@@ -89,7 +89,7 @@ class QWidget;
 class QLabel;
 QT_END_NAMESPACE
 
-/// Was die Controller vom Seiten-Canvas brauchen — mehr nicht.
+/// Was die Controller vom Seiten-Canvas brauchen - mehr nicht.
 /// DocumentView implementiert das; die Controller kennen DocumentView nicht.
 class PageCanvas
 {
@@ -108,13 +108,13 @@ public:
 };
 ```
 
-`DocumentView : public QScrollArea, public PageCanvas` — die fünf Methoden sind
+`DocumentView : public QScrollArea, public PageCanvas` - die fünf Methoden sind
 Einzeiler auf bestehende Member. Das ist der einzige strukturelle Vorgriff; danach ist
 jeder Schritt für sich abgeschlossen.
 
 ---
 
-## Schritt 1 — `TextSelectionController`
+## Schritt 1 - `TextSelectionController`
 
 **Quelle:** `DocumentView.cpp` Z. 730–1119, `DocumentView.hpp` Z. 136–151, 207–218.
 
@@ -205,19 +205,19 @@ case QEvent::MouseButtonPress:
 ```
 
 Der Overlay-Deckel (`kMaxOverlays = 600`, Z. 977) und der Kommentar dazu wandern
-unverändert mit — das ist eine bewusste Entscheidung, keine Altlast.
+unverändert mit - das ist eine bewusste Entscheidung, keine Altlast.
 
 **Prüfen:** Markieren über Seitengrenzen, Zoomwechsel bei aktiver Selektion, Kopieren,
 Selektion im Edit-Modus.
 
-**Umgesetzt** (`a92a89c`) — wie geplant. Zwei Anpassungen an der API-Skizze:
+**Umgesetzt** (`a92a89c`) - wie geplant. Zwei Anpassungen an der API-Skizze:
 `handlePress` gibt `void` zurück statt `bool`, weil der Press das Event nie verbraucht;
 `PageCanvas` hat zusätzlich `pageLabelCount()`, damit die Anker-Suche exakt über die
 gebauten Labels läuft und nicht über die Dokument-Seitenzahl.
 
 ---
 
-## Schritt 2 — `ImageAnnotationLayer`
+## Schritt 2 - `ImageAnnotationLayer`
 
 **Quelle:** `DocumentView.cpp` Z. 1862–2458, `DocumentView.hpp` Z. 113–121, 171–180,
 225–229.
@@ -228,7 +228,7 @@ gebauten Labels läuft und nicht über die Dokument-Seitenzahl.
 `m_placedImages`, `m_detectedImageFrames`, `m_imageClipboard` und der komplette
 Drag-to-Frame-State.
 
-Die beiden Kontextmenüs gehen explizit mit — `showGeneralContextMenu` heißt zwar
+Die beiden Kontextmenüs gehen explizit mit - `showGeneralContextMenu` heißt zwar
 "general", ist aber das Menü für den Image-Modus (Einfügen/Scannen).
 
 `src/ui/view/ImageAnnotationLayer.hpp`:
@@ -282,12 +282,12 @@ private:
 };
 ```
 
-Der `QUndoStack` wird durchgereicht, nicht besessen — die Undo-Commands in
+Der `QUndoStack` wird durchgereicht, nicht besessen - die Undo-Commands in
 `ui/tools/UndoCommands.hpp` bleiben, wo sie sind.
 
 **Achtung beim Save-Pfad:** `saveToFile` liest heute direkt `m_placedImages`. Das wird zu
 `m_imageLayer->placedImages()`. Die Struktur `Placed` lässt bewusst das `QWidget*` weg,
-das `PlacedImage` mitführt — der Save-Pfad hat mit Widgets nichts zu tun.
+das `PlacedImage` mitführt - der Save-Pfad hat mit Widgets nichts zu tun.
 
 **Prüfen:** Bild per Drop, per Drag-Rahmen, Verschieben/Skalieren, Kontextmenü
 Kopieren/Ausschneiden/Einfügen, Undo/Redo, Speichern mit platzierten Bildern.
@@ -307,7 +307,7 @@ Aufrufer der Seiten-Scan war.
 
 ---
 
-## Schritt 3 — `PageLayoutEngine`
+## Schritt 3 - `PageLayoutEngine`
 
 **Quelle:** `DocumentView.cpp` Z. 1612–1862, `DocumentView.hpp` Z. 104–111, 182–187.
 
@@ -315,7 +315,7 @@ Aufrufer der Seiten-Scan war.
 `rerenderPageWithBlank`, `buildGridItems`, `relayoutGrid`, `struct GridItem`,
 `m_pageLabels`, `m_gridCanvas`, `m_gridItems`, `m_gridCardIndex`, `m_viewMode`.
 
-Hier zieht die Klasse die Seiten-Labels zu sich — d.h. `DocumentView::pageLabel()` aus
+Hier zieht die Klasse die Seiten-Labels zu sich - d.h. `DocumentView::pageLabel()` aus
 `PageCanvas` delegiert ab jetzt an die Engine. Deshalb kommt dieser Schritt **nach** 1
 und 2: die beiden Controller reden dann bereits über das Interface und merken nichts
 davon.
@@ -338,7 +338,7 @@ QT_END_NAMESPACE
 class PdfRenderer;
 class EditSession;
 
-/// Baut und pflegt die Seiten-Widgets — Single-Column und Grid.
+/// Baut und pflegt die Seiten-Widgets - Single-Column und Grid.
 /// Kennt Renderer und Session, aber keine Maus-Interaktion.
 class PageLayoutEngine : public QObject
 {
@@ -397,7 +397,7 @@ Rerender nach Edit-Commit, Undo/Redo (ruft `rerenderPage` von außen).
 **Umgesetzt** (`44c281d`). `layoutChanged()` funktioniert wie vorgesehen. Drei
 Abweichungen, alle weil die `QScrollArea` nicht mit in die Engine kann:
 
-- **`setViewMode` bleibt in `DocumentView`** — es tauscht das Widget der Scroll-Area.
+- **`setViewMode` bleibt in `DocumentView`** - es tauscht das Widget der Scroll-Area.
   Die Engine baut nur die Grid-Items auf und ab.
 - **`relayoutGrid(int availableWidth)`** bekommt die Viewport-Breite übergeben, statt
   `viewport()->width()` selbst zu lesen.
@@ -406,18 +406,18 @@ Abweichungen, alle weil die `QScrollArea` nicht mit in die Engine kann:
 
 Ebenfalls beachtet: `tr("Page %1")` war unter dem Kontext `DocumentView` übersetzt. Der
 verschobene Aufruf nutzt deshalb explizit
-`QCoreApplication::translate("DocumentView", …)` — sonst wären die Übersetzungen in
+`QCoreApplication::translate("DocumentView", …)` - sonst wären die Übersetzungen in
 allen 11 `.ts`-Dateien verwaist. Gleiches gilt für das Bild-Kontextmenü aus Schritt 2.
 
 ---
 
-## Schritt 4 — `DocumentExporter` → nach `src/engine/`
+## Schritt 4 - `DocumentExporter` → nach `src/engine/`
 
 **Quelle:** `DocumentView.cpp` Z. 1286–1567 (`allPageContent`, `exportPagesToImages`).
 
 Anders als 1–3 ist das keine UI-Zerlegung, sondern eine falsch einsortierte Datei. Beide
 Methoden brauchen ausschließlich `m_renderer`, `m_contentProvider`, `m_session` und
-`m_pageCount` — kein Widget, kein Event, kein Zoom. Sie gehören zu `DocxExporter` in
+`m_pageCount` - kein Widget, kein Event, kein Zoom. Sie gehören zu `DocxExporter` in
 `src/engine/edit/`, nicht in eine `QScrollArea`.
 
 Ziel: `src/engine/edit/DocumentExporter.{hpp,cpp}`
@@ -452,17 +452,17 @@ private:
 ```
 
 `DocumentView` behält die beiden Methoden als Einzeiler-Fassade (`MainWindow` und
-`ExportDialog` rufen sie so auf) — oder ruft besser gleich der `ExportDialog` den
+`ExportDialog` rufen sie so auf) - oder ruft besser gleich der `ExportDialog` den
 Exporter direkt. Das ist die einzige offene Design-Frage im Plan; sie lässt sich
 entscheiden, wenn der Schritt drankommt.
 
 **Warum zuletzt, obwohl am einfachsten:** Der Schritt ist unabhängig von 1–3 und kann
 jederzeit vorgezogen werden. Er steht hier hinten, weil er der erste ist, dessen Ergebnis
-sich ohne UI testen lässt — ein guter Anlass, direkt danach das Test-Setup aufzusetzen.
+sich ohne UI testen lässt - ein guter Anlass, direkt danach das Test-Setup aufzusetzen.
 
 **Umgesetzt** (`b7ff8f8`). Der Bedarf war größer als in der Skizze: neben Renderer,
-Provider und Session braucht `allPageContent()` auch die OCR-Engine und — im
-Qt-PDF-Pfad — `QPdfDocument` und `PdfTextExtractor`. Statt eines Konstruktors mit sechs
+Provider und Session braucht `allPageContent()` auch die OCR-Engine und - im
+Qt-PDF-Pfad - `QPdfDocument` und `PdfTextExtractor`. Statt eines Konstruktors mit sechs
 Parametern, dessen Signatur sich je Backend unterscheidet, bündelt
 `DocumentExporter::Sources` die geliehenen Zeiger. `DocumentView` behält beide Methoden
 als Fassade; die offene Frage, ob `ExportDialog` direkt auf den Exporter geht, ist
@@ -489,11 +489,11 @@ src/engine/edit/
 ## Bewusst nicht in diesem Plan
 
 - **Die Edit-Session-Logik** (`handleEditClick` 390 Zeilen, `commitCurrentEdit`,
-  `createTextFrame`, Z. 2563–3125). Da sitzen die offenen Bugs — Dupes und der
+  `createTextFrame`, Z. 2563–3125). Da sitzen die offenen Bugs - Dupes und der
   Edit-Box-Umbruchbug. Erst Bugs fixen, dann umbauen; sonst weiß man bei der nächsten
   Regression nicht, ob sie vom Fix oder vom Refactoring kommt.
 - **Die `#ifdef`-Flut** (46× `HAVE_PDF_RENDERING` in einer Datei). Die Kapselung hinter
   ein `IPdfBackend`-Interface in `src/engine/view/` ist ein eigener Plan. Nach dieser
   Zerlegung verteilen sich die Direktiven immerhin auf fünf Dateien statt einer.
 - **`SettingsPanel.cpp`** (1318 Zeilen). Groß, aber überwiegend gerader UI-Aufbaucode
-  ohne verschränkten Zustand — niedrige Priorität.
+  ohne verschränkten Zustand - niedrige Priorität.

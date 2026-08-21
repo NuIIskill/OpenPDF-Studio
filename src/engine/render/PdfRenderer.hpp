@@ -4,14 +4,19 @@
 #include <QSize>
 #include <QSizeF>
 
-#ifdef HAVE_QT_PDF
-#include <QPdfDocument>
-#elif defined(HAVE_POPPLER)
-#include <poppler/qt6/poppler-qt6.h>
-#endif
-
 #ifdef HAVE_PDF_RENDERING
 
+class PdfBackend;
+
+/// Page rasterisation in the units the view thinks in.
+///
+/// Everything backend-specific now sits in PdfBackend; what is left here is the
+/// conversion between zoom percentages, PDF points and pixels. It stays a type
+/// of its own because half the view holds one — layout engine, image layer,
+/// exporter — and because it is the only place that knows what "100 %" means.
+///
+/// Borrows the backend and stays valid across file changes: the backend swaps
+/// documents behind it.
 class PdfRenderer
 {
 public:
@@ -24,22 +29,14 @@ public:
         return (kScreenDpi / kPtsPerInch) * (zoomPercent / 100.0);
     }
 
-#ifdef HAVE_QT_PDF
-    explicit PdfRenderer(QPdfDocument *doc);
-#else
-    explicit PdfRenderer(Poppler::Document *doc);
-#endif
+    explicit PdfRenderer(PdfBackend *backend) : m_backend(backend) {}
 
     QSizeF pageSizePts(int page) const;
     QSize  pageDisplaySize(int page, int zoomPercent) const;
     QImage renderPage(int page, qreal scale) const;
 
 private:
-#ifdef HAVE_QT_PDF
-    QPdfDocument *m_doc;
-#else
-    Poppler::Document *m_doc;
-#endif
+    PdfBackend *m_backend;
 };
 
 #endif // HAVE_PDF_RENDERING

@@ -17,48 +17,41 @@
 <context>
     <name>DocumentView</name>
     <message>
-        <location filename="../../src/ui/DocumentView.cpp" line="76"/>
         <source>Text bearbeiten</source>
-        <translation>Text bearbeiten</translation>
+        <translation type="vanished">Text bearbeiten</translation>
     </message>
     <message>
-        <location filename="../../src/ui/DocumentView.cpp" line="294"/>
-        <location filename="../../src/ui/DocumentView.cpp" line="1499"/>
+        <location filename="../../src/ui/DocumentView.cpp" line="231"/>
+        <location filename="../../src/ui/DocumentView_Edit.cpp" line="89"/>
         <source>Drop a PDF here or click a tab to open</source>
         <translation>PDF hier ablegen oder Tab anklicken</translation>
     </message>
     <message>
-        <location filename="../../src/ui/DocumentView.cpp" line="1240"/>
         <source>Text</source>
-        <translation>Text</translation>
+        <translation type="vanished">Text</translation>
     </message>
     <message>
-        <location filename="../../src/ui/DocumentView.cpp" line="1242"/>
         <source>Paragraph</source>
-        <translation>Absatz</translation>
+        <translation type="vanished">Absatz</translation>
     </message>
     <message>
-        <location filename="../../src/ui/DocumentView.cpp" line="1243"/>
         <source>Table cell</source>
-        <translation>Tabellenzelle</translation>
+        <translation type="vanished">Tabellenzelle</translation>
     </message>
     <message>
-        <location filename="../../src/ui/DocumentView.cpp" line="1244"/>
         <source>Form field</source>
-        <translation>Formularfeld</translation>
+        <translation type="vanished">Formularfeld</translation>
     </message>
     <message>
-        <location filename="../../src/ui/DocumentView.cpp" line="1245"/>
         <source>Image</source>
-        <translation>Bild</translation>
+        <translation type="vanished">Bild</translation>
     </message>
     <message>
-        <location filename="../../src/ui/DocumentView.cpp" line="1246"/>
         <source>Media</source>
-        <translation>Medien</translation>
+        <translation type="vanished">Medien</translation>
     </message>
     <message>
-        <location filename="../../src/ui/DocumentView.cpp" line="1501"/>
+        <location filename="../../src/ui/DocumentView.cpp" line="233"/>
         <source>PDF rendering is not available in this build.
 Please use a build that includes Qt6::Pdf support.
 (See build-win.sh for instructions.)</source>
@@ -72,7 +65,7 @@ Bitte einen Build mit Qt6::Pdf-Unterstützung verwenden.
         <translation>Seite %1</translation>
     </message>
     <message>
-        <location filename="../../src/ui/DocumentView.cpp" line="1640"/>
+        <location filename="../../src/ui/DocumentView.cpp" line="351"/>
         <source>Kopieren</source>
         <translation>Kopieren</translation>
     </message>
@@ -89,21 +82,29 @@ Bitte einen Build mit Qt6::Pdf-Unterstützung verwenden.
         <translation type="vanished">Löschen</translation>
     </message>
     <message>
-        <location filename="../../src/ui/DocumentView.cpp" line="2886"/>
+        <location filename="../../src/ui/DocumentView.cpp" line="509"/>
         <source>Bild einfügen</source>
         <translation>Bild einfügen</translation>
     </message>
     <message>
-        <location filename="../../src/ui/DocumentView.cpp" line="2887"/>
+        <location filename="../../src/ui/DocumentView.cpp" line="510"/>
         <source>Bilder (*.png *.jpg *.jpeg *.bmp *.gif *.tiff *.webp);;Alle Dateien (*)</source>
         <translation>Bilder (*.png *.jpg *.jpeg *.bmp *.gif *.tiff *.webp);;Alle Dateien (*)</translation>
+    </message>
+</context>
+<context>
+    <name>EditController</name>
+    <message>
+        <location filename="../../src/ui/edit/EditController.cpp" line="40"/>
+        <source>Text bearbeiten</source>
+        <translation type="unfinished">Text bearbeiten</translation>
     </message>
 </context>
 <context>
     <name>ExportDialog</name>
     <message>
         <location filename="../../src/ui/dialogs/ExportDialog.cpp" line="32"/>
-        <location filename="../../src/ui/dialogs/ExportDialog.cpp" line="736"/>
+        <location filename="../../src/ui/dialogs/ExportDialog.cpp" line="728"/>
         <source>Export</source>
         <translation type="unfinished">Exportieren</translation>
     </message>
@@ -173,163 +174,163 @@ Bitte einen Build mit Qt6::Pdf-Unterstützung verwenden.
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/ui/dialogs/ExportDialog.cpp" line="556"/>
+        <location filename="../../src/ui/dialogs/ExportDialog.cpp" line="550"/>
         <source>1.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/ui/dialogs/ExportDialog.cpp" line="556"/>
+        <location filename="../../src/ui/dialogs/ExportDialog.cpp" line="550"/>
         <source>Format</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/ui/dialogs/ExportDialog.cpp" line="590"/>
+        <location filename="../../src/ui/dialogs/ExportDialog.cpp" line="579"/>
         <source>2.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/ui/dialogs/ExportDialog.cpp" line="590"/>
+        <location filename="../../src/ui/dialogs/ExportDialog.cpp" line="579"/>
         <source>Filename</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/ui/dialogs/ExportDialog.cpp" line="601"/>
+        <location filename="../../src/ui/dialogs/ExportDialog.cpp" line="590"/>
         <source>3.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/ui/dialogs/ExportDialog.cpp" line="601"/>
+        <location filename="../../src/ui/dialogs/ExportDialog.cpp" line="590"/>
         <source>Save Location</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/ui/dialogs/ExportDialog.cpp" line="609"/>
+        <location filename="../../src/ui/dialogs/ExportDialog.cpp" line="598"/>
         <source>Browse…</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/ui/dialogs/ExportDialog.cpp" line="627"/>
+        <location filename="../../src/ui/dialogs/ExportDialog.cpp" line="617"/>
         <source>4.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/ui/dialogs/ExportDialog.cpp" line="627"/>
+        <location filename="../../src/ui/dialogs/ExportDialog.cpp" line="617"/>
         <source>Page Range</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/ui/dialogs/ExportDialog.cpp" line="629"/>
+        <location filename="../../src/ui/dialogs/ExportDialog.cpp" line="619"/>
         <source>All pages</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/ui/dialogs/ExportDialog.cpp" line="630"/>
+        <location filename="../../src/ui/dialogs/ExportDialog.cpp" line="620"/>
         <source>Current page</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/ui/dialogs/ExportDialog.cpp" line="631"/>
+        <location filename="../../src/ui/dialogs/ExportDialog.cpp" line="621"/>
         <source>Range</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/ui/dialogs/ExportDialog.cpp" line="639"/>
+        <location filename="../../src/ui/dialogs/ExportDialog.cpp" line="629"/>
         <source>For example: 1-3, 5, 8-10</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/ui/dialogs/ExportDialog.cpp" line="653"/>
+        <location filename="../../src/ui/dialogs/ExportDialog.cpp" line="643"/>
         <source>5.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/ui/dialogs/ExportDialog.cpp" line="655"/>
+        <location filename="../../src/ui/dialogs/ExportDialog.cpp" line="645"/>
         <source>Quality</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/ui/dialogs/ExportDialog.cpp" line="657"/>
+        <location filename="../../src/ui/dialogs/ExportDialog.cpp" line="647"/>
         <source>Maximum</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/ui/dialogs/ExportDialog.cpp" line="658"/>
+        <location filename="../../src/ui/dialogs/ExportDialog.cpp" line="648"/>
         <source>High</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/ui/dialogs/ExportDialog.cpp" line="659"/>
+        <location filename="../../src/ui/dialogs/ExportDialog.cpp" line="649"/>
         <source>Medium</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/ui/dialogs/ExportDialog.cpp" line="660"/>
+        <location filename="../../src/ui/dialogs/ExportDialog.cpp" line="650"/>
         <source>Low</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/ui/dialogs/ExportDialog.cpp" line="664"/>
+        <location filename="../../src/ui/dialogs/ExportDialog.cpp" line="654"/>
         <source>Compress images</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/ui/dialogs/ExportDialog.cpp" line="678"/>
+        <location filename="../../src/ui/dialogs/ExportDialog.cpp" line="669"/>
         <source>6.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/ui/dialogs/ExportDialog.cpp" line="678"/>
+        <location filename="../../src/ui/dialogs/ExportDialog.cpp" line="669"/>
         <source>Options</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/ui/dialogs/ExportDialog.cpp" line="682"/>
+        <location filename="../../src/ui/dialogs/ExportDialog.cpp" line="673"/>
         <source>Include comments</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/ui/dialogs/ExportDialog.cpp" line="683"/>
+        <location filename="../../src/ui/dialogs/ExportDialog.cpp" line="674"/>
         <source>Keep forms</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/ui/dialogs/ExportDialog.cpp" line="686"/>
+        <location filename="../../src/ui/dialogs/ExportDialog.cpp" line="677"/>
         <source>Embed fonts</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/ui/dialogs/ExportDialog.cpp" line="687"/>
+        <location filename="../../src/ui/dialogs/ExportDialog.cpp" line="678"/>
         <source>Open file after export</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/ui/dialogs/ExportDialog.cpp" line="697"/>
+        <location filename="../../src/ui/dialogs/ExportDialog.cpp" line="689"/>
         <source>7.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/ui/dialogs/ExportDialog.cpp" line="697"/>
+        <location filename="../../src/ui/dialogs/ExportDialog.cpp" line="689"/>
         <source>Security (optional)</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/ui/dialogs/ExportDialog.cpp" line="698"/>
+        <location filename="../../src/ui/dialogs/ExportDialog.cpp" line="690"/>
         <source>Enable password protection</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/ui/dialogs/ExportDialog.cpp" line="706"/>
+        <location filename="../../src/ui/dialogs/ExportDialog.cpp" line="698"/>
         <source>Password</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/ui/dialogs/ExportDialog.cpp" line="711"/>
+        <location filename="../../src/ui/dialogs/ExportDialog.cpp" line="703"/>
         <source>Confirm password</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
         <location filename="../../src/ui/dialogs/ExportDialog.cpp" line="150"/>
-        <location filename="../../src/ui/dialogs/ExportDialog.cpp" line="728"/>
+        <location filename="../../src/ui/dialogs/ExportDialog.cpp" line="720"/>
         <source>Estimated file size: —</source>
         <translation type="unfinished"></translation>
     </message>
@@ -380,12 +381,12 @@ Use page numbers like 1-3, 5, 8-10.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/ui/dialogs/ExportDialog.cpp" line="653"/>
+        <location filename="../../src/ui/dialogs/ExportDialog.cpp" line="643"/>
         <source>Quality &amp; Compression</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/ui/dialogs/ExportDialog.cpp" line="731"/>
+        <location filename="../../src/ui/dialogs/ExportDialog.cpp" line="723"/>
         <source>Cancel</source>
         <translation type="unfinished">Abbrechen</translation>
     </message>
@@ -529,8 +530,8 @@ Das Dokument selbst wird nicht verändert — nur die Liste der Stände, zu dene
     </message>
     <message>
         <location filename="../../src/ui/dialogs/HistoryDialog.cpp" line="322"/>
-        <location filename="../../src/ui/dialogs/HistoryDialog.cpp" line="381"/>
-        <location filename="../../src/ui/dialogs/HistoryDialog.cpp" line="441"/>
+        <location filename="../../src/ui/dialogs/HistoryDialog.cpp" line="390"/>
+        <location filename="../../src/ui/dialogs/HistoryDialog.cpp" line="452"/>
         <source>Go back to this state</source>
         <translation>Zu diesem Stand zurückkehren</translation>
     </message>
@@ -550,12 +551,12 @@ Das Dokument selbst wird nicht verändert — nur die Liste der Stände, zu dene
         <translation>Schließen</translation>
     </message>
     <message>
-        <location filename="../../src/ui/dialogs/HistoryDialog.cpp" line="382"/>
+        <location filename="../../src/ui/dialogs/HistoryDialog.cpp" line="391"/>
         <source>Copy details</source>
         <translation>Details kopieren</translation>
     </message>
     <message>
-        <location filename="../../src/ui/dialogs/HistoryDialog.cpp" line="442"/>
+        <location filename="../../src/ui/dialogs/HistoryDialog.cpp" line="453"/>
         <source>This state is part of an earlier version of the document, so it has to be loaded again.
 
 Text and image edits made since then are not part of any file yet and will be lost. Continue?</source>
@@ -564,104 +565,137 @@ Text and image edits made since then are not part of any file yet and will be lo
 Text- und Bildbearbeitungen seit damals stehen in keiner Datei und gehen verloren. Fortfahren?</translation>
     </message>
     <message>
-        <location filename="../../src/ui/dialogs/HistoryDialog.cpp" line="458"/>
+        <location filename="../../src/ui/dialogs/HistoryDialog.cpp" line="469"/>
         <source>Document opened</source>
         <translation>Dokument geöffnet</translation>
     </message>
     <message>
-        <location filename="../../src/ui/dialogs/HistoryDialog.cpp" line="459"/>
+        <location filename="../../src/ui/dialogs/HistoryDialog.cpp" line="470"/>
         <source>Text changed</source>
         <translation>Text geändert</translation>
     </message>
     <message>
-        <location filename="../../src/ui/dialogs/HistoryDialog.cpp" line="460"/>
+        <location filename="../../src/ui/dialogs/HistoryDialog.cpp" line="471"/>
         <source>Text removed</source>
         <translation>Text gelöscht</translation>
     </message>
     <message>
-        <location filename="../../src/ui/dialogs/HistoryDialog.cpp" line="461"/>
+        <location filename="../../src/ui/dialogs/HistoryDialog.cpp" line="472"/>
         <source>Image inserted</source>
         <translation>Bild eingefügt</translation>
     </message>
     <message>
-        <location filename="../../src/ui/dialogs/HistoryDialog.cpp" line="462"/>
+        <location filename="../../src/ui/dialogs/HistoryDialog.cpp" line="473"/>
         <source>Image removed</source>
         <translation>Bild entfernt</translation>
     </message>
     <message>
-        <location filename="../../src/ui/dialogs/HistoryDialog.cpp" line="463"/>
+        <location filename="../../src/ui/dialogs/HistoryDialog.cpp" line="474"/>
         <source>Pages rotated</source>
         <translation>Seiten gedreht</translation>
     </message>
     <message>
-        <location filename="../../src/ui/dialogs/HistoryDialog.cpp" line="464"/>
+        <location filename="../../src/ui/dialogs/HistoryDialog.cpp" line="475"/>
         <source>Page rotated</source>
         <translation>Seite gedreht</translation>
     </message>
     <message>
-        <location filename="../../src/ui/dialogs/HistoryDialog.cpp" line="465"/>
+        <location filename="../../src/ui/dialogs/HistoryDialog.cpp" line="476"/>
         <source>Pages deleted</source>
         <translation>Seiten gelöscht</translation>
     </message>
     <message>
-        <location filename="../../src/ui/dialogs/HistoryDialog.cpp" line="466"/>
+        <location filename="../../src/ui/dialogs/HistoryDialog.cpp" line="477"/>
         <source>Page deleted</source>
         <translation>Seite gelöscht</translation>
     </message>
     <message>
-        <location filename="../../src/ui/dialogs/HistoryDialog.cpp" line="467"/>
+        <location filename="../../src/ui/dialogs/HistoryDialog.cpp" line="478"/>
         <source>Pages added</source>
         <translation>Seiten hinzugefügt</translation>
     </message>
     <message>
-        <location filename="../../src/ui/dialogs/HistoryDialog.cpp" line="468"/>
+        <location filename="../../src/ui/dialogs/HistoryDialog.cpp" line="479"/>
         <source>Page added</source>
         <translation>Seite hinzugefügt</translation>
     </message>
     <message>
-        <location filename="../../src/ui/dialogs/HistoryDialog.cpp" line="469"/>
+        <location filename="../../src/ui/dialogs/HistoryDialog.cpp" line="480"/>
         <source>Pages reordered</source>
         <translation>Seiten neu sortiert</translation>
     </message>
     <message>
-        <location filename="../../src/ui/dialogs/HistoryDialog.cpp" line="470"/>
+        <location filename="../../src/ui/dialogs/HistoryDialog.cpp" line="481"/>
         <source>Pages organized</source>
         <translation>Seiten organisiert</translation>
     </message>
     <message>
-        <location filename="../../src/ui/dialogs/HistoryDialog.cpp" line="471"/>
+        <location filename="../../src/ui/dialogs/HistoryDialog.cpp" line="482"/>
         <source>Document saved</source>
         <translation>Dokument gespeichert</translation>
     </message>
     <message>
-        <location filename="../../src/ui/dialogs/HistoryDialog.cpp" line="472"/>
+        <location filename="../../src/ui/dialogs/HistoryDialog.cpp" line="483"/>
         <source>Went back to an earlier state</source>
         <translation>Zu einem früheren Stand zurückgekehrt</translation>
     </message>
     <message>
-        <location filename="../../src/ui/dialogs/HistoryDialog.cpp" line="481"/>
+        <location filename="../../src/ui/dialogs/HistoryDialog.cpp" line="492"/>
         <source>Page %1</source>
         <translation>Seite %1</translation>
     </message>
     <message>
-        <location filename="../../src/ui/dialogs/HistoryDialog.cpp" line="482"/>
+        <location filename="../../src/ui/dialogs/HistoryDialog.cpp" line="493"/>
         <source>%1 pages</source>
         <translation>%1 Seiten</translation>
     </message>
     <message>
-        <location filename="../../src/ui/dialogs/HistoryDialog.cpp" line="494"/>
+        <location filename="../../src/ui/dialogs/HistoryDialog.cpp" line="505"/>
         <source>%1° counter-clockwise</source>
         <translation>%1° gegen den Uhrzeigersinn</translation>
     </message>
     <message>
-        <location filename="../../src/ui/dialogs/HistoryDialog.cpp" line="495"/>
+        <location filename="../../src/ui/dialogs/HistoryDialog.cpp" line="506"/>
         <source>%1° clockwise</source>
         <translation>%1° im Uhrzeigersinn</translation>
     </message>
     <message>
-        <location filename="../../src/ui/dialogs/HistoryDialog.cpp" line="506"/>
+        <location filename="../../src/ui/dialogs/HistoryDialog.cpp" line="517"/>
         <source>Step %1</source>
         <translation>Schritt %1</translation>
+    </message>
+</context>
+<context>
+    <name>HoverHighlight</name>
+    <message>
+        <location filename="../../src/ui/view/HoverHighlight.cpp" line="85"/>
+        <source>Text</source>
+        <translation type="unfinished">Text</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/view/HoverHighlight.cpp" line="87"/>
+        <source>Paragraph</source>
+        <translation type="unfinished">Absatz</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/view/HoverHighlight.cpp" line="88"/>
+        <source>Table cell</source>
+        <translation type="unfinished">Tabellenzelle</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/view/HoverHighlight.cpp" line="89"/>
+        <source>Form field</source>
+        <translation type="unfinished">Formularfeld</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/view/HoverHighlight.cpp" line="90"/>
+        <source>Image</source>
+        <translation type="unfinished">Bild</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/view/HoverHighlight.cpp" line="91"/>
+        <source>Media</source>
+        <translation type="unfinished">Medien</translation>
     </message>
 </context>
 <context>
@@ -731,127 +765,338 @@ Text- und Bildbearbeitungen seit damals stehen in keiner Datei und gehen verlore
     </message>
 </context>
 <context>
+    <name>LicenseNotice</name>
+    <message>
+        <location filename="../../src/drm/LicenseNotice.cpp" line="18"/>
+        <source>How do you use OpenPDF Studio?</source>
+        <translation>Wie wird OpenPDF Studio genutzt?</translation>
+    </message>
+    <message>
+        <location filename="../../src/drm/LicenseNotice.cpp" line="19"/>
+        <source>Is this a private or a business installation?</source>
+        <translation>Ist das eine private oder eine geschäftliche Installation?</translation>
+    </message>
+    <message>
+        <source>Personal use is free. Business use needs a Business License after a 30-day evaluation. You can change this later under Settings › Advanced.</source>
+        <translation type="vanished">Private Nutzung ist kostenlos. Geschäftliche Nutzung braucht nach 30 Tagen Testzeitraum eine Business-Lizenz. Die Angabe lässt sich später unter Einstellungen › Erweitert ändern.</translation>
+    </message>
+    <message>
+        <location filename="../../src/drm/LicenseNotice.cpp" line="20"/>
+        <source>Personal use is free. Business use needs a Business License after a 30-day evaluation. The answer is kept in the configuration file and can be changed there.</source>
+        <translation>Private Nutzung ist kostenlos. Geschäftliche Nutzung braucht nach 30 Tagen Testzeitraum eine Business-Lizenz. Die Antwort steht in der Konfigurationsdatei und lässt sich dort ändern.</translation>
+    </message>
+    <message>
+        <location filename="../../src/drm/LicenseNotice.cpp" line="23"/>
+        <source>Personal</source>
+        <translation>Privat</translation>
+    </message>
+    <message>
+        <location filename="../../src/drm/LicenseNotice.cpp" line="24"/>
+        <source>Business</source>
+        <translation>Geschäftlich</translation>
+    </message>
+    <message>
+        <location filename="../../src/drm/LicenseNotice.cpp" line="51"/>
+        <source>License</source>
+        <translation>Lizenz</translation>
+    </message>
+    <message>
+        <location filename="../../src/drm/LicenseNotice.cpp" line="52"/>
+        <source>Your %1-day evaluation for business use has ended.</source>
+        <translation>Die %1-tägige Evaluierung für die geschäftliche Nutzung ist abgelaufen.</translation>
+    </message>
+    <message>
+        <location filename="../../src/drm/LicenseNotice.cpp" line="54"/>
+        <source>Business use requires a license. Please enter a license key.</source>
+        <translation>Für die geschäftliche Nutzung ist eine Lizenz erforderlich. Bitte einen Lizenzschlüssel eingeben.</translation>
+    </message>
+    <message>
+        <source>OpenPDF Studio keeps working as before. Business use needs a Business License — you can enter the key in the settings.</source>
+        <translation type="vanished">OpenPDF Studio läuft unverändert weiter. Für die geschäftliche Nutzung ist eine Business-Lizenz nötig — der Schlüssel lässt sich in den Einstellungen eintragen.</translation>
+    </message>
+    <message>
+        <location filename="../../src/drm/LicenseNotice.cpp" line="56"/>
+        <source>Enter license key</source>
+        <translation>Lizenzschlüssel eingeben</translation>
+    </message>
+    <message>
+        <source>Later</source>
+        <translation type="vanished">Später</translation>
+    </message>
+</context>
+<context>
+    <name>LicensePage</name>
+    <message>
+        <location filename="../../src/drm/LicensePage.cpp" line="155"/>
+        <source>Remove License</source>
+        <translation>Lizenz entfernen</translation>
+    </message>
+    <message>
+        <location filename="../../src/drm/LicensePage.cpp" line="156"/>
+        <source>License key on record</source>
+        <translation>Lizenzschlüssel hinterlegt</translation>
+    </message>
+    <message>
+        <location filename="../../src/drm/LicensePage.cpp" line="158"/>
+        <source>Set by the installer for every account on this machine.</source>
+        <translation>Vom Setup für alle Konten dieses Rechners hinterlegt.</translation>
+    </message>
+    <message>
+        <location filename="../../src/drm/LicensePage.cpp" line="159"/>
+        <source>Entered in this application. Business use is covered.</source>
+        <translation>In der Anwendung eingegeben. Geschäftliche Nutzung ist abgedeckt.</translation>
+    </message>
+    <message>
+        <location filename="../../src/drm/LicensePage.cpp" line="163"/>
+        <source>Activate License</source>
+        <translation>Lizenz aktivieren</translation>
+    </message>
+    <message>
+        <location filename="../../src/drm/LicensePage.cpp" line="169"/>
+        <source>Evaluation — 1 day left</source>
+        <translation>Evaluierung — noch 1 Tag</translation>
+    </message>
+    <message>
+        <location filename="../../src/drm/LicensePage.cpp" line="170"/>
+        <source>Evaluation — %1 days left</source>
+        <translation>Evaluierung — noch %1 Tage</translation>
+    </message>
+    <message>
+        <location filename="../../src/drm/LicensePage.cpp" line="172"/>
+        <source>Business use is free to evaluate for %1 days. No key needed yet.</source>
+        <translation>Geschäftliche Nutzung darf %1 Tage kostenlos getestet werden. Noch ist kein Schlüssel nötig.</translation>
+    </message>
+    <message>
+        <location filename="../../src/drm/LicensePage.cpp" line="175"/>
+        <source>Evaluation period ended</source>
+        <translation>Evaluierungszeitraum abgelaufen</translation>
+    </message>
+    <message>
+        <source>Business use needs a license key. OpenPDF Studio keeps working either way — nothing is switched off.</source>
+        <translation type="vanished">Geschäftliche Nutzung braucht einen Lizenzschlüssel. OpenPDF Studio läuft in jedem Fall weiter — nichts wird abgeschaltet.</translation>
+    </message>
+    <message>
+        <location filename="../../src/drm/LicensePage.cpp" line="177"/>
+        <source>Business use requires a license. Please enter a license key.</source>
+        <translation>Für die geschäftliche Nutzung ist eine Lizenz erforderlich. Bitte einen Lizenzschlüssel eingeben.</translation>
+    </message>
+    <message>
+        <location filename="../../src/drm/LicensePage.cpp" line="189"/>
+        <source>License key removed.</source>
+        <translation>Lizenzschlüssel entfernt.</translation>
+    </message>
+    <message>
+        <location filename="../../src/drm/LicensePage.cpp" line="203"/>
+        <source>License key saved.</source>
+        <translation>Lizenzschlüssel gespeichert.</translation>
+    </message>
+    <message>
+        <location filename="../../src/drm/LicensePage.cpp" line="281"/>
+        <location filename="../../src/drm/LicensePage.cpp" line="286"/>
+        <source>License Key</source>
+        <translation>Lizenzschlüssel</translation>
+    </message>
+    <message>
+        <location filename="../../src/drm/LicensePage.cpp" line="282"/>
+        <source>This installation is set up for business use. Enter your license key here.</source>
+        <translation>Diese Installation ist als geschäftliche Nutzung eingerichtet. Hier den Lizenzschlüssel eintragen.</translation>
+    </message>
+    <message>
+        <location filename="../../src/drm/LicensePage.cpp" line="284"/>
+        <source>LICENSE STATUS</source>
+        <translation>LIZENZSTATUS</translation>
+    </message>
+    <message>
+        <location filename="../../src/drm/LicensePage.cpp" line="285"/>
+        <source>ACTIVATE LICENSE</source>
+        <translation>LIZENZ AKTIVIEREN</translation>
+    </message>
+    <message>
+        <location filename="../../src/drm/LicensePage.cpp" line="287"/>
+        <source>Enter your license key</source>
+        <translation>Lizenzschlüssel eingeben</translation>
+    </message>
+    <message>
+        <location filename="../../src/drm/LicensePage.cpp" line="288"/>
+        <source>NEED A LICENSE?</source>
+        <translation>NOCH KEINE LIZENZ?</translation>
+    </message>
+    <message>
+        <location filename="../../src/drm/LicensePage.cpp" line="289"/>
+        <source>A Business License covers business use of OpenPDF Studio and supports the development.</source>
+        <translation>Eine Business-Lizenz deckt die geschäftliche Nutzung von OpenPDF Studio ab und unterstützt die Entwicklung.</translation>
+    </message>
+    <message>
+        <location filename="../../src/drm/LicensePage.cpp" line="291"/>
+        <source>Get License</source>
+        <translation>Lizenz holen</translation>
+    </message>
+</context>
+<context>
     <name>MainWindow</name>
     <message>
-        <location filename="../../src/ui/MainWindow.cpp" line="339"/>
+        <location filename="../../src/ui/MainWindow.cpp" line="366"/>
         <source>Open PDF</source>
         <translation>PDF öffnen</translation>
     </message>
     <message>
+        <location filename="../../src/ui/MainWindow.cpp" line="439"/>
+        <location filename="../../src/ui/MainWindow.cpp" line="488"/>
         <source>Print</source>
         <translation>Drucken</translation>
     </message>
     <message>
+        <location filename="../../src/ui/MainWindow.cpp" line="489"/>
         <source>The document could not be printed.</source>
         <translation>Das Dokument konnte nicht gedruckt werden.</translation>
     </message>
     <message>
-        <location filename="../../src/ui/MainWindow.cpp" line="339"/>
-        <location filename="../../src/ui/MainWindow.cpp" line="377"/>
-        <location filename="../../src/ui/MainWindow.cpp" line="388"/>
-        <location filename="../../src/ui/MainWindow.cpp" line="831"/>
+        <location filename="../../src/ui/MainWindow.cpp" line="366"/>
+        <location filename="../../src/ui/MainWindow.cpp" line="404"/>
+        <location filename="../../src/ui/MainWindow.cpp" line="415"/>
+        <location filename="../../src/ui/MainWindow.cpp" line="920"/>
         <source>PDF files (*.pdf)</source>
         <translation>PDF-Dateien (*.pdf)</translation>
     </message>
     <message>
-        <location filename="../../src/ui/MainWindow.cpp" line="377"/>
-        <location filename="../../src/ui/MainWindow.cpp" line="388"/>
-        <location filename="../../src/ui/MainWindow.cpp" line="831"/>
+        <location filename="../../src/ui/MainWindow.cpp" line="404"/>
+        <location filename="../../src/ui/MainWindow.cpp" line="415"/>
+        <location filename="../../src/ui/MainWindow.cpp" line="920"/>
         <source>Save PDF As</source>
         <translation>PDF speichern unter</translation>
     </message>
     <message>
-        <location filename="../../src/ui/MainWindow.cpp" line="622"/>
+        <location filename="../../src/ui/MainWindow.cpp" line="711"/>
         <source>Export successful</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/ui/MainWindow.cpp" line="625"/>
+        <location filename="../../src/ui/MainWindow.cpp" line="714"/>
         <source>Document exported to &quot;%1&quot;.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/ui/MainWindow.cpp" line="617"/>
+        <location filename="../../src/ui/MainWindow.cpp" line="706"/>
         <source>Export failed</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/ui/MainWindow.cpp" line="360"/>
+        <source>How do you use OpenPDF Studio?</source>
+        <translation type="vanished">Wie wird OpenPDF Studio genutzt?</translation>
+    </message>
+    <message>
+        <source>Is this a private or a business installation?</source>
+        <translation type="vanished">Ist das eine private oder eine geschäftliche Installation?</translation>
+    </message>
+    <message>
+        <source>Personal use is free. Business use needs a Business License after a 30-day evaluation. You can change this later under Settings › Advanced.</source>
+        <translation type="vanished">Private Nutzung ist kostenlos. Geschäftliche Nutzung braucht nach 30 Tagen Testzeitraum eine Business-Lizenz. Die Angabe lässt sich später unter Einstellungen › Erweitert ändern.</translation>
+    </message>
+    <message>
+        <source>Personal</source>
+        <translation type="vanished">Privat</translation>
+    </message>
+    <message>
+        <source>Business</source>
+        <translation type="vanished">Geschäftlich</translation>
+    </message>
+    <message>
+        <source>License</source>
+        <translation type="vanished">Lizenz</translation>
+    </message>
+    <message>
+        <source>Your %1-day evaluation for business use has ended.</source>
+        <translation type="vanished">Die %1-tägige Evaluierung für die geschäftliche Nutzung ist abgelaufen.</translation>
+    </message>
+    <message>
+        <source>OpenPDF Studio keeps working as before. Business use needs a Business License — you can enter the key in the settings.</source>
+        <translation type="vanished">OpenPDF Studio läuft unverändert weiter. Für die geschäftliche Nutzung ist eine Business-Lizenz nötig — der Schlüssel lässt sich in den Einstellungen eintragen.</translation>
+    </message>
+    <message>
+        <source>Enter license key</source>
+        <translation type="vanished">Lizenzschlüssel eingeben</translation>
+    </message>
+    <message>
+        <source>Later</source>
+        <translation type="vanished">Später</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/MainWindow.cpp" line="387"/>
         <source>Save failed</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/ui/MainWindow.cpp" line="361"/>
+        <location filename="../../src/ui/MainWindow.cpp" line="388"/>
         <source>Could not write &quot;%1&quot;.
 
 The file may be write-protected or open in another program. The document is unchanged — try saving it under a different name.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/ui/MainWindow.cpp" line="522"/>
-        <location filename="../../src/ui/MainWindow.cpp" line="549"/>
+        <location filename="../../src/ui/MainWindow.cpp" line="611"/>
+        <location filename="../../src/ui/MainWindow.cpp" line="638"/>
         <source>Change history</source>
         <translation>Änderungsverlauf</translation>
     </message>
     <message>
-        <location filename="../../src/ui/MainWindow.cpp" line="523"/>
+        <location filename="../../src/ui/MainWindow.cpp" line="612"/>
         <source>Open a document to see its change history.</source>
         <translation>Öffne ein Dokument, um seinen Änderungsverlauf zu sehen.</translation>
     </message>
     <message>
-        <location filename="../../src/ui/MainWindow.cpp" line="550"/>
+        <location filename="../../src/ui/MainWindow.cpp" line="639"/>
         <source>This state could not be restored — the copy of the document it was kept in is no longer there.</source>
         <translation>Dieser Stand konnte nicht wiederhergestellt werden — die Kopie des Dokuments, in der er lag, ist nicht mehr vorhanden.</translation>
     </message>
     <message>
-        <location filename="../../src/ui/MainWindow.cpp" line="576"/>
+        <location filename="../../src/ui/MainWindow.cpp" line="665"/>
         <source>Could not write to &quot;%1&quot;.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/ui/MainWindow.cpp" line="580"/>
+        <location filename="../../src/ui/MainWindow.cpp" line="669"/>
         <source>Could not export PNG images to &quot;%1&quot;.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/ui/MainWindow.cpp" line="605"/>
+        <location filename="../../src/ui/MainWindow.cpp" line="694"/>
         <source>Could not write &quot;%1&quot;.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/ui/MainWindow.cpp" line="609"/>
+        <location filename="../../src/ui/MainWindow.cpp" line="698"/>
         <source>Could not write &quot;%1&quot;.
 
 Selecting pages or setting a password for a PDF needs qpdf, which this build does not include. Exporting as Word or PNG is unaffected.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/ui/MainWindow.cpp" line="624"/>
+        <location filename="../../src/ui/MainWindow.cpp" line="713"/>
         <source>%1 pages exported as PNG images.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/ui/MainWindow.cpp" line="645"/>
+        <location filename="../../src/ui/MainWindow.cpp" line="734"/>
         <source>Edit Mode</source>
         <translation>Bearbeitungsmodus</translation>
     </message>
     <message>
-        <location filename="../../src/ui/MainWindow.cpp" line="646"/>
+        <location filename="../../src/ui/MainWindow.cpp" line="735"/>
         <source>Do you want to enable Edit Mode?</source>
         <translation>Möchten Sie den Bearbeitungsmodus aktivieren?</translation>
     </message>
     <message>
-        <location filename="../../src/ui/MainWindow.cpp" line="812"/>
+        <location filename="../../src/ui/MainWindow.cpp" line="901"/>
         <source>Untitled</source>
         <translation>Unbenannt</translation>
     </message>
     <message>
-        <location filename="../../src/ui/MainWindow.cpp" line="817"/>
+        <location filename="../../src/ui/MainWindow.cpp" line="906"/>
         <source>Unsaved Changes</source>
         <translation>Nicht gespeicherte Änderungen</translation>
     </message>
     <message>
-        <location filename="../../src/ui/MainWindow.cpp" line="818"/>
+        <location filename="../../src/ui/MainWindow.cpp" line="907"/>
         <source>Save changes to &quot;%1&quot;?</source>
         <translation>Änderungen an „%1&quot; speichern?</translation>
     </message>
@@ -1091,8 +1336,8 @@ Enter the password to open it:</source>
 <context>
     <name>SettingsPanel</name>
     <message>
-        <location filename="../../src/ui/panels/SettingsPanel.cpp" line="549"/>
-        <location filename="../../src/ui/panels/SettingsPanel.cpp" line="1417"/>
+        <location filename="../../src/ui/panels/SettingsPanel.cpp" line="552"/>
+        <location filename="../../src/ui/panels/SettingsPanel.cpp" line="1465"/>
         <source>Settings - OpenPDF Studio</source>
         <translation>Einstellungen – OpenPDF Studio</translation>
     </message>
@@ -1101,296 +1346,329 @@ Enter the password to open it:</source>
         <translation type="vanished">Zurücksetzen</translation>
     </message>
     <message>
-        <location filename="../../src/ui/panels/SettingsPanel.cpp" line="610"/>
+        <location filename="../../src/ui/panels/SettingsPanel.cpp" line="622"/>
         <source>Cancel</source>
         <translation>Abbrechen</translation>
     </message>
     <message>
-        <location filename="../../src/ui/panels/SettingsPanel.cpp" line="615"/>
-        <location filename="../../src/ui/panels/SettingsPanel.cpp" line="982"/>
+        <location filename="../../src/ui/panels/SettingsPanel.cpp" line="627"/>
+        <location filename="../../src/ui/panels/SettingsPanel.cpp" line="1018"/>
         <source>Save</source>
         <translation>Speichern</translation>
     </message>
     <message>
-        <location filename="../../src/ui/panels/SettingsPanel.cpp" line="632"/>
-        <location filename="../../src/ui/panels/SettingsPanel.cpp" line="748"/>
-        <location filename="../../src/ui/panels/SettingsPanel.cpp" line="1420"/>
+        <location filename="../../src/ui/panels/SettingsPanel.cpp" line="644"/>
+        <location filename="../../src/ui/panels/SettingsPanel.cpp" line="784"/>
         <source>Appearance</source>
         <translation>Erscheinungsbild</translation>
     </message>
     <message>
-        <location filename="../../src/ui/panels/SettingsPanel.cpp" line="633"/>
-        <location filename="../../src/ui/panels/SettingsPanel.cpp" line="792"/>
-        <location filename="../../src/ui/panels/SettingsPanel.cpp" line="1421"/>
+        <location filename="../../src/ui/panels/SettingsPanel.cpp" line="645"/>
+        <location filename="../../src/ui/panels/SettingsPanel.cpp" line="828"/>
         <source>Language</source>
         <translation>Sprache</translation>
     </message>
     <message>
-        <location filename="../../src/ui/panels/SettingsPanel.cpp" line="634"/>
-        <location filename="../../src/ui/panels/SettingsPanel.cpp" line="863"/>
-        <location filename="../../src/ui/panels/SettingsPanel.cpp" line="1422"/>
+        <location filename="../../src/ui/panels/SettingsPanel.cpp" line="646"/>
+        <location filename="../../src/ui/panels/SettingsPanel.cpp" line="899"/>
         <source>Media Playback</source>
         <translation>Medienwiedergabe</translation>
     </message>
     <message>
-        <location filename="../../src/ui/panels/SettingsPanel.cpp" line="635"/>
-        <location filename="../../src/ui/panels/SettingsPanel.cpp" line="1423"/>
+        <location filename="../../src/ui/panels/SettingsPanel.cpp" line="647"/>
         <source>Shortcuts</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/ui/panels/SettingsPanel.cpp" line="636"/>
-        <location filename="../../src/ui/panels/SettingsPanel.cpp" line="1071"/>
-        <location filename="../../src/ui/panels/SettingsPanel.cpp" line="1173"/>
-        <location filename="../../src/ui/panels/SettingsPanel.cpp" line="1424"/>
+        <location filename="../../src/ui/panels/SettingsPanel.cpp" line="648"/>
+        <location filename="../../src/ui/panels/SettingsPanel.cpp" line="1107"/>
+        <location filename="../../src/ui/panels/SettingsPanel.cpp" line="1209"/>
         <source>Zoom</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/ui/panels/SettingsPanel.cpp" line="637"/>
-        <location filename="../../src/ui/panels/SettingsPanel.cpp" line="1209"/>
-        <location filename="../../src/ui/panels/SettingsPanel.cpp" line="1425"/>
+        <location filename="../../src/ui/panels/SettingsPanel.cpp" line="649"/>
+        <location filename="../../src/ui/panels/SettingsPanel.cpp" line="1245"/>
         <source>Advanced</source>
         <translation>Erweitert</translation>
     </message>
     <message>
-        <location filename="../../src/ui/panels/SettingsPanel.cpp" line="681"/>
-        <location filename="../../src/ui/panels/SettingsPanel.cpp" line="1426"/>
+        <location filename="../../src/ui/panels/SettingsPanel.cpp" line="654"/>
+        <source>License Key</source>
+        <translation>Lizenzschlüssel</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/panels/SettingsPanel.cpp" line="698"/>
+        <location filename="../../src/ui/panels/SettingsPanel.cpp" line="703"/>
         <source>About</source>
         <translation>Über</translation>
     </message>
     <message>
-        <location filename="../../src/ui/panels/SettingsPanel.cpp" line="753"/>
+        <location filename="../../src/ui/panels/SettingsPanel.cpp" line="789"/>
         <source>Choose how OpenPDF Studio is displayed.</source>
         <translation>Wählen Sie, wie OpenPDF Studio angezeigt wird.</translation>
     </message>
     <message>
-        <location filename="../../src/ui/panels/SettingsPanel.cpp" line="764"/>
+        <location filename="../../src/ui/panels/SettingsPanel.cpp" line="800"/>
         <source>System</source>
         <translation>System</translation>
     </message>
     <message>
-        <location filename="../../src/ui/panels/SettingsPanel.cpp" line="764"/>
+        <location filename="../../src/ui/panels/SettingsPanel.cpp" line="800"/>
         <source>Follows system settings</source>
         <translation>Folgt den Systemeinstellungen</translation>
     </message>
     <message>
-        <location filename="../../src/ui/panels/SettingsPanel.cpp" line="765"/>
+        <location filename="../../src/ui/panels/SettingsPanel.cpp" line="801"/>
         <source>Light</source>
         <translation>Hell</translation>
     </message>
     <message>
-        <location filename="../../src/ui/panels/SettingsPanel.cpp" line="765"/>
+        <location filename="../../src/ui/panels/SettingsPanel.cpp" line="801"/>
         <source>Light user interface</source>
         <translation>Helle Benutzeroberfläche</translation>
     </message>
     <message>
-        <location filename="../../src/ui/panels/SettingsPanel.cpp" line="766"/>
+        <location filename="../../src/ui/panels/SettingsPanel.cpp" line="802"/>
         <source>Dark</source>
         <translation>Dunkel</translation>
     </message>
     <message>
-        <location filename="../../src/ui/panels/SettingsPanel.cpp" line="766"/>
+        <location filename="../../src/ui/panels/SettingsPanel.cpp" line="802"/>
         <source>Dark user interface</source>
         <translation>Dunkle Benutzeroberfläche</translation>
     </message>
     <message>
-        <location filename="../../src/ui/panels/SettingsPanel.cpp" line="796"/>
+        <location filename="../../src/ui/panels/SettingsPanel.cpp" line="832"/>
         <source>Choose your preferred interface language.</source>
         <translation>Wählen Sie Ihre bevorzugte Sprache.</translation>
     </message>
     <message>
-        <location filename="../../src/ui/panels/SettingsPanel.cpp" line="868"/>
+        <location filename="../../src/ui/panels/SettingsPanel.cpp" line="904"/>
         <source>Choose how media is played in OpenPDF Studio.</source>
         <translation>Wählen Sie die Medienwiedergabe.</translation>
     </message>
     <message>
-        <location filename="../../src/ui/panels/SettingsPanel.cpp" line="879"/>
+        <location filename="../../src/ui/panels/SettingsPanel.cpp" line="915"/>
         <source>Default</source>
         <translation>Standard</translation>
     </message>
     <message>
-        <location filename="../../src/ui/panels/SettingsPanel.cpp" line="879"/>
+        <location filename="../../src/ui/panels/SettingsPanel.cpp" line="915"/>
         <source>Use system player</source>
         <translation>Systemspieler verwenden</translation>
     </message>
     <message>
-        <location filename="../../src/ui/panels/SettingsPanel.cpp" line="880"/>
+        <location filename="../../src/ui/panels/SettingsPanel.cpp" line="916"/>
         <source>Custom...</source>
         <translation>Benutzerdefiniert...</translation>
     </message>
     <message>
-        <location filename="../../src/ui/panels/SettingsPanel.cpp" line="880"/>
+        <location filename="../../src/ui/panels/SettingsPanel.cpp" line="916"/>
         <source>Custom media player</source>
         <translation>Benutzerdefinierter Medienspieler</translation>
     </message>
     <message>
-        <location filename="../../src/ui/panels/SettingsPanel.cpp" line="907"/>
+        <location filename="../../src/ui/panels/SettingsPanel.cpp" line="943"/>
         <source>Keyboard Shortcuts</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/ui/panels/SettingsPanel.cpp" line="910"/>
+        <location filename="../../src/ui/panels/SettingsPanel.cpp" line="946"/>
         <source>Configure keyboard shortcuts for frequent actions.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/ui/panels/SettingsPanel.cpp" line="925"/>
+        <location filename="../../src/ui/panels/SettingsPanel.cpp" line="961"/>
         <source>Search action</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/ui/panels/SettingsPanel.cpp" line="928"/>
+        <location filename="../../src/ui/panels/SettingsPanel.cpp" line="964"/>
         <source>Show only global default shortcuts</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/ui/panels/SettingsPanel.cpp" line="948"/>
+        <location filename="../../src/ui/panels/SettingsPanel.cpp" line="984"/>
         <source>Action</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/ui/panels/SettingsPanel.cpp" line="952"/>
+        <location filename="../../src/ui/panels/SettingsPanel.cpp" line="988"/>
         <source>Key Combination</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/ui/panels/SettingsPanel.cpp" line="983"/>
+        <location filename="../../src/ui/panels/SettingsPanel.cpp" line="1019"/>
         <source>Save As</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/ui/panels/SettingsPanel.cpp" line="984"/>
+        <location filename="../../src/ui/panels/SettingsPanel.cpp" line="1020"/>
         <source>Print</source>
         <translation type="unfinished">Drucken</translation>
     </message>
     <message>
-        <location filename="../../src/ui/panels/SettingsPanel.cpp" line="985"/>
+        <location filename="../../src/ui/panels/SettingsPanel.cpp" line="1021"/>
         <source>Open</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/ui/panels/SettingsPanel.cpp" line="986"/>
+        <location filename="../../src/ui/panels/SettingsPanel.cpp" line="1022"/>
         <source>Undo</source>
         <translation type="unfinished">Rückgängig</translation>
     </message>
     <message>
-        <location filename="../../src/ui/panels/SettingsPanel.cpp" line="987"/>
+        <location filename="../../src/ui/panels/SettingsPanel.cpp" line="1023"/>
         <source>Redo</source>
         <translation type="unfinished">Wiederholen</translation>
     </message>
     <message>
-        <location filename="../../src/ui/panels/SettingsPanel.cpp" line="988"/>
+        <location filename="../../src/ui/panels/SettingsPanel.cpp" line="1024"/>
         <source>Find</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/ui/panels/SettingsPanel.cpp" line="989"/>
+        <location filename="../../src/ui/panels/SettingsPanel.cpp" line="1025"/>
         <source>Text Tool</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/ui/panels/SettingsPanel.cpp" line="990"/>
+        <location filename="../../src/ui/panels/SettingsPanel.cpp" line="1026"/>
         <source>Add Comment</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/ui/panels/SettingsPanel.cpp" line="991"/>
+        <location filename="../../src/ui/panels/SettingsPanel.cpp" line="1027"/>
         <source>Zoom In</source>
         <translation type="unfinished">Vergrößern</translation>
     </message>
     <message>
-        <location filename="../../src/ui/panels/SettingsPanel.cpp" line="992"/>
+        <location filename="../../src/ui/panels/SettingsPanel.cpp" line="1028"/>
         <source>Zoom Out</source>
         <translation type="unfinished">Verkleinern</translation>
     </message>
     <message>
-        <location filename="../../src/ui/panels/SettingsPanel.cpp" line="993"/>
+        <location filename="../../src/ui/panels/SettingsPanel.cpp" line="1029"/>
         <source>Presentation</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/ui/panels/SettingsPanel.cpp" line="1042"/>
+        <location filename="../../src/ui/panels/SettingsPanel.cpp" line="1078"/>
         <source>Double-click on a key combination to change it.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/ui/panels/SettingsPanel.cpp" line="1075"/>
+        <location filename="../../src/ui/panels/SettingsPanel.cpp" line="1111"/>
         <source>Configure how zoom works with the mouse wheel.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/ui/panels/SettingsPanel.cpp" line="1108"/>
+        <location filename="../../src/ui/panels/SettingsPanel.cpp" line="1144"/>
         <source>Mouse Wheel Zoom Step</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/ui/panels/SettingsPanel.cpp" line="1114"/>
+        <location filename="../../src/ui/panels/SettingsPanel.cpp" line="1150"/>
         <source>Zoom step with Ctrl + Mouse Wheel</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/ui/panels/SettingsPanel.cpp" line="1126"/>
+        <location filename="../../src/ui/panels/SettingsPanel.cpp" line="1162"/>
         <source>Sets how much is zoomed per mouse wheel movement.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/ui/panels/SettingsPanel.cpp" line="1149"/>
+        <location filename="../../src/ui/panels/SettingsPanel.cpp" line="1185"/>
         <source>Zoom with Ctrl + Mouse Wheel</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/ui/panels/SettingsPanel.cpp" line="1155"/>
+        <location filename="../../src/ui/panels/SettingsPanel.cpp" line="1191"/>
         <source>Zoom to Mouse Pointer</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/ui/panels/SettingsPanel.cpp" line="1167"/>
+        <location filename="../../src/ui/panels/SettingsPanel.cpp" line="1203"/>
         <source>Action without Ctrl</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/ui/panels/SettingsPanel.cpp" line="1172"/>
+        <location filename="../../src/ui/panels/SettingsPanel.cpp" line="1208"/>
         <source>Scroll</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/ui/panels/SettingsPanel.cpp" line="1192"/>
+        <location filename="../../src/ui/panels/SettingsPanel.cpp" line="1228"/>
         <source>Example: 100 % → %1 %</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/ui/panels/SettingsPanel.cpp" line="1214"/>
+        <location filename="../../src/ui/panels/SettingsPanel.cpp" line="1250"/>
         <source>Advanced settings for OpenPDF Studio.</source>
         <translation>Erweiterte Einstellungen für OpenPDF Studio.</translation>
     </message>
     <message>
-        <location filename="../../src/ui/panels/SettingsPanel.cpp" line="1220"/>
+        <location filename="../../src/ui/panels/SettingsPanel.cpp" line="1256"/>
         <source>INTERFACE</source>
         <translation>OBERFLÄCHE</translation>
     </message>
     <message>
-        <location filename="../../src/ui/panels/SettingsPanel.cpp" line="1225"/>
+        <location filename="../../src/ui/panels/SettingsPanel.cpp" line="1261"/>
         <source>Preserve panel layout</source>
         <translation>Panel Layout beibehalten</translation>
     </message>
     <message>
-        <location filename="../../src/ui/panels/SettingsPanel.cpp" line="1231"/>
+        <location filename="../../src/ui/panels/SettingsPanel.cpp" line="1267"/>
         <source>Restore expanded and collapsed panels after restart.</source>
         <translation>Eingeklappte und ausgeklappte Panels nach dem Neustart wiederherstellen.</translation>
     </message>
     <message>
-        <location filename="../../src/ui/panels/SettingsPanel.cpp" line="1247"/>
+        <location filename="../../src/ui/panels/SettingsPanel.cpp" line="1350"/>
+        <source>Configuration (portable): %1</source>
+        <translation>Konfiguration (portabel): %1</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/panels/SettingsPanel.cpp" line="1351"/>
+        <source>Configuration: %1</source>
+        <translation>Konfiguration: %1</translation>
+    </message>
+    <message>
+        <source>USAGE</source>
+        <translation type="vanished">NUTZUNG</translation>
+    </message>
+    <message>
+        <source>This installation is used</source>
+        <translation type="vanished">Diese Installation wird</translation>
+    </message>
+    <message>
+        <source>privately</source>
+        <translation type="vanished">privat genutzt</translation>
+    </message>
+    <message>
+        <source>for business</source>
+        <translation type="vanished">geschäftlich genutzt</translation>
+    </message>
+    <message>
+        <source>Personal use is free. Business use needs a Business License after a 30-day evaluation.</source>
+        <translation type="vanished">Private Nutzung ist kostenlos. Geschäftliche Nutzung braucht nach 30 Tagen Testzeitraum eine Business-Lizenz.</translation>
+    </message>
+    <message>
+        <source>Takes effect the next time the settings are opened.</source>
+        <translation type="vanished">Wirkt sich beim nächsten Öffnen der Einstellungen aus.</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/panels/SettingsPanel.cpp" line="1283"/>
         <source>RESET</source>
         <translation>ZURÜCKSETZEN</translation>
     </message>
     <message>
-        <location filename="../../src/ui/panels/SettingsPanel.cpp" line="1252"/>
+        <location filename="../../src/ui/panels/SettingsPanel.cpp" line="1288"/>
         <source>Reset All Settings to Defaults</source>
         <translation>Alle Einstellungen zurücksetzen</translation>
     </message>
     <message>
-        <location filename="../../src/ui/panels/SettingsPanel.cpp" line="1305"/>
+        <location filename="../../src/ui/panels/SettingsPanel.cpp" line="1341"/>
         <source>A modern, open-source PDF editor built with Qt.</source>
         <translation>Ein moderner, quelloffener PDF-Editor mit Qt.</translation>
     </message>
@@ -1398,22 +1676,22 @@ Enter the password to open it:</source>
 <context>
     <name>ShortcutRow</name>
     <message>
-        <location filename="../../src/ui/panels/SettingsPanel.cpp" line="333"/>
+        <location filename="../../src/ui/panels/SettingsPanel.cpp" line="336"/>
         <source>Reset to default</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/ui/panels/SettingsPanel.cpp" line="344"/>
+        <location filename="../../src/ui/panels/SettingsPanel.cpp" line="347"/>
         <source>Edit</source>
         <translation type="unfinished">Bearbeiten</translation>
     </message>
     <message>
-        <location filename="../../src/ui/panels/SettingsPanel.cpp" line="354"/>
+        <location filename="../../src/ui/panels/SettingsPanel.cpp" line="357"/>
         <source>Save</source>
         <translation type="unfinished">Speichern</translation>
     </message>
     <message>
-        <location filename="../../src/ui/panels/SettingsPanel.cpp" line="362"/>
+        <location filename="../../src/ui/panels/SettingsPanel.cpp" line="365"/>
         <source>Cancel</source>
         <translation type="unfinished">Abbrechen</translation>
     </message>

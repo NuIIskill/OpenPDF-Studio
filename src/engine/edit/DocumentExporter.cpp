@@ -1,4 +1,5 @@
 #include "engine/edit/DocumentExporter.hpp"
+#include "engine/document/PdfBackend.hpp"
 
 #ifdef HAVE_PDF_RENDERING
 #  include "engine/edit/ContentMap.hpp"
@@ -7,12 +8,6 @@
 #  include "engine/edit/EditSession.hpp"
 #  include "engine/ocr/OcrEngine.hpp"
 #  include "engine/render/PdfRenderer.hpp"
-#  ifdef HAVE_QT_PDF
-#    include "engine/edit/PdfTextExtractor.hpp"
-#    include <QPdfDocument>
-#    include <QPdfSelection>
-#    include <QRegularExpression>
-#  endif
 #  ifdef HAVE_QT_PRINT
 #    include <QPrinter>
 #  endif
@@ -101,214 +96,6 @@ QList<QRectF> mergeGlyphBoxes(QList<QRectF> boxes)
 } // namespace
 #endif
 
-#if defined(HAVE_PDF_RENDERING) && defined(HAVE_QT_PDF)
-
-QList<ContentItem> DocumentExporter::decodedTextItems(
-    int page, const QSizeF &pageSizePt, const QList<ContentItem> &detected) const
-{
-    const QPdfSelection all = m_src.document->getAllText(page);
-    QList<ContentCluster> clusters;
-    if (all.isValid()) {
-        QList<QRectF> boxes;
-        for (const QPolygonF &polygon : all.bounds()) {
-            const QRectF rect = polygon.boundingRect();
-            if (!rect.isEmpty()) boxes.append(rect);
-        }
-        // Per-glyph polygons are merged into line runs first — see
-        // mergeGlyphBoxes. Judged on the median box, so a page that
-        // happens to contain one narrow line is not misread.
-        bool fromGlyphs = false;
-        {
-            QList<double> widths, heights;
-            for (const QRectF &r : boxes) {
-                widths.append(r.width());
-                heights.append(r.height());
-            }
-            std::sort(widths.begin(), widths.end());
-            std::sort(heights.begin(), heights.end());
-            if (!boxes.isEmpty()
-                    && widths[widths.size() / 2]
-                           < heights[heights.size() / 2] * 1.6) {
-                boxes = mergeGlyphBoxes(std::move(boxes));
-                fromGlyphs = true;
-            }
-        }
-
-        for (const QRectF &rect : boxes) {
-            // A line box hugs its glyphs so tightly that querying it
-            // verbatim drops the last character ("ca. 200 kcal" came
-            // back as "ca. 200 kca"); a point of slack recovers it.
-            // Word-sized runs merged out of glyph boxes must NOT be
-            // widened — the slack reaches into the following run and
-            // repeats its first character ("mit fett" → "mitfettt").
-            const QRectF query = fromGlyphs
-                ? rect : rect.adjusted(-0.5, 0.0, 1.0, 0.0);
-            const QPdfSelection selection = m_src.document->getSelection(
-                page, query.topLeft(), query.bottomRight());
-            QString text = selection.text();
-            // Qt may return the queried visual line plus a fragment of
-            // the following line when selection polygons touch. One
-            // polygon represents exactly one visual line here, so keep
-            // only that first line and discard PDF non-characters.
-            // Qt uses U+FFFE at a line-end discretionary hyphen in
-            // several Writer-generated PDFs. It is visually a '-' and
-            // must not silently join words such as "Hardware-Lifecycle".
-            text.replace(QChar(0xFFFE), QStringLiteral("-"));
-            text.replace(QChar(0xFFFF), QString{});
-            text = text.split(QRegularExpression(QStringLiteral("[\\r\\n]+")),
-                              Qt::SkipEmptyParts).value(0).trimmed();
-            // A narrow single glyph — a lone "C" in a table cell — often
-            // returns nothing for its exact polygon. Retry once with a
-            // slightly wider query before assuming anything about it;
-            // isolated cells have no neighbour close enough to bleed in.
-            if (text.isEmpty()) {
-                const QRectF wider = rect.adjusted(-1.2, -0.8, 1.2, 0.8);
-                text = m_src.document->getSelection(page, wider.topLeft(),
-                                                    wider.bottomRight()).text();
-                text.replace(QChar(0xFFFE), QStringLiteral("-"));
-                text.replace(QChar(0xFFFF), QString{});
-                text = text.split(QRegularExpression(QStringLiteral("[\\r\\n]+")),
-                                  Qt::SkipEmptyParts).value(0).trimmed();
-            }
-            // OpenSymbol bullet polygons intentionally have no Unicode
-            // selection text in Qt although the page-wide text stream
-            // contains U+2022. Their tiny square geometry is unambiguous
-            // — but only once the retry above has come back empty too,
-            // or real letters get turned into bullets and the classifier
-            // then folds their whole table row into one bullet line.
-            if (text.isEmpty() && rect.width() <= 6.0 && rect.height() <= 6.0)
-                text = QStringLiteral("•");
-            if (text.isEmpty()) continue;
-
-            ContentCluster cluster;
-            cluster.bounds = rect;
-            cluster.text = text;
-            cluster.exactWidth = true;
-
-            if (const ContentItem *style = styleDonor(detected, rect)) {
-                cluster.rawFontName = style->rawFontName;
-                cluster.textColor = style->textColor;
-                cluster.fontSizePt = style->fontSizePt;   // 0 = unknown
-            }
-            clusters.append(std::move(cluster));
-        }
-    }
-
-    // Font size comes from the PDF's own /Tf operand. Deriving it from
-    // the height of Qt's selection polygon measures the ink of whatever
-    // glyphs the line happens to contain: "Geschmack" (no descender)
-    // and "nussig, leicht bitter, cremig" sit in the same 8 pt table
-    // row, yet their polygons differ by a third — which is exactly how
-    // one table ended up rendered in three different sizes. Lines with
-    // no donor fall back to geometry, scaled by the median size/height
-    // ratio actually measured on this page rather than a fixed guess.
-    {
-        QList<double> ratios;
-        for (const ContentCluster &c : clusters)
-            if (c.fontSizePt > 0.0 && c.bounds.height() > 0.5)
-                ratios.append(c.fontSizePt / c.bounds.height());
-        double ratio = 0.95;
-        if (!ratios.isEmpty()) {
-            std::sort(ratios.begin(), ratios.end());
-            ratio = ratios[ratios.size() / 2];
-        }
-        for (ContentCluster &c : clusters)
-            if (c.fontSizePt <= 0.0)
-                c.fontSizePt = qMax(2.0, c.bounds.height() * ratio);
-    }
-    // Keep one export item per visual PDF line/cell. Vertical merging
-    // is useful for the editor, but Word's line spacing would move
-    // merged table rows away from the original raster grid.
-    QList<ContentItem> decoded = classifyContentClusters(
-        std::move(clusters), false);
-    if (!decoded.isEmpty()) {
-        // The classifier resolves font style from rawFontName. Copy the
-        // covering detected fill explicitly because it is page-paint
-        // metadata rather than a property of Qt's text polygons.
-        // ContentMap already assigns bgColor by containment (fill rect
-        // shrunk 2 pt so borders never match); matching by centre
-        // distance here threw that away and let a table header donate
-        // its brown to a body line, which then got erased in brown.
-        for (ContentItem &item : decoded) {
-            if (const ContentItem *style = styleDonor(detected, item.bounds))
-                item.bgColor = style->bgColor;
-        }
-
-        // Some PDFs have no usable ToUnicode map: Qt renders the glyphs
-        // correctly but extraction returns Greek/symbol characters for
-        // German prose. Detect that signature and OCR only those lines.
-        bool needsOcr = false;
-        for (const ContentItem &item : decoded) {
-            int greek = 0, letters = 0;
-            for (const QChar c : item.text) {
-                if (!c.isLetter()) continue;
-                ++letters;
-                const ushort u = c.unicode();
-                if ((u >= 0x0370 && u <= 0x03FF)
-                        || (u >= 0x1F00 && u <= 0x1FFF))
-                    ++greek;
-            }
-            if (letters >= 4 && greek * 4 >= letters) {
-                needsOcr = true;
-                break;
-            }
-        }
-        if (needsOcr && m_src.ocr && m_src.ocr->isReady()) {
-            constexpr qreal ocrScale = 2.5;
-            const QImage ocrImage = m_src.renderer->renderPage(page, ocrScale);
-            const QList<OcrEngine::Block> blocks = m_src.ocr->recognizePage(
-                ocrImage, pageSizePt, ocrScale);
-            if (!blocks.isEmpty()) {
-                QList<ContentItem> ocrItems;
-                ocrItems.reserve(blocks.size());
-                for (const OcrEngine::Block &block : blocks) {
-                    if (!block.isValid()) continue;
-                    ContentItem item;
-                    item.type = ContentItem::Type::Text;
-                    item.bounds = block.pdfBounds;
-                    item.text = block.text;
-                    item.fontSizePt = qMax(2.0, block.pdfBounds.height() * 0.72);
-
-                    const ContentItem *style = styleDonor(detected,
-                                                          item.bounds);
-                    if (style) {
-                        if (style->fontSizePt > 0.0)
-                            item.fontSizePt = style->fontSizePt;
-                        item.fontFamily = style->fontFamily;
-                        item.rawFontName = style->rawFontName;
-                        item.bold = style->bold;
-                        item.italic = style->italic;
-                        item.textColor = style->textColor;
-                        item.bgColor = style->bgColor;
-                    }
-                    ocrItems.append(std::move(item));
-                }
-                if (!ocrItems.isEmpty()) decoded = std::move(ocrItems);
-            }
-        }
-        for (const ContentItem &item : detected)
-            if (!item.isTextual()) decoded.append(item);
-        return decoded;
-    }
-    // Nothing decodable on this page — keep what the scanner found.
-    return detected;
-}
-
-QList<ContentItem> DocumentExporter::wholePageFallback(
-    int page, const QSizeF &pageSizePt) const
-{
-    ContentItem item;
-    item.type   = ContentItem::Type::Paragraph;
-    item.bounds = QRectF(54.0, 54.0,
-                         qMax(1.0, pageSizePt.width()  - 108.0),
-                         qMax(1.0, pageSizePt.height() - 108.0));
-    item.text       = m_src.document->getAllText(page).text();
-    item.fontSizePt = 11.0;
-    if (item.text.trimmed().isEmpty()) return {};
-    return { item };
-}
-
-#endif
 
 #ifdef HAVE_PDF_RENDERING
 
@@ -332,10 +119,8 @@ QImage DocumentExporter::eraseTextRuns(const QImage &original,
     for (const ContentItem &item : items) {
         if (!item.isTextual() || item.text.trimmed().isEmpty()) continue;
         QList<QRectF> eraseRects;
-#  ifdef HAVE_QT_PDF
-        if (m_src.extractor)
-            eraseRects = m_src.extractor->glyphRects(page, item.bounds, {});
-#  endif
+        if (m_src.backend)
+            eraseRects = m_src.backend->glyphRects(page, item.bounds, {});
         if (eraseRects.isEmpty()) eraseRects.append(item.bounds);
 
         QColor itemBg = item.bgColor;
@@ -411,16 +196,6 @@ QList<DocxPage> DocumentExporter::allPageContent(const QList<int> &pages) const
         page.pageSizePt = m_src.renderer->pageSizePts(i);
         if (m_src.provider)
             page.items = m_src.provider->pageItems(i);
-#  ifdef HAVE_QT_PDF
-        // qpdf exposes raw string bytes. For embedded fonts with a custom
-        // encoding those bytes are character codes, not Unicode. Build the
-        // complete text model from Qt's decoded polygons instead; qpdf items
-        // remain useful only as nearby style/colour metadata sources.
-        if (m_src.document)
-            page.items = decodedTextItems(i, page.pageSizePt, page.items);
-        if (page.items.isEmpty() && m_src.document)
-            page.items = wholePageFallback(i, page.pageSizePt);
-#  endif
         // Preserve images/vector graphics as a raster layer, then remove the
         // native PDF glyphs at their exact renderer-reported rectangles. DOCX
         // text boxes are placed over this cleaned layer and remain editable.

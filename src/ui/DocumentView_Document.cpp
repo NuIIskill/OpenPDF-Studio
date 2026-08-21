@@ -27,12 +27,6 @@
 #  include <cstring>
 #endif
 
-#ifdef HAVE_POPPLER
-#  include <QPdfWriter>
-#  include <QPageSize>
-#  include <cmath>
-#  include <algorithm>
-#endif
 
 #include <QVBoxLayout>
 #include <QHBoxLayout>
@@ -81,20 +75,15 @@ void DocumentView::clearDocument()
         m_viewMode = ViewMode::Single;
         Q_EMIT viewModeChanged(ViewMode::Single);
     }
+    const QString previousContent = m_src->contentPath();
 #ifdef HAVE_PDF_RENDERING
     m_hover->hide();
-    m_src->clearContentProvider();
-#endif
-#ifdef HAVE_QT_PDF
     discardEditHistory();
-    m_src->document()->close();
-    m_ocrCache.clear();
-#elif defined(HAVE_POPPLER)
-    discardEditHistory();
-    m_ocrCache.clear();
-    setPopplerSource(nullptr);   // closes the document and frees its handles
+    m_edit.clearOcrCache();
+    // Closes the document, drops the content model and releases the file.
+    m_src->close();
 #endif
-    SessionStore::discard(m_src->contentPath());
+    SessionStore::discard(previousContent);
     m_src->setContentPath(QString());
     m_journal.targetPath.clear();
     m_journal.workingCopyDirty = false;
@@ -102,7 +91,6 @@ void DocumentView::clearDocument()
     // with it, or the session directory fills up with states nothing points at.
     m_journal.history()->reset();
 #ifdef HAVE_PDF_RENDERING
-    // m_src->renderer() is already gone on the Poppler path — drop the stale handles.
     m_imageLayer->setSource(m_src->renderer(), m_session, m_ocrEngine, QString());
 #endif
     m_src->setPageCount(0);
@@ -128,12 +116,17 @@ bool DocumentView::openFile(const QString &path)
     if (m_viewMode == ViewMode::Grid)
         setViewMode(ViewMode::Single);
 
-#ifdef HAVE_QT_PDF
-    if (!m_src->load(path, askPassword())) return false;
+#ifdef HAVE_PDF_RENDERING
+    if (!m_src->open(path, askPassword())) return false;
 
     discardEditHistory();
+    // Der OCR-Zwischenspeicher ist nach Seitenzahl abgelegt, nicht nach Datei:
+    // ohne dieses Leeren beantwortet Seite 3 des neuen Dokuments Anfragen mit
+    // dem, was auf Seite 3 des alten stand.
+    m_edit.clearOcrCache();
     m_journal.targetPath.clear();
     m_journal.workingCopyDirty = false;
+    // Only now that the reader let go of it may the working file be removed.
     SessionStore::discard(previousWorkingFile);
     m_imageLayer->setSource(m_src->renderer(), m_session, m_ocrEngine, m_src->contentPath());
     m_layoutEngine->setPageCount(m_src->pageCount());
@@ -142,33 +135,6 @@ bool DocumentView::openFile(const QString &path)
     m_layoutEngine->buildPages();
     // Once the scroll area has laid the new pages out, hand the engine the
     // window it actually renders — until then the page positions are all 0.
-    QMetaObject::invokeMethod(this, [this]() { syncVisibleRect(); },
-                              Qt::QueuedConnection);
-    m_journal.noteDocumentOpened(QFileInfo(currentFile()).fileName());
-    Q_EMIT fileOpened(m_src->contentPath(), m_src->pageCount());
-    m_lastReportedPage = 0;          // freshly opened documents start at the top
-    Q_EMIT pageChanged(1, m_src->pageCount());
-    return true;
-
-#elif defined(HAVE_POPPLER)
-    auto doc = m_src->open(path, askPassword());
-    if (!doc) return false;
-
-    discardEditHistory();
-    m_ocrCache.clear();
-    m_src->setContentPath(path);
-    m_journal.targetPath.clear();
-    m_journal.workingCopyDirty = false;
-    setPopplerSource(std::move(doc));
-    // Only now that the reader let go of it may the working file be removed.
-    SessionStore::discard(previousWorkingFile);
-    m_src->setPageCount(m_src->popplerDoc()->numPages());
-    m_layoutEngine->setPageCount(m_src->pageCount());
-    resetContentProvider();
-    m_dropHint->hide();
-    m_layoutEngine->buildPages();
-    // See the Qt-PDF branch: the render window is only measurable once the
-    // scroll area has laid the new pages out.
     QMetaObject::invokeMethod(this, [this]() { syncVisibleRect(); },
                               Qt::QueuedConnection);
     m_journal.noteDocumentOpened(QFileInfo(currentFile()).fileName());
@@ -230,73 +196,47 @@ bool DocumentView::saveToFile(const QString &path)
     // From here on the document on disk may stop being the one the history's
     // first entry stands for, so that entry gets its own copy now.
     m_journal.history()->materializeSnapshot();
-#endif
-#ifdef HAVE_QT_PDF
     commitCurrentEdit(m_editorFrame->currentText());
+
+    auto *backend = m_src->backend();
+    if (!backend || !m_session || m_src->pageCount() <= 0) return false;
 
     // Saving writes the session out; it does not end it. The document keeps
     // rendering from its own base with the edits layered on, so undo and redo
     // reach across the save for as long as the file stays open.
     const bool detached = detachSourceFrom(path);
-    if (!m_session->saveToFile(path, m_src->document(), m_src->pageCount(), m_src->contentPath()))
-        return false;
 
-    if (detached) {
-        m_journal.markSaved(path);
-        return true;
-    }
-
-    // The base could not be put out of harm's way, so it is gone: the file we
-    // read from has just been overwritten with the edits baked in. Start over
-    // from the result — and drop the history with it, or undo would paint
-    // those same edits on top a second time (see discardEditHistory).
-    discardEditHistory();
-    const QString previousWorkingFile = (path != m_src->contentPath()) ? m_src->contentPath() : QString();
-    m_src->setContentPath(path);
-    m_journal.targetPath.clear();
-    m_journal.workingCopyDirty = false;
-    m_src->document()->close();
-    m_src->document()->load(path);
-    // Only now that the reader let go of it may the working file be removed.
-    SessionStore::discard(previousWorkingFile);
-    resetContentProvider();
-    m_layoutEngine->rerenderAll();
-    m_journal.recordSavedOverBase(path);
-    return true;
-#elif defined(HAVE_POPPLER)
-    commitCurrentEdit(m_editorFrame->currentText());
-    if (!m_src->popplerDoc() || !m_src->renderer()) return false;
-
-    // Saving writes the session out; it does not end it. See the Qt path above.
-    const bool detached = detachSourceFrom(path);
-
-    // The new document is written beside the target first, because the render
-    // reads from the document that is still open — and that may be the very
-    // file being saved to.
+    // Written beside the target first, because the renderer reads from the
+    // document that is still open — and that may be the very file being saved
+    // to. Wie geschrieben wird, entscheidet das Backend; ob der Tausch sicher
+    // ist, entscheidet sich hier.
     const QString staging = SafeWrite::stagingPath(path);
     if (staging.isEmpty()) return false;
-    if (!writePopplerRaster(staging)) { SafeWrite::discard(staging); return false; }
+    if (!backend->saveWithEdits(staging, *m_session)) {
+        SafeWrite::discard(staging);
+        return false;
+    }
 
     // With the base moved aside, the target is not a file this process holds
-    // open, so the swap needs none of the close-and-reopen dance below — the
-    // one Windows forces when Poppler is still reading the file being replaced.
+    // open, so the swap needs none of the close-and-reopen dance below.
     if (detached) {
         if (!SafeWrite::commit(staging, path)) return false;
         m_journal.markSaved(path);
         return true;
     }
 
-    // Windows refuses to rename or delete a file that is still open: Poppler
-    // holds the document it renders from without allowing deletion, so saving
-    // over the open document failed at the swap below and the save silently did
-    // nothing. Let go of the file first — it is reopened either way, from the
-    // new file when the swap worked and from the old one when it did not.
-    const QString previousWorkingFile = (path != m_src->contentPath()) ? m_src->contentPath() : QString();
+    // Windows refuses to rename or delete a file that is still open: the
+    // backend holds the document it renders from, so saving over the open
+    // document failed at the swap and did silently nothing. Let go of the file
+    // first — it is reopened either way, from the new file when the swap
+    // worked and from the old one when it did not.
+    const QString previousWorkingFile =
+        (path != m_src->contentPath()) ? m_src->contentPath() : QString();
     const QString reopenPath = m_src->contentPath();
-    setPopplerSource(nullptr);
+    m_src->close();
 
     if (!SafeWrite::commit(staging, path)) {
-        setPopplerSource(loadPopplerDocument(reopenPath));
+        m_src->open(reopenPath, nullptr);
         resetContentProvider();
         return false;
     }
@@ -305,12 +245,9 @@ bool DocumentView::saveToFile(const QString &path)
     // content. The edits are part of the file now, which is exactly why the
     // undo history goes with them — see discardEditHistory.
     discardEditHistory();
-    auto reloaded = loadPopplerDocument(path);
-    if (reloaded) {
-        m_src->setContentPath(path);
+    if (m_src->open(path, nullptr)) {
         m_journal.targetPath.clear();
         m_journal.workingCopyDirty = false;
-        setPopplerSource(std::move(reloaded));
         // Only now that the reader let go of it may the working file be removed.
         SessionStore::discard(previousWorkingFile);
     } else {
@@ -318,7 +255,7 @@ bool DocumentView::saveToFile(const QString &path)
         // document that was open instead of leaving the view blank — and keep
         // its working file, which is what that view is reading from.
         qWarning() << "[SAVE] wrote" << path << "but could not reopen it";
-        setPopplerSource(loadPopplerDocument(reopenPath));
+        m_src->open(reopenPath, nullptr);
     }
     resetContentProvider();
     m_layoutEngine->rerenderAll();
@@ -348,22 +285,13 @@ bool DocumentView::detachSourceFrom(const QString &saveTarget)
     PdfPwStore::set(work, PdfPwStore::get(m_src->contentPath()));
 
     const QString original = m_src->contentPath();
-#ifdef HAVE_QT_PDF
-    m_src->document()->close();
-    m_src->document()->setPassword(PdfPwStore::get(work));
-    if (m_src->document()->load(work) != QPdfDocument::Error::None) {
-        m_src->document()->close();
-        m_src->document()->setPassword(PdfPwStore::get(original));
-        m_src->document()->load(original);
+    // Kein Prompt: die Kopie trägt dasselbe Passwort wie das Original, und das
+    // steht seit der Zeile oben im Speicher.
+    if (!m_src->open(work, nullptr)) {
+        m_src->open(original, nullptr);
         SessionStore::discard(work);
         return false;
     }
-#elif defined(HAVE_POPPLER)
-    auto copy = loadPopplerDocument(work);
-    if (!copy) { SessionStore::discard(work); return false; }
-    setPopplerSource(std::move(copy));
-#endif
-    m_src->setContentPath(work);
     // The content scanner holds the old path open; on Windows that alone would
     // block the save from replacing it.
     resetContentProvider();
@@ -444,76 +372,6 @@ bool DocumentView::restoreHistoryState(int index)
     return true;
 }
 
-#ifdef HAVE_POPPLER
-bool DocumentView::writePopplerRaster(const QString &outputPath)
-{
-    if (!m_src->popplerDoc() || !m_src->renderer() || !m_session || m_src->pageCount() <= 0)
-        return false;
-
-    constexpr qreal kPts2Px = 300.0 / 72.0;  // 300 DPI
-
-    QPdfWriter writer(outputPath);
-    writer.setCreator(QStringLiteral("OpenPDF Studio"));
-    writer.setResolution(300);
-    writer.setPageMargins(QMarginsF(0, 0, 0, 0));
-
-    // Page size is per page, not per document: a size taken from page 1 and
-    // kept squeezes every differently sized page (a landscape sheet, a scan)
-    // onto that first box. It has to be set before the page it applies to
-    // begins — for the first page that means before the painter starts it.
-    const auto setSizeFor = [&writer](const QSizeF &pts) {
-        writer.setPageSize(QPageSize(pts, QPageSize::Point, QString(),
-                                     QPageSize::ExactMatch));
-    };
-    setSizeFor(m_src->renderer()->pageSizePts(0));
-
-    QPainter painter(&writer);
-    if (!painter.isActive()) return false;
-
-    for (int i = 0; i < m_src->pageCount(); ++i) {
-        if (i > 0) {
-            setSizeFor(m_src->renderer()->pageSizePts(i));
-            if (!writer.newPage()) return false;
-        }
-        QImage img = m_src->renderer()->renderPage(i, kPts2Px);
-        if (img.isNull()) continue;
-        m_session->applyToImage(i, img, kPts2Px);
-        const QRect pageRect(0, 0, painter.device()->width(), painter.device()->height());
-        painter.drawImage(pageRect, img);
-    }
-    painter.end();
-    return true;
-}
-
-std::unique_ptr<Poppler::Document> DocumentView::loadPopplerDocument(const QString &path)
-{
-    if (path.isEmpty()) return nullptr;
-    auto doc = Poppler::Document::load(path);
-    if (doc && doc->isLocked()) {
-        const QByteArray known = PdfPwStore::get(path).toUtf8();
-        if (!known.isEmpty()) doc->unlock(known, known);
-    }
-    if (!doc || doc->isLocked()) return nullptr;
-    doc->setRenderHint(Poppler::Document::Antialiasing);
-    doc->setRenderHint(Poppler::Document::TextAntialiasing);
-    return doc;
-}
-
-void DocumentView::setPopplerSource(std::unique_ptr<Poppler::Document> doc)
-{
-    // Drop the handles into the renderer before the object behind it dies.
-    m_selection->setSource(nullptr, nullptr);
-    m_layoutEngine->setSource(nullptr, m_session);
-    m_imageLayer->setSource(nullptr, m_session, m_ocrEngine, QString());
-
-    m_src->setPopplerDoc(std::move(doc));
-    if (!m_src->popplerDoc()) return;   // closed: the file is free to be replaced now
-
-    m_selection->setSource(m_src->renderer(), m_src->popplerDoc());
-    m_layoutEngine->setSource(m_src->renderer(), m_session);
-    m_imageLayer->setSource(m_src->renderer(), m_session, m_ocrEngine, m_src->contentPath());
-}
-#endif // HAVE_POPPLER
 
 DocumentSource::PasswordAsker DocumentView::askPassword()
 {
@@ -531,18 +389,9 @@ DocumentSource::PasswordAsker DocumentView::askPassword()
 void DocumentView::resetContentProvider()
 {
 #ifdef HAVE_PDF_RENDERING
-    m_src->clearContentProvider();
-    // The document may have been reloaded from disk.
-    m_selection->invalidateCaches();
-#  if defined(HAVE_QT_PDF) && defined(HAVE_QPDF)
-    if (!m_src->contentPath().isEmpty())
-        m_src->setContentProvider(std::make_unique<QpdfContentProvider>(
-            m_src->contentPath(),
-            [this](int p) { return m_src->document()->pagePointSize(p); }));
-#  elif defined(HAVE_POPPLER)
-    if (m_src->popplerDoc())
-        m_src->setContentProvider(std::make_unique<PopplerContentProvider>(m_src->popplerDoc()));
-#  endif
+    // Welches Modell dazu passt, weiß das Backend; hier hängt nur noch dran,
+    // wer davon liest.
+    m_src->resetContentProvider();
     m_hover->setSource(m_src->contentProvider(), m_session);
 #endif
 }
@@ -569,10 +418,7 @@ DocumentExporter::Sources DocumentView::exportSources() const
     src.session   = m_session;
     src.ocr       = m_ocrEngine;
     src.pageCount = m_src->pageCount();
-#  ifdef HAVE_QT_PDF
-    src.document  = m_src->document();
-    src.extractor = m_src->extractor();
-#  endif
+    src.backend   = m_src->backend();
     return src;
 }
 #endif

@@ -23,7 +23,7 @@ set(CMAKE_AUTORCC ON)
 set(CMAKE_AUTOUIC OFF)
 
 find_package(Qt6 REQUIRED COMPONENTS Core Widgets Gui)
-find_package(Qt6 OPTIONAL_COMPONENTS Pdf PrintSupport LinguistTools)
+find_package(Qt6 OPTIONAL_COMPONENTS PrintSupport LinguistTools)
 qt_standard_project_setup()
 
 set(RESOURCES
@@ -56,20 +56,52 @@ target_link_libraries(OpenPDFStudio PRIVATE
     Qt6::Gui
 )
 
-if(Qt6Pdf_FOUND)
-    target_compile_definitions(OpenPDFStudio PRIVATE HAVE_QT_PDF HAVE_PDF_RENDERING)
-    target_link_libraries(OpenPDFStudio PRIVATE Qt6::Pdf)
-else()
-    find_path(POPPLER_QT6_INCLUDE_DIR NAMES poppler/qt6/poppler-qt6.h)
-    find_library(POPPLER_QT6_LIBRARY NAMES poppler-qt6)
-    if(POPPLER_QT6_INCLUDE_DIR AND POPPLER_QT6_LIBRARY)
-        message(STATUS "PDF backend: Poppler-Qt6 (${POPPLER_QT6_LIBRARY})")
-        target_compile_definitions(OpenPDFStudio PRIVATE HAVE_POPPLER HAVE_PDF_RENDERING)
-        target_include_directories(OpenPDFStudio PRIVATE ${POPPLER_QT6_INCLUDE_DIR})
-        target_link_libraries(OpenPDFStudio PRIVATE ${POPPLER_QT6_LIBRARY})
+# ── PDFium ───────────────────────────────────────────────────────────────────
+# Bezogen über packaging/fetch-pdfium.sh (Version gepinnt, Prüfsumme geprüft).
+# Dieselbe Engine, die auch in Qt6::Pdf steckt — hier ohne Qt-Hülle und auf
+# beiden Plattformen in derselben Version.
+#
+# Seit Schritt 10 das EINZIGE Backend: Qt6::Pdf und Poppler sind draußen. Ohne
+# PDFium kann dieser Build keine PDFs anzeigen — die Anwendung startet, aber
+# HAVE_PDF_RENDERING ist nicht gesetzt und jede Dokumentfunktion fehlt.
+#
+# PDFium_DIR wird direkt gesetzt statt über CMAKE_PREFIX_PATH: beim Cross-Build
+# sucht find_package() wegen CMAKE_FIND_ROOT_PATH_MODE_PACKAGE=ONLY nur noch im
+# Sysroot — ein direkt gesetztes <Paket>_DIR gilt trotzdem.
+if(NOT DEFINED PDFium_DIR)
+    if(WIN32)
+        set(PDFium_DIR "${CMAKE_CURRENT_SOURCE_DIR}/third_party/pdfium/win-x64")
     else()
-        message(STATUS "PDF backend: none — install Qt6::Pdf or Poppler-Qt6")
+        set(PDFium_DIR "${CMAKE_CURRENT_SOURCE_DIR}/third_party/pdfium/linux-x64")
     endif()
+endif()
+# PDFiumConfig.cmake sucht seine Dateien mit find_path()/find_file(). Beim
+# Cross-Build beschränkt die mingw-Toolchain beide auf CMAKE_FIND_ROOT_PATH
+# (MODE_INCLUDE/LIBRARY = ONLY), und der projektlokale Prefix liegt außerhalb —
+# gefunden würde dort nichts. Für diesen einen Aufruf auf BOTH stellen und
+# danach zurücksetzen; die gesuchten Namen (fpdfview.h, pdfium.dll) gibt es auf
+# dem Host nicht, es kann also nichts Falsches einsammeln.
+set(_openpdf_saved_include_mode "${CMAKE_FIND_ROOT_PATH_MODE_INCLUDE}")
+set(_openpdf_saved_library_mode "${CMAKE_FIND_ROOT_PATH_MODE_LIBRARY}")
+set(CMAKE_FIND_ROOT_PATH_MODE_INCLUDE BOTH)
+set(CMAKE_FIND_ROOT_PATH_MODE_LIBRARY BOTH)
+find_package(PDFium QUIET)
+set(CMAKE_FIND_ROOT_PATH_MODE_INCLUDE "${_openpdf_saved_include_mode}")
+set(CMAKE_FIND_ROOT_PATH_MODE_LIBRARY "${_openpdf_saved_library_mode}")
+if(PDFium_FOUND)
+    message(STATUS "PDFium ${PDFium_VERSION}: Backend gebaut")
+    target_compile_definitions(OpenPDFStudio PRIVATE HAVE_PDFIUM HAVE_PDF_RENDERING)
+    target_link_libraries(OpenPDFStudio PRIVATE pdfium)
+    # Die Bibliothek liegt unter third_party/ und nicht im Systempfad; ohne
+    # RPATH findet das gebaute Programm sie beim Start nicht. Für die
+    # Auslieferung setzt das Packaging seinen eigenen Pfad (Schritt 11).
+    if(UNIX AND NOT APPLE)
+        get_filename_component(_pdfium_libdir "${PDFium_LIBRARY}" DIRECTORY)
+        set_property(TARGET OpenPDFStudio APPEND PROPERTY BUILD_RPATH "${_pdfium_libdir}")
+    endif()
+else()
+    message(WARNING "PDFium fehlt — dieser Build kann keine PDFs anzeigen.\n"
+                    "    Beheben mit: packaging/fetch-pdfium.sh")
 endif()
 
 if(Qt6PrintSupport_FOUND)
@@ -93,7 +125,11 @@ find_package(qpdf QUIET CONFIG)
 if(qpdf_FOUND)
     message(STATUS "qpdf ${qpdf_VERSION}: vector PDF save enabled")
     target_compile_definitions(OpenPDFStudio PRIVATE HAVE_QPDF)
-    target_link_libraries(OpenPDFStudio PRIVATE qpdf)
+    # qpdf::libqpdf, nicht "qpdf": der Config-Export definiert nur das Ziel mit
+    # Namensraum. Ein blankes "qpdf" ist für CMake bloß ein Bibliotheksname und
+    # bringt keine Include-Pfade mit — auf Linux fällt das nicht auf, weil die
+    # Header ohnehin unter /usr/include liegen, beim Cross-Build fehlen sie.
+    target_link_libraries(OpenPDFStudio PRIVATE qpdf::libqpdf)
 elseif(PkgConfig_FOUND)
     pkg_check_modules(QPDF QUIET libqpdf)
     if(QPDF_FOUND)
@@ -149,6 +185,18 @@ endif()
 install(TARGETS OpenPDFStudio
     RUNTIME DESTINATION bin
 )
+
+# PDFium wird mitgeliefert: es gibt dafür kein Systempaket, weder in Fedora noch
+# in Debian. Die Bibliothek landet in einem eigenen Verzeichnis und wird über
+# RPATH gefunden — nicht in /usr/lib, wo sie mit nichts kollidieren soll.
+if(PDFium_FOUND AND UNIX AND NOT APPLE)
+    install(FILES "${PDFium_LIBRARY}"
+        DESTINATION lib/openpdf-studio
+    )
+    set_target_properties(OpenPDFStudio PROPERTIES
+        INSTALL_RPATH "$ORIGIN/../lib/openpdf-studio"
+    )
+endif()
 
 install(FILES packaging/appimage/openpdf-studio.desktop
     DESTINATION share/applications
@@ -208,8 +256,11 @@ page organizer, annotations, OCR and export to PDF, DOCX and image formats.")
     # Der RPM-Generator übernimmt CPACK_PACKAGE_DESCRIPTION nicht automatisch.
     set(CPACK_RPM_PACKAGE_DESCRIPTION "${CPACK_PACKAGE_DESCRIPTION}")
     set(CPACK_RPM_FILE_NAME RPM-DEFAULT)
-    # rpmbuild leitet Requires automatisch aus den ELF-Sonames ab.
+    # rpmbuild leitet Requires automatisch aus den ELF-Sonames ab. Die
+    # mitgelieferte libpdfium.so darf dabei nicht als fremde Abhängigkeit
+    # auftauchen — sie liegt im Paket selbst.
     set(CPACK_RPM_PACKAGE_AUTOREQ ON)
+    set(CPACK_RPM_PACKAGE_AUTOPROV OFF)
     # Diese Verzeichnisse gehören filesystem/hicolor-icon-theme — nicht mitpaketieren.
     set(CPACK_RPM_EXCLUDE_FROM_AUTO_FILELIST_ADDITION
         /usr/share/applications
@@ -231,8 +282,9 @@ page organizer, annotations, OCR and export to PDF, DOCX and image formats.")
     set(CPACK_DEBIAN_PACKAGE_SHLIBDEPS OFF)
     set(CPACK_DEBIAN_PACKAGE_DEPENDS
         "libqt6core6 | libqt6core6t64, libqt6gui6, libqt6widgets6, libqt6printsupport6")
+    # libqt6pdf6 ist raus: die PDF-Engine ist PDFium und liegt im Paket.
     set(CPACK_DEBIAN_PACKAGE_RECOMMENDS
-        "libqt6pdf6, libqpdf29 | libqpdf29t64, libtesseract5 | libtesseract5t64")
+        "libqpdf29 | libqpdf29t64, libtesseract5 | libtesseract5t64")
 
     include(CPack)
 endif()

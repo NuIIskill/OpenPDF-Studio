@@ -51,13 +51,12 @@ namespace OrgConst {
 #include <QPdfWriter>
 
 #ifdef HAVE_PDF_RENDERING
+#include "engine/document/PdfBackend.hpp"
 #include "engine/render/PdfRenderer.hpp"
-#endif
-#ifdef HAVE_QT_PDF
-#include <QPdfDocument>
 #endif
 
 #ifdef HAVE_QPDF
+#include <qpdf/Constants.h>
 #include <qpdf/QPDF.hh>
 #include <qpdf/QPDFWriter.hh>
 #include <qpdf/QPDFPageDocumentHelper.hh>
@@ -70,87 +69,66 @@ namespace OrgConst {
 
 #ifdef HAVE_PDF_RENDERING
 // ─────────────────────────────────────────────────────────────────────────────
-// OrganizerDoc — backend-neutral handle for one opened PDF
+// OrganizerDoc — ein zweites, unabhängig geöffnetes Dokument
 //
-// The organizer needs nothing but page count, page size and a rasteriser, and
-// Qt6Pdf as well as Poppler provide all three. Gating the dialog on Qt6Pdf
-// alone left the Windows build (which is compiled against Poppler) with an
-// organizer that could neither show pages nor save: "PDF writing requires
-// Qt6Pdf."
+// Der Organizer liest aus anderen Dateien als die Ansicht (Seiten aus mehreren
+// PDFs zusammenstellen), braucht also ein eigenes Backend statt des einen, das
+// DocumentSource hält. Mehr als Seitenzahl, Seitengröße und einen Rasterisierer
+// braucht er dafür nicht — und genau das ist PdfBackend.
+//
+// Früher standen hier zwei Zweige, einer für Qt6Pdf und einer für Poppler. Der
+// Grund dafür ist mit dem Interface weggefallen.
 // ─────────────────────────────────────────────────────────────────────────────
 class OrganizerDoc
 {
 public:
-    // needsPassword distinguishes "locked" from "broken", so the caller can
-    // offer a prompt for the former without pestering the user about the latter.
+    // needsPassword unterscheidet "verschlüsselt" von "kaputt", damit der
+    // Aufrufer im ersten Fall fragen kann, ohne im zweiten zu nerven.
     static OrganizerDoc *load(const QString &path, const QString &password = {},
                               bool *needsPassword = nullptr)
     {
         if (needsPassword) *needsPassword = false;
-#ifdef HAVE_QT_PDF
-        auto *doc = new QPdfDocument();
-        doc->setPassword(password);
-        const auto err = doc->load(path);
-        if (err != QPdfDocument::Error::None) {
-            if (needsPassword)
-                *needsPassword = err == QPdfDocument::Error::IncorrectPassword;
-            delete doc;
+        auto backend = PdfBackend::create();
+        if (!backend) return nullptr;
+
+        // Nach einem Passwort gefragt wird nur, wenn die Datei verschlüsselt
+        // ist — dass der Rückruf lief, ist also die Antwort auf needsPassword.
+        // Angeboten wird das übergebene Passwort genau einmal; danach gibt der
+        // Rückruf auf, statt in einer Schleife dasselbe zu wiederholen.
+        bool asked = false;
+        bool offered = false;
+        auto ask = [&](const QString &, bool) -> std::optional<QString> {
+            asked = true;
+            if (offered || password.isEmpty()) return std::nullopt;
+            offered = true;
+            return password;
+        };
+
+        if (!backend->open(path, ask)) {
+            if (needsPassword) *needsPassword = asked;
             return nullptr;
         }
-        return new OrganizerDoc(doc);
-#else
-        // Poppler can throw on malformed files — a failed load must stay a
-        // "could not open" message box, never terminate the app.
-        try {
-            auto doc = Poppler::Document::load(path);
-            if (!doc) return nullptr;
-            if (doc->isLocked()) {
-                const QByteArray pw = password.toUtf8();
-                if (!pw.isEmpty()) doc->unlock(pw, pw);
-            }
-            if (doc->isLocked()) {
-                if (needsPassword) *needsPassword = true;
-                return nullptr;
-            }
-            doc->setRenderHint(Poppler::Document::Antialiasing);
-            doc->setRenderHint(Poppler::Document::TextAntialiasing);
-            return new OrganizerDoc(std::move(doc));
-        } catch (...) { return nullptr; }
-#endif
+        return new OrganizerDoc(std::move(backend));
     }
 
     ~OrganizerDoc()
     {
-        m_renderer.reset();   // the renderer only borrows the document
-#ifdef HAVE_QT_PDF
-        delete m_doc;
-#endif
+        // Der Renderer leiht sich das Backend nur — er geht zuerst.
+        m_renderer.reset();
+        m_backend.reset();
     }
 
-    int pageCount() const
-    {
-#ifdef HAVE_QT_PDF
-        return m_doc->pageCount();
-#else
-        try { return m_doc->numPages(); } catch (...) { return 0; }
-#endif
-    }
-
+    int    pageCount() const { return m_backend->pageCount(); }
     QSizeF pageSizePts(int page) const { return m_renderer->pageSizePts(page); }
-    // scale = output pixels per PDF point.
+    // scale = Ausgabepixel pro PDF-Punkt.
     QImage render(int page, qreal scale) const { return m_renderer->renderPage(page, scale); }
 
 private:
-#ifdef HAVE_QT_PDF
-    explicit OrganizerDoc(QPdfDocument *doc)
-        : m_doc(doc), m_renderer(std::make_unique<PdfRenderer>(doc)) {}
-    QPdfDocument *m_doc;
-#else
-    explicit OrganizerDoc(std::unique_ptr<Poppler::Document> doc)
-        : m_doc(std::move(doc)),
-          m_renderer(std::make_unique<PdfRenderer>(m_doc.get())) {}
-    std::unique_ptr<Poppler::Document> m_doc;
-#endif
+    explicit OrganizerDoc(std::unique_ptr<PdfBackend> backend)
+        : m_backend(std::move(backend))
+        , m_renderer(std::make_unique<PdfRenderer>(m_backend.get())) {}
+
+    std::unique_ptr<PdfBackend>  m_backend;
     std::unique_ptr<PdfRenderer> m_renderer;
 };
 #endif // HAVE_PDF_RENDERING
@@ -1176,6 +1154,34 @@ bool PdfOrganizerDialog::writeVectorPdf(const QString &outPath)
         if (staging.isEmpty()) return false;
         {
             QPDFWriter writer(out, staging.toLocal8Bit().constData());
+
+            // Das Ergebnis ist ein NEU gebautes Dokument (out.emptyPDF()), es
+            // erbt von den Quellen nichts — auch keinen Schutz. Ein
+            // passwortgeschütztes PDF kam nach dem Umsortieren also offen
+            // heraus, während dasselbe Dokument über den Editor gespeichert
+            // seinen Schutz behielt. Diese Inkonsistenz ist bewusst beendet:
+            // war eine Quelle geschützt, ist es das Ergebnis auch.
+            //
+            // PdfPwStore trägt ein Passwort nur für Dateien, die damit
+            // aufgesperrt wurden — sein Vorhandensein IST die Antwort auf
+            // "war geschützt".
+            QString protectWith;
+            for (const PageEntry &e : m_pages) {
+                if (e.isBlank) continue;
+                const QString pw = PdfPwStore::get(e.pdfPath);
+                if (!pw.isEmpty()) { protectWith = pw; break; }
+            }
+            if (!protectWith.isEmpty()) {
+                const std::string pass = protectWith.toStdString();
+                // AES-256; das Benutzerpasswort dient zugleich als
+                // Besitzerpasswort, wie beim PDF-Export.
+                writer.setR6EncryptionParameters(
+                    pass.c_str(), pass.c_str(),
+                    /*accessibility*/ true, /*extract*/ true, /*assemble*/ true,
+                    /*annotate_and_form*/ true, /*form_filling*/ true,
+                    /*modify_other*/ true, qpdf_r3p_full, /*encrypt_metadata*/ true);
+                PdfPwStore::set(outPath, protectWith);
+            }
             writer.write();
         }
         return SafeWrite::commit(staging, outPath);

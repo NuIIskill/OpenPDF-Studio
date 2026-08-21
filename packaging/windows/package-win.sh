@@ -38,9 +38,47 @@ for d in platforms imageformats iconengines styles etc share; do
     [[ -d "$BUILD_DIR/$d" ]] && cp -r "$BUILD_DIR/$d" "$APP_DIR/"
 done
 # LICENSE ist nur die Übersicht und verweist auf LICENSES/ — beides mitgeben,
-# sonst zeigt der Installer eine Lizenz, deren Volltexte fehlen.
-cp "$ROOT/LICENSE" "$APP_DIR/"
+# sonst zeigt der Installer eine Lizenz, deren Volltexte fehlen. Im
+# Installationsordner, nicht im Startmenü: Lizenztexte sind zum Nachschlagen da,
+# nicht zum Anklicken.
+cp "$ROOT/LICENSE" "$APP_DIR/LICENSE.txt"
 cp -r "$ROOT/LICENSES" "$APP_DIR/"
+
+# Bis August 2026 stand hier eine Fallunterscheidung: ein gegen Poppler
+# gelinktes Binary durfte nur unter der GPL verteilt werden, ein Qt6::Pdf-Build
+# auch kommerziell. Beide Backends sind durch PDFium ersetzt (BSD-3-Clause) —
+# es gibt nur noch einen Build und nur noch eine Lizenzlage.
+NSIS_LICENSE_FLAGS=()
+
+# GPLv3 §6 verlangt den zugehörigen Quelltext. Für die Binärpakete genügt der
+# Verweis auf das öffentliche Repository — samt Commit, damit "zugehörig" auch
+# stimmt.
+COMMIT="$(git -C "$ROOT" rev-parse --short HEAD 2>/dev/null || echo "unbekannt / unknown")"
+{
+    echo "OpenPDF Studio $VERSION (win64)"
+    echo
+    echo "Quelltext / source code:"
+    echo "  https://github.com/NuIIskill/OpenPDF-Studio"
+    echo "  commit $COMMIT"
+    echo
+    echo "Lizenz / license: GPL-3.0-only OR LicenseRef-OpenPDF-Commercial"
+    echo "Siehe / see LICENSE.txt und LICENSES\\."
+} > "$APP_DIR/SOURCE.txt"
+
+# Portable-Modus ist eine Datei, keine Einstellung: liegt config.ini neben der
+# .exe, speichert das Programm dort statt im Benutzerprofil. Nur ins ZIP — im
+# Installationsordner wäre sie nicht beschreibbar und damit wirkungslos.
+cat > "$APP_DIR/config.ini" <<'INI'
+; OpenPDF Studio — portable Konfiguration / portable configuration
+;
+; Solange diese Datei neben OpenPDFStudio.exe liegt, speichert das Programm
+; alle Einstellungen hier statt im Benutzerprofil.
+; As long as this file sits next to OpenPDFStudio.exe, the program keeps all
+; its settings here instead of in the user profile.
+;
+; Hinweis: das Programm schreibt die Datei beim Beenden neu — diese
+; Kommentarzeilen verschwinden dabei.
+INI
 
 SIZE="$(du -sh "$APP_DIR" | cut -f1)"
 echo "==> Staging: $APP_DIR ($SIZE)"
@@ -52,6 +90,9 @@ rm -f "$PORTABLE_ZIP"
 echo "==> Portable: $PORTABLE_ZIP ($(du -h "$PORTABLE_ZIP" | cut -f1))"
 
 # ── 3. Setup.exe via NSIS ─────────────────────────────────────────────────────
+# Ab hier baut NSIS aus demselben Staging — ohne die portable config.ini.
+rm -f "$APP_DIR/config.ini"
+
 SETUP_EXE="$DIST_DIR/OpenPDF-Studio-$VERSION-Setup.exe"
 NSI="$ROOT/packaging/windows/installer.nsi"
 
@@ -59,6 +100,7 @@ run_makensis() {
     if command -v makensis >/dev/null 2>&1; then
         echo "==> makensis (nativ)"
         makensis -V2 \
+            ${NSIS_LICENSE_FLAGS[@]+"${NSIS_LICENSE_FLAGS[@]}"} \
             -DAPP_VERSION="$VERSION" \
             -DSTAGE_DIR="$APP_DIR" \
             -DOUT_FILE="$SETUP_EXE" \
@@ -86,6 +128,7 @@ run_makensis() {
 
     echo "==> makensis.exe unter Wine"
     WINEDEBUG=-all wine "$NSIS_CACHE/makensis.exe" -V2 \
+        ${NSIS_LICENSE_FLAGS[@]+"${NSIS_LICENSE_FLAGS[@]}"} \
         -DAPP_VERSION="$VERSION" \
         -DSTAGE_DIR="$(winepath -w "$APP_DIR")" \
         -DOUT_FILE="$(winepath -w "$SETUP_EXE")" \
@@ -100,3 +143,6 @@ echo
 echo "Fertig — Artefakte in dist/:"
 echo "  • $(basename "$PORTABLE_ZIP")  (entpacken, OpenPDFStudio.exe starten)"
 echo "  • $(basename "$SETUP_EXE")  (Installer inkl. Uninstaller)"
+echo
+echo "Stille Verteilung:  $(basename "$SETUP_EXE") /S [/KEY=XXXX-XXXX]"
+echo "  /KEY legt den Business-Schlüssel maschinenweit ab (HKLM\\Software\\OpenPDFStudio\\BusinessLicense)."

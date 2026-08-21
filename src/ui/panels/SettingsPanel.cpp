@@ -1,5 +1,8 @@
 #include "ui/panels/SettingsPanel.hpp"
 #include "app/AppSettings.hpp"
+#include "app/AppConfig.hpp"
+#include "drm/LicenseStore.hpp"
+#include "drm/LicensePage.hpp"
 #include "ui/theme/Theme.hpp"
 
 #include <QVBoxLayout>
@@ -590,7 +593,16 @@ void SettingsPanel::buildUi()
     m_pages->addWidget(buildShortcutsPage());   // 3
     m_pages->addWidget(buildZoomPage());        // 4
     m_pages->addWidget(buildAdvancedPage());    // 5
-    m_pages->addWidget(buildAboutPage());       // 6
+    // License: business installations only — see buildNav().
+    if (License::isBusinessInstall()) {
+        m_licensePage = new LicensePage(this);
+        m_pages->addWidget(m_licensePage);
+    }
+    m_pages->addWidget(buildAboutPage());       // last
+
+    // Nav entry i shows page i — including the optional license entry, which is
+    // why both lists are built from the same condition.
+    Q_ASSERT(m_pages->count() == m_navItems.size());
 
     contentRow->addWidget(m_pages, 1);
     root->addLayout(contentRow, 1);
@@ -628,7 +640,7 @@ void SettingsPanel::buildUi()
 void SettingsPanel::buildNav(QWidget *, QVBoxLayout *layout)
 {
     struct Item { const char *icon; const char *label; };
-    const Item items[] = {
+    QList<Item> items = {
         { "monitor",     QT_TR_NOOP("Appearance")     },
         { "globe",       QT_TR_NOOP("Language")       },
         { "play-circle", QT_TR_NOOP("Media Playback") },
@@ -636,8 +648,12 @@ void SettingsPanel::buildNav(QWidget *, QVBoxLayout *layout)
         { "zoom-in",     QT_TR_NOOP("Zoom")           },
         { "sliders",     QT_TR_NOOP("Advanced")       },
     };
+    // A personal installation has nothing to do with license keys and does not
+    // get the page — the entry only exists where a key can actually be needed.
+    if (License::isBusinessInstall())
+        items.append(Item{ "key", QT_TR_NOOP("License Key") });
 
-    for (int i = 0; i < 6; ++i) {
+    for (int i = 0; i < items.size(); ++i) {
         auto *btn = new QPushButton(this);
         btn->setFixedHeight(38);
         btn->setFlat(true);
@@ -657,7 +673,8 @@ void SettingsPanel::buildNav(QWidget *, QVBoxLayout *layout)
         textLbl->setAttribute(Qt::WA_TransparentForMouseEvents);
         row->addWidget(textLbl, 1);
 
-        m_navItems.append({ btn, iconLbl, textLbl, QLatin1String(items[i].icon) });
+        m_navItems.append({ btn, iconLbl, textLbl,
+                            QLatin1String(items[i].icon), items[i].label });
 
         const int navIdx = i;
         connect(btn, &QPushButton::clicked, this, [this, navIdx]() { selectPage(navIdx); });
@@ -681,8 +698,10 @@ void SettingsPanel::buildNav(QWidget *, QVBoxLayout *layout)
     auto *atext = new QLabel(tr("About"), aboutBtn);
     atext->setAttribute(Qt::WA_TransparentForMouseEvents);
     arow->addWidget(atext, 1);
-    m_navItems.append({ aboutBtn, aicon, atext, QStringLiteral("info") });
-    connect(aboutBtn, &QPushButton::clicked, this, [this]() { selectPage(6); });
+    const int aboutIdx = m_navItems.size();
+    m_navItems.append({ aboutBtn, aicon, atext, QStringLiteral("info"),
+                        QT_TR_NOOP("About") });
+    connect(aboutBtn, &QPushButton::clicked, this, [this, aboutIdx]() { selectPage(aboutIdx); });
     layout->addWidget(aboutBtn);
 }
 
@@ -723,6 +742,22 @@ void SettingsPanel::selectPage(int navIndex)
         applyNavItemStyle(i, i == navIndex);
 }
 
+void SettingsPanel::showLicensePage()
+{
+    if (m_licensePage)
+        selectPage(m_pages->indexOf(m_licensePage));
+}
+
+void SettingsPanel::selectPageForTest(const QString &navLabel)
+{
+    for (int i = 0; i < m_navItems.size(); ++i)
+        if (navLabel.compare(QLatin1String(m_navItems[i].labelKey),
+                             Qt::CaseInsensitive) == 0) {
+            selectPage(i);
+            return;
+        }
+}
+
 void SettingsPanel::refreshThemeColors()
 {
     for (int i = 0; i < m_navItems.size(); ++i)
@@ -733,6 +768,7 @@ void SettingsPanel::refreshThemeColors()
         if (auto *c = qobject_cast<OptionCard*>(w)) c->setSelected(c->isSelected());
     for (auto *w : m_langRows)
         if (auto *r = qobject_cast<LangRow*>(w)) r->setSelected(r->isSelected());
+    if (m_licensePage) m_licensePage->applyTheme();
 }
 
 // ── Page builders ─────────────────────────────────────────────────────────────
@@ -1306,6 +1342,18 @@ QWidget *SettingsPanel::buildAboutPage()
     tagline->setObjectName(QStringLiteral("SettingsSectionDesc"));
     tagline->setAlignment(Qt::AlignCenter);
     vbox->addWidget(tagline, 0, Qt::AlignHCenter);
+    vbox->addSpacing(16);
+
+    // Wo die Einstellungen liegen, ist eine Support-Frage — hier steht die
+    // Antwort, markierbar, statt in einer Anleitung, die niemand liest.
+    auto *cfg = new QLabel(AppConfig::isPortable()
+        ? tr("Configuration (portable): %1").arg(AppConfig::path())
+        : tr("Configuration: %1").arg(AppConfig::path()), page);
+    cfg->setObjectName(QStringLiteral("SettingsSectionDesc"));
+    cfg->setAlignment(Qt::AlignCenter);
+    cfg->setWordWrap(true);
+    cfg->setTextInteractionFlags(Qt::TextSelectableByMouse);
+    vbox->addWidget(cfg, 0, Qt::AlignHCenter);
     return page;
 }
 
@@ -1416,17 +1464,8 @@ void SettingsPanel::retranslateUi()
 {
     setWindowTitle(tr("Settings - OpenPDF Studio"));
 
-    static const char *navKeys[] = {
-        QT_TR_NOOP("Appearance"),
-        QT_TR_NOOP("Language"),
-        QT_TR_NOOP("Media Playback"),
-        QT_TR_NOOP("Shortcuts"),
-        QT_TR_NOOP("Zoom"),
-        QT_TR_NOOP("Advanced"),
-        QT_TR_NOOP("About"),
-    };
-    for (int i = 0; i < m_navItems.size() && i < 7; ++i)
-        m_navItems[i].textLabel->setText(tr(navKeys[i]));
+    for (const NavItem &ni : m_navItems)
+        ni.textLabel->setText(tr(ni.labelKey));
 }
 
 void SettingsPanel::changeEvent(QEvent *e)

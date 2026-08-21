@@ -10,12 +10,8 @@
 #include "ui/view/PageCanvas.hpp"
 
 #ifdef HAVE_PDF_RENDERING
+#  include "engine/document/DocumentSource.hpp"
 #  include "engine/render/PdfRenderer.hpp"
-#  ifdef HAVE_QT_PDF
-#    include <QPdfDocument>
-#  elif defined(HAVE_POPPLER)
-#    include <poppler/qt6/poppler-qt6.h>
-#  endif
 #endif
 
 QT_BEGIN_NAMESPACE
@@ -39,17 +35,13 @@ public:
     explicit TextSelectionController(PageCanvas *canvas, QObject *parent = nullptr);
 
 #ifdef HAVE_PDF_RENDERING
-#  ifdef HAVE_QT_PDF
-    void setSource(PdfRenderer *renderer, QPdfDocument *document);
-#  elif defined(HAVE_POPPLER)
-    void setSource(PdfRenderer *renderer, Poppler::Document *document);
-#  else
-    void setSource(PdfRenderer *renderer);
-#  endif
+    /// Beides bleibt über Dateiwechsel hinweg gültig: der Renderer zeigt aufs
+    /// Backend, und das Dokument wird bei jeder Abfrage frisch aus der Quelle
+    /// geholt. Vorher lag hier ein roher Dokumentzeiger, der nach jedem
+    /// Wiederöffnen neu gesetzt werden musste — wurde er vergessen, las die
+    /// Auswahl freigegebenen Speicher.
+    void setSource(PdfRenderer *renderer, const DocumentSource *source);
 #endif
-
-    // The document may have been reloaded from disk — drop cached geometry.
-    void invalidateCaches();
 
     // Mouse handling. The press never consumes the event (the view still wants
     // it for focus and scrolling); move and release report true once a drag is
@@ -82,14 +74,6 @@ private:
     bool anchorAt(const QPoint &canvasPos, int *page, QPointF *pdfPt) const;
     void updateSelection(const QPoint &canvasFrom, const QPoint &canvasTo);
     void updateOverlays();
-#ifdef HAVE_QT_PDF
-    // Line geometry of a page (PDF points), cached — QPdfDocument::getSelection
-    // only returns a selection when BOTH anchors sit on a glyph, so the raw
-    // mouse anchors have to be snapped onto these rects first.
-    const QList<QRectF> &pageLineRects(int page);
-    QHash<int, QList<QRectF>> m_lineRectCache;
-#endif
-
     PageCanvas *m_canvas { nullptr };
 
     QList<Part>       m_parts;
@@ -100,11 +84,7 @@ private:
     QPoint m_dragStart;   // canvas coords
 
 #ifdef HAVE_PDF_RENDERING
-    PdfRenderer *m_renderer { nullptr };
-#  ifdef HAVE_QT_PDF
-    QPdfDocument *m_document { nullptr };
-#  elif defined(HAVE_POPPLER)
-    Poppler::Document *m_document { nullptr };
-#  endif
+    PdfRenderer          *m_renderer { nullptr };
+    const DocumentSource *m_src      { nullptr };
 #endif
 };

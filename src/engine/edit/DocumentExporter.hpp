@@ -10,12 +10,7 @@ class ContentProvider;
 class EditSession;
 class OcrEngine;
 class PdfRenderer;
-#  ifdef HAVE_QT_PDF
-class PdfTextExtractor;
-QT_BEGIN_NAMESPACE
-class QPdfDocument;
-QT_END_NAMESPACE
-#  endif
+class PdfBackend;
 #  ifdef HAVE_QT_PRINT
 QT_BEGIN_NAMESPACE
 class QPrinter;
@@ -41,10 +36,7 @@ public:
         EditSession     *session   { nullptr };
         OcrEngine       *ocr       { nullptr };
         int              pageCount { 0 };
-#  ifdef HAVE_QT_PDF
-        QPdfDocument     *document  { nullptr };
-        PdfTextExtractor *extractor { nullptr };
-#  endif
+        PdfBackend      *backend    { nullptr };
     };
 
     explicit DocumentExporter(const Sources &src) : m_src(src) {}
@@ -69,25 +61,6 @@ public:
 #endif
 
 private:
-#if defined(HAVE_PDF_RENDERING) && defined(HAVE_QT_PDF)
-    // The steps allPageContent() runs per page. Split out because each answers
-    // a different question and each carries its own hard-won workarounds.
-
-    /// Text model for `page`, built from Qt's decoded selection polygons.
-    ///
-    /// qpdf exposes raw string bytes, which for embedded fonts with a custom
-    /// encoding are character codes rather than Unicode — so the text itself
-    /// has to come from Qt. `detected` are the qpdf items for the same page;
-    /// they stay useful as nearby style and colour donors, and their
-    /// non-textual entries are carried over unchanged.
-    QList<ContentItem> decodedTextItems(int page, const QSizeF &pageSizePt,
-                                        const QList<ContentItem> &detected) const;
-
-    /// Whole page as one paragraph inside default margins — the last resort
-    /// when nothing structured was recognised, so the export is not empty.
-    QList<ContentItem> wholePageFallback(int page, const QSizeF &pageSizePt) const;
-
-#endif
 
 #ifdef HAVE_PDF_RENDERING
     /// `original` with the native glyphs of every recognised text run painted

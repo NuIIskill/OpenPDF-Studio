@@ -4,12 +4,11 @@
 
 #ifdef HAVE_PDF_RENDERING
 #  include "engine/document/DocumentSource.hpp"
+#  include "engine/document/PdfBackend.hpp"
 #  include "engine/render/PdfRenderer.hpp"
 #  include "engine/edit/ContentMap.hpp"
 #  include "engine/edit/ContentModel.hpp"
 #  include "engine/edit/InkMetrics.hpp"
-#  include "engine/edit/PdfTextExtractor.hpp"
-#  include "engine/edit/PopplerTextLookup.hpp"
 #  include "ui/edit/TextBoxFrame.hpp"
 #  include "ui/view/HoverHighlight.hpp"
 #  include "ui/view/ZoomController.hpp"
@@ -275,13 +274,8 @@ bool EditController::resolveEditTarget(const QPoint &canvasPos, EditOpen &o)
 
     // Fall back to native PDF text (vector PDFs)
     if (!o.block.isValid()) {
-#ifdef HAVE_QT_PDF
-        o.block = m_src->extractor()->textAt(pageIdx, o.pdfPt, o.pageSize, o.erasedZones);
-#elif defined(HAVE_POPPLER)
-        if (m_src->popplerDoc())
-            o.block = PopplerText::textAt(m_src->popplerDoc(), pageIdx, o.pdfPt,
-                                          o.erasedZones);
-#endif
+        if (auto *backend = m_src->backend())
+            o.block = backend->textAt(pageIdx, o.pdfPt, o.erasedZones);
     }
 
     // If still nothing, fall back to OCR (scanned / image PDF)
@@ -370,14 +364,9 @@ void EditController::applyEditTargetBounds(EditOpen &o)
             // edited as one unit without overpainting its surroundings.
             o.paragraphBounds = true;
             TextBlock para;
-#ifdef HAVE_QT_PDF
-            para = m_src->extractor()->blockInRect(o.block.page, o.contentItem.bounds,
+            if (auto *backend = m_src->backend())
+                para = backend->blockInRect(o.block.page, o.contentItem.bounds,
                                             o.erasedZones);
-#elif defined(HAVE_POPPLER)
-            if (m_src->popplerDoc())
-                para = PopplerText::blockInRect(m_src->popplerDoc(), o.block.page,
-                                                o.contentItem.bounds, o.erasedZones);
-#endif
             // Sanity: a "paragraph" spanning most of the page is a detection
             // failure — editing it would open a viewport-sized frame. Fall
             // back to the clicked line in that case.
@@ -671,15 +660,9 @@ void EditController::presentEditor(EditOpen &o)
     // rules) sharing the rectangle with the text.
     activeEditEraseRects.clear();
     if (activeEditNeedsBlank) {
-#ifdef HAVE_QT_PDF
-        activeEditEraseRects = m_src->extractor()->glyphRects(
-            o.block.page, activeEditOriginalBounds, o.erasedZones);
-#elif defined(HAVE_POPPLER)
-        if (m_src->popplerDoc())
-            activeEditEraseRects = PopplerText::glyphRects(
-                m_src->popplerDoc(), o.block.page, activeEditOriginalBounds,
-                o.erasedZones);
-#endif
+        if (auto *backend = m_src->backend())
+            activeEditEraseRects = backend->glyphRects(
+                o.block.page, activeEditOriginalBounds, o.erasedZones);
     }
 
     // Recompute canvas bounds from the (possibly expanded) activeEditBounds so

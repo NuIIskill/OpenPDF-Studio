@@ -53,6 +53,9 @@
         <file>icons/info.svg</file>
         <file>icons/play-circle.svg</file>
         <file>icons/sliders.svg</file>
+        <file>icons/key.svg</file>
+        <file>icons/shield-check.svg</file>
+        <file>icons/shield-alert.svg</file>
         <file>icons/folder-open.svg</file>
         <file>icons/keyboard.svg</file>
         <file>icons/history.svg</file>

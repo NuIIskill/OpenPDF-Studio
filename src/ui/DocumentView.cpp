@@ -23,12 +23,6 @@
 #  include <cstring>
 #endif
 
-#ifdef HAVE_POPPLER
-#  include <QPdfWriter>
-#  include <QPageSize>
-#  include <cmath>
-#  include <algorithm>
-#endif
 
 #include <QVBoxLayout>
 #include <QHBoxLayout>
