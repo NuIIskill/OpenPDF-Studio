@@ -10,9 +10,13 @@ annotations, OCR, export to PDF/DOCX/images.
 cd build && ctest          # unit tests
 ```
 
-Optional dependencies change what is compiled in, via `HAVE_*` defines:
-`Qt6::Pdf` or Poppler-Qt6 (`HAVE_PDF_RENDERING`), qpdf (`HAVE_QPDF`, vector
-save), Tesseract (`HAVE_TESSERACT`, OCR), `Qt6::PrintSupport` (`HAVE_QT_PRINT`).
+PDFium is the PDF engine - the same build on Linux and Windows, fetched by
+`packaging/fetch-pdfium.sh` (`HAVE_PDFIUM`, implies `HAVE_PDF_RENDERING`).
+Without it the application starts but has no document functions at all.
+
+The rest are optional and change what is compiled in, via `HAVE_*` defines:
+qpdf (`HAVE_QPDF`, PDF export options and the organizer's vector save),
+Tesseract (`HAVE_TESSERACT`, OCR), `Qt6::PrintSupport` (`HAVE_QT_PRINT`).
 Code behind these must still compile when they are absent.
 
 ## Layout and layer rules
@@ -24,9 +28,11 @@ src/
                   history, passwords
   drm/            business licence: state, settings page, the two notices
   engine/         document logic, no widgets
-    edit/         content model, text extraction, ink metrics, exporters, session
+    document/     PdfBackend + the PDFium implementation: opening, rendering,
+                  text lookup, selection, the content model and saving
+    edit/         content model, ink metrics, exporters, session
     ocr/          Tesseract wrapper
-    render/       PdfRenderer — backend-neutral page rasterisation
+    render/       PdfRenderer - zoom and point-to-pixel, asks the backend
   ui/             everything that is a widget
     bars/ panels/ dialogs/ tools/ widgets/ theme/
     view/         controllers driving the document canvas
@@ -44,7 +50,7 @@ broken once already:
 2. **`app/` never includes `ui/`.** It is infrastructure that `ui/` builds on,
    not the other way round.
 3. **Includes are always root-relative to `src/`**, e.g.
-   `#include "ui/view/PageCanvas.hpp"` — never `"PageCanvas.hpp"` or
+   `#include "ui/view/PageCanvas.hpp"` - never `"PageCanvas.hpp"` or
    `"view/PageCanvas.hpp"`. `src/` is on the include path. The only exceptions
    are AUTOMOC's own `"Foo.moc"` and `3rdparty/` headers.
 
@@ -57,11 +63,11 @@ grep -rln 'QWidget\|QDialog' src/engine         # must be empty
 
 `drm/` is the one folder that holds both logic and its widget. The licensing
 boundary is drawn around a directory, so everything that would have to move
-together stays together — see `modules/rich-media/README.md`.
+together stays together - see `modules/rich-media/README.md`.
 
 ## Adding a file
 
-Add it to the `CMakeLists.txt` **in its own folder** — each source directory
+Add it to the `CMakeLists.txt` **in its own folder** - each source directory
 carries its own `target_sources(OpenPDFStudio PRIVATE ...)`. There is no
 central source list. A new folder needs its own `CMakeLists.txt` plus an
 `add_subdirectory()` line in its parent.
@@ -70,12 +76,19 @@ central source list. A new folder needs its own `CMakeLists.txt` plus an
 
 A `.cpp` over ~800 lines or a function over ~100 lines usually means several
 responsibilities sharing a file. `DocumentView` is the standing example of what
-that costs and is being split down accordingly — new state belongs in a
+that costs and is being split down accordingly - new state belongs in a
 controller under `ui/view/`, not on the view.
 
 ## Testing
 
 `tests/` covers the pure, widget-free parts (see `tst_inkmetrics.cpp` for the
 pattern: paint a probe image, assert on the measurement). Anything needing a
-document on screen is a manual pass. Test fixtures are versioned under
-`tests/`; do not put them in ignored directories.
+document on screen is a manual pass.
+
+**Nothing test-related is committed.** `tests/` is gitignored, and the root
+`CMakeLists.txt` only builds it when it happens to be present locally. Test
+fixtures, sample documents, harness scripts and their output belong in
+`.claude/testing/` - also ignored. This sentence used to say the opposite
+("fixtures are versioned under `tests/`, do not put them in ignored
+directories"), which is how a set of generated fixtures nearly ended up in a
+commit. If you think a fixture needs to be versioned, ask first.

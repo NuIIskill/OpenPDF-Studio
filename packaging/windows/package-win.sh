@@ -44,18 +44,11 @@ done
 cp "$ROOT/LICENSE" "$APP_DIR/LICENSE.txt"
 cp -r "$ROOT/LICENSES" "$APP_DIR/"
 
-# Backend bestimmt die Lizenz der Auslieferung: ein gegen Poppler gelinktes
-# Binary darf nur unter der GPL verteilt werden (LICENSES/README.md), ein
-# Qt6::Pdf-Build auch unter der Commercial License.
+# Bis August 2026 stand hier eine Fallunterscheidung: ein gegen Poppler
+# gelinktes Binary durfte nur unter der GPL verteilt werden, ein Qt6::Pdf-Build
+# auch kommerziell. Beide Backends sind durch PDFium ersetzt (BSD-3-Clause) —
+# es gibt nur noch einen Build und nur noch eine Lizenzlage.
 NSIS_LICENSE_FLAGS=()
-if compgen -G "$BUILD_DIR/libpoppler*.dll" >/dev/null; then
-    GPL_ONLY=1
-    NSIS_LICENSE_FLAGS+=(-DGPL_ONLY=1)
-    echo "==> PDF-Backend: Poppler-Qt6 → Distribution nur unter GPL-3.0-only"
-else
-    GPL_ONLY=0
-    echo "==> PDF-Backend: Qt6::Pdf → GPL-3.0-only ODER LicenseRef-OpenPDF-Commercial"
-fi
 
 # GPLv3 §6 verlangt den zugehörigen Quelltext. Für die Binärpakete genügt der
 # Verweis auf das öffentliche Repository — samt Commit, damit "zugehörig" auch
@@ -68,18 +61,8 @@ COMMIT="$(git -C "$ROOT" rev-parse --short HEAD 2>/dev/null || echo "unbekannt /
     echo "  https://github.com/NuIIskill/OpenPDF-Studio"
     echo "  commit $COMMIT"
     echo
-    if [[ "$GPL_ONLY" == 1 ]]; then
-        echo "Dieses Build ist gegen Poppler-Qt6 gelinkt und wird deshalb unter der"
-        echo "GNU General Public License v3 verteilt (LICENSES\\GPL-3.0.txt). Der"
-        echo "vollstaendige zugehoerige Quelltext liegt unter der obigen Adresse."
-        echo
-        echo "This build is linked against Poppler-Qt6 and is therefore distributed"
-        echo "under the GNU General Public License v3 (LICENSES\\GPL-3.0.txt). The"
-        echo "complete corresponding source is available at the address above."
-    else
-        echo "Lizenz / license: GPL-3.0-only OR LicenseRef-OpenPDF-Commercial"
-        echo "Siehe / see LICENSE.txt und LICENSES\\."
-    fi
+    echo "Lizenz / license: GPL-3.0-only OR LicenseRef-OpenPDF-Commercial"
+    echo "Siehe / see LICENSE.txt und LICENSES\\."
 } > "$APP_DIR/SOURCE.txt"
 
 # Portable-Modus ist eine Datei, keine Einstellung: liegt config.ini neben der

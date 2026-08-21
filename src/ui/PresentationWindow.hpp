@@ -3,12 +3,14 @@
 #include <QWidget>
 #include <QPixmap>
 
+#ifdef HAVE_PDF_RENDERING
+#  include <memory>
+class PdfBackend;
+#endif
+
 QT_BEGIN_NAMESPACE
 class QLabel;
 class QTimer;
-#ifdef HAVE_QT_PDF
-class QPdfDocument;
-#endif
 QT_END_NAMESPACE
 
 class PresentationWindow : public QWidget
@@ -35,7 +37,9 @@ private:
     QLabel *m_pageNum  { nullptr };
     QTimer *m_fadeTimer{ nullptr };
 
-#ifdef HAVE_QT_PDF
-    QPdfDocument *m_doc { nullptr };
+#ifdef HAVE_PDF_RENDERING
+    // Eigenes Backend: die Präsentation öffnet die Datei ein zweites Mal und
+    // ist damit unabhängig davon, was die Ansicht gerade tut.
+    std::unique_ptr<PdfBackend> m_backend;
 #endif
 };

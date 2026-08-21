@@ -15,9 +15,5 @@ target_sources(OpenPDFStudio PRIVATE
     InkMetrics.hpp
     PdfExporter.cpp
     PdfExporter.hpp
-    PdfTextExtractor.cpp
-    PdfTextExtractor.hpp
-    PopplerTextLookup.cpp
-    PopplerTextLookup.hpp
     TextBlock.hpp
 )

@@ -8,17 +8,14 @@
 #include <QImage>
 #include <QString>
 
-#ifdef HAVE_QT_PDF
-#include <QPdfDocument>
-#endif
 
 // Stores all pending text and image edits for one document session.
-// Knows how to apply them to a QImage (live view) and to save a final PDF.
-// When qpdf is available (HAVE_QPDF), saveToFile uses a hybrid approach:
-//   unedited pages are copied as-is (full vector quality); edited pages get
-//   their content stream rewritten (original text ops removed, replacement
-//   text appended). AcroForm field edits update /V + appearance streams.
-// Without qpdf, falls back to raster rendering (QPdfWriter + QPainter).
+//
+// Knows how to apply them to a QImage — that is the live view, where an edit
+// is painted over the rendered page. It does NOT know how to write them to a
+// file: that is the backend's job (PdfBackend::saveWithEdits), because how an
+// edit reaches the document depends entirely on what the engine can do with it.
+// The session is the list of what the user changed, nothing more.
 class EditSession
 {
 public:
@@ -180,21 +177,6 @@ public:
     static void paintBackgroundPatch(QPainter &p, const QImage &img,
                                      const QList<QRect> &rectsPx);
 
-    // Write the document with all edits to outputPath.
-    //   sourcePath  — original PDF file on disk; enables vector output via qpdf.
-    //   doc         — Qt PDF document; used for raster fallback only.
-    //   pageCount   — total page count from the reader.
-#if defined(HAVE_QT_PDF)
-    bool saveToFile(const QString &outputPath,
-                    QPdfDocument  *doc,
-                    int            pageCount,
-                    const QString &sourcePath = QString()) const;
-#elif defined(HAVE_QPDF)
-    bool saveToFile(const QString &outputPath,
-                    int            pageCount,
-                    const QString &sourcePath) const;
-#endif
-
 private:
     static void paintTextEdit(QPainter &p, const Edit &e, qreal scale);
     // Erases the edit area by reconstructing the surrounding background
@@ -202,26 +184,7 @@ private:
     static void paintBlankEdit(QPainter &p, const QImage &img, const Edit &e,
                                qreal scale);
 
-#ifdef HAVE_QPDF
-    // Hybrid: unedited pages copied as vector, edited pages get their content
-    // stream rewritten; form-field edits update /V + appearance streams.
-    // Pages in overlayPages skip the (riskier) text-op removal and get an
-    // append-only overlay instead — used as the verified-save fallback.
-    bool saveVector(const QString &sourcePath, const QString &outputPath,
-                    QPdfDocument *doc, int pageCount,
-                    const QSet<int> &overlayPages = {}) const;
-#endif
-#if defined(HAVE_QPDF) && defined(HAVE_QT_PDF)
-    // Renders every edited page of the saved file against the original and
-    // returns the pages whose content OUTSIDE the edit zones changed — i.e.
-    // pages the stream rewrite corrupted. Those get the overlay fallback.
-    QSet<int> verifyVectorSave(const QString &outputPath,
-                               QPdfDocument *doc) const;
-#endif
 
-#ifdef HAVE_QT_PDF
-    bool saveRaster(const QString &outputPath, QPdfDocument *doc, int pageCount) const;
-#endif
 
     QList<Edit>       m_edits;
     QList<Edit>       m_suspendedEdits;  // saved by suspendEditsAt(), restored by restoreSuspended()

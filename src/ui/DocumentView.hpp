@@ -34,17 +34,11 @@ class ZoomController;
 
 #ifdef HAVE_PDF_RENDERING
 #  include "engine/render/PdfRenderer.hpp"
-#  include "engine/edit/PdfTextExtractor.hpp"
 #  include "engine/edit/EditSession.hpp"
 #  include "ui/edit/TextBoxFrame.hpp"
 #  include "engine/edit/TextBlock.hpp"
 #  include "engine/edit/ContentModel.hpp"
 #  include <memory>
-#  ifdef HAVE_QT_PDF
-#    include <QPdfDocument>
-#  elif defined(HAVE_POPPLER)
-#    include <poppler/qt6/poppler-qt6.h>
-#  endif
 #endif
 
 class DocumentView : public QScrollArea, public PageCanvas
@@ -229,20 +223,6 @@ private:
     // Session image overlays in the form the history stores them.
     QList<DocumentHistory::ImageState> imageStates() const;
 
-#ifdef HAVE_POPPLER
-    // Renders every page into a fresh PDF at `outputPath`, edits applied.
-    // Writes nothing but that file — the caller owns the swap onto the target,
-    // which must happen with the document closed (see saveToFile).
-    bool writePopplerRaster(const QString &outputPath);
-    // Loads `path` with a password already known for it. No prompting: this is
-    // for reopening a file the user has already unlocked.
-    std::unique_ptr<Poppler::Document> loadPopplerDocument(const QString &path);
-    // THE place where the open document is exchanged. Everything that keeps a
-    // raw pointer to the document or the renderer is re-pointed here, in the
-    // same breath as the swap — a holder left behind reads freed memory on the
-    // next repaint. Passing nullptr closes the document and releases the file.
-    void setPopplerSource(std::unique_ptr<Poppler::Document> doc);
-#endif
 
     // Widgets
     QWidget     *m_canvas    { nullptr };
@@ -323,6 +303,5 @@ private:
 
     EditSession  *m_session     { nullptr };
     TextBoxFrame *m_editorFrame { nullptr };
-    QHash<int, QList<OcrEngine::Block>>   m_ocrCache;
 #endif
 };

@@ -2,9 +2,9 @@
 
 A native Qt 6 PDF viewer and editor for Linux and Windows: read a document,
 edit the text that is already in it, reorder its pages, annotate it, and export
-it to PDF, Word or PNG — in one application, without a web stack.
+it to PDF, Word or PNG - in one application, without a web stack.
 
-Current version: **0.2.5** — early alpha. Work on copies of important
+Current version: **0.2.5** - early alpha. Work on copies of important
 documents and check exported files with a second PDF viewer.
 
 ## Licensing
@@ -12,7 +12,7 @@ documents and check exported files with a second PDF viewer.
 OpenPDF Studio Core is dual-licensed under **GPL-3.0-only** or the **OpenPDF
 Studio Commercial License**.
 
-Certain additional components — currently only `modules/rich-media/` — are
+Certain additional components - currently only `modules/rich-media/` - are
 distributed under the **OpenPDF Studio Business License**. Those components are
 free for personal use; commercial use requires a Business License after a
 30-day evaluation period.
@@ -21,15 +21,15 @@ See [LICENSES/](LICENSES/) for details, and [LICENSES/README.md](LICENSES/README
 for the path-by-path map.
 
 Everything you need to build, run and modify the full viewer and editor is
-Core, and Core is free software. Note that a build linked against Poppler
-instead of `Qt6::Pdf` can only be distributed under the GPL.
+Core, and Core is free software. The PDF engine is PDFium under BSD-3-Clause,
+so nothing in the dependency stack forces the GPL onto a distribution.
 
 ## Features
 
 **Viewing**
 
 * Single-page and grid view, thumbnail sidebar, presentation mode
-* Zoom via toolbar or Ctrl + mouse wheel — step size, zoom-to-pointer and the
+* Zoom via toolbar or Ctrl + mouse wheel - step size, zoom-to-pointer and the
   no-modifier wheel action are configurable
 * Password-protected documents: the password is asked once and kept in memory
   for the renderer, editor and exporters; it is never written to disk
@@ -44,17 +44,17 @@ instead of `Qt6::Pdf` can only be distributed under the GPL.
 * Annotations: text boxes, comments and images, with undo/redo
 * Text selection with the Select tool, hover highlighting of what is editable
 * Page organizer: reorder by drag & drop, rotate, delete, insert blank pages
-  and merge further PDFs — works on encrypted files as well
+  and merge further PDFs - works on encrypted files as well
 * Change history per document, with restore to an earlier state
 * Edits to page structure go to a session working file; the file you opened is
   untouched until you save. Saving is atomic.
 
 **Export**
 
-* PDF — page ranges, user password, and switches for comments, form fields,
+* PDF - page ranges, user password, and switches for comments, form fields,
   embedded fonts and image compression (the option-aware path needs qpdf)
-* Word `.docx` — text, layout and images
-* PNG — one file per page, adjustable quality
+* Word `.docx` - text, layout and images
+* PNG - one file per page, adjustable quality
 * Estimated output size before you export
 
 **Interface**
@@ -66,9 +66,9 @@ instead of `Qt6::Pdf` can only be distributed under the GPL.
 
 ## Not there yet
 
-* Real PDF/A conformance — the PDF/A card in the export dialog currently
+* Real PDF/A conformance - the PDF/A card in the export dialog currently
   produces an ordinary PDF
-* Rich media playback (`modules/rich-media/`) — media annotations are detected
+* Rich media playback (`modules/rich-media/`) - media annotations are detected
   and protected from editing, but not played
 * Form editing, redaction, digital signatures
 * Crash recovery from the session working files
@@ -114,18 +114,18 @@ argument through to CMake.
 
 Required: CMake ≥ 3.20, a C++20 compiler, and Qt 6 Core / Widgets / Gui.
 
-Everything else is optional and only changes what gets compiled in — the code
+Everything else is optional and only changes what gets compiled in - the code
 behind each `HAVE_*` define still builds when the dependency is missing:
 
 | Dependency | Enables | Fedora package |
 | --- | --- | --- |
-| `Qt6::Pdf` **or** Poppler-Qt6 | page rendering (`HAVE_PDF_RENDERING`) | `qt6-qtpdf-devel` / `poppler-qt6-devel` |
-| qpdf | vector text save, PDF export options (`HAVE_QPDF`) | `qpdf-devel` |
+| PDFium | the PDF engine: rendering, text, saving (`HAVE_PDFIUM`) | none - run `packaging/fetch-pdfium.sh` |
+| qpdf | PDF export options, organizer save (`HAVE_QPDF`) | `qpdf-devel` |
 | Tesseract | OCR on scanned pages (`HAVE_TESSERACT`) | `tesseract-devel`, `tesseract-langpack-deu` |
 | `Qt6::PrintSupport` | printing (`HAVE_QT_PRINT`) | part of `qt6-qtbase-devel` |
 | `Qt6::LinguistTools` | the `update_translations` target | `qt6-qttools-devel` |
 
-Without a PDF backend the application starts but shows nothing — CMake says so
+Without a PDF backend the application starts but shows nothing - CMake says so
 during configure (`PDF backend: none`).
 
 ### Windows cross-build and packages
@@ -155,8 +155,8 @@ OpenPDFStudio --shot-history-dialog out.png [dark]
 ```
 src/
   app/        infrastructure: settings, safe writes, session, history, passwords
-  engine/     document logic, no widgets — edit/, ocr/, render/, document/
-  ui/         everything that is a widget — bars/, panels/, dialogs/, tools/,
+  engine/     document logic, no widgets - edit/, ocr/, render/, document/
+  ui/         everything that is a widget - bars/, panels/, dialogs/, tools/,
               view/, edit/, widgets/, theme/
   3rdparty/   vendored (nanosvg)
 modules/
@@ -165,7 +165,7 @@ modules/
 
 `engine/` never includes `ui/` and never touches QWidget; `app/` never includes
 `ui/`. Includes are root-relative to `src/`. Each source folder carries its own
-`CMakeLists.txt` — a new file is registered where it is created, not in a
+`CMakeLists.txt` - a new file is registered where it is created, not in a
 central list. [CLAUDE.md](CLAUDE.md) has the rules in full;
 [docs/](docs/) holds the architecture notes.
 

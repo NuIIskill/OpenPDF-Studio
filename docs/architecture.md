@@ -1,4 +1,4 @@
-# OpenPDF Studio — Architecture
+# OpenPDF Studio - Architecture
 
 ## Overview
 

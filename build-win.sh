@@ -3,8 +3,16 @@
 # Uses the mingw-w64 + Qt6-for-Windows toolchain installed on this system.
 #
 # Install dependencies (Fedora):
-#   sudo dnf install mingw64-qt6-qtbase-devel mingw64-qt6-qtpdf
-#   (or equivalent for your distro)
+#   sudo dnf install mingw64-filesystem mingw64-qt6-qtbase mingw64-qt6-qtsvg
+#
+# Zwei Abhängigkeiten kommen NICHT aus den Fedora-Paketen und müssen einmalig
+# beschafft werden — ohne sie fehlen ganze Funktionen:
+#
+#   packaging/fetch-pdfium.sh                  PDF-Anzeige, -Text und -Speichern
+#   packaging/windows/build-qpdf-mingw.sh      PDF-Export mit Optionen, Organizer
+#
+# Poppler und Qt6::Pdf werden nicht mehr gebraucht: beide Plattformen laufen
+# auf PDFium.
 set -euo pipefail
 
 BUILD_DIR="${BUILD_DIR:-build-win}"
@@ -37,10 +45,32 @@ if [[ -z "$TOOLCHAIN_FILE" ]]; then
     exit 1
 fi
 
+# ── Cross-gebaute Abhängigkeiten ─────────────────────────────────────────────
+# Fedora liefert kein mingw64-qpdf. Ohne qpdf fehlen im Windows-Build der
+# PDF-Export mit Optionen und der vektorielle Save des Organizers — beides
+# ersatzlos, nicht bloß eingeschränkt.
+QPDF_PREFIX="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/third_party/mingw64"
+MINGW_SYSROOT="${MINGW_SYSROOT:-/usr/x86_64-w64-mingw32/sys-root/mingw}"
+if [[ -f "${QPDF_PREFIX}/lib/cmake/qpdf/qpdfConfig.cmake" ]]; then
+    echo "==> qpdf: ${QPDF_PREFIX}"
+    # Weder CMAKE_PREFIX_PATH noch CMAKE_FIND_ROOT_PATH helfen hier:
+    # die mingw-Toolchain setzt CMAKE_FIND_ROOT_PATH_MODE_PACKAGE auf ONLY —
+    # damit sucht find_package() nur noch unterhalb von CMAKE_FIND_ROOT_PATH —
+    # und überschreibt diesen Pfad anschließend mit einem schlichten SET(),
+    # das auch ein -D von der Kommandozeile aussticht. Ein direkt gesetztes
+    # <Paket>_DIR wird dagegen unverändert verwendet.
+    PREFIX_ARGS=(-Dqpdf_DIR="${QPDF_PREFIX}/lib/cmake/qpdf")
+else
+    echo "==> qpdf: nicht gebaut — PDF-Export und Organizer-Vektorsave fehlen."
+    echo "    Bauen mit: packaging/windows/build-qpdf-mingw.sh"
+    PREFIX_ARGS=()
+fi
+
 echo "==> Configuring (${BUILD_TYPE}) → ${BUILD_DIR}/"
 cmake -S . -B "${BUILD_DIR}" \
     -DCMAKE_BUILD_TYPE="${BUILD_TYPE}" \
     -DCMAKE_TOOLCHAIN_FILE="${TOOLCHAIN_FILE}" \
+    "${PREFIX_ARGS[@]:+${PREFIX_ARGS[@]}}" \
     "${@}"
 
 echo "==> Building with ${JOBS} job(s)…"
@@ -56,17 +86,27 @@ if [[ -d "$QT_BIN" ]]; then
     # All runtime DLLs (full recursive dep tree of OpenPDFStudio.exe)
     for dll in \
         libgcc_s_seh-1.dll libstdc++-6.dll libwinpthread-1.dll \
-        Qt6Core.dll Qt6Gui.dll Qt6Widgets.dll Qt6PrintSupport.dll Qt6Svg.dll Qt6SvgWidgets.dll Qt6Pdf.dll \
-        libpoppler-qt6-3.dll libpoppler-156.dll liblcms2-2.dll libjpeg-62.dll \
-        libcurl-4.dll libopenjp2.dll libtiff-6.dll \
-        libcrypto-3-x64.dll libssl-3-x64.dll libssh2-1.dll \
-        libidn2-0.dll libpsl-5.dll libunistring-2.dll \
+        Qt6Core.dll Qt6Gui.dll Qt6Widgets.dll Qt6PrintSupport.dll Qt6Svg.dll Qt6SvgWidgets.dll \
         icui18n77.dll icuuc77.dll icudata77.dll libpcre2-16-0.dll zlib1.dll \
         libfontconfig-1.dll libfreetype-6.dll libharfbuzz-0.dll libpng16-16.dll \
         libexpat-1.dll libbz2-1.dll libglib-2.0-0.dll libintl-8.dll libpcre2-8-0.dll \
         iconv.dll; do
         [[ -f "${QT_BIN}/${dll}" ]] && cp -u "${QT_BIN}/${dll}" "${BUILD_DIR}/"
     done
+
+    # PDFium kommt als vorgebautes Binary (packaging/fetch-pdfium.sh) und liegt
+    # ebenfalls außerhalb des Sysroots.
+    PDFIUM_BIN="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/third_party/pdfium/win-x64/bin"
+    if [[ -f "${PDFIUM_BIN}/pdfium.dll" ]]; then
+        cp -u "${PDFIUM_BIN}/pdfium.dll" "${BUILD_DIR}/"
+        echo "  pdfium: pdfium.dll deployed"
+    fi
+
+    # qpdf liegt nicht im Qt-Sysroot, sondern im projektlokalen Prefix.
+    if [[ -d "${QPDF_PREFIX}/bin" ]]; then
+        cp -u "${QPDF_PREFIX}"/bin/qpdf*.dll "${BUILD_DIR}/" 2>/dev/null && \
+            echo "  qpdf: $(basename "$(ls "${QPDF_PREFIX}"/bin/qpdf*.dll | head -1)") deployed"
+    fi
 
     # Platform plugin
     if [[ -d "${PLUGIN_DIR}/platforms" ]]; then
@@ -107,15 +147,6 @@ if [[ -d "$QT_BIN" ]]; then
         mkdir -p "${BUILD_DIR}/share/fontconfig"
         cp -ru "${FC_SHARE}/." "${BUILD_DIR}/share/fontconfig/"
         echo "  fontconfig: conf.avail deployed"
-    fi
-
-    # ── Poppler encoding data (CMap, cidToUnicode, nameToUnicode, unicodeMap) ─
-    # Without these, Poppler cannot process CID fonts (common in many PDFs).
-    POPPLER_DATA="/usr/share/poppler"
-    if [[ -d "${POPPLER_DATA}" ]]; then
-        mkdir -p "${BUILD_DIR}/share/poppler"
-        cp -ru "${POPPLER_DATA}/." "${BUILD_DIR}/share/poppler/"
-        echo "  poppler-data: encoding maps deployed"
     fi
 
     echo "==> Deploy complete."

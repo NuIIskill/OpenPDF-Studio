@@ -27,12 +27,6 @@
 #  include <cstring>
 #endif
 
-#ifdef HAVE_POPPLER
-#  include <QPdfWriter>
-#  include <QPageSize>
-#  include <cmath>
-#  include <algorithm>
-#endif
 
 #include <QVBoxLayout>
 #include <QHBoxLayout>
@@ -194,12 +188,13 @@ DocumentView::DocumentView(QWidget *parent)
     });
     m_hover->setEditorFrame(m_editorFrame);
 
-#  ifdef HAVE_QT_PDF
-    m_selection->setSource(m_src->renderer(), m_src->document());
+    // Einmal für immer: Renderer und Quelle überleben jeden Dateiwechsel, weil
+    // das Backend dahinter tauscht. Vorher musste der Poppler-Pfad beides nach
+    // jedem Öffnen neu verteilen — und tat es an einer Stelle, die es nicht
+    // mehr gibt.
+    m_selection->setSource(m_src->renderer(), m_src.get());
     m_layoutEngine->setSource(m_src->renderer(), m_session);
-#  endif
 #endif
-    // HAVE_POPPLER: m_src->renderer() and m_src->popplerDoc() are created per-file in openFile()
 
     m_ocrEngine = new OcrEngine();
 #ifdef HAVE_PDF_RENDERING

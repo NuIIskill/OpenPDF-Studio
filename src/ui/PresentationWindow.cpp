@@ -7,8 +7,8 @@
 #include <QLabel>
 #include <QTimer>
 
-#ifdef HAVE_QT_PDF
-#  include <QPdfDocument>
+#ifdef HAVE_PDF_RENDERING
+#  include "engine/document/PdfBackend.hpp"
 #endif
 
 PresentationWindow::PresentationWindow(const QString &filePath, int startPage, QWidget *parent)
@@ -32,10 +32,12 @@ PresentationWindow::PresentationWindow(const QString &filePath, int startPage, Q
     m_fadeTimer->setInterval(2000);
     connect(m_fadeTimer, &QTimer::timeout, m_pageNum, &QLabel::hide);
 
-#ifdef HAVE_QT_PDF
-    m_doc = new QPdfDocument(this);
-    if (m_doc->load(filePath) == QPdfDocument::Error::None)
-        m_pageCount = m_doc->pageCount();
+#ifdef HAVE_PDF_RENDERING
+    // Vorher hing das hier direkt an QPdfDocument — im Windows-Build, der gegen
+    // Poppler gebaut wird, blieb die Präsentation deshalb schwarz.
+    m_backend = PdfBackend::create();
+    if (m_backend && m_backend->open(filePath, nullptr))
+        m_pageCount = m_backend->pageCount();
 #endif
 
     m_currentPage = qBound(0, startPage, qMax(0, m_pageCount - 1));
@@ -44,17 +46,18 @@ PresentationWindow::PresentationWindow(const QString &filePath, int startPage, Q
 
 void PresentationWindow::renderCurrentPage()
 {
-#ifdef HAVE_QT_PDF
-    if (!m_doc || m_pageCount == 0) return;
+#ifdef HAVE_PDF_RENDERING
+    if (!m_backend || m_pageCount == 0) return;
 
-    const QSizeF pagePts  = m_doc->pagePointSize(m_currentPage);
-    const QSize  winSz    = size().isEmpty() ? QSize(1920, 1080) : size();
-    const qreal  scale    = qMin(winSz.width()  / pagePts.width(),
-                                 winSz.height() / pagePts.height());
-    const QSize  renderSz(qRound(pagePts.width()  * scale),
-                          qRound(pagePts.height() * scale));
+    const QSizeF pagePts = m_backend->pageSizePts(m_currentPage);
+    if (pagePts.isEmpty()) return;
+    const QSize  winSz   = size().isEmpty() ? QSize(1920, 1080) : size();
+    // Der Maßstab ist Ausgabepixel pro PDF-Punkt; die Seite wird in das Fenster
+    // eingepasst, ohne ihr Seitenverhältnis zu verändern.
+    const qreal  scale   = qMin(winSz.width()  / pagePts.width(),
+                                winSz.height() / pagePts.height());
 
-    m_pagePixmap = QPixmap::fromImage(m_doc->render(m_currentPage, renderSz));
+    m_pagePixmap = QPixmap::fromImage(m_backend->renderPage(m_currentPage, scale));
 #endif
     update();
 
