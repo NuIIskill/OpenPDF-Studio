@@ -95,6 +95,69 @@ QRgb paperColor(const Raster &r)
     return best;
 }
 
+// Dominant colour of an inset area. Colours are quantised slightly so render
+// antialiasing does not split one flat PDF fill into many near-identical bins.
+// The returned invalid colour means the area is effectively paper.
+QColor dominantFill(const Raster &r, QRgb paper, const QRectF &area,
+                    double insetPt = 1.2)
+{
+    if (r.isNull()) return {};
+    QRect box = r.toPx(area.adjusted(insetPt, insetPt, -insetPt, -insetPt));
+    if (box.isEmpty()) box = r.toPx(area);
+    if (box.isEmpty()) return {};
+
+    QHash<QRgb, int> counts;
+    const int step = qMax(1, qRound(r.scale()));
+    int total = 0;
+    for (int y = box.top(); y <= box.bottom(); y += step) {
+        for (int x = box.left(); x <= box.right(); x += step) {
+            const QRgb c = r.at(x, y);
+            const auto quantise = [](int channel) {
+                return qMin(255, ((channel + 4) / 8) * 8);
+            };
+            const QRgb bucket = qRgb(quantise(qRed(c)), quantise(qGreen(c)),
+                                     quantise(qBlue(c)));
+            ++counts[bucket];
+            ++total;
+        }
+    }
+    QRgb best = paper;
+    int bestN = 0;
+    for (auto it = counts.cbegin(); it != counts.cend(); ++it)
+        if (it.value() > bestN) { bestN = it.value(); best = it.key(); }
+    if (total == 0 || double(bestN) / total < 0.40
+            || colorDist(best, paper) < 30)
+        return {};
+    return QColor::fromRgb(best);
+}
+
+// Thin antialiased rules contain more paper pixels than line pixels, so the
+// ordinary mode is the paper. Pick the dominant non-paper colour instead.
+QColor dominantInkColor(const Raster &r, QRgb paper, const QRectF &area)
+{
+    if (r.isNull()) return {};
+    const QRect box = r.toPx(area);
+    if (box.isEmpty()) return {};
+    QHash<QRgb, int> counts;
+    const int step = qMax(1, qRound(r.scale() / 2.0));
+    for (int y = box.top(); y <= box.bottom(); y += step) {
+        for (int x = box.left(); x <= box.right(); x += step) {
+            const QRgb c = r.at(x, y);
+            if (colorDist(c, paper) < 30) continue;
+            const auto quantise = [](int channel) {
+                return qMin(255, ((channel + 4) / 8) * 8);
+            };
+            ++counts[qRgb(quantise(qRed(c)), quantise(qGreen(c)),
+                          quantise(qBlue(c)))];
+        }
+    }
+    QRgb best = paper;
+    int bestN = 0;
+    for (auto it = counts.cbegin(); it != counts.cend(); ++it)
+        if (it.value() > bestN) { bestN = it.value(); best = it.key(); }
+    return bestN > 0 ? QColor::fromRgb(best) : QColor{};
+}
+
 // ── small numeric helpers ─────────────────────────────────────────────────────
 
 double median(QList<double> v)
@@ -320,7 +383,7 @@ void refineTableExtent(const Raster &erased, QRgb paper, RawTable &table,
     table.measured = true;
 }
 
-DocxBlock buildTableBlock(const RawTable &raw)
+DocxBlock buildTableBlock(const RawTable &raw, const Raster &erased, QRgb paper)
 {
     QList<QList<ContentItem>> rows = clusterRows(raw.items);
     if (rows.size() < 2) return {};
@@ -428,12 +491,21 @@ DocxBlock buildTableBlock(const RawTable &raw)
     for (int r = 0; r < rows.size(); ++r) {
         QSet<int> filled;
         QSet<int> occupied;              // columns this row already has text in
-        for (const ContentItem &cell : rows[r]) occupied.insert(columnOf(cell));
-        for (const ContentItem &cell : rows[r]) {
+        const auto rowColumn = [&](int index) {
+            // A complete visual row already proves its column order. This is
+            // especially important for centred headers: their short labels can
+            // sit far from the body column's left edge and straddle a boundary
+            // inferred from whitespace alone.
+            return rows[r].size() == cols ? index : columnOf(rows[r][index]);
+        };
+        for (int i = 0; i < rows[r].size(); ++i)
+            occupied.insert(rowColumn(i));
+        for (int i = 0; i < rows[r].size(); ++i) {
+            const ContentItem &cell = rows[r][i];
             DocxCell dc;
             dc.item = cell;
             dc.row  = r;
-            dc.col  = columnOf(cell);
+            dc.col  = rowColumn(i);
             // A wrapped continuation line shares its cell with the line above
             // instead of claiming a row of its own.
             if (filled.contains(dc.col)) {
@@ -457,7 +529,15 @@ DocxBlock buildTableBlock(const RawTable &raw)
                 if (covered < (edges[c + 1] - edges[c]) * 0.4) break;
                 ++dc.colSpan;
             }
-            if (cell.bgColor.isValid()) dc.shading = cell.bgColor;
+            const int endCol = qMin(cols, dc.col + dc.colSpan);
+            const QRectF cellArea(edges[dc.col], rowEdges[r],
+                                  edges[endCol] - edges[dc.col],
+                                  rowEdges[r + 1] - rowEdges[r]);
+            // PDFium exposes text colour but not the rectangle painted behind
+            // it. Read that fill from the text-erased render so dark headers
+            // and alternating table rows become real w:shd cell properties.
+            dc.shading = cell.bgColor.isValid()
+                ? cell.bgColor : dominantFill(erased, paper, cellArea);
             block.table.cells.append(dc);
         }
     }
@@ -709,7 +789,6 @@ QList<DocxBlock> buildDocxBlocks(const DocxLayoutInput &in, QMarginsF *marginsOu
     }
 
     const Raster erased(in.erased, in.scale);
-    const Raster original(in.original, in.scale);
     const QRgb   paper = paperColor(erased);
 
     // ── tables ────────────────────────────────────────────────────────────────
@@ -733,7 +812,7 @@ QList<DocxBlock> buildDocxBlocks(const DocxLayoutInput &in, QMarginsF *marginsOu
     QList<QRectF>    tableAreas;
     QList<DocxBlock> blocks;
     for (RawTable &t : raw) {
-        DocxBlock block = buildTableBlock(t);
+        DocxBlock block = buildTableBlock(t, erased, paper);
         if (block.table.colWidthsPt.isEmpty()) continue;
         // The grid — shading, rules and all — is reproduced natively. Its area
         // is deliberately NOT masked out of the ink map: left intact, the whole
@@ -767,6 +846,7 @@ QList<DocxBlock> buildDocxBlocks(const DocxLayoutInput &in, QMarginsF *marginsOu
     // the text it contains (chart labels belong to the chart, not to the flow).
     QSet<int>  bakedText;
     QSet<int>  droppedTables;
+    QSet<int>  overlaidTables;
     QList<DocxBlock> pictures;
     for (const Region &region : findGraphicRegions(erased, paper, claimed)) {
         QRgb fill = paper;
@@ -777,7 +857,7 @@ QList<DocxBlock> buildDocxBlocks(const DocxLayoutInput &in, QMarginsF *marginsOu
         // and getting the two confused is what exported the same content twice.
         //   • region ≈ table  → it is the table's own shading and rules, already
         //     expressed as w:shd and w:tblBorders. Drop the region.
-        //   • region ≫ table  → artwork that happens to contain aligned text
+        //   • region surrounds table → artwork that happens to contain aligned text
         //     (a process diagram of five labelled boxes). Drop the table and
         //     keep the drawing, text baked in.
         bool isTableDecoration = false;
@@ -792,40 +872,59 @@ QList<DocxBlock> buildDocxBlocks(const DocxLayoutInput &in, QMarginsF *marginsOu
                 isTableDecoration = true;
                 break;
             }
-            // Containing the table and much larger — artwork, not a grid.
-            if (share >= tableArea * 0.25 && regionArea > tableArea * 1.6)
+            // Containing essentially the whole table with visible decoration
+            // around it — artwork, not a grid.
+            if (share >= tableArea * 0.8 && regionArea > tableArea * 1.15) {
                 droppedTables.insert(t);
+                if (!overlaidTables.contains(t) && t < blocks.size()) {
+                    overlaidTables.insert(t);
+                    for (const DocxCell &cell : blocks[t].table.cells) {
+                        if (!boundsPt.contains(cell.item.bounds.center())) continue;
+                        DocxBlock label;
+                        label.kind   = DocxBlock::Kind::TextBox;
+                        label.bounds = cell.item.bounds;
+                        label.lines  = { cell.item };
+                        label.align  = cell.align;
+                        pictures.append(label);
+                    }
+                }
+            }
         }
         if (isTableDecoration) continue;
-        if (isFlatFill(erased, paper, region.px, claimed, &fill)) {
-            // Flat panel: keep the text editable, carry the fill as shading on
-            // the lines that sit inside it.
-            for (ContentItem &item : text)
-                if (boundsPt.contains(item.bounds.center()))
-                    item.bgColor = QColor::fromRgb(fill);
+        const bool thinRule = boundsPt.height() <= 3.5 || boundsPt.width() <= 3.5;
+        const QColor ruleFill = thinRule ? dominantInkColor(erased, paper, boundsPt)
+                                         : QColor{};
+        if ((thinRule && ruleFill.isValid())
+                || isFlatFill(erased, paper, region.px, claimed, &fill)) {
+            // Flat page furniture is represented by an editable Word vector
+            // rectangle. Text remains ordinary flow content above the shape.
+            DocxBlock shape;
+            shape.kind      = DocxBlock::Kind::Shape;
+            shape.bounds    = boundsPt;
+            shape.fillColor = ruleFill.isValid() ? ruleFill : QColor::fromRgb(fill);
+            pictures.append(shape);
             continue;
         }
         DocxBlock pic;
         pic.kind    = DocxBlock::Kind::Picture;
         pic.bounds  = boundsPt;
-        pic.picture = original.crop(region.px);
+        // The graphic crop is deliberately text-free. Recognised labels are
+        // emitted as editable anchored text boxes immediately below.
+        pic.picture = erased.crop(region.px);
         if (pic.picture.isNull()) continue;
         pictures.append(pic);
 
-        // Text inside a picture is only baked into it when the picture is a
-        // solid thing — a chart, a filled panel, a photo — where leaving the
-        // labels to the flow would misplace them. Sparse line art (a plain
-        // bordered table, a set of rules) covers the same area with a fraction
-        // of the ink; baking there would turn every unshaded table on the page
-        // into an uneditable image of itself. The drawing sits behind the text
-        // either way, so keeping the text loses nothing.
-        const int cellPx  = qMax(1, qRound(2.0 * in.scale));
-        const int gridArea = qMax(1, (region.px.width()  / cellPx)
-                                   * (region.px.height() / cellPx));
-        if (double(region.inkCells) / gridArea < 0.25) continue;
-
-        for (int i = 0; i < text.size(); ++i)
-            if (boundsPt.contains(text[i].bounds.center())) bakedText.insert(i);
+        for (int i = 0; i < text.size(); ++i) {
+            if (bakedText.contains(i)
+                    || !boundsPt.contains(text[i].bounds.center()))
+                continue;
+            DocxBlock label;
+            label.kind   = DocxBlock::Kind::TextBox;
+            label.bounds = text[i].bounds;
+            label.lines  = { text[i] };
+            pictures.append(label);
+            bakedText.insert(i);
+        }
     }
 
     // Tables that turned out to be artwork are already drawn inside their
@@ -852,7 +951,10 @@ QList<DocxBlock> buildDocxBlocks(const DocxLayoutInput &in, QMarginsF *marginsOu
     // ── margins and alignment ─────────────────────────────────────────────────
     QRectF content;
     for (const DocxBlock &b : blocks)
-        if (b.kind != DocxBlock::Kind::Picture) content = content.united(b.bounds);
+        if (b.kind != DocxBlock::Kind::Picture
+                && b.kind != DocxBlock::Kind::Shape
+                && b.kind != DocxBlock::Kind::TextBox)
+            content = content.united(b.bounds);
     if (content.isNull())
         for (const DocxBlock &b : blocks) content = content.united(b.bounds);
 
@@ -883,6 +985,16 @@ QList<DocxBlock> buildDocxBlocks(const DocxLayoutInput &in, QMarginsF *marginsOu
             case DocxBlock::Kind::Picture:
                 std::fprintf(stderr, "  PICTURE %6.1f,%6.1f %6.1fx%-6.1f\n",
                       r.left(), r.top(), r.width(), r.height());
+                break;
+            case DocxBlock::Kind::Shape:
+                std::fprintf(stderr, "  SHAPE   %6.1f,%6.1f %6.1fx%-6.1f fill=%s\n",
+                      r.left(), r.top(), r.width(), r.height(),
+                      qUtf8Printable(b.fillColor.name().mid(1)));
+                break;
+            case DocxBlock::Kind::TextBox:
+                std::fprintf(stderr, "  TEXTBOX %6.1f,%6.1f %6.1fx%-6.1f | %s\n",
+                      r.left(), r.top(), r.width(), r.height(),
+                      qUtf8Printable(b.lines.first().text.left(46)));
                 break;
             case DocxBlock::Kind::Paragraph:
                 std::fprintf(stderr, "  PARA    %6.1f,%6.1f %6.1fx%-6.1f n=%lld | %s\n",

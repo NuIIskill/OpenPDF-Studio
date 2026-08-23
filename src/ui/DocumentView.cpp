@@ -11,7 +11,7 @@
 #include "ui/view/PageLayoutEngine.hpp"
 #include "ui/view/ZoomController.hpp"
 #include "ui/view/TextSelectionController.hpp"
-#include "ui/dialogs/PasswordDialog.hpp"
+#include "ui/widgets/PasswordDialog.hpp"
 
 #include <QFileInfo>
 
@@ -102,6 +102,7 @@ void DocumentView::repositionForZoom()
         // zoom the page is actually rendered at.
         const qreal scale = PdfRenderer::screenScale(m_zoomCtl->zoom());
         m_editorFrame->setPageRect(lbl->geometry());  // page rect changes with zoom
+        m_editorFrame->setBoxProperties(m_edit.currentBox, scale);
         const QRectF cb(m_edit.activeEditBounds.topLeft() * scale + QPointF(lbl->pos()),
                         m_edit.activeEditBounds.size() * scale);
         m_editorFrame->repositionForZoom(

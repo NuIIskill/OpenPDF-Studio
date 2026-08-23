@@ -258,9 +258,16 @@ page organizer, annotations, OCR and export to PDF, DOCX and image formats.")
     set(CPACK_RPM_FILE_NAME RPM-DEFAULT)
     # rpmbuild leitet Requires automatisch aus den ELF-Sonames ab. Die
     # mitgelieferte libpdfium.so darf dabei nicht als fremde Abhängigkeit
-    # auftauchen — sie liegt im Paket selbst.
+    # auftauchen — sie liegt im Paket selbst und wird über RPATH gefunden.
+    # AUTOPROV OFF allein genügt dafür nicht: das unterdrückt nur das Provides
+    # der Bibliothek, das aus dem Binary abgeleitete Requires bleibt stehen und
+    # ist dann von nichts erfüllbar — dnf bricht mit "nothing provides
+    # libpdfium.so()(64bit)" ab. Die Requires-Seite muss deshalb zusätzlich
+    # über den rpm-Filter raus. Der doppelte Backslash ist Absicht: der
+    # Makro-Expander von rpm frisst eine Ebene, in der Spec landet \\. als \.
     set(CPACK_RPM_PACKAGE_AUTOREQ ON)
     set(CPACK_RPM_PACKAGE_AUTOPROV OFF)
+    set(CPACK_RPM_SPEC_MORE_DEFINE "%global __requires_exclude ^libpdfium\\\\.so")
     # Diese Verzeichnisse gehören filesystem/hicolor-icon-theme — nicht mitpaketieren.
     set(CPACK_RPM_EXCLUDE_FROM_AUTO_FILELIST_ADDITION
         /usr/share/applications

@@ -64,6 +64,27 @@ public:
     [[nodiscard]] QByteArray splitterState() const;
     void setSplitterState(const QByteArray &state);
 
+    // ── Advanced ──────────────────────────────────────────────────────────
+    [[nodiscard]] bool autoUpdateCheck() const;
+    void setAutoUpdateCheck(bool enabled);
+
+    // "startup" | "daily" | "weekly" | "monthly"
+    [[nodiscard]] QString updateInterval() const;
+    void setUpdateInterval(const QString &interval);
+
+    [[nodiscard]] bool hardwareAcceleration() const;
+    void setHardwareAcceleration(bool enabled);
+
+    [[nodiscard]] bool limitMemoryUsage() const;
+    void setLimitMemoryUsage(bool enabled);
+
+    [[nodiscard]] bool debugLogging() const;
+    void setDebugLogging(bool enabled);
+
+    // "error" | "warning" | "info" | "debug"
+    [[nodiscard]] QString logLevel() const;
+    void setLogLevel(const QString &level);
+
     void sync();
 
 private:

@@ -3,6 +3,8 @@
 #include <QFont>
 #include <QTextEdit>
 
+#include "engine/edit/TextBoxProperties.hpp"
+
 // Frameless text editor living inside TextBoxFrame.
 // TextBoxFrame owns geometry; this widget only handles text and keyboard input.
 // Enter inserts a newline; Escape cancels; focus-loss commits.
@@ -23,6 +25,7 @@ public:
     void setColor(const QColor &color);
     // Change font family/style live (size and color are preserved).
     void setTextFont(const QString &family, bool bold, bool italic);
+    void setBoxProperties(const TextBoxProperties &properties, qreal scale);
 
     // The effective editor font at the given pixel size (for layout metrics).
     QFont styledFont(int pixelFontSize) const;
@@ -37,6 +40,7 @@ protected:
     void keyPressEvent(QKeyEvent *e) override;
     void focusOutEvent(QFocusEvent *e) override;
     void wheelEvent(QWheelEvent *e) override;
+    void resizeEvent(QResizeEvent *e) override;
 
 public:
     void resetCommitGuard()    { m_committing = false; }
@@ -46,6 +50,8 @@ public:
 
 private:
     void applyStyle();
+    void applyParagraphSpacing();
+    void updateVerticalAlignment();
 
     bool    m_committing      { false };
     bool    m_suppressFocusOut{ false };
@@ -55,4 +61,6 @@ private:
     QString m_family;
     bool    m_bold            { false };
     bool    m_italic          { false };
+    TextBoxProperties m_box;
+    qreal   m_scale           { 1.0 };
 };

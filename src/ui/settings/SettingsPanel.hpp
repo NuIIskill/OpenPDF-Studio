@@ -60,6 +60,33 @@ private:
     QWidget *buildShortcutsPage();
     QWidget *buildZoomPage();
     QWidget *buildAdvancedPage();
+
+    /// The shell a scrolling settings page sits in: page widget → scroll area
+    /// → content column, with the page's title and its one-line description
+    /// already placed. Returns the layout to append cards to; `page` receives
+    /// the widget the caller hands back. Close it with finishScrollPage().
+    QVBoxLayout *buildScrollPage(QWidget *&page, const QString &title,
+                                 const QString &desc);
+    /// Pushes the content to the top and hands it to the scroll area.
+    void finishScrollPage(QVBoxLayout *contentLayout);
+
+    // Building blocks the settings cards are written from. A group is its
+    // title plus its rows and nothing else.
+    QVBoxLayout *addSettingsCard(QVBoxLayout *into, const QString &cardTitle);
+    /// Check box plus its explanation, indented to line up under the label.
+    static QAbstractButton *addSettingsCheck(QVBoxLayout *cl, const QString &label,
+                                             const QString &explain, bool checked);
+    /// Label left, combo right - indented like the descriptions above it.
+    static QComboBox *addSettingsCombo(QVBoxLayout *cl, const QString &label);
+    /// Picks the item carrying `value`; an unknown value leaves the first one.
+    static void selectComboData(QComboBox *combo, const QString &value);
+
+    // The Advanced page, one method per bordered group.
+    void buildAdvancedUpdates(QVBoxLayout *vl);
+    void buildAdvancedInterface(QVBoxLayout *vl);
+    void buildAdvancedPerformance(QVBoxLayout *vl);
+    void buildAdvancedDiagnostics(QVBoxLayout *vl);
+    void buildAdvancedReset(QVBoxLayout *vl);
     QWidget *buildAboutPage();
 
     // Card helpers
@@ -113,7 +140,13 @@ private:
     QLabel          *m_zoomExampleLabel { nullptr };
 
     // Advanced page widgets
+    QAbstractButton *m_autoUpdateCheck     { nullptr };
+    QComboBox       *m_updateIntervalCombo { nullptr };
     QAbstractButton *m_preserveLayoutCheck { nullptr };
+    QAbstractButton *m_hwAccelCheck        { nullptr };
+    QAbstractButton *m_limitMemoryCheck    { nullptr };
+    QAbstractButton *m_debugLogCheck       { nullptr };
+    QComboBox       *m_logLevelCombo       { nullptr };
 
     QString m_pendingTheme;
     QString m_pendingLang;

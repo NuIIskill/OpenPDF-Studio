@@ -1,4 +1,6 @@
 #include "engine/edit/DocxExporter.hpp"
+#include "engine/edit/DocxXml.hpp"
+#include "engine/edit/ZipWriter.hpp"
 
 #include <QByteArray>
 #include <QBuffer>
@@ -7,177 +9,10 @@
 
 #include <algorithm>
 #include <cmath>
+#include <utility>
 
-// ── minimal ZIP writer (store, no compression) ────────────────────────────────
-
-static uint32_t crc32Compute(const QByteArray &data)
-{
-    uint32_t crc = 0xFFFFFFFFu;
-    for (unsigned char c : data) {
-        crc ^= c;
-        for (int j = 0; j < 8; ++j)
-            crc = (crc >> 1) ^ (0xEDB88320u & -(crc & 1u));
-    }
-    return ~crc;
-}
-
-static void u16le(QByteArray &b, uint16_t v)
-{
-    b += char(v & 0xFF);
-    b += char((v >> 8) & 0xFF);
-}
-static void u32le(QByteArray &b, uint32_t v)
-{
-    b += char(v & 0xFF);
-    b += char((v >> 8)  & 0xFF);
-    b += char((v >> 16) & 0xFF);
-    b += char((v >> 24) & 0xFF);
-}
-
-struct ZEntry {
-    QByteArray name;
-    QByteArray data;        // as handed in — the uncompressed bytes
-    uint32_t   crc    { 0 };
-    uint32_t   offset { 0 };
-    QByteArray stored;      // what actually goes into the archive
-    uint16_t   method { 0 };  // 0 = store, 8 = deflate
-};
-
-// qCompress emits a zlib stream prefixed with the uncompressed size:
-//   [4 bytes size][2 bytes zlib header][deflate data][4 bytes adler32]
-// ZIP method 8 wants the bare deflate data, so strip the 6-byte head and the
-// 4-byte tail. Falls back to storing whenever that would not be a win.
-static void deflateEntry(ZEntry &e)
-{
-    e.method = 0;
-    e.stored = e.data;
-    if (e.data.size() < 256) return;
-    const QByteArray z = qCompress(e.data, 9);
-    if (z.size() <= 10) return;
-    const QByteArray raw = z.mid(6, z.size() - 10);
-    if (raw.isEmpty() || raw.size() >= e.data.size()) return;
-    e.method = 8;
-    e.stored = raw;
-}
-
-static void writeLocal(QByteArray &zip, ZEntry &e)
-{
-    e.crc    = crc32Compute(e.data);
-    deflateEntry(e);
-    e.offset = static_cast<uint32_t>(zip.size());
-    zip += "\x50\x4B\x03\x04";
-    u16le(zip, 20); u16le(zip, 0); u16le(zip, e.method);
-    u16le(zip, 0);  u16le(zip, 0);
-    u32le(zip, e.crc);
-    u32le(zip, static_cast<uint32_t>(e.stored.size()));
-    u32le(zip, static_cast<uint32_t>(e.data.size()));
-    u16le(zip, static_cast<uint16_t>(e.name.size()));
-    u16le(zip, 0);
-    zip += e.name;
-    zip += e.stored;
-}
-
-static void writeCentral(QByteArray &cd, const ZEntry &e)
-{
-    cd += "\x50\x4B\x01\x02";
-    u16le(cd, 20); u16le(cd, 20); u16le(cd, 0); u16le(cd, e.method);
-    u16le(cd, 0);  u16le(cd, 0);
-    u32le(cd, e.crc);
-    u32le(cd, static_cast<uint32_t>(e.stored.size()));
-    u32le(cd, static_cast<uint32_t>(e.data.size()));
-    u16le(cd, static_cast<uint16_t>(e.name.size()));
-    u16le(cd, 0); u16le(cd, 0); u16le(cd, 0); u16le(cd, 0);
-    u32le(cd, 0); u32le(cd, e.offset);
-    cd += e.name;
-}
-
-// ── DOCX XML builders ─────────────────────────────────────────────────────────
-
-// One PNG inside word/media, already paired with the relationship id the
-// document body refers to.
-struct MediaPart {
-    QString    name;     // file name inside word/media
-    QString    relId;
-    QByteArray png;
-};
-
-// English Metric Units — the unit every DrawingML length is expressed in.
-constexpr double kEmuPerPt = 12700.0;
-
-static QString emu(double pt)
-{
-    return QString::number(qRound64(qMax(0.0, pt) * kEmuPerPt));
-}
-
-static QString twips(double pt)
-{
-    return QString::number(qRound(pt * 20.0));
-}
-
-static bool encodePng(const QImage &image, QByteArray *out)
-{
-    QBuffer buffer(out);
-    buffer.open(QIODevice::WriteOnly);
-    return !image.isNull() && image.save(&buffer, "PNG");
-}
-
-// Pictures are cropped from a 2x raster so the layout analysis always has the
-// detail it needs. What the quality setting changes is what actually lands in
-// the file: how far the picture is scaled back down, and whether it is stored
-// lossless or as JPEG. Returns the file extension used.
-static QString encodePicture(const QImage &image, const DocxExportOptions &opt,
-                             QByteArray *out)
-{
-    if (image.isNull()) return {};
-
-    // 85 keeps the source resolution; below that the picture shrinks with it.
-    const double factor = opt.imageQuality >= 95 ? 1.25
-                        : opt.imageQuality >= 80 ? 1.0
-                        : opt.imageQuality >= 55 ? 0.75 : 0.5;
-    QImage scaled = image;
-    if (!qFuzzyCompare(factor, 1.0)) {
-        const QSize target(qMax(1, qRound(image.width()  * factor)),
-                           qMax(1, qRound(image.height() * factor)));
-        scaled = image.scaled(target, Qt::IgnoreAspectRatio,
-                              Qt::SmoothTransformation);
-    }
-
-    QBuffer buffer(out);
-    buffer.open(QIODevice::WriteOnly);
-    if (opt.compressImages) {
-        // JPEG has no alpha; the pictures are opaque page crops, but compose
-        // over white so a stray alpha channel cannot turn into black.
-        QImage opaque(scaled.size(), QImage::Format_RGB32);
-        opaque.fill(Qt::white);
-        QPainter p(&opaque);
-        p.drawImage(0, 0, scaled);
-        p.end();
-        if (opaque.save(&buffer, "JPEG", qBound(10, opt.imageQuality, 100)))
-            return QStringLiteral("jpeg");
-        buffer.close();
-        out->clear();
-        buffer.open(QIODevice::WriteOnly);
-    }
-    return scaled.save(&buffer, "PNG") ? QStringLiteral("png") : QString{};
-}
-
-static QString xmlEsc(const QString &s)
-{
-    QString r;
-    r.reserve(s.size() + 8);
-    for (QChar c : s) {
-        const ushort u = c.unicode();
-        if      (u == '&')  r += QLatin1String("&amp;");
-        else if (u == '<')  r += QLatin1String("&lt;");
-        else if (u == '>')  r += QLatin1String("&gt;");
-        else if (u == '"')  r += QLatin1String("&quot;");
-        else if (u < 32 && u != '\n' && u != '\r' && u != '\t') { /* skip */ }
-        else if (u >= 0xD800 && u <= 0xDFFF) { /* surrogates: invalid in XML 1.0 */ }
-        else if (u == 0xFFFE || u == 0xFFFF)  { /* non-characters: invalid in XML 1.0 */ }
-        else                r += c;
-    }
-    return r;
-}
+// The fragments below are assembled from these.
+using namespace DocxXml;
 
 static QByteArray buildDocument(const QList<QString> &pageTexts, const QString &title)
 {
@@ -224,59 +59,6 @@ static QByteArray buildDocument(const QList<QString> &pageTexts, const QString &
     return x.toUtf8();
 }
 
-static QString colorHex(const QColor &color)
-{
-    return color.isValid() ? color.name(QColor::HexRgb).mid(1).toUpper()
-                           : QStringLiteral("000000");
-}
-
-static double fontSizeOf_(const ContentItem &item)
-{
-    return item.fontSizePt > 0.0 ? item.fontSizePt
-                                 : qMax(6.0, item.bounds.height() * 0.9);
-}
-
-static QString textRuns(const ContentItem &item)
-{
-    QString x;
-    const int halfPoints = qMax(2, qRound((item.fontSizePt > 0.0
-                                           ? item.fontSizePt : 10.0) * 2.0));
-    const QString family = item.fontFamily.isEmpty()
-                               ? QStringLiteral("Arial") : item.fontFamily;
-    const QStringList lines = item.text.split(u'\n');
-    for (int i = 0; i < lines.size(); ++i) {
-        if (i > 0) x += QStringLiteral("<w:r><w:br/></w:r>");
-        x += QStringLiteral("<w:r><w:rPr><w:rFonts w:ascii=\"")
-             + xmlEsc(family)
-             + QStringLiteral("\" w:hAnsi=\"") + xmlEsc(family)
-             + QStringLiteral("\"/>");
-        if (item.bold)   x += QStringLiteral("<w:b/>");
-        if (item.italic) x += QStringLiteral("<w:i/>");
-        x += QStringLiteral("<w:color w:val=\"") + colorHex(item.textColor)
-             + QStringLiteral("\"/><w:sz w:val=\"") + QString::number(halfPoints)
-             + QStringLiteral("\"/></w:rPr><w:t xml:space=\"preserve\">")
-             + xmlEsc(lines[i]) + QStringLiteral("</w:t></w:r>");
-    }
-    return x;
-}
-
-static QString semanticTextRuns(const ContentItem &item)
-{
-    ContentItem adjusted = item;
-    // Positioned boxes needed conservative metrics to avoid clipping. Native
-    // Word paragraphs can reflow, so use the actual PDF glyph height and avoid
-    // the undersized text visible in the semantic export.
-    const double minimumPt = item.type == ContentItem::Type::TableCell ? 7.5 : 9.5;
-    adjusted.fontSizePt = std::max({item.fontSizePt * 1.25,
-                                    item.bounds.height() * 1.12,
-                                    minimumPt});
-    if (item.bounds.height() >= 11.0)
-        adjusted.fontSizePt = qMax(adjusted.fontSizePt, 12.0);
-    if (adjusted.text.trimmed().startsWith(QStringLiteral("•")))
-        adjusted.fontSizePt = qMax(adjusted.fontSizePt, 8.0);
-    return textRuns(adjusted);
-}
-
 static bool prefersSemanticLayout(const QList<DocxPage> &pages)
 {
     int textual = 0;
@@ -296,16 +78,6 @@ static bool prefersSemanticLayout(const QList<DocxPage> &pages)
         }
     }
     return textual >= 4 && coloured * 5 < textual;
-}
-
-static QString semanticParagraph(const ContentItem &item, int beforeTwips,
-                                 int leftTwips = 0)
-{
-    return QStringLiteral("<w:p><w:pPr><w:spacing w:before=\"%1\" w:after=\"0\" "
-                          "w:line=\"240\" w:lineRule=\"auto\"/>"
-                          "<w:ind w:left=\"%2\"/></w:pPr>")
-               .arg(qMax(0, beforeTwips)).arg(qMax(0, leftTwips))
-         + semanticTextRuns(item) + QStringLiteral("</w:p>");
 }
 
 static QByteArray buildSemanticDocument(const QList<DocxPage> &pages)
@@ -412,206 +184,6 @@ static QByteArray buildSemanticDocument(const QList<DocxPage> &pages)
 // end followed by a lower-case letter is a hyphenation break and disappears;
 // before an upper-case letter it is a real compound hyphen ("Hardware-
 // Lifecycle") and must survive.
-static QString paragraphText(const QList<ContentItem> &lines)
-{
-    QString out;
-    for (const ContentItem &line : lines) {
-        const QString t = line.text.trimmed();
-        if (t.isEmpty()) continue;
-        if (out.isEmpty()) { out = t; continue; }
-        if (out.endsWith(u'-') && t.at(0).isLower()) {
-            out.chop(1);
-            out += t;
-        } else {
-            out += u' ' + t;
-        }
-    }
-    return out;
-}
-
-static QString runProperties(const ContentItem &style)
-{
-    const QString family = style.fontFamily.isEmpty() ? QStringLiteral("Arial")
-                                                      : style.fontFamily;
-    const int half = qMax(2, qRound((style.fontSizePt > 0.0 ? style.fontSizePt
-                                                            : 10.0) * 2.0));
-    QString x = QStringLiteral("<w:rPr><w:rFonts w:ascii=\"") + xmlEsc(family)
-              + QStringLiteral("\" w:hAnsi=\"") + xmlEsc(family)
-              + QStringLiteral("\" w:cs=\"") + xmlEsc(family) + QStringLiteral("\"/>");
-    if (style.bold)   x += QStringLiteral("<w:b/>");
-    if (style.italic) x += QStringLiteral("<w:i/>");
-    x += QStringLiteral("<w:color w:val=\"") + colorHex(style.textColor)
-       + QStringLiteral("\"/><w:sz w:val=\"") + QString::number(half)
-       + QStringLiteral("\"/><w:szCs w:val=\"") + QString::number(half)
-       + QStringLiteral("\"/></w:rPr>");
-    return x;
-}
-
-static QString alignValue(Qt::Alignment align)
-{
-    if (align & Qt::AlignHCenter) return QStringLiteral("center");
-    if (align & Qt::AlignRight)   return QStringLiteral("right");
-    return QStringLiteral("left");
-}
-
-// Line height is pinned to the pitch measured in the PDF. Left on "auto", Word
-// applies the substituted font's own leading and every block drifts a little
-// further down the page than the original.
-static int linePitchTwips(const DocxBlock &block)
-{
-    const ContentItem &first = block.lines.first();
-    double pitch = fontSizeOf_(first) * 1.18;
-    if (block.lines.size() > 1) {
-        QList<double> gaps;
-        for (int i = 1; i < block.lines.size(); ++i)
-            gaps.append(block.lines[i].bounds.top() - block.lines[i - 1].bounds.top());
-        std::sort(gaps.begin(), gaps.end());
-        const double measured = gaps[gaps.size() / 2];
-        if (measured > 1.0) pitch = measured;
-    }
-    return qRound(qMax(pitch, fontSizeOf_(first) * 1.05) * 20.0);
-}
-
-static QString paragraphXml(const DocxBlock &block, double spaceBeforePt,
-                            bool insideCell)
-{
-    if (block.lines.isEmpty()) return {};
-    const ContentItem &style = block.lines.first();
-
-    QString x = QStringLiteral("<w:p><w:pPr><w:spacing w:before=\"")
-              + twips(qMax(0.0, spaceBeforePt))
-              + QStringLiteral("\" w:after=\"0\" w:line=\"")
-              + QString::number(linePitchTwips(block))
-              + QStringLiteral("\" w:lineRule=\"exact\"/>");
-    if (!insideCell && block.indentPt > 1.0)
-        x += QStringLiteral("<w:ind w:left=\"") + twips(block.indentPt)
-           + QStringLiteral("\"/>");
-    x += QStringLiteral("<w:jc w:val=\"") + alignValue(block.align)
-       + QStringLiteral("\"/>");
-    // Shading carries the panel fill the layout pass found behind this text.
-    if (style.bgColor.isValid() && style.bgColor != QColor(Qt::white))
-        x += QStringLiteral("<w:shd w:val=\"clear\" w:color=\"auto\" w:fill=\"")
-           + colorHex(style.bgColor) + QStringLiteral("\"/>");
-    x += QStringLiteral("</w:pPr><w:r>") + runProperties(style)
-       + QStringLiteral("<w:t xml:space=\"preserve\">")
-       + xmlEsc(paragraphText(block.lines))
-       + QStringLiteral("</w:t></w:r></w:p>");
-    return x;
-}
-
-static QString tableXml(const DocxBlock &block)
-{
-    const DocxTable &t = block.table;
-    const int cols = t.colWidthsPt.size();
-    if (cols == 0 || t.rowCount == 0) return {};
-
-    double total = 0.0;
-    for (double w : t.colWidthsPt) total += w;
-
-    QString x = QStringLiteral("<w:tbl><w:tblPr><w:tblW w:w=\"") + twips(total)
-              + QStringLiteral("\" w:type=\"dxa\"/>");
-    if (t.indentPt > 1.0)
-        x += QStringLiteral("<w:tblInd w:w=\"") + twips(t.indentPt)
-           + QStringLiteral("\" w:type=\"dxa\"/>");
-    // Cell margins are set on the table itself, not left to the default style:
-    // LibreOffice applies its own ~5 pt top/bottom otherwise, every row grows
-    // past the height asked for, and the whole page below the table shifts.
-    x += QStringLiteral("<w:tblLayout w:type=\"fixed\"/>"
-                        "<w:tblCellMar>"
-                        "<w:top w:w=\"0\" w:type=\"dxa\"/>"
-                        "<w:left w:w=\"58\" w:type=\"dxa\"/>"
-                        "<w:bottom w:w=\"0\" w:type=\"dxa\"/>"
-                        "<w:right w:w=\"58\" w:type=\"dxa\"/>"
-                        "</w:tblCellMar>");
-    if (t.hasBorders)
-        x += QStringLiteral("<w:tblBorders>"
-                            "<w:top w:val=\"single\" w:sz=\"4\" w:color=\"BFBFBF\"/>"
-                            "<w:left w:val=\"single\" w:sz=\"4\" w:color=\"BFBFBF\"/>"
-                            "<w:bottom w:val=\"single\" w:sz=\"4\" w:color=\"BFBFBF\"/>"
-                            "<w:right w:val=\"single\" w:sz=\"4\" w:color=\"BFBFBF\"/>"
-                            "<w:insideH w:val=\"single\" w:sz=\"4\" w:color=\"BFBFBF\"/>"
-                            "<w:insideV w:val=\"single\" w:sz=\"4\" w:color=\"BFBFBF\"/>"
-                            "</w:tblBorders>");
-    x += QStringLiteral("</w:tblPr><w:tblGrid>");
-    for (double w : t.colWidthsPt)
-        x += QStringLiteral("<w:gridCol w:w=\"") + twips(w) + QStringLiteral("\"/>");
-    x += QStringLiteral("</w:tblGrid>");
-
-    for (int r = 0; r < t.rowCount; ++r) {
-        x += QStringLiteral("<w:tr>");
-        if (r < t.rowHeightsPt.size())
-            x += QStringLiteral("<w:trPr><w:trHeight w:val=\"")
-               + twips(t.rowHeightsPt[r])
-               + QStringLiteral("\" w:hRule=\"atLeast\"/></w:trPr>");
-        int col = 0;
-        while (col < cols) {
-            const DocxCell *cell = nullptr;
-            for (const DocxCell &c : t.cells)
-                if (c.row == r && c.col == col) { cell = &c; break; }
-
-            const int span = cell ? qBound(1, cell->colSpan, cols - col) : 1;
-            double width = 0.0;
-            for (int s = 0; s < span; ++s) width += t.colWidthsPt[col + s];
-
-            x += QStringLiteral("<w:tc><w:tcPr><w:tcW w:w=\"") + twips(width)
-               + QStringLiteral("\" w:type=\"dxa\"/>");
-            if (span > 1)
-                x += QStringLiteral("<w:gridSpan w:val=\"") + QString::number(span)
-                   + QStringLiteral("\"/>");
-            if (cell && cell->shading.isValid()
-                    && cell->shading != QColor(Qt::white))
-                x += QStringLiteral("<w:shd w:val=\"clear\" w:color=\"auto\" w:fill=\"")
-                   + colorHex(cell->shading) + QStringLiteral("\"/>");
-            x += QStringLiteral("<w:vAlign w:val=\"center\"/></w:tcPr>");
-
-            if (cell && !cell->item.text.trimmed().isEmpty()) {
-                DocxBlock cellPara;
-                cellPara.kind  = DocxBlock::Kind::Paragraph;
-                cellPara.lines = { cell->item };
-                cellPara.align = cell->align;
-                x += paragraphXml(cellPara, 0.0, true);
-            } else {
-                x += QStringLiteral("<w:p><w:pPr><w:spacing w:before=\"0\" "
-                                    "w:after=\"0\"/></w:pPr></w:p>");
-            }
-            x += QStringLiteral("</w:tc>");
-            col += span;
-        }
-        x += QStringLiteral("</w:tr>");
-    }
-    x += QStringLiteral("</w:tbl>");
-    return x;
-}
-
-// Floating, page-anchored picture. Artwork keeps the exact spot it had in the
-// PDF while the text around it stays in the normal flow.
-static QString pictureXml(const DocxBlock &block, const QString &relId, int id)
-{
-    const QString name = QStringLiteral("Grafik%1").arg(id);
-    return QStringLiteral(
-        "<w:r><w:drawing><wp:anchor distT=\"0\" distB=\"0\" distL=\"0\" distR=\"0\" "
-        "simplePos=\"0\" relativeHeight=\"%1\" behindDoc=\"1\" locked=\"0\" "
-        "layoutInCell=\"1\" allowOverlap=\"1\">"
-        "<wp:simplePos x=\"0\" y=\"0\"/>"
-        "<wp:positionH relativeFrom=\"page\"><wp:posOffset>%2</wp:posOffset></wp:positionH>"
-        "<wp:positionV relativeFrom=\"page\"><wp:posOffset>%3</wp:posOffset></wp:positionV>"
-        "<wp:extent cx=\"%4\" cy=\"%5\"/>"
-        "<wp:effectExtent l=\"0\" t=\"0\" r=\"0\" b=\"0\"/><wp:wrapNone/>"
-        "<wp:docPr id=\"%6\" name=\"%7\"/><wp:cNvGraphicFramePr/>"
-        "<a:graphic xmlns:a=\"http://schemas.openxmlformats.org/drawingml/2006/main\">"
-        "<a:graphicData uri=\"http://schemas.openxmlformats.org/drawingml/2006/picture\">"
-        "<pic:pic xmlns:pic=\"http://schemas.openxmlformats.org/drawingml/2006/picture\">"
-        "<pic:nvPicPr><pic:cNvPr id=\"%6\" name=\"%7\"/><pic:cNvPicPr/></pic:nvPicPr>"
-        "<pic:blipFill><a:blip r:embed=\"%8\"/><a:stretch><a:fillRect/></a:stretch></pic:blipFill>"
-        "<pic:spPr><a:xfrm><a:off x=\"0\" y=\"0\"/><a:ext cx=\"%4\" cy=\"%5\"/></a:xfrm>"
-        "<a:prstGeom prst=\"rect\"><a:avLst/></a:prstGeom></pic:spPr>"
-        "</pic:pic></a:graphicData></a:graphic></wp:anchor></w:drawing></w:r>")
-        .arg(QString::number(100 + id),
-             emu(block.bounds.left()), emu(block.bounds.top()),
-             emu(block.bounds.width()), emu(block.bounds.height()),
-             QString::number(id), name, relId);
-}
-
 static QByteArray buildStructuredDocument(const QList<DocxPage> &pages,
                                           QList<MediaPart> *media,
                                           const DocxExportOptions &opt)
@@ -623,7 +195,9 @@ static QByteArray buildStructuredDocument(const QList<DocxPage> &pages,
         "xmlns:r=\"http://schemas.openxmlformats.org/officeDocument/2006/relationships\" "
         "xmlns:wp=\"http://schemas.openxmlformats.org/drawingml/2006/wordprocessingDrawing\" "
         "xmlns:a=\"http://schemas.openxmlformats.org/drawingml/2006/main\" "
-        "xmlns:pic=\"http://schemas.openxmlformats.org/drawingml/2006/picture\">"
+        "xmlns:pic=\"http://schemas.openxmlformats.org/drawingml/2006/picture\" "
+        "xmlns:v=\"urn:schemas-microsoft-com:vml\" "
+        "xmlns:o=\"urn:schemas-microsoft-com:office:office\">"
         "<w:body>");
 
     // One section, so one set of margins for the whole document — but each page
@@ -641,6 +215,7 @@ static QByteArray buildStructuredDocument(const QList<DocxPage> &pages,
     }
 
     int mediaId = 1;
+    int drawingId = 1;
     for (int pg = 0; pg < pages.size(); ++pg) {
         const DocxPage &page = pages[pg];
         const double indentShift = page.marginsPt.left() - section.left();
@@ -648,7 +223,34 @@ static QByteArray buildStructuredDocument(const QList<DocxPage> &pages,
         // Every picture of this page is anchored from one leading paragraph.
         // Its own height must be negligible or it would push the flow down.
         QString anchors;
+        // A mixed document must not flatten every good page merely because one
+        // page is a scan. Only that structureless page gets a raster fallback.
+        if (page.blocks.isEmpty() && !page.background.isNull()) {
+            DocxBlock scan;
+            scan.kind    = DocxBlock::Kind::Picture;
+            scan.bounds  = QRectF(QPointF(0.0, 0.0), page.pageSizePt);
+            scan.picture = page.background;
+            QByteArray image;
+            const QString ext = encodePicture(scan.picture, opt, &image);
+            if (!ext.isEmpty()) {
+                MediaPart part;
+                part.name  = QStringLiteral("scan%1.%2").arg(pg + 1).arg(ext);
+                part.relId = QStringLiteral("rIdImg%1").arg(mediaId);
+                part.png   = std::move(image);
+                anchors += pictureXml(scan, part.relId, drawingId++);
+                media->append(std::move(part));
+                ++mediaId;
+            }
+        }
         for (const DocxBlock &block : page.blocks) {
+            if (block.kind == DocxBlock::Kind::Shape) {
+                anchors += shapeXml(block, drawingId++);
+                continue;
+            }
+            if (block.kind == DocxBlock::Kind::TextBox) {
+                anchors += textBoxXml(block, drawingId++);
+                continue;
+            }
             if (block.kind != DocxBlock::Kind::Picture) continue;
             QByteArray png;
             const QString ext = encodePicture(block.picture, opt, &png);
@@ -657,7 +259,7 @@ static QByteArray buildStructuredDocument(const QList<DocxPage> &pages,
             part.name  = QStringLiteral("image%1.%2").arg(mediaId).arg(ext);
             part.relId = QStringLiteral("rIdImg%1").arg(mediaId);
             part.png   = std::move(png);
-            anchors += pictureXml(block, part.relId, mediaId);
+            anchors += pictureXml(block, part.relId, drawingId++);
             media->append(std::move(part));
             ++mediaId;
         }
@@ -679,7 +281,10 @@ static QByteArray buildStructuredDocument(const QList<DocxPage> &pages,
         // later block on the y it had in the PDF instead of drifting downwards.
         double cursor = section.top();
         for (const DocxBlock &block : page.blocks) {
-            if (block.kind == DocxBlock::Kind::Picture) continue;
+            if (block.kind == DocxBlock::Kind::Picture
+                    || block.kind == DocxBlock::Kind::Shape
+                    || block.kind == DocxBlock::Kind::TextBox)
+                continue;
             const double gap = block.bounds.top() - cursor;
             double rendered = 0.0;
             if (block.kind == DocxBlock::Kind::Table) {
@@ -774,7 +379,18 @@ static QByteArray buildPositionedDocument(const QList<DocxPage> &pages,
                  + QString::number(pg + 1)
                  + QStringLiteral("\" o:title=\"\"/></v:rect></w:pict></w:r>");
         }
-        for (const ContentItem &item : pages[pg].items) {
+        QList<ContentItem> textItems = pages[pg].items;
+        std::stable_sort(textItems.begin(), textItems.end(),
+                         [](const ContentItem &a, const ContentItem &b) {
+            if (!qFuzzyCompare(a.bounds.top() + 1.0, b.bounds.top() + 1.0))
+                return a.bounds.top() < b.bounds.top();
+            return a.bounds.left() < b.bounds.left();
+        });
+        // Absolute positioning controls the appearance, while XML order
+        // controls selection/copying and assistive reading. Providers put form
+        // fields first for hit-testing priority, so restore visual reading
+        // order here before serialising the editable boxes.
+        for (const ContentItem &item : textItems) {
             if (!item.isTextual() || item.text.trimmed().isEmpty()) continue;
             const QRectF r = item.bounds.normalized();
             if (r.isEmpty()) continue;
@@ -901,39 +517,20 @@ static bool writeDocx(const QString &outputPath, const QByteArray &documentXml,
         "</w:style>"
         "</w:styles>";
 
-    QList<ZEntry> entries;
-    entries.append({"[Content_Types].xml",          QByteArray(kCT),      0, 0});
-    entries.append({"_rels/.rels",                  QByteArray(kRels),    0, 0});
-    entries.append({"word/_rels/document.xml.rels", docRels, 0, 0});
-    entries.append({"word/styles.xml",              QByteArray(kStyles),  0, 0});
-    entries.append({"word/document.xml",            documentXml, 0, 0});
+    ZipWriter zip;
+    zip.add("[Content_Types].xml",          QByteArray(kCT));
+    zip.add("_rels/.rels",                  QByteArray(kRels));
+    zip.add("word/_rels/document.xml.rels", docRels);
+    zip.add("word/styles.xml",              QByteArray(kStyles));
+    zip.add("word/document.xml",            documentXml);
     for (const MediaPart &part : media)
-        entries.append({("word/media/" + part.name).toUtf8(), part.png, 0, 0});
-
-    QByteArray zip;
-    for (auto &e : entries)
-        writeLocal(zip, e);
-
-    QByteArray cd;
-    for (const auto &e : entries)
-        writeCentral(cd, e);
-
-    const uint32_t cdOff  = static_cast<uint32_t>(zip.size());
-    const uint32_t cdSize = static_cast<uint32_t>(cd.size());
-    zip += cd;
-
-    zip += "\x50\x4B\x05\x06";
-    u16le(zip, 0); u16le(zip, 0);
-    u16le(zip, static_cast<uint16_t>(entries.size()));
-    u16le(zip, static_cast<uint16_t>(entries.size()));
-    u32le(zip, cdSize);
-    u32le(zip, cdOff);
-    u16le(zip, 0);
+        zip.add(("word/media/" + part.name).toUtf8(), part.png);
 
     QFile f(outputPath);
     if (!f.open(QIODevice::WriteOnly))
         return false;
-    return f.write(zip) == zip.size();
+    const QByteArray bytes = zip.archive();
+    return f.write(bytes) == bytes.size();
 }
 
 bool DocxExporter::exportToDocx(const QString &outputPath,
@@ -944,12 +541,12 @@ bool DocxExporter::exportToDocx(const QString &outputPath,
     Q_UNUSED(title);
     QList<MediaPart> media;
 
-    // Structured output is the goal: real paragraphs, real tables, pictures
-    // only where nothing else fits. Pages the layout pass could not read —
-    // scans, pure artwork — keep the positioned raster fallback.
-    bool structured = !pages.isEmpty();
-    for (const DocxPage &page : pages)
-        if (page.blocks.isEmpty()) structured = false;
+    // Native paragraphs/tables/shapes are the primary path. A page-sized
+    // picture is reserved for scans or synthetic callers with no structure.
+    const bool structured = std::any_of(pages.cbegin(), pages.cend(),
+                                        [](const DocxPage &page) {
+        return !page.blocks.isEmpty();
+    });
     if (structured)
         return writeDocx(outputPath, buildStructuredDocument(pages, &media, options), media);
 

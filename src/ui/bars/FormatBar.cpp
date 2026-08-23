@@ -13,6 +13,7 @@
 #include <QPainterPath>
 #include <QPixmap>
 #include <QIcon>
+#include <QMenu>
 
 // ── Icon painters ─────────────────────────────────────────────────────────────
 
@@ -124,8 +125,9 @@ static QIcon makeBoldIcon(const QColor &color = QColor(0x37, 0x41, 0x51))
     bot.quadTo(13.5, 14.5, 5, 14.5);
     bot.lineTo(5, 8.0);
     p.fillPath(bot, color);
-    // White cutout top bump interior
-    p.setBrush(Qt::white);
+    // Transparent cutouts work on both light and dark toolbar backgrounds.
+    p.setCompositionMode(QPainter::CompositionMode_Clear);
+    p.setBrush(Qt::transparent);
     p.drawEllipse(QRectF(5.5, 2.5, 5.5, 4.5));
     // White cutout bottom bump interior
     p.drawEllipse(QRectF(5.5, 8.8, 6.5, 4.5));
@@ -189,6 +191,7 @@ QFrame *FormatBar::makeSep(QWidget *parent)
     auto *sep = new QFrame(parent);
     sep->setFrameShape(QFrame::VLine);
     sep->setFixedSize(1, 32);
+    sep->setObjectName(QStringLiteral("FormatBarSeparator"));
     sep->setStyleSheet(QStringLiteral("background:#E5E7EB; border:none;"));
     return sep;
 }
@@ -201,6 +204,7 @@ QPushButton *FormatBar::makeFmtBtn(const QIcon &icon, QWidget *parent)
     btn->setFixedSize(30, 30);
     btn->setIcon(icon);
     btn->setIconSize({16, 16});
+    btn->setProperty("formatButton", true);
     btn->setStyleSheet(QStringLiteral(
         "QPushButton { background:#FFFFFF; border:1px solid #D1D5DB; border-radius:5px; }"
         "QPushButton:checked { background:#EFF6FF; border-color:#BFDBFE; }"
@@ -217,6 +221,7 @@ QPushButton *FormatBar::makeAlignBtn(const QString &/*iconName*/, const QString 
     btn->setFixedSize(30, 30);
     btn->setToolTip(tip);
     btn->setIconSize({16, 16});
+    btn->setProperty("alignButton", true);
     btn->setStyleSheet(QStringLiteral(
         "QPushButton { background:transparent; border:none; border-radius:5px; }"
         "QPushButton:checked { background:#EFF6FF; }"
@@ -235,6 +240,7 @@ static QWidget *makeGroup(const QString &label, QLayout *controls, QWidget *pare
     vl->setSpacing(0);
 
     auto *lbl = new QLabel(label, w);
+    lbl->setProperty("formatLabel", true);
     lbl->setMinimumHeight(13);
     lbl->setMaximumHeight(18);
     lbl->setStyleSheet(QStringLiteral(
@@ -270,6 +276,7 @@ FormatBar::FormatBar(QWidget *parent) : QFrame(parent)
     // ── Schriftart ────────────────────────────────────────────────────────────
     {
         m_fontFamily = new QFontComboBox(this);
+        m_fontFamily->setObjectName(QStringLiteral("FormatBarCombo"));
         m_fontFamily->setCurrentFont(QFont(QStringLiteral("Noto Sans")));
         m_fontFamily->setFixedWidth(192);
         m_fontFamily->setFixedHeight(30);
@@ -293,6 +300,7 @@ FormatBar::FormatBar(QWidget *parent) : QFrame(parent)
     // ── Schriftgröße ──────────────────────────────────────────────────────────
     {
         m_fontSize = new QComboBox(this);
+        m_fontSize->setObjectName(QStringLiteral("FormatBarCombo"));
         for (const int s : {8,9,10,11,12,14,16,18,20,24,28,32,36,48,64,72})
             m_fontSize->addItem(QString::number(s));
         m_fontSize->setCurrentText(QStringLiteral("14"));
@@ -357,6 +365,7 @@ FormatBar::FormatBar(QWidget *parent) : QFrame(parent)
     // ── Textfarbe ─────────────────────────────────────────────────────────────
     {
         m_color = new QPushButton(this);
+        m_color->setProperty("formatButton", true);
         m_color->setFlat(true);
         m_color->setFixedSize(44, 30);
         m_color->setToolTip(tr("Color"));
@@ -411,6 +420,7 @@ FormatBar::FormatBar(QWidget *parent) : QFrame(parent)
             btn->setIcon(icons[i]);
             if (i == 0) btn->setChecked(true);
             grp->addButton(btn);
+            m_alignButtons.append(btn);
             hl->addWidget(btn);
             const Qt::Alignment al = defs[i].align;
             connect(btn, &QPushButton::clicked, this, [this, al]() {
@@ -432,26 +442,50 @@ FormatBar::FormatBar(QWidget *parent) : QFrame(parent)
             "QPushButton:hover { background:#F3F4F6; border-color:#9CA3AF; }"
             "QPushButton:pressed { background:#E5E7EB; }");
 
-        auto *listBtn = new QPushButton(this);
-        listBtn->setFixedSize(36, 30);
-        listBtn->setToolTip(tr("List"));
-        listBtn->setIcon(makeListIcon(false));
-        listBtn->setIconSize({14, 14});
-        listBtn->setText(QStringLiteral(" ▾"));
-        listBtn->setStyleSheet(btnStyle);
+        m_list = new QPushButton(this);
+        m_list->setFixedSize(36, 30);
+        m_list->setToolTip(tr("List"));
+        m_list->setIcon(makeListIcon(false));
+        m_list->setIconSize({14, 14});
+        m_list->setText(QStringLiteral(" ▾"));
+        m_list->setProperty("menuButton", true);
+        m_list->setStyleSheet(btnStyle);
 
-        auto *indentBtn = new QPushButton(this);
-        indentBtn->setFixedSize(36, 30);
-        indentBtn->setToolTip(tr("Indent"));
-        indentBtn->setIcon(makeIndentIcon());
-        indentBtn->setIconSize({14, 14});
-        indentBtn->setText(QStringLiteral(" ▾"));
-        indentBtn->setStyleSheet(btnStyle);
+        m_indent = new QPushButton(this);
+        m_indent->setFixedSize(36, 30);
+        m_indent->setToolTip(tr("Indent"));
+        m_indent->setIcon(makeIndentIcon());
+        m_indent->setIconSize({14, 14});
+        m_indent->setText(QStringLiteral(" ▾"));
+        m_indent->setProperty("menuButton", true);
+        m_indent->setStyleSheet(btnStyle);
+
+        auto *listMenu = new QMenu(m_list);
+        listMenu->setObjectName(QStringLiteral("FormatBarMenu"));
+        auto *none = listMenu->addAction(tr("No List"));
+        auto *bullets = listMenu->addAction(tr("Bulleted List"));
+        auto *numbers = listMenu->addAction(tr("Numbered List"));
+        connect(none, &QAction::triggered, this, [this] { Q_EMIT listStyleChanged(TextBoxProperties::ListStyle::None); });
+        connect(bullets, &QAction::triggered, this, [this] { Q_EMIT listStyleChanged(TextBoxProperties::ListStyle::Bullets); });
+        connect(numbers, &QAction::triggered, this, [this] { Q_EMIT listStyleChanged(TextBoxProperties::ListStyle::Numbered); });
+        connect(m_list, &QPushButton::clicked, this, [this, listMenu] {
+            listMenu->popup(m_list->mapToGlobal(QPoint(0, m_list->height() + 4)));
+        });
+
+        auto *indentMenu = new QMenu(m_indent);
+        indentMenu->setObjectName(QStringLiteral("FormatBarMenu"));
+        auto *decrease = indentMenu->addAction(tr("Decrease Indent"));
+        auto *increase = indentMenu->addAction(tr("Increase Indent"));
+        connect(decrease, &QAction::triggered, this, [this] { Q_EMIT indentChanged(-1); });
+        connect(increase, &QAction::triggered, this, [this] { Q_EMIT indentChanged(1); });
+        connect(m_indent, &QPushButton::clicked, this, [this, indentMenu] {
+            indentMenu->popup(m_indent->mapToGlobal(QPoint(0, m_indent->height() + 4)));
+        });
 
         auto *hl = new QHBoxLayout();
         hl->setSpacing(4);
-        hl->addWidget(listBtn);
-        hl->addWidget(indentBtn);
+        hl->addWidget(m_list);
+        hl->addWidget(m_indent);
         h->addWidget(makeGroup(tr("List / Spacing"), hl, this, &m_lblList));
     }
 
@@ -460,6 +494,7 @@ FormatBar::FormatBar(QWidget *parent) : QFrame(parent)
     // ── Zeilenabstand ─────────────────────────────────────────────────────────
     {
         m_spacing = new QComboBox(this);
+        m_spacing->setObjectName(QStringLiteral("FormatBarCombo"));
         m_spacing->addItems({QStringLiteral("1,0"), QStringLiteral("1,15"),
                              QStringLiteral("1,5"), QStringLiteral("2,0")});
         m_spacing->setCurrentIndex(2);
@@ -471,6 +506,10 @@ FormatBar::FormatBar(QWidget *parent) : QFrame(parent)
             "QComboBox::drop-down { border-left:1px solid #D1D5DB; width:22px;"
             "  subcontrol-origin:border; subcontrol-position:right center; background:transparent; }"
             "QComboBox::down-arrow { image:url(:/icons/chevron-down.svg); width:12px; height:12px; }"));
+        connect(m_spacing, &QComboBox::currentIndexChanged, this, [this](int index) {
+            static constexpr double values[] = {1.0, 1.15, 1.5, 2.0};
+            if (index >= 0 && index < 4) Q_EMIT lineSpacingChanged(values[index]);
+        });
         auto *hl = new QHBoxLayout();
         hl->setSpacing(0);
         hl->addWidget(m_spacing);
@@ -478,6 +517,13 @@ FormatBar::FormatBar(QWidget *parent) : QFrame(parent)
     }
 
     h->addStretch(1);
+
+    // Theme styles belong to the application stylesheet. The old per-widget
+    // white styles overrode Dark Mode completely.
+    setStyleSheet({});
+    for (QWidget *child : findChildren<QWidget *>())
+        child->setStyleSheet({});
+    refreshTheme();
 }
 
 // ── Public setters ────────────────────────────────────────────────────────────
@@ -520,6 +566,46 @@ void FormatBar::setItalicChecked(bool on)
     m_italic->setChecked(on);
 }
 
+void FormatBar::setAlignment(TextBoxProperties::HorizontalAlign alignment)
+{
+    const int index = static_cast<int>(alignment);
+    if (index < 0 || index >= m_alignButtons.size()) return;
+    QSignalBlocker blocker(m_alignButtons[index]);
+    m_alignButtons[index]->setChecked(true);
+}
+
+void FormatBar::setLineSpacing(double multiplier)
+{
+    static constexpr double values[] = {1.0, 1.15, 1.5, 2.0};
+    int closest = 0;
+    for (int i = 1; i < 4; ++i)
+        if (qAbs(values[i] - multiplier) < qAbs(values[closest] - multiplier))
+            closest = i;
+    QSignalBlocker blocker(m_spacing);
+    m_spacing->setCurrentIndex(closest);
+}
+
+void FormatBar::refreshTheme()
+{
+    const bool dark = palette().color(QPalette::Window).lightness() < 128;
+    const QColor iconColor = dark ? QColor(QStringLiteral("#D8D8D8"))
+                                  : QColor(QStringLiteral("#374151"));
+    m_bold->setIcon(makeBoldIcon(iconColor));
+    m_italic->setIcon(makeItalicIcon(iconColor));
+    m_underline->setIcon(makeUnderlineIcon(iconColor));
+    const QIcon alignIcons[] = {
+        makeAlignIcon({1.f,.7f,.85f,.6f},{0.f,0.f,0.f,0.f},iconColor),
+        makeAlignIcon({1.f,.6f,.8f,.55f},{0.f,.5f,.5f,.5f},iconColor),
+        makeAlignIcon({1.f,.7f,.85f,.6f},{0.f,1.f,1.f,1.f},iconColor),
+        makeAlignIcon({1.f,1.f,1.f,.65f},{0.f,0.f,0.f,0.f},iconColor)
+    };
+    for (int i = 0; i < m_alignButtons.size() && i < 4; ++i)
+        m_alignButtons[i]->setIcon(alignIcons[i]);
+    if (m_list) m_list->setIcon(makeListIcon(false, iconColor));
+    if (m_indent) m_indent->setIcon(makeIndentIcon(iconColor));
+    updateColorSwatch(m_currentColor);
+}
+
 void FormatBar::updateColorSwatch(const QColor &c)
 {
     // Compound icon: 14×14 color swatch + 4px gap + 10px chevron, all on 28×14 canvas.
@@ -534,9 +620,11 @@ void FormatBar::updateColorSwatch(const QColor &c)
     p.setBrush(c);
     p.drawRoundedRect(QRectF(0.5, 0.5, swatchW - 1, 13), 2, 2);
 
-    // Chevron (same color as other icons: #6B7280)
+    const bool dark = palette().color(QPalette::Window).lightness() < 128;
     p.setRenderHint(QPainter::Antialiasing);
-    p.setPen(QPen(QColor(0x6B, 0x72, 0x80), 1.8, Qt::SolidLine, Qt::RoundCap, Qt::RoundJoin));
+    p.setPen(QPen(dark ? QColor(QStringLiteral("#D8D8D8"))
+                        : QColor(QStringLiteral("#6B7280")),
+                  1.8, Qt::SolidLine, Qt::RoundCap, Qt::RoundJoin));
     p.setBrush(Qt::NoBrush);
     const int cx = swatchW + gap;
     QPolygonF chev;

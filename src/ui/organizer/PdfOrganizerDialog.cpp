@@ -1,17 +1,10 @@
-#include "ui/dialogs/PdfOrganizerDialog.hpp"
+#include "ui/organizer/PdfOrganizerDialog.hpp"
 #include "app/PdfPwStore.hpp"
-#include "ui/dialogs/PasswordDialog.hpp"
+#include "ui/widgets/PasswordDialog.hpp"
+#include "engine/document/OrganizerDoc.hpp"
+#include "engine/document/OrganizerWriter.hpp"
+#include "ui/organizer/PageCard.hpp"
 
-namespace OrgConst {
-    constexpr int CARD_W    = 220;
-    constexpr int CARD_H    = 265;
-    constexpr int THUMB_W   = 172;
-    constexpr int THUMB_H   = 210;
-    constexpr int RENDER_DPI = 96;
-    constexpr int COL_GAP   = 16;
-    constexpr int ROW_GAP   = 16;
-    constexpr int GRID_PAD  = 20;
-}
 
 #include <QVBoxLayout>
 #include <QHBoxLayout>
@@ -67,262 +60,6 @@ namespace OrgConst {
 #include <memory>
 #endif
 
-#ifdef HAVE_PDF_RENDERING
-// ─────────────────────────────────────────────────────────────────────────────
-// OrganizerDoc — ein zweites, unabhängig geöffnetes Dokument
-//
-// Der Organizer liest aus anderen Dateien als die Ansicht (Seiten aus mehreren
-// PDFs zusammenstellen), braucht also ein eigenes Backend statt des einen, das
-// DocumentSource hält. Mehr als Seitenzahl, Seitengröße und einen Rasterisierer
-// braucht er dafür nicht — und genau das ist PdfBackend.
-//
-// Früher standen hier zwei Zweige, einer für Qt6Pdf und einer für Poppler. Der
-// Grund dafür ist mit dem Interface weggefallen.
-// ─────────────────────────────────────────────────────────────────────────────
-class OrganizerDoc
-{
-public:
-    // needsPassword unterscheidet "verschlüsselt" von "kaputt", damit der
-    // Aufrufer im ersten Fall fragen kann, ohne im zweiten zu nerven.
-    static OrganizerDoc *load(const QString &path, const QString &password = {},
-                              bool *needsPassword = nullptr)
-    {
-        if (needsPassword) *needsPassword = false;
-        auto backend = PdfBackend::create();
-        if (!backend) return nullptr;
-
-        // Nach einem Passwort gefragt wird nur, wenn die Datei verschlüsselt
-        // ist — dass der Rückruf lief, ist also die Antwort auf needsPassword.
-        // Angeboten wird das übergebene Passwort genau einmal; danach gibt der
-        // Rückruf auf, statt in einer Schleife dasselbe zu wiederholen.
-        bool asked = false;
-        bool offered = false;
-        auto ask = [&](const QString &, bool) -> std::optional<QString> {
-            asked = true;
-            if (offered || password.isEmpty()) return std::nullopt;
-            offered = true;
-            return password;
-        };
-
-        if (!backend->open(path, ask)) {
-            if (needsPassword) *needsPassword = asked;
-            return nullptr;
-        }
-        return new OrganizerDoc(std::move(backend));
-    }
-
-    ~OrganizerDoc()
-    {
-        // Der Renderer leiht sich das Backend nur — er geht zuerst.
-        m_renderer.reset();
-        m_backend.reset();
-    }
-
-    int    pageCount() const { return m_backend->pageCount(); }
-    QSizeF pageSizePts(int page) const { return m_renderer->pageSizePts(page); }
-    // scale = Ausgabepixel pro PDF-Punkt.
-    QImage render(int page, qreal scale) const { return m_renderer->renderPage(page, scale); }
-
-private:
-    explicit OrganizerDoc(std::unique_ptr<PdfBackend> backend)
-        : m_backend(std::move(backend))
-        , m_renderer(std::make_unique<PdfRenderer>(m_backend.get())) {}
-
-    std::unique_ptr<PdfBackend>  m_backend;
-    std::unique_ptr<PdfRenderer> m_renderer;
-};
-#endif // HAVE_PDF_RENDERING
-
-// ─────────────────────────────────────────────────────────────────────────────
-// DragDots — 2-column × 3-row dot-grid grip icon, painted directly
-// ─────────────────────────────────────────────────────────────────────────────
-class DragDots : public QWidget
-{
-public:
-    explicit DragDots(QWidget *parent = nullptr) : QWidget(parent)
-    {
-        setFixedSize(16, 22);
-        setCursor(Qt::SizeAllCursor);
-    }
-protected:
-    void paintEvent(QPaintEvent *) override
-    {
-        QPainter p(this);
-        p.setRenderHint(QPainter::Antialiasing);
-        p.setBrush(Theme::DarkMode ? QColor(0x6A, 0x6A, 0x6A)
-                                   : QColor(0xC4, 0xC9, 0xD4));
-        p.setPen(Qt::NoPen);
-        constexpr int R    = 2;   // dot radius
-        constexpr int xGap = 6;  // horizontal spacing (center-to-center)
-        constexpr int yGap = 6;  // vertical spacing
-        const int startX = (width()  - xGap) / 2;
-        const int startY = (height() - yGap * 2) / 2;
-        for (int row = 0; row < 3; ++row)
-            for (int col = 0; col < 2; ++col)
-                p.drawEllipse(QPoint(startX + col * xGap, startY + row * yGap), R, R);
-    }
-};
-
-// ─────────────────────────────────────────────────────────────────────────────
-// PageCard — individual page tile shown in the grid
-// ─────────────────────────────────────────────────────────────────────────────
-class PageCard : public QFrame
-{
-    Q_OBJECT
-public:
-    explicit PageCard(int index, QWidget *parent = nullptr)
-        : QFrame(parent), m_index(index)
-    {
-        setObjectName(QStringLiteral("PageCard"));
-        setFixedSize(OrgConst::CARD_W, OrgConst::CARD_H);
-        setCursor(Qt::ArrowCursor);
-
-        auto *root = new QVBoxLayout(this);
-        root->setContentsMargins(0, 0, 0, 0);
-        root->setSpacing(0);
-
-        // ── Header row (drag handle + checkbox) ───────────────────────────
-        auto *header = new QWidget(this);
-        header->setFixedHeight(28);
-        auto *hdr = new QHBoxLayout(header);
-        hdr->setContentsMargins(8, 4, 8, 0);
-        hdr->setSpacing(0);
-
-        m_dragHandle = new DragDots(header);
-        hdr->addWidget(m_dragHandle, 1, Qt::AlignLeft | Qt::AlignVCenter);
-
-        // Checkable QPushButton styled to look like a tick-box.
-        // "✓" text is always present; CSS makes it transparent when unchecked
-        // and white-on-blue when checked.
-        m_check = new QPushButton(QStringLiteral("✓"), header);
-        m_check->setObjectName(QStringLiteral("CardCheck"));
-        m_check->setCheckable(true);
-        m_check->setFixedSize(22, 22);
-        m_check->setCursor(Qt::PointingHandCursor);
-        m_check->setFocusPolicy(Qt::NoFocus);
-        hdr->addWidget(m_check, 0, Qt::AlignRight | Qt::AlignVCenter);
-
-        root->addWidget(header);
-
-        // ── Thumbnail ─────────────────────────────────────────────────────
-        m_thumbLabel = new QLabel(this);
-        m_thumbLabel->setObjectName(QStringLiteral("ThumbLabel"));
-        m_thumbLabel->setFixedSize(OrgConst::THUMB_W, OrgConst::THUMB_H);
-        m_thumbLabel->setAlignment(Qt::AlignCenter);
-        root->addWidget(m_thumbLabel, 0, Qt::AlignHCenter);
-
-        // ── Page label ────────────────────────────────────────────────────
-        m_pageLabel = new QLabel(this);
-        m_pageLabel->setObjectName(QStringLiteral("PageCardLabel"));
-        m_pageLabel->setAlignment(Qt::AlignCenter);
-        root->addWidget(m_pageLabel, 1, Qt::AlignHCenter | Qt::AlignBottom);
-
-        applyStyle(false);
-
-        connect(m_check, &QPushButton::toggled, this, &PageCard::checkToggled);
-    }
-
-    void setThumb(const QPixmap &px)  { m_thumbLabel->setPixmap(px); }
-    void setPageLabel(const QString &t) { m_pageLabel->setText(t); }
-    void setSelected(bool s)
-    {
-        if (m_selected == s) return;
-        m_selected = s;
-        applyStyle(s);
-        QSignalBlocker blk(m_check);
-        m_check->setChecked(s);
-    }
-    bool isSelected() const { return m_selected; }
-    int  index() const      { return m_index; }
-    void setIndex(int i)    { m_index = i; }
-
-Q_SIGNALS:
-    void clicked(int index, Qt::KeyboardModifiers mods);
-    void checkToggled(bool checked);
-    void dragStarted(int index);
-
-protected:
-    void mousePressEvent(QMouseEvent *e) override
-    {
-        if (e->button() == Qt::LeftButton) {
-            m_dragStart = e->pos();
-            m_dragArmed = true;
-            Q_EMIT clicked(m_index, e->modifiers());
-        }
-        QFrame::mousePressEvent(e);
-    }
-
-    void mouseMoveEvent(QMouseEvent *e) override
-    {
-        if (m_dragArmed && (e->buttons() & Qt::LeftButton) &&
-            (e->pos() - m_dragStart).manhattanLength() > QApplication::startDragDistance())
-        {
-            // One drag per press. The signal runs the whole drag synchronously
-            // and reorders the grid; a second emit from the same press would
-            // carry this card's pre-drop index and move a page the user never
-            // picked up.
-            m_dragArmed = false;
-            Q_EMIT dragStarted(m_index);
-            return;
-        }
-        QFrame::mouseMoveEvent(e);
-    }
-
-private:
-    // Child styles are bundled here because setStyleSheet on the card frame
-    // creates a new style scope — dialog-level rules no longer reach children.
-    static QString childStyles()
-    {
-        const bool dk = Theme::DarkMode;
-        return QStringLiteral(
-            "QPushButton#CardCheck {"
-            "  background:%1; border:2px solid %2; border-radius:5px;"
-            "  color:transparent; font-size:13px; font-weight:700; padding:0;"
-            "}"
-            "QPushButton#CardCheck:checked {"
-            "  background:#2563EB; border-color:#2563EB; color:white;"
-            "}"
-            "QPushButton#CardCheck:hover { border-color:%3; }"
-            "QLabel#PageCardLabel { font-size:13px; font-weight:600; color:%4; padding-bottom:6px; }")
-            .arg(dk ? QLatin1String("#2B2B2B") : QLatin1String("#FFFFFF"),
-                 dk ? QLatin1String("#555555") : QLatin1String("#D1D5DB"),
-                 dk ? QLatin1String("#3B82F6") : QLatin1String("#93C5FD"),
-                 dk ? QLatin1String("#D8D8D8") : QLatin1String("#111827"));
-    }
-
-    void applyStyle(bool selected)
-    {
-        const bool dk = Theme::DarkMode;
-        const QString bg     = dk ? QStringLiteral("#3A3A3A") : QStringLiteral("#FFFFFF");
-        const QString border = dk ? QStringLiteral("#484848") : QStringLiteral("#E5E7EB");
-        const QString hover  = dk ? QStringLiteral("#606060") : QStringLiteral("#CBD5E1");
-        const QString sel    = dk ? QStringLiteral("#3B82F6") : QStringLiteral("#2563EB");
-
-        if (selected) {
-            setStyleSheet(QStringLiteral(
-                "QFrame#PageCard { background:%1; border:2px solid %2; border-radius:10px; }")
-                .arg(bg, sel)
-                + childStyles());
-        } else {
-            setStyleSheet(QStringLiteral(
-                "QFrame#PageCard { background:%1; border:1px solid %2; border-radius:10px; }"
-                "QFrame#PageCard:hover { border:1px solid %3; }")
-                .arg(bg, border, hover)
-                + childStyles());
-        }
-    }
-
-    int        m_index;
-    bool       m_selected { false };
-    bool       m_dragArmed { false };
-    QPoint     m_dragStart;
-    DragDots  *m_dragHandle  { nullptr };
-    QLabel    *m_thumbLabel  { nullptr };
-    QLabel    *m_pageLabel   { nullptr };
-    QPushButton *m_check     { nullptr };
-};
-
-#include "PdfOrganizerDialog.moc"
 
 // ─────────────────────────────────────────────────────────────────────────────
 // PdfOrganizerDialog
@@ -1061,303 +798,52 @@ QPixmap PdfOrganizerDialog::renderThumb(const PageEntry &e)
 //
 // Returns false on any qpdf failure (encrypted or damaged source, unwritable
 // target); writePdf() then falls back to the raster path.
-bool PdfOrganizerDialog::writeVectorPdf(const QString &outPath)
-{
-    try {
-        QPDF out;
-        out.emptyPDF();
-        QPDFPageDocumentHelper outPages(out);
-        QPDFAcroFormDocumentHelper outForms(out);
-
-        // One QPDF per source file, opened lazily and shared by all pages that
-        // come from it. Held alongside its form helper because
-        // fixCopiedAnnotations needs the source document's AcroForm view.
-        struct Source {
-            std::unique_ptr<QPDF>                       pdf;
-            std::unique_ptr<QPDFAcroFormDocumentHelper> forms;
-            std::vector<QPDFPageObjectHelper>           pages;
-        };
-        std::map<QString, Source> sources;
-
-        auto sourceFor = [&](const QString &path) -> Source * {
-            auto it = sources.find(path);
-            if (it != sources.end()) return &it->second;
-
-            Source s;
-            s.pdf = std::make_unique<QPDF>();
-            const std::string pw = PdfPwStore::forQpdf(path);
-            s.pdf->processFile(path.toLocal8Bit().constData(),
-                               pw.empty() ? nullptr : pw.c_str());
-            s.forms = std::make_unique<QPDFAcroFormDocumentHelper>(*s.pdf);
-            s.pages = QPDFPageDocumentHelper(*s.pdf).getAllPages();
-            return &sources.emplace(path, std::move(s)).first->second;
-        };
-
-        // Blank pages inherit the size of the page before them (the one after
-        // them if they lead the document), so an inserted sheet matches the
-        // document instead of defaulting to A4 in a Letter file.
-        auto blankSizePt = [&](int at) -> QSizeF {
-            for (int i = at - 1; i >= 0; --i)
-                if (!m_pages[i].isBlank && m_docs.contains(m_pages[i].pdfPath))
-                    return m_docs[m_pages[i].pdfPath]->pageSizePts(m_pages[i].pageIndex);
-            for (int i = at + 1; i < m_pages.size(); ++i)
-                if (!m_pages[i].isBlank && m_docs.contains(m_pages[i].pdfPath))
-                    return m_docs[m_pages[i].pdfPath]->pageSizePts(m_pages[i].pageIndex);
-            return QSizeF(595.0, 842.0);            // A4 fallback
-        };
-
-        for (int i = 0; i < m_pages.size(); ++i) {
-            const PageEntry &e = m_pages[i];
-
-            if (e.isBlank) {
-                const QSizeF sz = blankSizePt(i);
-                QPDFObjectHandle page = QPDFObjectHandle::newDictionary();
-                page.replaceKey("/Type", QPDFObjectHandle::newName("/Page"));
-                page.replaceKey("/MediaBox", QPDFObjectHandle::newFromRectangle(
-                    QPDFObjectHandle::Rectangle(0, 0, sz.width(), sz.height())));
-                page.replaceKey("/Resources", QPDFObjectHandle::newDictionary());
-                page.replaceKey("/Contents", QPDFObjectHandle::newStream(&out, ""));
-                outPages.addPage(QPDFPageObjectHelper(out.makeIndirectObject(page)), false);
-            } else {
-                Source *src = sourceFor(e.pdfPath);
-                const auto idx = static_cast<std::size_t>(e.pageIndex);
-                if (e.pageIndex < 0 || idx >= src->pages.size()) continue;
-                outPages.addPage(src->pages[idx], false);
-            }
-
-            // addPage may copy rather than adopt the object, so the page has to
-            // be fetched back from the output document before it is modified.
-            auto added = outPages.getAllPages();
-            if (added.empty()) continue;
-            QPDFPageObjectHelper newPage = added.back();
-
-            if (!e.isBlank) {
-                Source *src = sourceFor(e.pdfPath);
-                const auto idx = static_cast<std::size_t>(e.pageIndex);
-                if (idx < src->pages.size()) {
-                    // Without this, copies of a page share one annotation set and
-                    // form fields drop out entirely (no page → field reference).
-                    outForms.fixCopiedAnnotations(
-                        newPage.getObjectHandle(),
-                        src->pages[idx].getObjectHandle(),
-                        *src->forms);
-                }
-            }
-
-            if (e.rotation != 0)
-                newPage.rotatePage(e.rotation, true);   // relative to /Rotate
-        }
-
-        // Staged — "Save as" onto one of the source files would otherwise
-        // truncate the very document these pages are still being copied from.
-        const QString staging = SafeWrite::stagingPath(outPath);
-        if (staging.isEmpty()) return false;
-        {
-            QPDFWriter writer(out, staging.toLocal8Bit().constData());
-
-            // Das Ergebnis ist ein NEU gebautes Dokument (out.emptyPDF()), es
-            // erbt von den Quellen nichts — auch keinen Schutz. Ein
-            // passwortgeschütztes PDF kam nach dem Umsortieren also offen
-            // heraus, während dasselbe Dokument über den Editor gespeichert
-            // seinen Schutz behielt. Diese Inkonsistenz ist bewusst beendet:
-            // war eine Quelle geschützt, ist es das Ergebnis auch.
-            //
-            // PdfPwStore trägt ein Passwort nur für Dateien, die damit
-            // aufgesperrt wurden — sein Vorhandensein IST die Antwort auf
-            // "war geschützt".
-            QString protectWith;
-            for (const PageEntry &e : m_pages) {
-                if (e.isBlank) continue;
-                const QString pw = PdfPwStore::get(e.pdfPath);
-                if (!pw.isEmpty()) { protectWith = pw; break; }
-            }
-            if (!protectWith.isEmpty()) {
-                const std::string pass = protectWith.toStdString();
-                // AES-256; das Benutzerpasswort dient zugleich als
-                // Besitzerpasswort, wie beim PDF-Export.
-                writer.setR6EncryptionParameters(
-                    pass.c_str(), pass.c_str(),
-                    /*accessibility*/ true, /*extract*/ true, /*assemble*/ true,
-                    /*annotate_and_form*/ true, /*form_filling*/ true,
-                    /*modify_other*/ true, qpdf_r3p_full, /*encrypt_metadata*/ true);
-                PdfPwStore::set(outPath, protectWith);
-            }
-            writer.write();
-        }
-        return SafeWrite::commit(staging, outPath);
-
-    } catch (const std::exception &ex) {
-        qWarning() << "[QPDF] organizer vector save failed:" << ex.what();
-        return false;
-    }
-}
 #endif // HAVE_QPDF
 
 // Opens what was just written and checks it is a PDF with the expected number
 // of pages. A file the reader cannot open would otherwise reach the document
 // view as a blank document with no indication of what went wrong.
-bool PdfOrganizerDialog::verifyWritten(const QString &path) const
-{
-#ifdef HAVE_PDF_RENDERING
-    if (!QFileInfo::exists(path) || QFileInfo(path).size() == 0) {
-        qWarning() << "[Organizer] nothing was written to" << path;
-        return false;
-    }
-    // qpdf keeps the source's encryption, so the file just written is locked
-    // with the same password. Verifying it without one reported every save of a
-    // protected document as a failure. Its own entry first, then whatever the
-    // source pages were unlocked with.
-    bool needsPassword = false;
-    std::unique_ptr<OrganizerDoc> check(
-        OrganizerDoc::load(path, PdfPwStore::get(path), &needsPassword));
-    for (const PageEntry &e : m_pages) {
-        if (check || !needsPassword) break;
-        const QString pw = PdfPwStore::get(e.pdfPath);
-        if (pw.isEmpty()) continue;
-        check.reset(OrganizerDoc::load(path, pw, &needsPassword));
-        if (check) PdfPwStore::set(path, pw);
-    }
-    if (!check) {
-        qWarning() << "[Organizer] the written file cannot be opened:" << path;
-        return false;
-    }
-    if (check->pageCount() != m_pages.size()) {
-        qWarning() << "[Organizer] wrote" << check->pageCount()
-                   << "pages, expected" << m_pages.size();
-        return false;
-    }
-    return true;
-#else
-    Q_UNUSED(path)
-    return true;
-#endif
-}
 
 bool PdfOrganizerDialog::writePdf(const QString &outPath)
 {
-#ifdef HAVE_QPDF
-    if (writeVectorPdf(outPath) && verifyWritten(outPath)) {
-        qInfo() << "[Organizer] saved" << m_pages.size() << "pages (vector) to"
-                << outPath;
-        return true;
-    }
-    qWarning() << "[Organizer] falling back to raster save for" << outPath;
-#endif
-#ifdef HAVE_PDF_RENDERING
-    constexpr int   SAVE_DPI = 150;
-    constexpr qreal scale    = SAVE_DPI / 72.0;
+    QList<OrganizerPage> pages;
+    pages.reserve(m_pages.size());
+    for (const PageEntry &e : m_pages)
+        pages.append({ e.pdfPath, e.pageIndex, e.isBlank, e.rotation });
 
-    // Returns the output page size in points for a given entry.
-    // 90°/270° user rotation transposes width↔height so the saved page has
-    // the correct landscape/portrait orientation.
-    auto outputPageSizePt = [&](const PageEntry &e) -> QSizeF {
-        if (e.isBlank || !m_docs.contains(e.pdfPath))
-            return QSizeF(595.0, 842.0);        // A4 fallback
-        QSizeF pt = m_docs[e.pdfPath]->pageSizePts(e.pageIndex);
-        if (e.rotation == 90 || e.rotation == 270)
-            pt.transpose();                     // landscape ↔ portrait
-        return pt;
-    };
+    const OrganizerWriter::Result r = OrganizerWriter(pages, m_docs).write(outPath);
+    if (r.ok) return true;
 
-    // Staged for the same reason as the vector path: the pages are rendered
-    // from documents that may include the file being written.
-    const QString staging = SafeWrite::stagingPath(outPath);
-    if (staging.isEmpty()) return false;
-
-    // Page size for page 1 must be set BEFORE QPainter::begin() so the first
-    // page is opened at the correct size immediately.
-    QPdfWriter writer(staging);
-    writer.setCreator(QStringLiteral("OpenPDF Studio"));
-    writer.setResolution(SAVE_DPI);
-    if (!m_pages.isEmpty())
-        writer.setPageSize(QPageSize(outputPageSizePt(m_pages[0]),
-                                     QPageSize::Point, {}, QPageSize::ExactMatch));
-
-    // QPdfWriter defaults to ~10 pt page margins, which shrink the painter's
-    // paint rect and put its origin inside the page — a full-page image would
-    // be nudged down/right and clipped off the right and bottom edges.
-    // Zeroing them once is enough; setPageSize() below keeps zero margins.
-    writer.setPageMargins(QMarginsF(0, 0, 0, 0));
-
-    QPainter painter(&writer);
-    if (!painter.isActive()) { SafeWrite::discard(staging); return false; }
-
-    // A page that cannot be rendered would silently come out white. Producing a
-    // document that merely looks empty is worse than failing the save, so the
-    // misses are counted and reported instead of written.
-    int lostPages = 0;
-
-    for (int i = 0; i < m_pages.size(); ++i) {
-        const PageEntry &e = m_pages[i];
-
-        if (i > 0) {
-            // Page size must be set BEFORE newPage() — newPage() opens the new
-            // page at whatever size is current; setting it afterwards is too late.
-            writer.setPageSize(QPageSize(outputPageSizePt(e),
-                                         QPageSize::Point, {}, QPageSize::ExactMatch));
-            writer.newPage();
-        }
-
-        if (e.isBlank)
-            continue;   // blank page: leave it white — intentional
-
-        if (!m_docs.contains(e.pdfPath)) {
-            qWarning() << "[Organizer] page" << (i + 1) << "has no open source:"
-                       << e.pdfPath;
-            ++lostPages;
-            continue;
-        }
-
-        // Render in the native (pre-user-rotation) orientation.
-        QImage img = m_docs[e.pdfPath]->render(e.pageIndex, scale);
-        if (img.isNull()) {
-            qWarning() << "[Organizer] page" << (i + 1) << "of" << e.pdfPath
-                       << "(index" << e.pageIndex << ") did not render";
-            ++lostPages;
-            continue;
-        }
-
-        // Apply user rotation — for 90°/270° this transposes the image dimensions
-        // to match the transposed page size set above.
-        if (e.rotation != 0) {
-            QTransform t;
-            t.rotate(e.rotation);
-            img = img.transformed(t, Qt::SmoothTransformation);
-        }
-
-        // Target the device's paint rect rather than the image size, so the
-        // page is filled exactly even when point→pixel rounding differs.
-        painter.drawImage(QRect(0, 0, painter.device()->width(),
-                                painter.device()->height()), img);
-    }
-    painter.end();
-
-    if (lostPages > 0) {
-        SafeWrite::discard(staging);
+    switch (r.error) {
+    case OrganizerWriter::Error::RenderFailures:
         QMessageBox::warning(this, tr("Save failed"),
                              tr("%1 of %2 pages could not be rendered, so the "
                                 "document would have been saved blank. Your PDF "
                                 "was not changed.")
-                                 .arg(lostPages).arg(m_pages.size()));
-        return false;
-    }
-    if (!SafeWrite::commit(staging, outPath) || !verifyWritten(outPath)) {
+                                 .arg(r.lostPages).arg(r.totalPages));
+        break;
+    case OrganizerWriter::Error::WriteFailed:
         QMessageBox::warning(this, tr("Save failed"),
                              tr("The organized document could not be written to "
                                 "\"%1\". Your PDF was not changed.")
                                  .arg(QFileInfo(outPath).fileName()));
-        return false;
+        break;
+    case OrganizerWriter::Error::NoBackend:
+        QMessageBox::information(this, tr("Not Available"),
+                                 tr("PDF writing requires a PDF backend "
+                                    "(Qt6Pdf or Poppler)."));
+        break;
+    case OrganizerWriter::Error::None:
+        break;
     }
-    qInfo() << "[Organizer] saved" << m_pages.size() << "pages (raster) to" << outPath;
-    return true;
-#else
-    Q_UNUSED(outPath)
-    QMessageBox::information(this, tr("Not Available"),
-                             tr("PDF writing requires a PDF backend "
-                                "(Qt6Pdf or Poppler)."));
     return false;
-#endif
 }
+
+bool PdfOrganizerDialog::writeForTest(const QString &path)
+{
+    return writePdf(path);
+}
+
 
 // "Save" takes the page changes into the session, it does not touch the file
 // the user opened: the result goes to a session working file that the document

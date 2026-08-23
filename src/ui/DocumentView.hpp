@@ -81,6 +81,12 @@ public:
     void   setEditorFontFamily(const QString &family);
     void   setEditorBold(bool on);
     void   setEditorItalic(bool on);
+    void   setTextBoxProperties(const TextBoxProperties &properties);
+    void   setTextBoxDefaults(const TextBoxProperties &properties);
+    void   setEditorAlignment(Qt::Alignment alignment);
+    void   setEditorListStyle(TextBoxProperties::ListStyle style);
+    void   changeEditorIndent(int delta);
+    void   setEditorLineSpacing(double multiplier);
 
     /// Document identity and save target — the file the user opened, which is
     /// not necessarily the file currently being rendered (see contentFile()).
@@ -139,6 +145,8 @@ Q_SIGNALS:
     void editorFontSizeChanged(int ptSize);
     // Emitted when an editor opens with the detected font of the clicked block.
     void editorFontChanged(const QString &family, bool bold, bool italic);
+    void textBoxPropertiesChanged(const TextBoxProperties &properties);
+    void textBoxEditingChanged(bool active);
 
 protected:
     bool eventFilter(QObject *obj, QEvent *e) override;

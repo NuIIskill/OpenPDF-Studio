@@ -34,14 +34,19 @@ src/
     ocr/          Tesseract wrapper
     render/       PdfRenderer - zoom and point-to-pixel, asks the backend
   ui/             everything that is a widget
-    bars/ panels/ dialogs/ tools/ widgets/ theme/
+    bars/ panels/ tools/ theme/
     view/         controllers driving the document canvas
     edit/         the in-place text editor widgets
+    settings/     the settings panel and the widgets only it uses
+    organizer/    the page organizer and the widgets only it uses
+    history/      the change-log timeline
+    export/       the export dialog
+    widgets/      shared widgets only - see the rule below
   3rdparty/       vendored (nanosvg)
 tests/            unit tests for the pure parts of engine/
 ```
 
-Three rules keep this from eroding. They are cheap to check and were each
+Four rules keep this from eroding. They are cheap to check and were each
 broken once already:
 
 1. **`engine/` never includes `ui/`, and never uses QWidget.** Anything that
@@ -53,12 +58,29 @@ broken once already:
    `#include "ui/view/PageCanvas.hpp"` - never `"PageCanvas.hpp"` or
    `"view/PageCanvas.hpp"`. `src/` is on the include path. The only exceptions
    are AUTOMOC's own `"Foo.moc"` and `3rdparty/` headers.
+4. **Every folder under `ui/` names a task, never a shape.** `settings/`,
+   `organizer/`, `history/` and `export/` are each one thing the user does, with
+   whatever widgets that takes. There is no `dialogs/` any more: it collected by
+   form ("is a QDialog") and so had the organizer sitting outside it while being
+   one - the same decay that had made `widgets/` mean "a widget that is not a
+   bar, panel or dialog", where of nine files one was shared, six belonged to
+   one owner each and two were used by nobody.
+
+   `ui/widgets/` is the one exception, and only for widgets more than one owner
+   uses - `IconButton`, `PasswordDialog`. A widget with a single owner lives in
+   its task's folder, not here.
 
 Check 1 and 2 with:
 
 ```bash
 grep -rn '#include "ui/' src/engine src/app     # must be empty
 grep -rln 'QWidget\|QDialog' src/engine         # must be empty
+```
+
+Rule 4 is checkable per file - count the owners outside its own folder:
+
+```bash
+grep -rl '\bIconButton\b' src --include=*.cpp | grep -v ui/widgets/ | wc -l
 ```
 
 `drm/` is the one folder that holds both logic and its widget. The licensing

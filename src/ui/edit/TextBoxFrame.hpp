@@ -4,6 +4,8 @@
 #include <QRect>
 #include <QWidget>
 
+#include "engine/edit/TextBoxProperties.hpp"
+
 class InlineEditor;
 
 class TextBoxFrame : public QWidget
@@ -37,6 +39,7 @@ public:
     // would paint into the document.
     void growToFitText();
     void setGrowHorizontal(bool on);
+    void setBoxProperties(const TextBoxProperties &properties, qreal scale);
 
 Q_SIGNALS:
     void committed(const QString &text);
@@ -76,6 +79,9 @@ private:
     // the tracked edit bounds stay honest.
     int           m_minInnerW   { 120 };
     bool          m_growHorizontal { false };
+    bool          m_autoHeight { true };
+    TextBoxProperties m_box;
+    qreal         m_scale { 1.0 };
     QList<QRect>  m_forbidden;
     QRect         m_pageRect;              // empty = no clamping
 };

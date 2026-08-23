@@ -28,10 +28,14 @@ public:
     explicit PdfiumContentProvider(FPDF_DOCUMENT doc);
     ~PdfiumContentProvider() override;
 
+    QList<ContentItem> pageItemsForExport(int page) override;
+
 protected:
     QList<ContentItem> buildPage(int page) override;
 
 private:
+    QList<ContentItem> buildPageItems(int page, bool mergeVertical);
+
     /// Wörter der Seite als backendneutrale Cluster — daraus macht
     /// classifyContentClusters() Zeilen, Absätze und Tabellenzellen.
     QList<ContentCluster> collectWords(FPDF_TEXTPAGE tp, double pageHeight) const;

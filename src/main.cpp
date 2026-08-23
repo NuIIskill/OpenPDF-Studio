@@ -1,8 +1,9 @@
 #include "App.hpp"
 #include "ui/MainWindow.hpp"
 #include "ui/DocumentView.hpp"
-#include "ui/dialogs/ExportDialog.hpp"
-#include "ui/dialogs/HistoryDialog.hpp"
+#include "ui/export/ExportDialog.hpp"
+#include "ui/organizer/PdfOrganizerDialog.hpp"
+#include "ui/history/HistoryDialog.hpp"
 #include "engine/edit/DocxExporter.hpp"
 #include "engine/edit/PdfExporter.hpp"
 #include "ui/PresentationWindow.hpp"
@@ -15,7 +16,7 @@
 #endif
 #include "ui/panels/LeftSidebar.hpp"
 #include "ui/panels/RightSidebar.hpp"
-#include "ui/panels/SettingsPanel.hpp"
+#include "ui/settings/SettingsPanel.hpp"
 #include "app/AppSettings.hpp"
 #include "app/AppConfig.hpp"
 #include "drm/LicenseNotice.hpp"
@@ -199,6 +200,31 @@ int main(int argc, char *argv[])
             dlg.selectPageForTest(qapp.arguments().at(3));
         dlg.show();
         qapp.processEvents();
+        const bool ok = dlg.grab().save(qapp.arguments().at(2));
+        return ok ? 0 : 3;
+    }
+
+    // Runs the organizer's save path on an unchanged page list, so a refactor
+    // of it can be checked against the bytes it produced before:
+    //   OpenPDFStudio --organize-save in.pdf out.pdf
+    if (qapp.arguments().size() >= 4
+            && qapp.arguments().at(1) == QLatin1String("--organize-save")) {
+        PdfOrganizerDialog dlg(qapp.arguments().at(2));
+        return dlg.writeForTest(qapp.arguments().at(3)) ? 0 : 3;
+    }
+
+    // Renders the page organizer with a document loaded:
+    //   OpenPDFStudio --shot-organizer out.png in.pdf [dark]
+    if (qapp.arguments().size() >= 4
+            && qapp.arguments().at(1) == QLatin1String("--shot-organizer")) {
+        if (qapp.arguments().size() >= 5)
+            Theme::apply(qapp.arguments().at(4));
+        PdfOrganizerDialog dlg(qapp.arguments().at(3));
+        dlg.resize(1200, 800);
+        dlg.show();
+        QEventLoop settle;
+        QTimer::singleShot(1500, &settle, &QEventLoop::quit);
+        settle.exec();
         const bool ok = dlg.grab().save(qapp.arguments().at(2));
         return ok ? 0 : 3;
     }

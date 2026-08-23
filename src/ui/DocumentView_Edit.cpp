@@ -15,7 +15,7 @@
 #include "ui/view/PageLayoutEngine.hpp"
 #include "ui/view/ZoomController.hpp"
 #include "ui/view/TextSelectionController.hpp"
-#include "ui/dialogs/PasswordDialog.hpp"
+#include "ui/widgets/PasswordDialog.hpp"
 
 #include <QFileInfo>
 
@@ -185,6 +185,8 @@ DocumentView::DocumentView(QWidget *parent)
             inner.size() / scale);
         m_edit.clampToPdfPage(pg, newBounds);
         m_edit.activeEditBounds = newBounds;
+        m_edit.currentBox.bounds = newBounds;
+        m_edit.notifyBoundsChanged();
     });
     m_hover->setEditorFrame(m_editorFrame);
 
@@ -221,6 +223,10 @@ DocumentView::DocumentView(QWidget *parent)
             this, &DocumentView::editorFontSizeChanged);
     connect(&m_edit, &EditController::fontChanged,
             this, &DocumentView::editorFontChanged);
+    connect(&m_edit, &EditController::textBoxPropertiesChanged,
+            this, &DocumentView::textBoxPropertiesChanged);
+    connect(&m_edit, &EditController::textBoxEditingChanged,
+            this, &DocumentView::textBoxEditingChanged);
     connect(&m_edit, &EditController::pageNeedsRerender,
             this, &DocumentView::rerenderPage);
     connect(&m_edit, &EditController::pageNeedsBlank,
@@ -329,3 +335,9 @@ void DocumentView::setEditorBold(bool on)                      { m_edit.setBold(
 void DocumentView::setEditorItalic(bool on)                    { m_edit.setItalic(on); }
 void DocumentView::setEditorFontSize(int ptSize)               { m_edit.setFontSize(ptSize); }
 void DocumentView::setEditorTextColor(const QColor &color)     { m_edit.setTextColor(color); }
+void DocumentView::setTextBoxProperties(const TextBoxProperties &p) { m_edit.setTextBoxProperties(p); }
+void DocumentView::setTextBoxDefaults(const TextBoxProperties &p) { m_edit.setTextBoxDefaults(p); }
+void DocumentView::setEditorAlignment(Qt::Alignment a) { m_edit.setHorizontalAlignment(a); }
+void DocumentView::setEditorListStyle(TextBoxProperties::ListStyle s) { m_edit.setListStyle(s); }
+void DocumentView::changeEditorIndent(int delta) { m_edit.changeIndent(delta); }
+void DocumentView::setEditorLineSpacing(double multiplier) { m_edit.setLineSpacing(multiplier); }

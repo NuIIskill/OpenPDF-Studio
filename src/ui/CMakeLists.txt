@@ -10,9 +10,12 @@ target_sources(OpenPDFStudio PRIVATE
 )
 
 add_subdirectory(bars)
-add_subdirectory(dialogs)
 add_subdirectory(edit)
+add_subdirectory(export)
+add_subdirectory(history)
+add_subdirectory(organizer)
 add_subdirectory(panels)
+add_subdirectory(settings)
 add_subdirectory(theme)
 add_subdirectory(tools)
 add_subdirectory(view)

@@ -484,21 +484,25 @@ QLabel#ShortcutInfoIcon { color: #60A5FA; font-size: 14px; font-weight: 700; }
 QLabel#ShortcutInfoText { color: #93C5FD; font-size: 12px; }
 
 /* ── Zoom settings page ───────────────────────────────────── */
-QFrame#ZoomCard {
+QFrame#ZoomCard,
+QFrame#SettingsCard {
     border: 1px solid #484848;
     border-radius: 10px;
     background: #404040;
 }
-QLabel#ZoomCardTitle {
+QLabel#ZoomCardTitle,
+QLabel#SettingsCardTitle {
     font-size: 13px;
     font-weight: 700;
     color: #E5E5E5;
 }
-QLabel#ZoomRowLabel {
+QLabel#ZoomRowLabel,
+QLabel#SettingsRowLabel {
     font-size: 13px;
     color: #D8D8D8;
 }
-QLabel#ZoomRowDesc {
+QLabel#ZoomRowDesc,
+QLabel#SettingsRowDesc {
     font-size: 12px;
     color: #9CA3AF;
 }
@@ -522,6 +526,7 @@ QSpinBox#ZoomStepSpin::up-button, QSpinBox#ZoomStepSpin::down-button {
     border: none;
 }
 QComboBox#ZoomActionCombo,
+QComboBox#AdvancedCombo,
 QComboBox#UsageCombo {
     border: 1px solid #555555;
     border-radius: 6px;
@@ -532,4 +537,66 @@ QComboBox#UsageCombo {
     min-width: 120px;
 }
 QComboBox#ZoomActionCombo::drop-down,
+QComboBox#AdvancedCombo::drop-down,
 QComboBox#UsageCombo::drop-down { border: none; width: 20px; }
+QComboBox#AdvancedCombo:disabled {
+    color: #6B7280;
+    background: #3A3A3A;
+    border-color: #4A4A4A;
+}
+QFrame#TextPanel, QWidget#TextPanelContent, QScrollArea#TextPanelScroll { background:#353535; border:none; }
+QFrame#TextPanel { border-left:1px solid #484848; }
+QLabel#TextPanelTitle { color:#D8D8D8; font-size:16px; font-weight:700; padding-bottom:5px; }
+QLabel#TextPanelHint { color:#9CA3AF; font-size:12px; padding:6px 0 10px 0; }
+QLabel[textSection="true"] { color:#E5E5E5; font-size:12px; font-weight:700; }
+QFrame#TextPanelDivider { color:#484848; background:#484848; min-height:1px; max-height:1px; border:none; }
+QPushButton#TextPanelClose { border:none; background:transparent; color:#A0A0A0; font-size:18px; }
+QPushButton#TextPanelClose:hover { color:#E5E5E5; background:#404040; border-radius:5px; }
+QFrame#TextPanel QLabel { color:#D8D8D8; font-size:12px; }
+QFrame#TextPanel QComboBox, QFrame#TextPanel QDoubleSpinBox { background:#2E2E2E; color:#D8D8D8; border:1px solid #555555; border-radius:5px; min-height:28px; padding:0 8px; }
+QFrame#TextPanel QComboBox:focus, QFrame#TextPanel QDoubleSpinBox:focus { border:1px solid #60A5FA; }
+QFrame#TextPanel QComboBox:hover, QFrame#TextPanel QDoubleSpinBox:hover { border-color:#6B7280; }
+QFrame#TextPanel QComboBox:disabled, QFrame#TextPanel QDoubleSpinBox:disabled { background:#3A3A3A; color:#777777; border-color:#4A4A4A; }
+QFrame#TextPanel QComboBox::drop-down { border:none; width:24px; }
+QPushButton[switch="true"] { background:#666666; color:#FFFFFF; border:none; border-radius:10px; padding:0 3px; text-align:left; }
+QPushButton[switch="true"]:checked { background:#3B82F6; text-align:right; }
+QPushButton#TextPanelSaveDefault { color:#93C5FD; background:#404040; border:1px solid #555555; border-radius:5px; font-weight:600; }
+QPushButton#TextPanelSaveDefault:hover { background:#484848; border-color:#60A5FA; }
+QFrame#TextPanel QSlider::groove:horizontal { height:3px; background:#555555; border-radius:1px; }
+QFrame#TextPanel QSlider::sub-page:horizontal { background:#3B82F6; }
+QFrame#TextPanel QSlider::handle:horizontal { background:#60A5FA; width:14px; height:14px; margin:-6px 0; border-radius:7px; }
+
+/* ── Text FormatBar ─────────────────────────────────────── */
+QFrame#FormatBar { background:#353535; border-bottom:1px solid #484848; }
+QFrame#FormatBar QLabel[formatLabel="true"] { color:#9CA3AF; font-size:9px; font-weight:600; padding-bottom:1px; }
+QFrame#FormatBar QFrame#FormatBarSeparator { background:#555555; border:none; }
+QFrame#FormatBar QComboBox#FormatBarCombo,
+QFrame#FormatBar QFontComboBox#FormatBarCombo {
+    background:#2E2E2E; color:#D8D8D8; border:1px solid #555555;
+    border-radius:6px; padding-left:8px;
+}
+QFrame#FormatBar QComboBox#FormatBarCombo:hover,
+QFrame#FormatBar QFontComboBox#FormatBarCombo:hover { border-color:#707070; }
+QFrame#FormatBar QComboBox#FormatBarCombo:focus,
+QFrame#FormatBar QFontComboBox#FormatBarCombo:focus { border-color:#60A5FA; }
+QFrame#FormatBar QComboBox#FormatBarCombo::drop-down,
+QFrame#FormatBar QFontComboBox#FormatBarCombo::drop-down { border-left:1px solid #555555; width:24px; }
+QFrame#FormatBar QComboBox#FormatBarCombo::down-arrow,
+QFrame#FormatBar QFontComboBox#FormatBarCombo::down-arrow { image:url(:/icons/chevron-down.svg); width:11px; height:11px; }
+QFrame#FormatBar QComboBox#FormatBarCombo QLineEdit { background:#2E2E2E; color:#D8D8D8; border:none; }
+QFrame#FormatBar QComboBox#FormatBarCombo QAbstractItemView,
+QFrame#FormatBar QFontComboBox#FormatBarCombo QAbstractItemView { background:#404040; color:#D8D8D8; selection-background-color:#2563EB; }
+QFrame#FormatBar QPushButton[formatButton="true"] {
+    background:#404040; color:#D8D8D8; border:1px solid #555555; border-radius:5px;
+}
+QFrame#FormatBar QPushButton[alignButton="true"] { background:transparent; border:none; border-radius:5px; }
+QFrame#FormatBar QPushButton[menuButton="true"] { background:#404040; color:#D8D8D8; border:1px solid #555555; border-radius:5px; }
+QFrame#FormatBar QPushButton[formatButton="true"]:hover,
+QFrame#FormatBar QPushButton[alignButton="true"]:hover,
+QFrame#FormatBar QPushButton[menuButton="true"]:hover { background:#484848; border-color:#707070; }
+QFrame#FormatBar QPushButton[formatButton="true"]:checked,
+QFrame#FormatBar QPushButton[alignButton="true"]:checked { background:#1E3A5F; border-color:#3B82F6; }
+QMenu#FormatBarMenu { background:#404040; color:#D8D8D8; border:1px solid #555555; border-radius:5px; padding:4px; }
+QMenu#FormatBarMenu::item { background:transparent; color:#D8D8D8; padding:7px 22px 7px 10px; border-radius:3px; }
+QMenu#FormatBarMenu::item:selected { background:#2563EB; color:#FFFFFF; }
+QMenu#FormatBarMenu::separator { height:1px; background:#555555; margin:4px 6px; }

@@ -9,11 +9,10 @@
 #include <QString>
 
 // ── Structured page model ─────────────────────────────────────────────────────
-// The export writes real WordprocessingML structure — flowing paragraphs, real
-// w:tbl tables with cell shading, embedded pictures — rather than a page-sized
-// raster with absolutely positioned text boxes on top. Only content that has no
-// word-processor equivalent (vector art, charts) stays a picture, cropped to its
-// own bounding box instead of covering the whole page.
+// The default export rebuilds the PDF as native WordprocessingML: flowing
+// paragraphs, real tables and editable vector fills/rules. Raster data is kept
+// only for genuine graphic regions that Word cannot express directly. A
+// positioned page image remains available solely as a scan-only fallback.
 //
 // DocxLayout.cpp derives these blocks from the ContentItem list plus the
 // text-erased page raster; DocxExporter.cpp only serialises them.
@@ -37,7 +36,7 @@ struct DocxTable {
 };
 
 struct DocxBlock {
-    enum class Kind { Paragraph, Table, Picture };
+    enum class Kind { Paragraph, Table, Shape, Picture, TextBox };
 
     Kind   kind { Kind::Paragraph };
     QRectF bounds;               // page-space pt, drives order and spacing
@@ -52,13 +51,19 @@ struct DocxBlock {
 
     // Picture
     QImage picture;              // already cropped to bounds
+
+    // Native anchored objects. Shapes carry flat panels/header bands/rules;
+    // TextBox uses lines for editable labels sitting inside a graphic region.
+    QColor fillColor;
+    QColor strokeColor;
+    double strokeWidthPt { 0.0 };
 };
 
 struct DocxPage {
     QSizeF           pageSizePt;
-    QList<ContentItem> items;    // per-line items — positioned fallback path
-    QImage           background; // full-page raster — positioned fallback path
-    QList<DocxBlock> blocks;     // structured flow; empty = use fallback
+    QList<ContentItem> items;    // positioned, editable text runs
+    QImage           background; // analysis/scan fallback, not the normal page layer
+    QList<DocxBlock> blocks;     // native structured Word representation
     QMarginsF        marginsPt { 56.0, 45.0, 56.0, 45.0 };
 };
 
@@ -67,7 +72,7 @@ struct DocxPage {
 // or of a PDF's embedded font programs, so those stay out rather than being
 // offered and silently ignored.
 struct DocxExportOptions {
-    bool compressImages { true };   // embed pictures as JPEG instead of PNG
+    bool compressImages { true };   // permit JPEG when smaller; otherwise keep PNG
     int  imageQuality   { 85 };     // drives both the picture scale and JPEG level
 };
 

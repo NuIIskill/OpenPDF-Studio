@@ -8,6 +8,8 @@
 #include <QRectF>
 #include <QString>
 
+#include "engine/edit/TextBoxProperties.hpp"
+
 class DocumentSource;
 class QUndoStack;
 class HoverHighlight;
@@ -75,6 +77,14 @@ public:
     /// with it so line breaks survive the change.
     void setFontSize(int ptSize);
     void setTextColor(const QColor &color);
+    void setTextBoxProperties(const TextBoxProperties &properties);
+    TextBoxProperties textBoxProperties() const;
+    void notifyBoundsChanged();
+    void setTextBoxDefaults(const TextBoxProperties &properties) { defaultBox = properties; }
+    void setHorizontalAlignment(Qt::Alignment alignment);
+    void setListStyle(TextBoxProperties::ListStyle style);
+    void changeIndent(int delta);
+    void setLineSpacing(double multiplier);
 
     /// Clamps `r` so it stays fully inside page `page` (position and size).
     void clampToPdfPage(int page, QRectF &r) const;
@@ -98,6 +108,8 @@ Q_SIGNALS:
     /// An editor opened — the FormatBar has to show what was detected.
     void fontSizeChanged(int ptSize);
     void fontChanged(const QString &family, bool bold, bool italic);
+    void textBoxPropertiesChanged(const TextBoxProperties &properties);
+    void textBoxEditingChanged(bool active);
     /// Redraw a page as the document has it.
     void pageNeedsRerender(int page);
     /// Redraw a page with `bounds` blanked, hiding the text being edited.
@@ -162,6 +174,9 @@ public:
     bool    currentEditorBold   { false };
     bool    currentEditorItalic { false };
     bool    editorFontChangedByUser { false };
+    TextBoxProperties currentBox;
+    TextBoxProperties presentedBox;
+    TextBoxProperties defaultBox;
 
     // After a commit, the press+release that triggered it must not re-open
     // an editor for the same block — that would blank the just-committed text.

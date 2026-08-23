@@ -55,6 +55,17 @@ void TextBoxFrame::setFontSize(int px)
     growToFitText();
 }
 
+void TextBoxFrame::setBoxProperties(const TextBoxProperties &properties, qreal scale)
+{
+    m_box = properties;
+    m_scale = qMax<qreal>(0.01, scale);
+    m_autoHeight = properties.autoHeight;
+    m_editor->setBoxProperties(properties, m_scale);
+    m_editor->setGeometry(innerRect());
+    if (m_autoHeight) growToFitText();
+    update();
+}
+
 void TextBoxFrame::setGrowHorizontal(bool on)
 {
     m_growHorizontal = on;
@@ -91,7 +102,9 @@ void TextBoxFrame::growToFitText()
     // The document wraps at the editor width, so its size() is the exact
     // space the text needs at that width.
     const int needed = qCeil(m_editor->document()->size().height());
-    int newH = qMax(height(), needed + (m_decorations ? 2 * kPad : 0) + 2);
+    int newH = height();
+    if (m_autoHeight)
+        newH = qMax(height(), needed + (m_decorations ? 2 * kPad : 0) + 2);
     // Never grow beyond the page — a runaway height (bad detection, huge
     // font) must not blow the frame across the whole viewport.
     if (!m_pageRect.isNull())
@@ -331,9 +344,38 @@ void TextBoxFrame::mouseReleaseEvent(QMouseEvent *e)
 
 void TextBoxFrame::paintEvent(QPaintEvent *)
 {
+    QPainter p(this);
+    p.setRenderHint(QPainter::Antialiasing, true);
+
+    const QRectF box = innerRect();
+    p.save();
+    p.setOpacity(qBound(0.0, m_box.opacity, 1.0));
+    if (m_box.backgroundEnabled) {
+        p.setPen(Qt::NoPen);
+        p.setBrush(m_box.backgroundColor);
+        const qreal radius = qMax(0.0, m_box.cornerRadiusPt * m_scale);
+        p.drawRoundedRect(box, radius, radius);
+    }
+    if (m_box.borderEnabled) {
+        Qt::PenStyle style = Qt::SolidLine;
+        if (m_box.borderStyle == TextBoxProperties::BorderStyle::Dashed)
+            style = Qt::DashLine;
+        else if (m_box.borderStyle == TextBoxProperties::BorderStyle::Dotted)
+            style = Qt::DotLine;
+        QPen boxPen(m_box.borderColor,
+                    qMax(0.5, m_box.borderWidthPt * m_scale), style);
+        p.setPen(boxPen);
+        p.setBrush(Qt::NoBrush);
+        const qreal radius = qMax(0.0, m_box.cornerRadiusPt * m_scale);
+        p.drawRoundedRect(box.adjusted(boxPen.widthF() / 2.0,
+                                      boxPen.widthF() / 2.0,
+                                      -boxPen.widthF() / 2.0,
+                                      -boxPen.widthF() / 2.0), radius, radius);
+    }
+    p.restore();
+
     if (!m_decorations) return;
 
-    QPainter p(this);
     p.setRenderHint(QPainter::Antialiasing, false);
 
     const int w = width(), h = height();
