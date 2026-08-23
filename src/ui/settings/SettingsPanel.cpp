@@ -1,9 +1,14 @@
-#include "ui/panels/SettingsPanel.hpp"
+#include "ui/settings/SettingsPanel.hpp"
 #include "app/AppSettings.hpp"
 #include "app/AppConfig.hpp"
 #include "drm/LicenseStore.hpp"
 #include "drm/LicensePage.hpp"
 #include "ui/theme/Theme.hpp"
+#include "ui/settings/LangRow.hpp"
+#include "ui/settings/OptionCard.hpp"
+#include "ui/settings/SettingCheckBox.hpp"
+#include "ui/settings/ShortcutRow.hpp"
+#include "ui/settings/ToggleSwitch.hpp"
 
 #include <QVBoxLayout>
 #include <QHBoxLayout>
@@ -26,517 +31,11 @@
 #include <QPainterPath>
 #include <QSpinBox>
 
-// ── OptionCard ────────────────────────────────────────────────────────────────
 
-class OptionCard : public QFrame
-{
-    Q_OBJECT
-public:
-    explicit OptionCard(const QString &iconName, const QString &title,
-                        const QString &desc, QWidget *parent = nullptr)
-        : QFrame(parent), m_iconName(iconName)
-    {
-        setFixedSize(175, 112);
-        setCursor(Qt::PointingHandCursor);
-        setAttribute(Qt::WA_StyledBackground, true);
 
-        auto *vbox = new QVBoxLayout(this);
-        vbox->setContentsMargins(12, 12, 12, 10);
-        vbox->setSpacing(5);
-        vbox->setAlignment(Qt::AlignHCenter | Qt::AlignTop);
 
-        m_iconLabel = new QLabel(this);
-        m_iconLabel->setFixedSize(26, 26);
-        m_iconLabel->setAlignment(Qt::AlignCenter);
-        m_iconLabel->setAttribute(Qt::WA_TransparentForMouseEvents);
-        vbox->addWidget(m_iconLabel, 0, Qt::AlignHCenter);
 
-        m_titleLabel = new QLabel(title, this);
-        m_titleLabel->setAlignment(Qt::AlignCenter);
-        m_titleLabel->setAttribute(Qt::WA_TransparentForMouseEvents);
-        vbox->addWidget(m_titleLabel);
 
-        m_descLabel = new QLabel(desc, this);
-        m_descLabel->setAlignment(Qt::AlignCenter);
-        m_descLabel->setWordWrap(true);
-        m_descLabel->setAttribute(Qt::WA_TransparentForMouseEvents);
-        vbox->addWidget(m_descLabel);
-
-        m_check = new QLabel(QStringLiteral("✓"), this);
-        m_check->setFixedSize(20, 20);
-        m_check->setAlignment(Qt::AlignCenter);
-        m_check->hide();
-
-        applyStyle(false);
-    }
-
-    bool isSelected() const { return m_selected; }
-    void setSelected(bool v) { m_selected = v; m_check->setVisible(v); applyStyle(v); }
-    const QString &iconName() const { return m_iconName; }
-
-Q_SIGNALS:
-    void clicked();
-
-protected:
-    void mousePressEvent(QMouseEvent *e) override
-    {
-        if (e->button() == Qt::LeftButton) Q_EMIT clicked();
-    }
-    void resizeEvent(QResizeEvent *e) override
-    {
-        QFrame::resizeEvent(e);
-        m_check->move(width() - 26, 5);
-    }
-
-private:
-    void applyStyle(bool sel)
-    {
-        const bool dk = Theme::DarkMode;
-        const QColor iconColor = sel ? QColor("#3B82F6")
-                                     : QColor(dk ? "#9CA3AF" : "#6B7280");
-        const QPixmap px = Theme::renderSvg(m_iconName, iconColor, 22);
-        if (!px.isNull()) m_iconLabel->setPixmap(px);
-
-        if (sel) {
-            const QString bg = dk ? "#1E3358" : "#FFFFFF";
-            setStyleSheet(QStringLiteral(
-                "OptionCard { border:2px solid #3B82F6; border-radius:8px; background:%1; }").arg(bg));
-            m_check->setStyleSheet(QStringLiteral(
-                "background:#3B82F6; border-radius:10px; color:white; font-size:12px; font-weight:700;"));
-            m_titleLabel->setStyleSheet(dk
-                ? QStringLiteral("font-size:12px; font-weight:600; color:#93C5FD;")
-                : QStringLiteral("font-size:12px; font-weight:600; color:#1D4ED8;"));
-            m_descLabel->setStyleSheet(dk
-                ? QStringLiteral("font-size:10px; color:#60A5FA;")
-                : QStringLiteral("font-size:10px; color:#3B82F6;"));
-        } else {
-            const QString bg  = dk ? "#404040" : "#FFFFFF";
-            const QString bdr = dk ? "#555555" : "#E5E7EB";
-            setStyleSheet(QStringLiteral(
-                "OptionCard { border:1px solid %1; border-radius:8px; background:%2; }").arg(bdr, bg));
-            m_titleLabel->setStyleSheet(dk
-                ? QStringLiteral("font-size:12px; font-weight:600; color:#D0D0D0;")
-                : QStringLiteral("font-size:12px; font-weight:600; color:#111827;"));
-            m_descLabel->setStyleSheet(dk
-                ? QStringLiteral("font-size:10px; color:#9CA3AF;")
-                : QStringLiteral("font-size:10px; color:#6B7280;"));
-        }
-    }
-
-    QLabel *m_iconLabel  { nullptr };
-    QLabel *m_titleLabel { nullptr };
-    QLabel *m_descLabel  { nullptr };
-    QLabel *m_check      { nullptr };
-    QString m_iconName;
-    bool    m_selected   { false };
-};
-
-// ── LangRow ───────────────────────────────────────────────────────────────────
-
-class LangRow : public QFrame
-{
-    Q_OBJECT
-public:
-    explicit LangRow(const QString &code, const QString &displayName,
-                     QWidget *parent = nullptr)
-        : QFrame(parent), m_code(code)
-    {
-        setFixedHeight(48);
-        setCursor(Qt::PointingHandCursor);
-        setAttribute(Qt::WA_StyledBackground, true);
-
-        auto *row = new QHBoxLayout(this);
-        row->setContentsMargins(20, 0, 20, 0);
-        row->setSpacing(12);
-
-        m_nameLabel = new QLabel(displayName, this);
-        m_nameLabel->setAttribute(Qt::WA_TransparentForMouseEvents);
-        row->addWidget(m_nameLabel, 1);
-
-        m_checkLabel = new QLabel(QStringLiteral("✓"), this);
-        m_checkLabel->setFixedWidth(24);
-        m_checkLabel->setAlignment(Qt::AlignCenter);
-        m_checkLabel->setAttribute(Qt::WA_TransparentForMouseEvents);
-        row->addWidget(m_checkLabel);
-
-        applyStyle(false);
-    }
-
-    QString code() const { return m_code; }
-    bool isSelected() const { return m_selected; }
-
-    void setSelected(bool v)
-    {
-        m_selected = v;
-        m_checkLabel->setVisible(v);
-        applyStyle(v);
-    }
-
-Q_SIGNALS:
-    void clicked();
-
-protected:
-    void mousePressEvent(QMouseEvent *e) override
-    {
-        if (e->button() == Qt::LeftButton) Q_EMIT clicked();
-    }
-
-private:
-    void applyStyle(bool sel)
-    {
-        const bool dk = Theme::DarkMode;
-        const QString selBg = dk ? "#1E3A5F" : "#EFF6FF";
-        const QString hovBg = dk ? "#3E3E3E" : "#F3F4F6";
-        const QString txtSel = dk ? "#93C5FD" : "#1D4ED8";
-        const QString txtNor = dk ? "#D8D8D8" : "#111827";
-        const QString chkClr = dk ? "#93C5FD" : "#2563EB";
-
-        setStyleSheet(sel
-            ? QStringLiteral("LangRow { background:%1; border:none; }"
-                              "LangRow:hover { background:%1; }").arg(selBg)
-            : QStringLiteral("LangRow { background:transparent; border:none; }"
-                              "LangRow:hover { background:%1; }").arg(hovBg));
-
-        m_nameLabel->setStyleSheet(QStringLiteral(
-            "font-size:14px; color:%1; font-weight:%2;")
-            .arg(sel ? txtSel : txtNor, sel ? QLatin1String("600") : QLatin1String("400")));
-
-        m_checkLabel->setStyleSheet(QStringLiteral(
-            "font-size:14px; font-weight:700; color:%1;").arg(chkClr));
-    }
-
-    QLabel *m_nameLabel  { nullptr };
-    QLabel *m_checkLabel { nullptr };
-    QString m_code;
-    bool    m_selected   { false };
-};
-
-// ── KeyCaptureEdit ────────────────────────────────────────────────────────────
-
-class KeyCaptureEdit : public QLineEdit
-{
-    Q_OBJECT
-public:
-    explicit KeyCaptureEdit(QWidget *parent = nullptr) : QLineEdit(parent)
-    {
-        setReadOnly(true);
-        setPlaceholderText(QStringLiteral("..."));
-    }
-
-    QKeySequence capturedSequence() const { return m_seq; }
-
-    void setSequence(const QKeySequence &seq)
-    {
-        m_seq = seq;
-        if (seq.isEmpty()) clear();
-        else setText(seq.toString(QKeySequence::NativeText));
-    }
-
-protected:
-    void keyPressEvent(QKeyEvent *e) override
-    {
-        const int key = e->key();
-        if (key == Qt::Key_unknown || key == 0
-            || key == Qt::Key_Control || key == Qt::Key_Shift
-            || key == Qt::Key_Alt    || key == Qt::Key_Meta)
-            return;
-        if (key == Qt::Key_Escape) { QLineEdit::keyPressEvent(e); return; }
-        m_seq = QKeySequence(QKeyCombination(e->modifiers(), static_cast<Qt::Key>(key)));
-        setText(m_seq.toString(QKeySequence::NativeText));
-        e->accept();
-    }
-
-private:
-    QKeySequence m_seq;
-};
-
-// ── ShortcutRow ───────────────────────────────────────────────────────────────
-
-class ShortcutRow : public QFrame
-{
-    Q_OBJECT
-public:
-    ShortcutRow(const QString &action, const QKeySequence &defaultSeq,
-                QWidget *parent = nullptr)
-        : QFrame(parent), m_defaultSeq(defaultSeq), m_currentSeq(defaultSeq)
-    {
-        setObjectName(QStringLiteral("ShortcutRowFrame"));
-        setFrameShape(QFrame::NoFrame);
-        setFixedHeight(46);
-        buildUi(action);
-    }
-
-    bool matchesFilter(const QString &text) const
-    {
-        return text.isEmpty()
-            || m_actionLabel->text().contains(text, Qt::CaseInsensitive);
-    }
-
-    bool isEditing() const { return m_editing; }
-    void cancelIfEditing() { if (m_editing) exitEdit(false); }
-
-    QKeySequence currentSequence() const { return m_currentSeq; }
-    void setCurrentSequence(const QKeySequence &seq)
-    {
-        m_currentSeq = seq;
-        m_seqDisplay->setText(seq.isEmpty() ? QString{}
-                                             : seq.toString(QKeySequence::NativeText));
-    }
-
-Q_SIGNALS:
-    void editStarted();
-
-private:
-    void buildUi(const QString &action)
-    {
-        auto *hl = new QHBoxLayout(this);
-        hl->setContentsMargins(16, 0, 16, 0);
-        hl->setSpacing(8);
-
-        m_actionLabel = new QLabel(action, this);
-        m_actionLabel->setFixedWidth(260);
-        m_actionLabel->setObjectName(QStringLiteral("ShortcutAction"));
-        hl->addWidget(m_actionLabel);
-
-        m_seqDisplay = new QLabel(m_currentSeq.toString(QKeySequence::NativeText), this);
-        m_seqDisplay->setObjectName(QStringLiteral("ShortcutDisplay"));
-        m_seqDisplay->setAlignment(Qt::AlignCenter);
-        m_seqDisplay->setCursor(Qt::PointingHandCursor);
-        m_seqDisplay->installEventFilter(this);
-        hl->addWidget(m_seqDisplay, 1);
-
-        m_editArea = new QWidget(this);
-        m_editArea->hide();
-        {
-            auto *ehl = new QHBoxLayout(m_editArea);
-            ehl->setContentsMargins(0, 0, 0, 0);
-            ehl->setSpacing(4);
-            m_captureEdit = new KeyCaptureEdit(m_editArea);
-            m_captureEdit->setObjectName(QStringLiteral("ShortcutCapture"));
-            m_captureEdit->setFixedHeight(32);
-            ehl->addWidget(m_captureEdit, 1);
-            m_clearBtn = new QPushButton(m_editArea);
-            m_clearBtn->setFlat(true);
-            m_clearBtn->setObjectName(QStringLiteral("ShortcutClearBtn"));
-            m_clearBtn->setFixedSize(28, 28);
-            m_clearBtn->setCursor(Qt::PointingHandCursor);
-            m_clearBtn->setIcon(Theme::makeIcon(QStringLiteral("x"),
-                                                QColor(QStringLiteral("#6B7280")),
-                                                QColor(QStringLiteral("#DC2626")),
-                                                Theme::IconDisabled, 12));
-            connect(m_clearBtn, &QPushButton::clicked, this, [this]() { m_captureEdit->clear(); });
-            ehl->addWidget(m_clearBtn);
-        }
-        hl->addWidget(m_editArea, 1);
-
-        m_resetBtn = new QPushButton(this);
-        m_resetBtn->setObjectName(QStringLiteral("ShortcutResetBtn"));
-        m_resetBtn->setFixedSize(32, 32);
-        m_resetBtn->setCursor(Qt::PointingHandCursor);
-        m_resetBtn->setToolTip(tr("Reset to default"));
-        m_resetBtn->setIcon(Theme::makeIcon(QStringLiteral("undo-2"),
-                                            Theme::IconMuted, Theme::IconChecked,
-                                            Theme::IconDisabled, 14));
-        connect(m_resetBtn, &QPushButton::clicked, this, [this]() {
-            m_currentSeq = m_defaultSeq;
-            m_seqDisplay->setText(m_defaultSeq.toString(QKeySequence::NativeText));
-            if (m_editing) m_captureEdit->setSequence(m_defaultSeq);
-        });
-        hl->addWidget(m_resetBtn);
-
-        m_editBtn = new QPushButton(tr("Edit"), this);
-        m_editBtn->setObjectName(QStringLiteral("ShortcutEditBtn"));
-        m_editBtn->setFixedSize(90, 32);
-        m_editBtn->setCursor(Qt::PointingHandCursor);
-        m_editBtn->setIcon(Theme::makeIcon(QStringLiteral("pencil"),
-                                           Theme::IconNormal, Theme::IconChecked,
-                                           Theme::IconDisabled, 13));
-        connect(m_editBtn, &QPushButton::clicked, this, &ShortcutRow::enterEdit);
-        hl->addWidget(m_editBtn);
-
-        m_saveBtn = new QPushButton(tr("Save"), this);
-        m_saveBtn->setObjectName(QStringLiteral("ShortcutSaveBtn"));
-        m_saveBtn->setFixedSize(90, 32);
-        m_saveBtn->hide();
-        m_saveBtn->setCursor(Qt::PointingHandCursor);
-        connect(m_saveBtn, &QPushButton::clicked, this, [this]() { exitEdit(true); });
-        hl->addWidget(m_saveBtn);
-
-        m_cancelBtn = new QPushButton(tr("Cancel"), this);
-        m_cancelBtn->setObjectName(QStringLiteral("ShortcutCancelBtn"));
-        m_cancelBtn->setFixedSize(90, 32);
-        m_cancelBtn->hide();
-        m_cancelBtn->setCursor(Qt::PointingHandCursor);
-        connect(m_cancelBtn, &QPushButton::clicked, this, [this]() { exitEdit(false); });
-        hl->addWidget(m_cancelBtn);
-    }
-
-    bool eventFilter(QObject *obj, QEvent *e) override
-    {
-        if (obj == m_seqDisplay && e->type() == QEvent::MouseButtonDblClick) {
-            enterEdit();
-            return true;
-        }
-        return QFrame::eventFilter(obj, e);
-    }
-
-    void enterEdit()
-    {
-        m_editing = true;
-        m_captureEdit->setSequence(m_currentSeq);
-        m_seqDisplay->hide();
-        m_editArea->show();
-        m_editBtn->hide();
-        m_saveBtn->show();
-        m_cancelBtn->show();
-        m_actionLabel->setStyleSheet(QStringLiteral("font-size:13px;font-weight:700;"));
-        m_captureEdit->setFocus();
-        m_captureEdit->grabKeyboard(); // grab all keys so the modal dialog can't intercept them
-        Q_EMIT editStarted();
-    }
-
-    void exitEdit(bool save)
-    {
-        m_captureEdit->releaseKeyboard();
-        if (save && !m_captureEdit->text().trimmed().isEmpty())
-            m_currentSeq = m_captureEdit->capturedSequence();
-        m_editing = false;
-        m_seqDisplay->setText(m_currentSeq.toString(QKeySequence::NativeText));
-        m_editArea->hide();
-        m_seqDisplay->show();
-        m_saveBtn->hide();
-        m_cancelBtn->hide();
-        m_editBtn->show();
-        m_actionLabel->setStyleSheet(QStringLiteral("font-size:13px;"));
-    }
-
-    bool           m_editing    { false };
-    QKeySequence   m_defaultSeq;
-    QKeySequence   m_currentSeq;
-
-    QLabel         *m_actionLabel { nullptr };
-    QLabel         *m_seqDisplay  { nullptr };
-    QWidget        *m_editArea    { nullptr };
-    KeyCaptureEdit *m_captureEdit { nullptr };
-    QPushButton    *m_clearBtn    { nullptr };
-    QPushButton    *m_resetBtn    { nullptr };
-    QPushButton    *m_editBtn     { nullptr };
-    QPushButton    *m_saveBtn     { nullptr };
-    QPushButton    *m_cancelBtn   { nullptr };
-};
-
-// ── ToggleSwitch ──────────────────────────────────────────────────────────────
-
-class ToggleSwitch : public QAbstractButton
-{
-    Q_OBJECT
-public:
-    explicit ToggleSwitch(QWidget *parent = nullptr)
-        : QAbstractButton(parent)
-    {
-        setCheckable(true);
-        setFixedSize(44, 26);
-        setCursor(Qt::PointingHandCursor);
-    }
-
-protected:
-    void paintEvent(QPaintEvent *) override
-    {
-        const bool on = isChecked();
-        const bool dk = Theme::DarkMode;
-
-        QPainter p(this);
-        p.setRenderHint(QPainter::Antialiasing);
-
-        p.setPen(Qt::NoPen);
-        p.setBrush(on ? QColor(QStringLiteral("#2563EB"))
-                      : QColor(dk ? QStringLiteral("#555555")
-                                  : QStringLiteral("#D1D5DB")));
-        p.drawRoundedRect(rect(), 13, 13);
-
-        p.setBrush(Qt::white);
-        const int kd = 20;
-        const int ky = (height() - kd) / 2;
-        const int kx = on ? (width() - kd - 2) : 2;
-        p.drawEllipse(kx, ky, kd, kd);
-    }
-};
-
-// ── SettingCheckBox ───────────────────────────────────────────────────────────
-// Painted by hand for the same reason ToggleSwitch is: a style-sheet indicator
-// would need a bitmap check mark, and the app deliberately ships without Qt SVG.
-
-class SettingCheckBox : public QAbstractButton
-{
-    Q_OBJECT
-public:
-    explicit SettingCheckBox(const QString &text, QWidget *parent = nullptr)
-        : QAbstractButton(parent)
-    {
-        setCheckable(true);
-        setText(text);
-        setCursor(Qt::PointingHandCursor);
-        setSizePolicy(QSizePolicy::Preferred, QSizePolicy::Fixed);
-    }
-
-    static constexpr int kBox     = 20;   // indicator edge length
-    static constexpr int kSpacing = 14;   // indicator → label gap
-
-    [[nodiscard]] QSize sizeHint() const override
-    {
-        const QFontMetrics fm(labelFont());
-        return { kBox + kSpacing + fm.horizontalAdvance(text()),
-                 qMax(kBox, fm.height()) };
-    }
-
-protected:
-    void paintEvent(QPaintEvent *) override
-    {
-        const bool on = isChecked();
-        const bool dk = Theme::DarkMode;
-
-        QPainter p(this);
-        p.setRenderHint(QPainter::Antialiasing);
-
-        const QRectF box(0.5, (height() - kBox) / 2.0 + 0.5, kBox - 1, kBox - 1);
-        if (on) {
-            p.setPen(Qt::NoPen);
-            p.setBrush(QColor(QStringLiteral("#2563EB")));
-            p.drawRoundedRect(box, 5, 5);
-
-            QPen check(Qt::white, 2.2, Qt::SolidLine, Qt::RoundCap, Qt::RoundJoin);
-            p.setPen(check);
-            const qreal x = box.left(), y = box.top(), w = box.width(), h = box.height();
-            QPainterPath path;
-            path.moveTo(x + w * 0.26, y + h * 0.52);
-            path.lineTo(x + w * 0.44, y + h * 0.70);
-            path.lineTo(x + w * 0.76, y + h * 0.32);
-            p.drawPath(path);
-        } else {
-            p.setPen(QPen(QColor(dk ? QStringLiteral("#4B5563")
-                                    : QStringLiteral("#D1D5DB")), 1.5));
-            p.setBrush(QColor(dk ? QStringLiteral("#1F2124")
-                                 : QStringLiteral("#FFFFFF")));
-            p.drawRoundedRect(box, 5, 5);
-        }
-
-        p.setFont(labelFont());
-        p.setPen(QColor(dk ? QStringLiteral("#E5E7EB") : QStringLiteral("#111827")));
-        p.drawText(QRect(kBox + kSpacing, 0, width() - kBox - kSpacing, height()),
-                   Qt::AlignLeft | Qt::AlignVCenter, text());
-    }
-
-private:
-    [[nodiscard]] QFont labelFont() const
-    {
-        QFont f = font();
-        f.setPointSizeF(f.pointSizeF() > 0 ? f.pointSizeF() : 10);
-        f.setBold(true);
-        return f;
-    }
-};
-
-#include "SettingsPanel.moc"
 
 // ── SettingsPanel ─────────────────────────────────────────────────────────────
 
@@ -772,6 +271,48 @@ void SettingsPanel::refreshThemeColors()
 }
 
 // ── Page builders ─────────────────────────────────────────────────────────────
+
+QVBoxLayout *SettingsPanel::buildScrollPage(QWidget *&page, const QString &title,
+                                            const QString &desc)
+{
+    page = new QWidget(this);
+    page->setObjectName(QStringLiteral("SettingsScrollContent"));
+    auto *outerLayout = new QVBoxLayout(page);
+    outerLayout->setContentsMargins(0, 0, 0, 0);
+    outerLayout->setSpacing(0);
+
+    auto *scroll = new QScrollArea(page);
+    scroll->setObjectName(QStringLiteral("SettingsScroll"));
+    scroll->setFrameShape(QFrame::NoFrame);
+    scroll->setHorizontalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
+    scroll->setWidgetResizable(true);
+    outerLayout->addWidget(scroll);
+
+    auto *content = new QWidget;
+    content->setObjectName(QStringLiteral("SettingsScrollContent"));
+    auto *vl = new QVBoxLayout(content);
+    vl->setContentsMargins(32, 28, 32, 32);
+    vl->setSpacing(12);
+    // Handed over before it is filled — the scroll area follows the layout as
+    // rows are added, so the caller does not have to close the loop itself.
+    scroll->setWidget(content);
+
+    auto *titleLabel = new QLabel(title, content);
+    titleLabel->setObjectName(QStringLiteral("SettingsSectionTitle"));
+    vl->addWidget(titleLabel);
+    vl->addSpacing(4);
+
+    auto *descLabel = new QLabel(desc, content);
+    descLabel->setObjectName(QStringLiteral("SettingsSectionDesc"));
+    vl->addWidget(descLabel);
+    vl->addSpacing(16);
+    return vl;
+}
+
+void SettingsPanel::finishScrollPage(QVBoxLayout *contentLayout)
+{
+    contentLayout->addStretch(1);
+}
 
 QWidget *SettingsPanel::buildAppearancePage()
 {
@@ -1086,37 +627,13 @@ QWidget *SettingsPanel::buildShortcutsPage()
 
 QWidget *SettingsPanel::buildZoomPage()
 {
-    auto *page = new QWidget(this);
-    page->setObjectName(QStringLiteral("SettingsScrollContent"));
-    auto *outerLayout = new QVBoxLayout(page);
-    outerLayout->setContentsMargins(0, 0, 0, 0);
-    outerLayout->setSpacing(0);
-
-    auto *scroll = new QScrollArea(page);
-    scroll->setObjectName(QStringLiteral("SettingsScroll"));
-    scroll->setFrameShape(QFrame::NoFrame);
-    scroll->setHorizontalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
-    scroll->setWidgetResizable(true);
-
-    auto *content = new QWidget;
-    content->setObjectName(QStringLiteral("SettingsScrollContent"));
-    auto *vl = new QVBoxLayout(content);
-    vl->setContentsMargins(32, 28, 32, 32);
-    vl->setSpacing(12);
-
-    auto *title = new QLabel(tr("Zoom"), content);
-    title->setObjectName(QStringLiteral("SettingsSectionTitle"));
-    vl->addWidget(title);
-    vl->addSpacing(4);
-    auto *desc = new QLabel(tr("Configure how zoom works with the mouse wheel."), content);
-    desc->setObjectName(QStringLiteral("SettingsSectionDesc"));
-    vl->addWidget(desc);
-    vl->addSpacing(16);
+    QWidget *page = nullptr;
+    QVBoxLayout *vl = buildScrollPage(page, tr("Zoom"), tr("Configure how zoom works with the mouse wheel."));
 
     // Helper: single-row card with a toggle switch
     const auto makeToggleCard = [&](const QString &label, bool checked,
                                      QAbstractButton **out) -> QFrame * {
-        auto *card = new QFrame(content);
+        auto *card = new QFrame(vl->parentWidget());
         card->setObjectName(QStringLiteral("ZoomCard"));
         card->setAttribute(Qt::WA_StyledBackground, true);
         auto *hl = new QHBoxLayout(card);
@@ -1134,7 +651,7 @@ QWidget *SettingsPanel::buildZoomPage()
 
     // ── Card 1: Mouse wheel zoom step ────────────────────────────────────────
     {
-        auto *card = new QFrame(content);
+        auto *card = new QFrame(vl->parentWidget());
         card->setObjectName(QStringLiteral("ZoomCard"));
         card->setAttribute(Qt::WA_StyledBackground, true);
         auto *cl = new QVBoxLayout(card);
@@ -1194,7 +711,7 @@ QWidget *SettingsPanel::buildZoomPage()
 
     // ── Card 4: Wheel action combo ────────────────────────────────────────────
     {
-        auto *card = new QFrame(content);
+        auto *card = new QFrame(vl->parentWidget());
         card->setObjectName(QStringLiteral("ZoomCard"));
         card->setAttribute(Qt::WA_StyledBackground, true);
         auto *hl = new QHBoxLayout(card);
@@ -1218,9 +735,7 @@ QWidget *SettingsPanel::buildZoomPage()
         vl->addWidget(card);
     }
 
-    vl->addStretch(1);
-    scroll->setWidget(content);
-    outerLayout->addWidget(scroll);
+    finishScrollPage(vl);
 
     // Update example label whenever the step changes
     const auto updateExample = [this]() {
@@ -1234,59 +749,132 @@ QWidget *SettingsPanel::buildZoomPage()
     return page;
 }
 
-QWidget *SettingsPanel::buildAdvancedPage()
+QVBoxLayout *SettingsPanel::addSettingsCard(QVBoxLayout *into, const QString &cardTitle)
 {
-    auto *page = new QWidget(this);
-    page->setObjectName(QStringLiteral("SettingsScrollContent"));
-    auto *vbox = new QVBoxLayout(page);
-    vbox->setContentsMargins(32, 28, 32, 32);
-    vbox->setSpacing(0);
+    auto *card = new QFrame(into->parentWidget());
+    card->setObjectName(QStringLiteral("SettingsCard"));
+    card->setAttribute(Qt::WA_StyledBackground, true);
+    auto *cl = new QVBoxLayout(card);
+    cl->setContentsMargins(16, 16, 16, 16);
+    cl->setSpacing(8);
+    auto *t = new QLabel(cardTitle, card);
+    t->setObjectName(QStringLiteral("SettingsCardTitle"));
+    cl->addWidget(t);
+    cl->addSpacing(4);
+    into->addWidget(card);
+    return cl;
+}
 
-    auto *title = new QLabel(tr("Advanced"), page);
-    title->setObjectName(QStringLiteral("SettingsSectionTitle"));
-    vbox->addWidget(title);
-    vbox->addSpacing(6);
+QAbstractButton *SettingsPanel::addSettingsCheck(QVBoxLayout *cl, const QString &label,
+                                             const QString &explain, bool checked)
+{
+    QWidget *card = cl->parentWidget();
+    auto *box = new SettingCheckBox(label, card);
+    box->setChecked(checked);
+    cl->addWidget(box, 0, Qt::AlignLeft);
+    auto *d = new QLabel(explain, card);
+    d->setObjectName(QStringLiteral("SettingsRowDesc"));
+    d->setWordWrap(true);
+    d->setContentsMargins(SettingCheckBox::kBox + SettingCheckBox::kSpacing, 0, 0, 0);
+    cl->addWidget(d);
+    return box;
+}
 
-    auto *desc = new QLabel(tr("Advanced settings for OpenPDF Studio."), page);
-    desc->setObjectName(QStringLiteral("SettingsSectionDesc"));
-    vbox->addWidget(desc);
-    vbox->addSpacing(24);
+QComboBox *SettingsPanel::addSettingsCombo(QVBoxLayout *cl, const QString &label)
+{
+    QWidget *card = cl->parentWidget();
+    auto *row = new QHBoxLayout;
+    row->setContentsMargins(SettingCheckBox::kBox + SettingCheckBox::kSpacing,
+                            8, 0, 0);
+    row->setSpacing(12);
+    auto *l = new QLabel(label, card);
+    l->setObjectName(QStringLiteral("SettingsRowLabel"));
+    row->addWidget(l);
+    row->addStretch(1);
+    auto *combo = new QComboBox(card);
+    combo->setObjectName(QStringLiteral("AdvancedCombo"));
+    combo->setFixedWidth(220);
+    row->addWidget(combo);
+    cl->addLayout(row);
+    return combo;
+}
 
-    // ── Interface ─────────────────────────────────────────────────────────────
-    auto *interfaceLabel = new QLabel(tr("INTERFACE"), page);
-    interfaceLabel->setObjectName(QStringLiteral("SettingsGroupLabel"));
-    vbox->addWidget(interfaceLabel);
-    vbox->addSpacing(14);
+void SettingsPanel::selectComboData(QComboBox *combo, const QString &value)
+{
+    for (int i = 0; i < combo->count(); ++i)
+        if (combo->itemData(i).toString() == value) {
+            combo->setCurrentIndex(i);
+            return;
+        }
+}
 
-    m_preserveLayoutCheck = new SettingCheckBox(tr("Preserve panel layout"), page);
-    m_preserveLayoutCheck->setChecked(m_settings->preservePanelLayout());
-    vbox->addWidget(m_preserveLayoutCheck, 0, Qt::AlignLeft);
-    vbox->addSpacing(6);
+void SettingsPanel::buildAdvancedUpdates(QVBoxLayout *vl)
+{
+    QVBoxLayout *cl = addSettingsCard(vl, tr("Updates"));
+    m_autoUpdateCheck = addSettingsCheck(cl, tr("Check for automatic updates"),
+        tr("Automatically check for updates in the background and notify you "
+           "when a new version is available."),
+        m_settings->autoUpdateCheck());
 
-    auto *preserveDesc = new QLabel(
-        tr("Restore expanded and collapsed panels after restart."), page);
-    preserveDesc->setObjectName(QStringLiteral("SettingsSectionDesc"));
-    vbox->addWidget(preserveDesc);
-    // Keep the description under the label, not under the check box.
-    preserveDesc->setContentsMargins(SettingCheckBox::kBox + SettingCheckBox::kSpacing,
-                                     0, 0, 0);
-    vbox->addSpacing(24);
+    m_updateIntervalCombo = addSettingsCombo(cl, tr("Check interval:"));
+    m_updateIntervalCombo->addItem(tr("On every start"), QStringLiteral("startup"));
+    m_updateIntervalCombo->addItem(tr("Daily"),          QStringLiteral("daily"));
+    m_updateIntervalCombo->addItem(tr("Weekly"),         QStringLiteral("weekly"));
+    m_updateIntervalCombo->addItem(tr("Monthly"),        QStringLiteral("monthly"));
+    selectComboData(m_updateIntervalCombo, m_settings->updateInterval());
 
-    auto *sep = new QFrame(page);
-    sep->setObjectName(QStringLiteral("SettingsSeparator"));
-    sep->setFrameShape(QFrame::HLine);
-    sep->setFixedHeight(1);
-    vbox->addWidget(sep);
-    vbox->addSpacing(24);
+    // An interval means nothing while the check is off.
+    m_updateIntervalCombo->setEnabled(m_autoUpdateCheck->isChecked());
+    connect(m_autoUpdateCheck, &QAbstractButton::toggled,
+            m_updateIntervalCombo, &QWidget::setEnabled);
+}
 
-    // ── Reset ─────────────────────────────────────────────────────────────────
-    auto *resetLabel = new QLabel(tr("RESET"), page);
-    resetLabel->setObjectName(QStringLiteral("SettingsGroupLabel"));
-    vbox->addWidget(resetLabel);
-    vbox->addSpacing(14);
+void SettingsPanel::buildAdvancedInterface(QVBoxLayout *vl)
+{
+    QVBoxLayout *cl = addSettingsCard(vl, tr("Interface"));
+    m_preserveLayoutCheck = addSettingsCheck(cl, tr("Preserve panel layout"),
+        tr("Restore expanded and collapsed panels after restart."),
+        m_settings->preservePanelLayout());
+}
 
-    auto *resetAllBtn = new QPushButton(tr("Reset All Settings to Defaults"), page);
+void SettingsPanel::buildAdvancedPerformance(QVBoxLayout *vl)
+{
+    QVBoxLayout *cl = addSettingsCard(vl, tr("Performance"));
+    m_hwAccelCheck = addSettingsCheck(cl, tr("Use hardware acceleration when available"),
+        tr("Improves performance for rendering and media playback."),
+        m_settings->hardwareAcceleration());
+    cl->addSpacing(6);
+    m_limitMemoryCheck = addSettingsCheck(cl, tr("Limit memory usage"),
+        tr("Helps improve stability on systems with limited memory."),
+        m_settings->limitMemoryUsage());
+}
+
+void SettingsPanel::buildAdvancedDiagnostics(QVBoxLayout *vl)
+{
+    QVBoxLayout *cl = addSettingsCard(vl, tr("Diagnostics"));
+    m_debugLogCheck = addSettingsCheck(cl, tr("Enable debug logging"),
+        tr("Save detailed logs for troubleshooting purposes."),
+        m_settings->debugLogging());
+
+    m_logLevelCombo = addSettingsCombo(cl, tr("Log level:"));
+    m_logLevelCombo->addItem(tr("Error"),   QStringLiteral("error"));
+    m_logLevelCombo->addItem(tr("Warning"), QStringLiteral("warning"));
+    m_logLevelCombo->addItem(tr("Info"),    QStringLiteral("info"));
+    m_logLevelCombo->addItem(tr("Debug"),   QStringLiteral("debug"));
+    selectComboData(m_logLevelCombo, m_settings->logLevel());
+
+    m_logLevelCombo->setEnabled(m_debugLogCheck->isChecked());
+    connect(m_debugLogCheck, &QAbstractButton::toggled,
+            m_logLevelCombo, &QWidget::setEnabled);
+}
+
+void SettingsPanel::buildAdvancedReset(QVBoxLayout *vl)
+{
+    QVBoxLayout *cl = addSettingsCard(vl, tr("Reset"));
+    auto *resetAllBtn = new QPushButton(tr("Reset All Settings to Defaults"),
+                                        cl->parentWidget());
     resetAllBtn->setFixedWidth(280);
+    resetAllBtn->setCursor(Qt::PointingHandCursor);
     resetAllBtn->setStyleSheet(Theme::DarkMode
         ? QStringLiteral(
             "QPushButton { background:#3D1A1A; color:#F87171; border:1px solid #7F1D1D;"
@@ -1296,16 +884,40 @@ QWidget *SettingsPanel::buildAdvancedPage()
             "QPushButton { background:#FEF2F2; color:#DC2626; border:1px solid #FCA5A5;"
             " border-radius:6px; font-size:13px; padding:8px 16px; }"
             "QPushButton:hover { background:#FEE2E2; }"));
+    // Every control the dialog owns goes back to its default here; nothing is
+    // written yet, so Cancel still leaves the stored settings untouched.
     connect(resetAllBtn, &QPushButton::clicked, this, [this]() {
         m_pendingTheme = QStringLiteral("system");
         selectCardGroup(m_pendingTheme, m_themeCards, m_themeIds);
         Q_EMIT themeChangeRequested(m_pendingTheme);
         m_pendingLang = QStringLiteral("en");
         selectLangCode(m_pendingLang);
+        if (m_autoUpdateCheck)     m_autoUpdateCheck->setChecked(true);
+        if (m_updateIntervalCombo) selectComboData(m_updateIntervalCombo,
+                                              QStringLiteral("daily"));
         if (m_preserveLayoutCheck) m_preserveLayoutCheck->setChecked(true);
+        if (m_hwAccelCheck)        m_hwAccelCheck->setChecked(false);
+        if (m_limitMemoryCheck)    m_limitMemoryCheck->setChecked(false);
+        if (m_debugLogCheck)       m_debugLogCheck->setChecked(false);
+        if (m_logLevelCombo)       selectComboData(m_logLevelCombo,
+                                              QStringLiteral("info"));
     });
-    vbox->addWidget(resetAllBtn);
-    vbox->addStretch(1);
+    cl->addWidget(resetAllBtn, 0, Qt::AlignLeft);
+}
+
+QWidget *SettingsPanel::buildAdvancedPage()
+{
+    QWidget *page = nullptr;
+    QVBoxLayout *vl = buildScrollPage(page, tr("Advanced"), tr("Advanced settings for OpenPDF Studio."));
+
+
+    buildAdvancedUpdates(vl);
+    buildAdvancedInterface(vl);
+    buildAdvancedPerformance(vl);
+    buildAdvancedDiagnostics(vl);
+    buildAdvancedReset(vl);
+
+    finishScrollPage(vl);
     return page;
 }
 
@@ -1444,6 +1056,20 @@ void SettingsPanel::applyAndClose()
         panelLayoutChanged = (preserve != m_settings->preservePanelLayout());
         m_settings->setPreservePanelLayout(preserve);
     }
+
+    // Advanced
+    if (m_autoUpdateCheck)
+        m_settings->setAutoUpdateCheck(m_autoUpdateCheck->isChecked());
+    if (m_updateIntervalCombo)
+        m_settings->setUpdateInterval(m_updateIntervalCombo->currentData().toString());
+    if (m_hwAccelCheck)
+        m_settings->setHardwareAcceleration(m_hwAccelCheck->isChecked());
+    if (m_limitMemoryCheck)
+        m_settings->setLimitMemoryUsage(m_limitMemoryCheck->isChecked());
+    if (m_debugLogCheck)
+        m_settings->setDebugLogging(m_debugLogCheck->isChecked());
+    if (m_logLevelCombo)
+        m_settings->setLogLevel(m_logLevelCombo->currentData().toString());
 
     m_settings->sync();
 

@@ -1,6 +1,6 @@
 #pragma once
 
-#include "ui/dialogs/ExportDialog.hpp"
+#include "ui/export/ExportDialog.hpp"
 
 #include <QMainWindow>
 #include <QMap>

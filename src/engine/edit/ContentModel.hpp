@@ -25,6 +25,15 @@ public:
     // and a reference into the cache would dangle across invalidate calls.
     QList<ContentItem> pageItems(int page);
 
+    // Exporters need visual line/cell granularity, while the editor benefits
+    // from merged paragraphs for hit testing. Backends that can provide the
+    // finer representation override this without changing the cached editor
+    // model. The default keeps existing providers source-compatible.
+    virtual QList<ContentItem> pageItemsForExport(int page)
+    {
+        return pageItems(page);
+    }
+
     // True when the page has already been built. Cheap callers (hover!) must
     // check this and NEVER trigger a build — buildPage parses the whole file
     // on the UI thread and freezes scrolling on complex documents.

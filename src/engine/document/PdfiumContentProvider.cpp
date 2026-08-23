@@ -90,6 +90,20 @@ PdfiumContentProvider::~PdfiumContentProvider() = default;
 
 QList<ContentItem> PdfiumContentProvider::buildPage(int page)
 {
+    return buildPageItems(page, true);
+}
+
+QList<ContentItem> PdfiumContentProvider::pageItemsForExport(int page)
+{
+    // Keep one item per visual line/cell, as the 0.2.5 export path did. The
+    // DOCX layout pass needs those baselines to reconstruct row pitch and
+    // wrapped cells; merged editor paragraphs discard that information.
+    return buildPageItems(page, false);
+}
+
+QList<ContentItem> PdfiumContentProvider::buildPageItems(int page,
+                                                        bool mergeVertical)
+{
     if (!m_doc) return {};
     FPDF_PAGE pg = FPDF_LoadPage(m_doc, page);
     if (!pg) return {};
@@ -102,7 +116,7 @@ QList<ContentItem> PdfiumContentProvider::buildPage(int page)
 
     QList<ContentItem> text;
     if (FPDF_TEXTPAGE tp = FPDFText_LoadPage(pg)) {
-        text = classifyContentClusters(collectWords(tp, pageHeight));
+        text = classifyContentClusters(collectWords(tp, pageHeight), mergeVertical);
         FPDFText_ClosePage(tp);
     }
     FPDF_ClosePage(pg);

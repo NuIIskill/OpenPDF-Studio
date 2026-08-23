@@ -3,6 +3,9 @@
 #include <QEvent>
 #include <QFrame>
 #include <QIcon>
+#include <QList>
+
+#include "engine/edit/TextBoxProperties.hpp"
 
 QT_BEGIN_NAMESPACE
 class QComboBox;
@@ -23,6 +26,9 @@ public:
     void setFontFamily(const QString &family);
     void setBoldChecked(bool on);
     void setItalicChecked(bool on);
+    void refreshTheme();
+    void setAlignment(TextBoxProperties::HorizontalAlign alignment);
+    void setLineSpacing(double multiplier);
 
 Q_SIGNALS:
     void fontFamilyChanged(const QString &family);
@@ -32,6 +38,9 @@ Q_SIGNALS:
     void italicToggled(bool on);
     void underlineToggled(bool on);
     void alignmentChanged(Qt::Alignment align);
+    void listStyleChanged(TextBoxProperties::ListStyle style);
+    void indentChanged(int delta);
+    void lineSpacingChanged(double multiplier);
 
 protected:
     void changeEvent(QEvent *e) override;
@@ -50,6 +59,9 @@ private:
     QPushButton   *m_underline  { nullptr };
     QPushButton   *m_color      { nullptr };
     QComboBox     *m_spacing    { nullptr };
+    QPushButton   *m_list       { nullptr };
+    QPushButton   *m_indent     { nullptr };
+    QList<QPushButton *> m_alignButtons;
 
     // Group labels — updated on LanguageChange via retranslateUi()
     QLabel *m_lblFont    { nullptr };

@@ -426,6 +426,29 @@ void EditSession::paintBlankEdit(QPainter &p, const QImage &img, const Edit &e,
 void EditSession::paintTextEdit(QPainter &p, const Edit &e, qreal scale)
 {
     const QRectF px(e.pdfBounds.topLeft() * scale, e.pdfBounds.size() * scale);
+    p.save();
+    p.setRenderHint(QPainter::Antialiasing, true);
+    p.setOpacity(qBound(0.0, e.box.opacity, 1.0));
+    if (!qFuzzyIsNull(e.box.rotationDeg)) {
+        p.translate(px.center());
+        p.rotate(e.box.rotationDeg);
+        p.translate(-px.center());
+    }
+    const qreal radius = qMax(0.0, e.box.cornerRadiusPt * scale);
+    if (e.box.backgroundEnabled) {
+        p.setPen(Qt::NoPen);
+        p.setBrush(e.box.backgroundColor);
+        p.drawRoundedRect(px, radius, radius);
+    }
+    if (e.box.borderEnabled) {
+        Qt::PenStyle style = Qt::SolidLine;
+        if (e.box.borderStyle == TextBoxProperties::BorderStyle::Dashed) style = Qt::DashLine;
+        if (e.box.borderStyle == TextBoxProperties::BorderStyle::Dotted) style = Qt::DotLine;
+        QPen border(e.box.borderColor, qMax(0.5, e.box.borderWidthPt * scale), style);
+        p.setPen(border); p.setBrush(Qt::NoBrush);
+        p.drawRoundedRect(px.adjusted(border.widthF()/2, border.widthF()/2,
+                                     -border.widthF()/2, -border.widthF()/2), radius, radius);
+    }
     // No white fill here — the companion blank edit handles erasure.
     // Text edits are drawn as overlays so that a text box placed near (or on top
     // of) existing content does not silently destroy it.
@@ -448,6 +471,8 @@ void EditSession::paintTextEdit(QPainter &p, const Edit &e, qreal scale)
     f.setPixelSize(pixelSize);
     f.setBold(e.bold);
     f.setItalic(e.italic);
+    if (!qFuzzyIsNull(e.box.characterSpacingPt))
+        f.setLetterSpacing(QFont::AbsoluteSpacing, e.box.characterSpacingPt * scale);
     p.setFont(f);
     p.setPen(e.textColor.isValid() ? e.textColor : QColor(0x11, 0x11, 0x11));
 
@@ -456,9 +481,18 @@ void EditSession::paintTextEdit(QPainter &p, const Edit &e, qreal scale)
     // substituted face happens to put it — several points off the line it
     // replaces.
     const QFontMetricsF fm(f);
-    constexpr int kFlags = Qt::AlignLeft | Qt::AlignTop | Qt::TextWordWrap;
-    QRectF target = px;
-    if (e.hasTextOrigin) {
+    int kFlags = Qt::AlignLeft | Qt::AlignTop | Qt::TextWordWrap;
+    if (e.box.horizontalAlign == TextBoxProperties::HorizontalAlign::Center)
+        kFlags = Qt::AlignHCenter | Qt::AlignTop | Qt::TextWordWrap;
+    else if (e.box.horizontalAlign == TextBoxProperties::HorizontalAlign::Right)
+        kFlags = Qt::AlignRight | Qt::AlignTop | Qt::TextWordWrap;
+    else if (e.box.horizontalAlign == TextBoxProperties::HorizontalAlign::Justify)
+        kFlags = Qt::AlignJustify | Qt::AlignTop | Qt::TextWordWrap;
+    const qreal pad = qMax(0.0, e.box.paddingPt * scale);
+    QRectF target = px.adjusted(pad, pad, -pad, -pad);
+    target.adjust(e.box.indentLevel * 18.0 * scale, 0, 0, 0);
+    if (e.hasTextOrigin && qFuzzyIsNull(e.box.paddingPt)
+            && e.box.verticalAlign == TextBoxProperties::VerticalAlign::Top) {
         const QPointF origin = (e.pdfBounds.topLeft() + e.textOriginOffset) * scale;
         target.translate(origin.x() - px.left(),
                          origin.y() - (px.top() + fm.ascent()));
@@ -478,18 +512,42 @@ void EditSession::paintTextEdit(QPainter &p, const Edit &e, qreal scale)
     };
 
     const double stepPt = e.lineSpacingPt;
-    if (stepPt <= 0.0 || !e.newText.contains(u'\n')) {
-        drawBlock(e.newText, target.top());
+    if (!e.newText.contains(u'\n')) {
+        QString line = e.newText;
+        if (e.box.listStyle == TextBoxProperties::ListStyle::Bullets) line.prepend(QStringLiteral("• "));
+        else if (e.box.listStyle == TextBoxProperties::ListStyle::Numbered) line.prepend(QStringLiteral("1. "));
+        const qreal contentH = laidOutHeight(line);
+        if (e.box.verticalAlign == TextBoxProperties::VerticalAlign::Center)
+            target.moveTop(target.top() + qMax(0.0, (target.height() - contentH) / 2.0));
+        else if (e.box.verticalAlign == TextBoxProperties::VerticalAlign::Bottom)
+            target.moveTop(target.bottom() - contentH);
+        drawBlock(line, target.top());
+        p.restore();
         return;
     }
     // Multi-line block with a known spacing: place each line on the baseline it
     // had in the document instead of letting the font's tighter default stack
     // them. A line that grew long enough to wrap takes the room it needs, and
     // the ones below move down with it rather than being written over.
-    const qreal step = stepPt * scale;
+    const qreal step = stepPt > 0.0 ? stepPt * scale
+                                    : fm.lineSpacing() * qMax(1.0, e.box.lineSpacingMultiplier);
+    const qreal paragraph = qMax(0.0, e.box.paragraphSpacingPt * scale);
+    const QStringList lines = e.newText.split(u'\n');
+    qreal contentH = 0.0;
+    for (const QString &line : lines)
+        contentH += qMax(step, laidOutHeight(line)) + paragraph;
+    if (!lines.isEmpty()) contentH -= paragraph;
+    if (e.box.verticalAlign == TextBoxProperties::VerticalAlign::Center)
+        target.moveTop(target.top() + qMax(0.0, (target.height() - contentH) / 2.0));
+    else if (e.box.verticalAlign == TextBoxProperties::VerticalAlign::Bottom)
+        target.moveTop(target.bottom() - contentH);
     qreal top = target.top();
-    for (const QString &line : e.newText.split(u'\n')) {
+    for (int i = 0; i < lines.size(); ++i) {
+        QString line = lines.at(i);
+        if (e.box.listStyle == TextBoxProperties::ListStyle::Bullets) line.prepend(QStringLiteral("• "));
+        else if (e.box.listStyle == TextBoxProperties::ListStyle::Numbered) line.prepend(QString::number(i + 1) + QStringLiteral(". "));
         drawBlock(line, top);
-        top += qMax(step, laidOutHeight(line));
+        top += qMax(step, laidOutHeight(line)) + paragraph;
     }
+    p.restore();
 }

@@ -20,6 +20,9 @@
 #include <QFile>
 #include <QHash>
 #include <QImage>
+#include <QFont>
+#include <QFontMetricsF>
+#include <QtMath>
 
 #include <vector>
 
@@ -118,12 +121,96 @@ FPDF_FONT removeTextIn(FPDF_PAGE page, const QList<QRectF> &areas, double pageHe
 /// Oberlänge daneben.
 QPointF firstBaseline(const EditSession::Edit &edit, double fontSize, double pageHeight)
 {
-    if (edit.hasTextOrigin) {
+    const bool customInset = edit.box.paddingPt > 0.0
+                          || edit.box.verticalAlign != TextBoxProperties::VerticalAlign::Top;
+    if (edit.hasTextOrigin && !customInset) {
         const QPointF qt = edit.pdfBounds.topLeft() + edit.textOriginOffset;
         return QPointF(qt.x(), toPdfY(qt.y(), pageHeight));
     }
-    const double baselineQt = edit.pdfBounds.top() + fontSize * 0.8;
-    return QPointF(edit.pdfBounds.left(), toPdfY(baselineQt, pageHeight));
+    const int lines = qMax(1, edit.newText.count(u'\n') + 1);
+    const double step = edit.lineSpacingPt > 0.0 ? edit.lineSpacingPt : fontSize * 1.2;
+    const double contentHeight = fontSize + (lines - 1)
+                               * (step + edit.box.paragraphSpacingPt);
+    const double innerHeight = qMax(0.0, edit.pdfBounds.height() - 2 * edit.box.paddingPt);
+    double offset = 0.0;
+    if (edit.box.verticalAlign == TextBoxProperties::VerticalAlign::Center)
+        offset = qMax(0.0, (innerHeight - contentHeight) / 2.0);
+    else if (edit.box.verticalAlign == TextBoxProperties::VerticalAlign::Bottom)
+        offset = qMax(0.0, innerHeight - contentHeight);
+    const double baselineQt = edit.pdfBounds.top() + edit.box.paddingPt
+                            + offset + fontSize * 0.8;
+    return QPointF(edit.pdfBounds.left() + edit.box.paddingPt
+                       + edit.box.indentLevel * 18.0,
+                   toPdfY(baselineQt, pageHeight));
+}
+
+void rotateObject(FPDF_PAGEOBJECT object, const EditSession::Edit &edit,
+                  double pageHeight)
+{
+    if (!object || qFuzzyIsNull(edit.box.rotationDeg)) return;
+    const double a = qDegreesToRadians(-edit.box.rotationDeg);
+    const double cs = std::cos(a), sn = std::sin(a);
+    const QPointF center(edit.pdfBounds.center().x(),
+                         toPdfY(edit.pdfBounds.center().y(), pageHeight));
+    FPDFPageObj_Transform(object, cs, sn, -sn, cs,
+                          center.x() - cs * center.x() + sn * center.y(),
+                          center.y() - sn * center.x() - cs * center.y());
+}
+
+FPDF_PAGEOBJECT roundedRectPath(const QRectF &qtRect, double radius,
+                                double pageHeight)
+{
+    const double l=qtRect.left(), r=qtRect.right();
+    const double b=toPdfY(qtRect.bottom(),pageHeight), t=toPdfY(qtRect.top(),pageHeight);
+    const double rad=qBound(0.0,radius,qMin(qtRect.width(),qtRect.height())/2.0);
+    if (rad <= 0.0) return FPDFPageObj_CreateNewRect(l,b,qtRect.width(),qtRect.height());
+    constexpr double k=.5522847498;
+    FPDF_PAGEOBJECT p=FPDFPageObj_CreateNewPath(l+rad,b);
+    FPDFPath_LineTo(p,r-rad,b); FPDFPath_BezierTo(p,r-rad+k*rad,b,r,b+rad-k*rad,r,b+rad);
+    FPDFPath_LineTo(p,r,t-rad); FPDFPath_BezierTo(p,r,t-rad+k*rad,r-rad+k*rad,t,r-rad,t);
+    FPDFPath_LineTo(p,l+rad,t); FPDFPath_BezierTo(p,l+rad-k*rad,t,l,t-rad+k*rad,l,t-rad);
+    FPDFPath_LineTo(p,l,b+rad); FPDFPath_BezierTo(p,l,b+rad-k*rad,l+rad-k*rad,b,l+rad,b);
+    FPDFPath_Close(p); return p;
+}
+
+void insertBoxDecoration(FPDF_PAGE page, const EditSession::Edit &edit,
+                         double pageHeight)
+{
+    if (!edit.box.backgroundEnabled && !edit.box.borderEnabled) return;
+    FPDF_PAGEOBJECT path=roundedRectPath(edit.pdfBounds,edit.box.cornerRadiusPt,pageHeight);
+    if (!path) return;
+    const int alpha=qRound(255*qBound(0.0,edit.box.opacity,1.0));
+    if (edit.box.backgroundEnabled) {
+        const QColor c=edit.box.backgroundColor;
+        FPDFPageObj_SetFillColor(path,c.red(),c.green(),c.blue(),qRound(alpha*c.alphaF()));
+    }
+    const bool solidBorder = edit.box.borderEnabled
+                          && edit.box.borderStyle == TextBoxProperties::BorderStyle::Solid;
+    if (solidBorder) {
+        const QColor c=edit.box.borderColor;
+        FPDFPageObj_SetStrokeColor(path,c.red(),c.green(),c.blue(),qRound(alpha*c.alphaF()));
+        FPDFPageObj_SetStrokeWidth(path,qMax(.1,edit.box.borderWidthPt));
+    }
+    FPDFPath_SetDrawMode(path,edit.box.backgroundEnabled?FPDF_FILLMODE_WINDING:FPDF_FILLMODE_NONE,
+                         solidBorder);
+    rotateObject(path,edit,pageHeight);
+    FPDFPage_InsertObject(page,path);
+
+    if (edit.box.borderEnabled && !solidBorder) {
+        const QRectF r=edit.pdfBounds;
+        const double left=r.left(),right=r.right(),bottom=toPdfY(r.bottom(),pageHeight),top=toPdfY(r.top(),pageHeight);
+        FPDF_PAGEOBJECT dashed=FPDFPageObj_CreateNewPath(left,bottom);
+        const double dash=edit.box.borderStyle==TextBoxProperties::BorderStyle::Dotted
+                            ? qMax(.2,edit.box.borderWidthPt*.25)
+                            : qMax(2.,edit.box.borderWidthPt*4.);
+        const double gap=qMax(2.,edit.box.borderWidthPt*2.5);
+        const auto edge=[&](double x1,double y1,double x2,double y2){
+            const double len=std::hypot(x2-x1,y2-y1); if(len<=0)return;
+            for(double at=0;at<len;at+=dash+gap){const double e=qMin(len,at+dash);FPDFPath_MoveTo(dashed,x1+(x2-x1)*at/len,y1+(y2-y1)*at/len);FPDFPath_LineTo(dashed,x1+(x2-x1)*e/len,y1+(y2-y1)*e/len);}
+        };
+        edge(left,bottom,right,bottom);edge(right,bottom,right,top);edge(right,top,left,top);edge(left,top,left,bottom);
+        const QColor c=edit.box.borderColor;FPDFPageObj_SetStrokeColor(dashed,c.red(),c.green(),c.blue(),qRound(alpha*c.alphaF()));FPDFPageObj_SetStrokeWidth(dashed,qMax(.1,edit.box.borderWidthPt));FPDFPath_SetDrawMode(dashed,FPDF_FILLMODE_NONE,true);rotateObject(dashed,edit,pageHeight);FPDFPage_InsertObject(page,dashed);
+    }
 }
 
 /// Setzt den Ersatztext als Seitenobjekte ein — eine Zeile, ein Objekt.
@@ -148,27 +235,55 @@ void insertReplacement(FPDF_DOCUMENT doc, FPDF_PAGE page,
     }
     if (!font) return;
 
+    insertBoxDecoration(page, edit, pageHeight);
+
     const QPointF start = firstBaseline(edit, size, pageHeight);
-    const double  step  = edit.lineSpacingPt > 0.0 ? edit.lineSpacingPt : size * 1.2;
+    const double  step  = (edit.lineSpacingPt > 0.0 ? edit.lineSpacingPt : size * 1.2)
+                        + edit.box.paragraphSpacingPt;
 
     const QStringList lines = edit.newText.split(QLatin1Char('\n'));
+    QFont metricFont(edit.fontFamily.isEmpty()?QStringLiteral("Helvetica"):edit.fontFamily);
+    metricFont.setPixelSize(qMax(1,qRound(size)));
+    metricFont.setBold(edit.bold);
+    metricFont.setItalic(edit.italic);
+    const QFontMetricsF fm(metricFont);
+    const double availableWidth = qMax(0.0, edit.pdfBounds.width()
+        - 2 * edit.box.paddingPt - edit.box.indentLevel * 18.0);
     for (int i = 0; i < lines.size(); ++i) {
-        if (lines.at(i).isEmpty()) continue;
-
-        FPDF_PAGEOBJECT obj = FPDFPageObj_CreateTextObj(doc, font, static_cast<float>(size));
-        if (!obj) continue;
-
-        const std::u16string utf16 = lines.at(i).toStdU16String();
-        FPDFText_SetText(obj, reinterpret_cast<FPDF_WIDESTRING>(utf16.c_str()));
-
+        QString line = lines.at(i);
+        if (edit.box.listStyle == TextBoxProperties::ListStyle::Bullets)
+            line.prepend(QStringLiteral("• "));
+        else if (edit.box.listStyle == TextBoxProperties::ListStyle::Numbered)
+            line.prepend(QString::number(i + 1) + QStringLiteral(". "));
+        if (line.isEmpty()) continue;
         const QColor color = edit.textColor.isValid() ? edit.textColor : QColor(Qt::black);
-        FPDFPageObj_SetFillColor(obj, color.red(), color.green(), color.blue(),
-                                 color.alpha());
-
-        // Zeilen laufen nach unten, in PDF-Koordinaten also ins Negative.
-        FPDFPageObj_Transform(obj, 1, 0, 0, 1,
-                              start.x(), start.y() - step * i);
-        FPDFPage_InsertObject(page, obj);
+        const auto insertObject = [&](const QString &text, double x) {
+            FPDF_PAGEOBJECT obj=FPDFPageObj_CreateTextObj(doc,font,static_cast<float>(size));
+            if(!obj)return;
+            const std::u16string utf16=text.toStdU16String();
+            FPDFText_SetText(obj,reinterpret_cast<FPDF_WIDESTRING>(utf16.c_str()));
+            FPDFPageObj_SetFillColor(obj,color.red(),color.green(),color.blue(),
+                                     qRound(color.alpha()*qBound(0.0,edit.box.opacity,1.0)));
+            FPDFPageObj_Transform(obj,1,0,0,1,x,start.y()-step*i);
+            rotateObject(obj,edit,pageHeight); FPDFPage_InsertObject(page,obj);
+        };
+        double lineWidth = fm.horizontalAdvance(line);
+        if (!qFuzzyIsNull(edit.box.characterSpacingPt) && line.size() > 1)
+            lineWidth += edit.box.characterSpacingPt * (line.size() - 1);
+        double lineX = start.x();
+        if (edit.box.horizontalAlign == TextBoxProperties::HorizontalAlign::Center)
+            lineX += qMax(0.0, (availableWidth - lineWidth) / 2.0);
+        else if (edit.box.horizontalAlign == TextBoxProperties::HorizontalAlign::Right)
+            lineX += qMax(0.0, availableWidth - lineWidth);
+        if (qFuzzyIsNull(edit.box.characterSpacingPt)) {
+            insertObject(line,lineX);
+        } else {
+            double x=lineX;
+            for (const QChar ch : line) {
+                insertObject(QString(ch),x);
+                x += fm.horizontalAdvance(ch) + edit.box.characterSpacingPt;
+            }
+        }
     }
 
     if (ownsFont) FPDFFont_Close(font);

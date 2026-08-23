@@ -199,11 +199,15 @@ QList<ContentItem> classifyContentClusters(QList<ContentCluster> clusters,
     // Phase 3: table detection — a multi-segment row is a table row only when a
     // vertically adjacent row is also multi-segment with ≥2 aligned column lefts.
     // (An isolated two-part line — e.g. heading + page number — stays plain text.)
+    // Export keeps visual lines separate and can therefore accept the wider
+    // row pitch common in roomy business tables. The editor keeps the tighter
+    // threshold to avoid turning unrelated nearby labels into clickable cells.
+    const double tableRowReach = mergeVertical ? 2.4 : 3.4;
     for (int i = 0; i < rsegs.size(); ++i) {
         if (rsegs[i].segs.size() < 2) continue;
         for (int j = i + 1; j < rsegs.size(); ++j) {
             const double dy = rsegs[j].y - rsegs[i].y;
-            if (dy > std::max(rsegs[i].lineH, rsegs[j].lineH) * 2.4) break;
+            if (dy > std::max(rsegs[i].lineH, rsegs[j].lineH) * tableRowReach) break;
             if (rsegs[j].segs.size() < 2) continue;
             const double tol = std::max(rsegs[i].lineH, rsegs[j].lineH) * 1.2;
             int aligned = 0;
@@ -379,4 +383,3 @@ ContentItem contentItemAt(const QList<ContentItem> &items, const QPointF &pdfPt,
 // ═══════════════════════════════════════════════════════════════════════════════
 //  qpdf content-stream scanner
 // ═══════════════════════════════════════════════════════════════════════════════
-

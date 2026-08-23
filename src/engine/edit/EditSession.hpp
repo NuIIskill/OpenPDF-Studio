@@ -2,6 +2,7 @@
 
 #include "engine/edit/ContentMap.hpp"
 #include "engine/edit/TextBlock.hpp"
+#include "engine/edit/TextBoxProperties.hpp"
 #include <QColor>
 #include <QList>
 #include <QSet>
@@ -75,6 +76,7 @@ public:
         // the area — chart bars, images, rules — intact. Empty → fall back
         // to erasing pdfBounds.
         QList<QRectF> eraseRects;
+        TextBoxProperties box;
 
         bool operator==(const Edit &o) const {
             return page == o.page && pdfBounds == o.pdfBounds &&
@@ -88,7 +90,8 @@ public:
                    fontFamily == o.fontFamily && bold == o.bold &&
                    italic == o.italic && fontChanged == o.fontChanged &&
                    sizeChanged == o.sizeChanged &&
-                   formField == o.formField && eraseRects == o.eraseRects;
+                   formField == o.formField && eraseRects == o.eraseRects &&
+                   box == o.box;
         }
         bool operator!=(const Edit &o) const { return !(*this == o); }
     };

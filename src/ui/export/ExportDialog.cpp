@@ -1,4 +1,4 @@
-#include "ui/dialogs/ExportDialog.hpp"
+#include "ui/export/ExportDialog.hpp"
 #include "ui/theme/Theme.hpp"
 #include "engine/edit/PdfExporter.hpp"
 
@@ -287,6 +287,14 @@ QPushButton *ExportDialog::makeFormatCard(const QString &iconChar, const QString
                                      : QStringLiteral("XCardIconDim"));
     iconLbl->setAlignment(Qt::AlignCenter);
     iconLbl->setAttribute(Qt::WA_TransparentForMouseEvents);
+    // The original page/clipboard emoji are not present in every Qt font and
+    // then render as an empty label. Keep their familiar coloured appearance
+    // with bundled equivalents instead of depending on a system emoji font.
+    const QString iconAsset = iconChar == QStringLiteral("📄")
+        ? QStringLiteral("export-pdf")
+        : iconChar == QStringLiteral("📋") ? QStringLiteral("export-pdfa") : QString{};
+    if (!iconAsset.isEmpty())
+        iconLbl->setPixmap(Theme::renderSvg(iconAsset, Qt::transparent, 24));
     inner->addWidget(iconLbl, 0, Qt::AlignCenter);
 
     auto *textLbl = new QLabel(label);

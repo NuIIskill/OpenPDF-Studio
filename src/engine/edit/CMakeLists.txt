@@ -9,6 +9,8 @@ target_sources(OpenPDFStudio PRIVATE
     DocxExporter.hpp
     DocxLayout.cpp
     DocxLayout.hpp
+    DocxXml.cpp
+    DocxXml.hpp
     EditSession.cpp
     EditSession.hpp
     InkMetrics.cpp
@@ -16,4 +18,7 @@ target_sources(OpenPDFStudio PRIVATE
     PdfExporter.cpp
     PdfExporter.hpp
     TextBlock.hpp
+    TextBoxProperties.hpp
+    ZipWriter.cpp
+    ZipWriter.hpp
 )

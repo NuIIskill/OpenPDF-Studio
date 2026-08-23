@@ -15,7 +15,7 @@
 #include "ui/view/PageLayoutEngine.hpp"
 #include "ui/view/ZoomController.hpp"
 #include "ui/view/TextSelectionController.hpp"
-#include "ui/dialogs/PasswordDialog.hpp"
+#include "ui/widgets/PasswordDialog.hpp"
 
 #include <QFileInfo>
 

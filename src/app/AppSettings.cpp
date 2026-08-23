@@ -172,6 +172,64 @@ void AppSettings::setSplitterState(const QByteArray &state)
     settings().setValue(QStringLiteral("panels/splitterState"), state);
 }
 
+// ── Advanced ──────────────────────────────────────────────────────────────
+
+bool AppSettings::autoUpdateCheck() const
+{
+    return settings().value(QStringLiteral("advanced/autoUpdateCheck"), true).toBool();
+}
+void AppSettings::setAutoUpdateCheck(bool v)
+{
+    settings().setValue(QStringLiteral("advanced/autoUpdateCheck"), v);
+}
+
+QString AppSettings::updateInterval() const
+{
+    return settings().value(QStringLiteral("advanced/updateInterval"),
+                            QStringLiteral("daily")).toString();
+}
+void AppSettings::setUpdateInterval(const QString &interval)
+{
+    settings().setValue(QStringLiteral("advanced/updateInterval"), interval);
+}
+
+bool AppSettings::hardwareAcceleration() const
+{
+    return settings().value(QStringLiteral("advanced/hardwareAcceleration"), false).toBool();
+}
+void AppSettings::setHardwareAcceleration(bool v)
+{
+    settings().setValue(QStringLiteral("advanced/hardwareAcceleration"), v);
+}
+
+bool AppSettings::limitMemoryUsage() const
+{
+    return settings().value(QStringLiteral("advanced/limitMemoryUsage"), false).toBool();
+}
+void AppSettings::setLimitMemoryUsage(bool v)
+{
+    settings().setValue(QStringLiteral("advanced/limitMemoryUsage"), v);
+}
+
+bool AppSettings::debugLogging() const
+{
+    return settings().value(QStringLiteral("advanced/debugLogging"), false).toBool();
+}
+void AppSettings::setDebugLogging(bool v)
+{
+    settings().setValue(QStringLiteral("advanced/debugLogging"), v);
+}
+
+QString AppSettings::logLevel() const
+{
+    return settings().value(QStringLiteral("advanced/logLevel"),
+                            QStringLiteral("info")).toString();
+}
+void AppSettings::setLogLevel(const QString &level)
+{
+    settings().setValue(QStringLiteral("advanced/logLevel"), level);
+}
+
 // ── Sync ──────────────────────────────────────────────────────────────────
 
 void AppSettings::sync()

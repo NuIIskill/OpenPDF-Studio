@@ -59,6 +59,10 @@ public:
     /// written file, so a single file is what going back to it can restore.
     DocumentHistory::Change appliedChange() const;
 
+    /// Writes the current page list to `path` without showing the dialog.
+    /// For the headless --organize-save check.
+    bool writeForTest(const QString &path);
+
 protected:
     void changeEvent(QEvent *e) override;
     void resizeEvent(QResizeEvent *e) override;
@@ -104,11 +108,9 @@ private:
     bool writePdf(const QString &outPath);
     // Reopens a written file and checks page count — a broken result must not
     // reach the document view as a silently blank document.
-    bool verifyWritten(const QString &path) const;
 #ifdef HAVE_QPDF
     // Vector page assembly (qpdf). writePdf falls back to rasterising when
     // this fails or qpdf is unavailable.
-    bool writeVectorPdf(const QString &outPath);
 #endif
     QPixmap renderThumb(const PageEntry &e);
 

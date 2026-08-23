@@ -152,6 +152,85 @@ void EditController::setTextColor(const QColor &color)
 #endif
 }
 
+TextBoxProperties EditController::textBoxProperties() const
+{
+    TextBoxProperties p = currentBox;
+    p.bounds = activeEditBounds;
+    return p;
+}
+
+void EditController::notifyBoundsChanged()
+{
+    if (activeEditPage >= 0)
+        Q_EMIT textBoxPropertiesChanged(textBoxProperties());
+}
+
+void EditController::setTextBoxProperties(const TextBoxProperties &properties)
+{
+#ifdef HAVE_PDF_RENDERING
+    if (activeEditPage < 0 || !m_frame->isVisible()) {
+        // The inspector is deliberately usable before a text box exists.
+        // Geometry comes from the subsequent drag; every other value becomes
+        // the starting style of that new box.
+        const QRectF defaultBounds = defaultBox.bounds;
+        defaultBox = properties;
+        defaultBox.bounds = defaultBounds;
+        return;
+    }
+    currentBox = properties;
+    activeEditBounds = properties.bounds.normalized();
+    if (activeEditBounds.width() < 1.0) activeEditBounds.setWidth(1.0);
+    if (activeEditBounds.height() < 1.0) activeEditBounds.setHeight(1.0);
+    clampToPdfPage(activeEditPage, activeEditBounds);
+    currentBox.bounds = activeEditBounds;
+
+    const QLabel *lbl = m_canvas->pageLabel(activeEditPage);
+    if (!lbl) return;
+    const qreal scale = PdfRenderer::screenScale(m_zoom->zoom());
+    m_frame->setBoxProperties(currentBox, scale);
+    m_frame->setPageRect(lbl->geometry());
+    const QRectF cb(activeEditBounds.topLeft() * scale + QPointF(lbl->pos()),
+                    activeEditBounds.size() * scale);
+    m_frame->repositionForZoom(
+        cb, qMax(6, qRound(currentEditorRenderSizePt * scale)));
+    Q_EMIT textBoxPropertiesChanged(textBoxProperties());
+#else
+    Q_UNUSED(properties)
+#endif
+}
+
+void EditController::setHorizontalAlignment(Qt::Alignment alignment)
+{
+    TextBoxProperties p = activeEditPage >= 0 ? textBoxProperties() : defaultBox;
+    if (alignment & Qt::AlignJustify) p.horizontalAlign = TextBoxProperties::HorizontalAlign::Justify;
+    else if (alignment & Qt::AlignHCenter) p.horizontalAlign = TextBoxProperties::HorizontalAlign::Center;
+    else if (alignment & Qt::AlignRight) p.horizontalAlign = TextBoxProperties::HorizontalAlign::Right;
+    else p.horizontalAlign = TextBoxProperties::HorizontalAlign::Left;
+    setTextBoxProperties(p);
+}
+
+void EditController::setListStyle(TextBoxProperties::ListStyle style)
+{
+    TextBoxProperties p = activeEditPage >= 0 ? textBoxProperties() : defaultBox;
+    p.listStyle = style;
+    setTextBoxProperties(p);
+}
+
+void EditController::changeIndent(int delta)
+{
+    TextBoxProperties p = activeEditPage >= 0 ? textBoxProperties() : defaultBox;
+    p.indentLevel = qBound(0, p.indentLevel + delta, 8);
+    setTextBoxProperties(p);
+}
+
+void EditController::setLineSpacing(double multiplier)
+{
+    TextBoxProperties p = activeEditPage >= 0 ? textBoxProperties() : defaultBox;
+    p.lineSpacingMultiplier = qBound(0.5, multiplier, 4.0);
+    activeEditLineSpacingPt = currentEditorFontSizePt * p.lineSpacingMultiplier;
+    setTextBoxProperties(p);
+}
+
 void EditController::clampToPdfPage(int page, QRectF &r) const
 {
 #ifdef HAVE_PDF_RENDERING
@@ -339,6 +418,7 @@ void EditController::applyEditTargetBounds(EditOpen &o)
     clampToPdfPage(o.block.page, activeEditBounds);
     activeEditOriginalBounds = activeEditBounds;
     activeEditNeedsBlank     = true;   // editing existing text → must erase original
+    currentBox = o.isSessionEdit ? o.sessionEdit.box : TextBoxProperties{};
     activeEditFieldName.clear();
 
     // Apply the region model: bounds, paragraph text, form-field mode.
@@ -677,6 +757,8 @@ void EditController::presentEditor(EditOpen &o)
     m_frame->setPageRect(o.label->geometry());
     // Single-line edits extend horizontally while typing instead of wrapping.
     m_frame->setGrowHorizontal(!o.displayText.contains(u'\n'));
+    currentBox.bounds = activeEditBounds;
+    m_frame->setBoxProperties(currentBox, o.scale);
     m_frame->resetCommitGuard();
     undoSnapBefore = m_session->snapshotEdits();
     m_session->suspendEditsAt(o.block.page, o.block.pdfBounds);
@@ -696,6 +778,9 @@ void EditController::presentEditor(EditOpen &o)
     activeEditPresentedBounds     = activeEditBounds;
     activeEditPresentedFontSizePt = currentEditorFontSizePt;
     activeEditPresentedColor      = currentEditorColor;
+    presentedBox                  = textBoxProperties();
+    Q_EMIT textBoxPropertiesChanged(presentedBox);
+    Q_EMIT textBoxEditingChanged(true);
 }
 
 
@@ -750,6 +835,8 @@ EditSession::Edit EditController::makeSessionEdit(int page, const QRectF &bounds
     e.fontChanged = editorFontChangedByUser;
     e.sizeChanged = editorSizeChangedByUser;
     e.formField   = activeEditFieldName;
+    e.box         = currentBox;
+    e.box.bounds  = bounds;
     return e;
 }
 #endif
@@ -771,6 +858,7 @@ void EditController::commit(const QString &newText)
     activeEditSourcePage = -1;
 
     m_frame->hide();  // may trigger recursive commit, which exits early ↑
+    Q_EMIT textBoxEditingChanged(false);
 
     const QString trimNew = newText.trimmed();
 
@@ -799,7 +887,8 @@ void EditController::commit(const QString &newText)
             && qFuzzyCompare(currentEditorFontSizePt + 1.0,
                              activeEditPresentedFontSizePt + 1.0)
             && currentEditorColor      == activeEditPresentedColor;
-        if (untouched) {
+        const bool boxUntouched = textBoxProperties() == presentedBox;
+        if (untouched && boxUntouched) {
             activeEditInPlace = false;
             activeEditFieldName.clear();
             m_session->restoreSuspended();   // undo the open-time suspension
@@ -894,6 +983,7 @@ void EditController::cancel()
     activeEditInPlace    = false;
     m_session->restoreSuspended();
     m_frame->hide();
+    Q_EMIT textBoxEditingChanged(false);
     if (page >= 0)
         Q_EMIT pageNeedsRerender(page);
     if (srcPage >= 0 && srcPage != page)
@@ -946,6 +1036,8 @@ void EditController::createTextFrame(const QRect &viewportDragRect)
     activeEditHasOrigin     = false;
     activeEditOriginOffset  = QPointF();
     activeEditLineSpacingPt = 0.0;
+    currentBox = defaultBox;
+    currentBox.bounds = activeEditBounds;
     Q_EMIT fontSizeChanged(qRound(currentEditorFontSizePt));
     Q_EMIT fontChanged(QStringLiteral("Helvetica"), false, false);
 
@@ -953,12 +1045,15 @@ void EditController::createTextFrame(const QRect &viewportDragRect)
     const int fontSize = qMax(8, qRound(12.0 * scale));
     m_frame->setDecorations(true);  // new text box: show border + handles
     m_frame->setGrowHorizontal(false);   // user chose this width
+    m_frame->setBoxProperties(currentBox, scale);
     m_frame->setPageRect(pageLbl->geometry());
     m_frame->setForbiddenZones({});
     m_frame->resetCommitGuard();
     m_frame->present(QString(), QRectF(canvasRect), fontSize, currentEditorColor);
+    presentedBox = textBoxProperties();
+    Q_EMIT textBoxPropertiesChanged(presentedBox);
+    Q_EMIT textBoxEditingChanged(true);
 #else
     Q_UNUSED(viewportDragRect)
 #endif
 }
-

@@ -23,6 +23,68 @@
 #ifdef HAVE_PDF_RENDERING
 namespace {
 
+int colorDistance(const QColor &a, const QColor &b)
+{
+    return qAbs(a.red() - b.red()) + qAbs(a.green() - b.green())
+         + qAbs(a.blue() - b.blue());
+}
+
+// Pick the surface immediately around one glyph. Content classification may
+// assign a broad or stale bgColor (chart labels are a common example), while
+// the rendered pixels know whether the glyph sits on white, a table header or
+// a coloured panel. Sampling per glyph also avoids painting a white strip
+// across graphics that happen to share a text line.
+QColor sampledBackground(const QImage &image, const QRectF &pdfRect, qreal scale,
+                         const QColor &textColor, const QColor &fallback)
+{
+    const QRectF px(pdfRect.topLeft() * scale, pdfRect.size() * scale);
+    const int left   = qFloor(px.left()) - 2;
+    const int right  = qCeil(px.right()) + 2;
+    const int top    = qFloor(px.top()) - 2;
+    const int bottom = qCeil(px.bottom()) + 2;
+    const int midX   = qRound(px.center().x());
+    const int midY   = qRound(px.center().y());
+    const QPoint probes[] = {
+        { left, top }, { midX, top }, { right, top },
+        { left, midY },               { right, midY },
+        { left, bottom }, { midX, bottom }, { right, bottom }
+    };
+
+    struct Bucket { QColor color; int count; };
+    QList<Bucket> buckets;
+    for (const QPoint &probe : probes) {
+        const int x = qBound(0, probe.x(), image.width() - 1);
+        const int y = qBound(0, probe.y(), image.height() - 1);
+        const QColor sample = image.pixelColor(x, y);
+        // Adjacent glyph ink is not a background candidate.
+        if (textColor.isValid() && colorDistance(sample, textColor) < 80)
+            continue;
+        int nearest = -1;
+        for (int i = 0; i < buckets.size(); ++i) {
+            if (colorDistance(sample, buckets[i].color) < 36) {
+                nearest = i;
+                break;
+            }
+        }
+        if (nearest >= 0)
+            ++buckets[nearest].count;
+        else
+            buckets.append({ sample, 1 });
+    }
+    if (buckets.isEmpty()) return fallback.isValid() ? fallback : QColor(Qt::white);
+
+    const Bucket *best = &buckets.first();
+    for (const Bucket &bucket : buckets) {
+        if (bucket.count > best->count)
+            best = &bucket;
+        else if (bucket.count == best->count && fallback.isValid()
+                 && colorDistance(bucket.color, fallback)
+                        < colorDistance(best->color, fallback))
+            best = &bucket;
+    }
+    return best->color;
+}
+
 // Style donor for a decoded text rect: a detected item that actually covers
 // it. The previous nearest-centre match had no distance limit and no overlap
 // test, so a table header cell several lines away could hand a body paragraph
@@ -139,40 +201,14 @@ QImage DocumentExporter::eraseTextRuns(const QImage &original,
                 itemBg = Qt::white;
         }
 
-        // Join exact word/glyph boxes per visual line. ContentItem width
-        // is estimated by the qpdf scanner and can extend far past the
-        // last word; filling that estimate creates the visible colour
-        // bars. Line unions retain the stronger duplicate-text cleanup
-        // while stopping at the actual rendered line end.
-        QList<QRectF> lineRects;
-        for (const QRectF &rect : eraseRects) {
-            int host = -1;
-            for (int line = 0; line < lineRects.size(); ++line) {
-                const double tolerance = qMax(lineRects[line].height(),
-                                              rect.height()) * 0.60;
-                if (qAbs(lineRects[line].center().y() - rect.center().y())
-                        <= tolerance) {
-                    host = line;
-                    break;
-                }
-            }
-            if (host >= 0)
-                lineRects[host] = lineRects[host].united(rect);
-            else
-                lineRects.append(rect);
-        }
-        for (const QRectF &line : lineRects) {
-            const QRectF cleanLine = line.adjusted(-0.35, -0.25, 0.75, 0.25);
-            painter.fillRect(QRectF(cleanLine.topLeft() * scale,
-                                    cleanLine.size() * scale), itemBg);
-        }
-
         for (const QRectF &rect : eraseRects) {
             // Qt's polygons hug the visible glyphs. Half a point covers
             // antialiasing fringes without crossing table borders.
             const QRectF clean = rect.adjusted(-0.55, -0.45, 0.55, 0.45);
+            const QColor localBg = sampledBackground(original, rect, scale,
+                                                     item.textColor, itemBg);
             painter.fillRect(QRectF(clean.topLeft() * scale,
-                                    clean.size() * scale), itemBg);
+                                    clean.size() * scale), localBg);
         }
     }
     painter.end();
@@ -195,10 +231,9 @@ QList<DocxPage> DocumentExporter::allPageContent(const QList<int> &pages) const
         DocxPage page;
         page.pageSizePt = m_src.renderer->pageSizePts(i);
         if (m_src.provider)
-            page.items = m_src.provider->pageItems(i);
-        // Preserve images/vector graphics as a raster layer, then remove the
-        // native PDF glyphs at their exact renderer-reported rectangles. DOCX
-        // text boxes are placed over this cleaned layer and remain editable.
+            page.items = m_src.provider->pageItemsForExport(i);
+        // The text-erased render is analysis input for fills, rules and genuine
+        // graphics. Structured DOCX export does not place it behind the page.
         constexpr qreal exportScale = 2.0;
         const QImage originalRaster = m_src.renderer->renderPage(i, exportScale);
         page.background = eraseTextRuns(originalRaster, page.items, i, exportScale);

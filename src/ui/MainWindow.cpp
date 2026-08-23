@@ -8,10 +8,10 @@
 #include "ui/panels/LeftSidebar.hpp"
 #include "ui/panels/RightSidebar.hpp"
 #include "ui/panels/TextPropertiesPanel.hpp"
-#include "ui/panels/SettingsPanel.hpp"
-#include "ui/dialogs/PdfOrganizerDialog.hpp"
-#include "ui/dialogs/ExportDialog.hpp"
-#include "ui/dialogs/HistoryDialog.hpp"
+#include "ui/settings/SettingsPanel.hpp"
+#include "ui/organizer/PdfOrganizerDialog.hpp"
+#include "ui/export/ExportDialog.hpp"
+#include "ui/history/HistoryDialog.hpp"
 #include "engine/edit/DocxExporter.hpp"
 #include "engine/edit/PdfExporter.hpp"
 #include "ui/theme/Theme.hpp"
@@ -169,6 +169,16 @@ void MainWindow::connectSignals()
         closeTextPanel();
         m_rightSidebar->setMode(QString{});
     });
+    connect(m_textPanel, &TextPropertiesPanel::propertiesChanged, this,
+            [this](const TextBoxProperties &properties) {
+        if (DocumentView *dv = currentDocView())
+            dv->setTextBoxProperties(properties);
+    });
+    connect(m_textPanel, &TextPropertiesPanel::defaultsChanged, this,
+            [this](const TextBoxProperties &properties) {
+        for (DocumentView *dv : m_docViews)
+            dv->setTextBoxDefaults(properties);
+    });
 
     // FormatBar font size → active editor live update
     connect(m_formatBar, &FormatBar::fontSizeChanged, this, [this](int pt) {
@@ -192,6 +202,19 @@ void MainWindow::connectSignals()
     connect(m_formatBar, &FormatBar::italicToggled, this, [this](bool on) {
         if (DocumentView *dv = currentDocView())
             dv->setEditorItalic(on);
+    });
+    connect(m_formatBar, &FormatBar::alignmentChanged, this, [this](Qt::Alignment a) {
+        if (DocumentView *dv = currentDocView()) dv->setEditorAlignment(a);
+    });
+    connect(m_formatBar, &FormatBar::listStyleChanged, this,
+            [this](TextBoxProperties::ListStyle style) {
+        if (DocumentView *dv = currentDocView()) dv->setEditorListStyle(style);
+    });
+    connect(m_formatBar, &FormatBar::indentChanged, this, [this](int delta) {
+        if (DocumentView *dv = currentDocView()) dv->changeEditorIndent(delta);
+    });
+    connect(m_formatBar, &FormatBar::lineSpacingChanged, this, [this](double multiplier) {
+        if (DocumentView *dv = currentDocView()) dv->setEditorLineSpacing(multiplier);
     });
 
     // All keyboard shortcuts — created once here, sequences updated by loadShortcuts()
@@ -250,6 +273,7 @@ void MainWindow::connectSignals()
 DocumentView *MainWindow::addDocView()
 {
     auto *dv = new DocumentView(m_docStack);
+    dv->setTextBoxDefaults(m_textPanel->defaultProperties());
     dv->setZoomSettings(m_appSettings->zoomStep(), m_appSettings->ctrlWheelZoom(),
                         m_appSettings->zoomToPointer(), m_appSettings->wheelAction());
     m_docViews.append(dv);
@@ -293,6 +317,20 @@ DocumentView *MainWindow::addDocView()
         m_formatBar->setFontFamily(family);
         m_formatBar->setBoldChecked(bold);
         m_formatBar->setItalicChecked(italic);
+    });
+    connect(dv, &DocumentView::textBoxPropertiesChanged, this,
+            [this, dv](const TextBoxProperties &properties) {
+        if (dv == currentDocView()) {
+            m_textPanel->setProperties(properties);
+            m_formatBar->setAlignment(properties.horizontalAlign);
+            if (properties.lineSpacingMultiplier > 0.0)
+                m_formatBar->setLineSpacing(properties.lineSpacingMultiplier);
+        }
+    });
+    connect(dv, &DocumentView::textBoxEditingChanged, this,
+            [this, dv](bool active) {
+        if (dv == currentDocView())
+            m_textPanel->setEditorActive(active);
     });
 
     // Sync zoom label when user zooms via mouse wheel
@@ -781,6 +819,7 @@ void MainWindow::applyTheme(const QString &mode)
     m_leftSidebar->refreshTheme();
     m_rightSidebar->refreshTheme();
     m_statusBar->refreshTheme();
+    m_formatBar->refreshTheme();
     style()->unpolish(this);
     style()->polish(this);
     update();

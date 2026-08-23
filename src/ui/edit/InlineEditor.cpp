@@ -1,9 +1,16 @@
 #include "ui/edit/InlineEditor.hpp"
 
 #include <QApplication>
+#include <QAbstractTextDocumentLayout>
 #include <QKeyEvent>
 #include <QFocusEvent>
 #include <QWheelEvent>
+#include <QTextBlock>
+#include <QTextBlockFormat>
+#include <QTextCursor>
+#include <QTextListFormat>
+#include <QGraphicsOpacityEffect>
+#include <QTimer>
 
 InlineEditor::InlineEditor(QWidget *parent)
     : QTextEdit(parent)
@@ -16,11 +23,15 @@ InlineEditor::InlineEditor(QWidget *parent)
     setLineWrapMode(QTextEdit::WidgetWidth);
     setAttribute(Qt::WA_DeleteOnClose, false);
     setContextMenuPolicy(Qt::NoContextMenu);
+    auto *opacity = new QGraphicsOpacityEffect(this);
+    opacity->setOpacity(1.0);
+    setGraphicsEffect(opacity);
     // No inner offsets: the text must sit exactly on the original PDF text
     // position (the frame aligns its inner rect with the block bounds).
     document()->setDocumentMargin(0);
     connect(this, &QTextEdit::textChanged, this, [this]() {
         Q_EMIT changed(toPlainText());
+        QTimer::singleShot(0, this, &InlineEditor::updateVerticalAlignment);
     });
 }
 
@@ -33,6 +44,8 @@ void InlineEditor::applyStyle()
         ? QStringLiteral("Helvetica, Arial, 'Liberation Sans', sans-serif")
         : QStringLiteral("'%1', Helvetica, Arial, 'Liberation Sans', sans-serif")
               .arg(family);
+    const qreal pad = qMax(0.0, m_box.paddingPt * m_scale);
+    const qreal tracking = m_box.characterSpacingPt * m_scale;
     setStyleSheet(QString(
         "QTextEdit#InlineEditor {"
         "  background: transparent;"
@@ -41,14 +54,85 @@ void InlineEditor::applyStyle()
         "  font-size: %2px;"
         "  font-weight: %3;"
         "  font-style: %4;"
-        "  padding: 0px;"
+        "  padding: %6px;"
+        "  letter-spacing: %7px;"
         "  color: %5;"
         "}")
         .arg(familyList)
         .arg(qMax(8, m_currentFontPx))
         .arg(m_bold ? 700 : 400)
         .arg(m_italic ? QStringLiteral("italic") : QStringLiteral("normal"))
-        .arg(m_currentColor.name()));
+        .arg(m_currentColor.name())
+        .arg(pad, 0, 'f', 1)
+        .arg(tracking, 0, 'f', 2));
+}
+
+void InlineEditor::applyParagraphSpacing()
+{
+    const qreal spacing = qMax(0.0, m_box.paragraphSpacingPt * m_scale);
+    QTextCursor cursor(document());
+    cursor.beginEditBlock();
+    for (QTextBlock block = document()->begin(); block.isValid(); block = block.next()) {
+        QTextCursor blockCursor(block);
+        QTextBlockFormat fmt = block.blockFormat();
+        fmt.setBottomMargin(block.next().isValid() ? spacing : 0.0);
+        Qt::Alignment alignment = Qt::AlignLeft;
+        if (m_box.horizontalAlign == TextBoxProperties::HorizontalAlign::Center) alignment = Qt::AlignHCenter;
+        else if (m_box.horizontalAlign == TextBoxProperties::HorizontalAlign::Right) alignment = Qt::AlignRight;
+        else if (m_box.horizontalAlign == TextBoxProperties::HorizontalAlign::Justify) alignment = Qt::AlignJustify;
+        fmt.setAlignment(alignment);
+        fmt.setIndent(m_box.indentLevel);
+        if (m_box.lineSpacingMultiplier > 0.0)
+            fmt.setLineHeight(m_box.lineSpacingMultiplier * 100.0,
+                              QTextBlockFormat::ProportionalHeight);
+        else
+            fmt.setLineHeight(100.0, QTextBlockFormat::ProportionalHeight);
+        blockCursor.setBlockFormat(fmt);
+    }
+    QTextCursor all(document());
+    all.select(QTextCursor::Document);
+    if (m_box.listStyle == TextBoxProperties::ListStyle::None) {
+        QTextBlockFormat fmt = all.blockFormat();
+        fmt.setObjectIndex(-1);
+        all.setBlockFormat(fmt);
+    } else {
+        QTextListFormat list;
+        list.setStyle(m_box.listStyle == TextBoxProperties::ListStyle::Numbered
+                          ? QTextListFormat::ListDecimal
+                          : QTextListFormat::ListDisc);
+        list.setIndent(qMax(1, m_box.indentLevel + 1));
+        all.createList(list);
+    }
+    cursor.endEditBlock();
+}
+
+void InlineEditor::setBoxProperties(const TextBoxProperties &properties, qreal scale)
+{
+    m_box = properties;
+    m_scale = qMax<qreal>(0.01, scale);
+    applyStyle();
+    applyParagraphSpacing();
+    if (auto *effect = qobject_cast<QGraphicsOpacityEffect *>(graphicsEffect()))
+        effect->setOpacity(qBound(0.0, m_box.opacity, 1.0));
+    QTimer::singleShot(0, this, &InlineEditor::updateVerticalAlignment);
+}
+
+void InlineEditor::updateVerticalAlignment()
+{
+    int extra = 0;
+    if (m_box.verticalAlign != TextBoxProperties::VerticalAlign::Top) {
+        const int content = qCeil(document()->documentLayout()->documentSize().height());
+        const int free = qMax(0, height() - content);
+        extra = m_box.verticalAlign == TextBoxProperties::VerticalAlign::Center
+                    ? free / 2 : free;
+    }
+    setViewportMargins(0, extra, 0, 0);
+}
+
+void InlineEditor::resizeEvent(QResizeEvent *e)
+{
+    QTextEdit::resizeEvent(e);
+    QTimer::singleShot(0, this, &InlineEditor::updateVerticalAlignment);
 }
 
 QFont InlineEditor::styledFont(int pixelFontSize) const
@@ -71,6 +155,7 @@ void InlineEditor::present(const QString &text, int pixelFontSize, const QColor 
     m_italic        = italic;
     applyStyle();
     setPlainText(text);
+    applyParagraphSpacing();
     selectAll();
     show();
 }
@@ -150,6 +235,12 @@ void InlineEditor::focusOutEvent(QFocusEvent *e)
         return;   // spurious/transient focus loss — don't commit
     }
     QTextEdit::focusOutEvent(e);
+    // Property controls intentionally take focus while the text box stays
+    // active. Walking away to any other part of the app still commits.
+    for (QWidget *w = QApplication::focusWidget(); w; w = w->parentWidget()) {
+        if (w->objectName() == QLatin1String("TextPanel"))
+            return;
+    }
     if (!m_committing) {
         m_committing = true;
         Q_EMIT committed(toPlainText());
