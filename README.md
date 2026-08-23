@@ -61,6 +61,10 @@ so nothing in the dependency stack forces the GPL onto a distribution.
 
 * Light and dark theme
 * Configurable keyboard shortcuts
+* Update check against the repository's tags - manually in Settings › Advanced
+  or in the background at a chosen interval; it reports and links to
+  <https://openpdf-studio.nullskill.de/download.html>, it never downloads or
+  installs anything, and it can be switched off there
 * 11 translations besides English: German, French, Spanish, Italian,
   Portuguese, Dutch, Polish, Russian, Chinese, Japanese, Korean
 
@@ -112,7 +116,8 @@ argument through to CMake.
 
 ### Dependencies
 
-Required: CMake ≥ 3.20, a C++20 compiler, and Qt 6 Core / Widgets / Gui.
+Required: CMake ≥ 3.20, a C++20 compiler, and Qt 6 Core / Widgets / Gui /
+Network (Network only for the update check - it is part of qtbase).
 
 Everything else is optional and only changes what gets compiled in - the code
 behind each `HAVE_*` define still builds when the dependency is missing:

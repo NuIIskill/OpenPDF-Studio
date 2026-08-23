@@ -15,6 +15,7 @@ class FormatBar;
 class StatusBar;
 class AppSettings;
 class SettingsPanel;
+class UpdateChecker;
 
 QT_BEGIN_NAMESPACE
 class QShortcut;
@@ -91,6 +92,10 @@ private:
     // decides when they get their chance.
     void showLicenseNotices();
 
+    // Asks GitHub for the newest tag, but only if the setting says so and the
+    // interval has passed. Silent unless there is something newer.
+    void checkForUpdates();
+
     // Panel layout persistence — collapsing the right strip is a deliberate
     // choice by the user, so it survives a restart unless they opt out.
     void setRightSidebarCollapsed(bool collapsed);
@@ -98,6 +103,7 @@ private:
     void savePanelLayout();
 
     AppSettings          *m_appSettings  { nullptr };
+    UpdateChecker        *m_updateChecker{ nullptr };
     TopToolbar           *m_topToolbar   { nullptr };
     FormatBar            *m_formatBar    { nullptr };
     LeftSidebar          *m_leftSidebar  { nullptr };

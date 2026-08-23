@@ -483,6 +483,18 @@ QFrame#ShortcutInfoBar {
 QLabel#ShortcutInfoIcon { color: #60A5FA; font-size: 14px; font-weight: 700; }
 QLabel#ShortcutInfoText { color: #93C5FD; font-size: 12px; }
 
+QPushButton#SettingsActionBtn {
+    border: 1px solid #555555;
+    border-radius: 6px;
+    background: #404040;
+    color: #D8D8D8;
+    font-size: 12px;
+    font-weight: 500;
+    padding: 4px 14px;
+}
+QPushButton#SettingsActionBtn:hover { background: #484848; }
+QPushButton#SettingsActionBtn:disabled { color: #7A7A7A; background: #3A3A3A; }
+
 /* ── Zoom settings page ───────────────────────────────────── */
 QFrame#ZoomCard,
 QFrame#SettingsCard {

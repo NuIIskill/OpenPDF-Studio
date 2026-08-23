@@ -2,6 +2,7 @@
 
 #include <QObject>
 #include <QByteArray>
+#include <QDateTime>
 #include <QKeySequence>
 #include <QString>
 
@@ -71,6 +72,11 @@ public:
     // "startup" | "daily" | "weekly" | "monthly"
     [[nodiscard]] QString updateInterval() const;
     void setUpdateInterval(const QString &interval);
+
+    // When the last update check got an answer, UTC. Invalid when there has
+    // never been one - that is what makes the first start check.
+    [[nodiscard]] QDateTime lastUpdateCheck() const;
+    void setLastUpdateCheck(const QDateTime &when);
 
     [[nodiscard]] bool hardwareAcceleration() const;
     void setHardwareAcceleration(bool enabled);

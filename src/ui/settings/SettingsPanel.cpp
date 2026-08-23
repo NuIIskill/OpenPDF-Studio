@@ -1,6 +1,7 @@
 #include "ui/settings/SettingsPanel.hpp"
 #include "app/AppSettings.hpp"
 #include "app/AppConfig.hpp"
+#include "app/UpdateChecker.hpp"
 #include "drm/LicenseStore.hpp"
 #include "drm/LicensePage.hpp"
 #include "ui/theme/Theme.hpp"
@@ -24,9 +25,11 @@
 #include <QAbstractButton>
 #include <QCheckBox>
 #include <QComboBox>
+#include <QDateTime>
 #include <QKeyEvent>
 #include <QKeySequence>
 #include <QLineEdit>
+#include <QLocale>
 #include <QPainter>
 #include <QPainterPath>
 #include <QSpinBox>
@@ -827,6 +830,74 @@ void SettingsPanel::buildAdvancedUpdates(QVBoxLayout *vl)
     m_updateIntervalCombo->setEnabled(m_autoUpdateCheck->isChecked());
     connect(m_autoUpdateCheck, &QAbstractButton::toggled,
             m_updateIntervalCombo, &QWidget::setEnabled);
+
+    // The switch above only decides when the program asks by itself. This row
+    // asks now, and says what came back - without it the whole card is a
+    // setting with nothing behind it.
+    QWidget *card = cl->parentWidget();
+    auto *row = new QHBoxLayout;
+    row->setContentsMargins(SettingCheckBox::kBox + SettingCheckBox::kSpacing,
+                            10, 0, 0);
+    row->setSpacing(12);
+
+    m_updateCheckBtn = new QPushButton(tr("Check now"), card);
+    m_updateCheckBtn->setObjectName(QStringLiteral("SettingsActionBtn"));
+    m_updateCheckBtn->setCursor(Qt::PointingHandCursor);
+    m_updateCheckBtn->setFixedHeight(28);
+    row->addWidget(m_updateCheckBtn, 0, Qt::AlignVCenter);
+
+    m_updateStatus = new QLabel(card);
+    m_updateStatus->setObjectName(QStringLiteral("SettingsRowDesc"));
+    m_updateStatus->setWordWrap(true);
+    m_updateStatus->setTextInteractionFlags(Qt::TextBrowserInteraction);
+    m_updateStatus->setOpenExternalLinks(true);
+    const QDateTime last = m_settings->lastUpdateCheck();
+    m_updateStatus->setText(last.isValid()
+        ? tr("Last checked %1").arg(QLocale().toString(last.toLocalTime(),
+                                                       QLocale::ShortFormat))
+        : tr("Not checked yet"));
+    row->addWidget(m_updateStatus, 1);
+
+    cl->addLayout(row);
+
+    m_updateChecker = new UpdateChecker(m_settings, this);
+    connect(m_updateCheckBtn, &QPushButton::clicked, this, [this]() {
+        m_updateCheckBtn->setEnabled(false);
+        m_updateStatus->setTextFormat(Qt::PlainText);
+        m_updateStatus->setText(tr("Checking…"));
+        m_updateChecker->checkNow();
+    });
+    connect(m_updateChecker, &UpdateChecker::finished,
+            this, &SettingsPanel::showUpdateResult);
+}
+
+void SettingsPanel::showUpdateResult(const UpdateCheckResult &result)
+{
+    if (!m_updateStatus || !m_updateCheckBtn)
+        return;
+    m_updateCheckBtn->setEnabled(true);
+
+    if (!result.ok) {
+        m_updateStatus->setTextFormat(Qt::PlainText);
+        m_updateStatus->setText(tr("Check failed: %1").arg(result.error));
+        return;
+    }
+    if (!result.updateAvailable) {
+        m_updateStatus->setTextFormat(Qt::PlainText);
+        m_updateStatus->setText(tr("Version %1 is up to date.").arg(result.current));
+        return;
+    }
+    // The program does not install anything, so the sentence links to the
+    // download page - the tag only said that there is something newer. The link
+    // colour is set here because a stylesheet does not reach into rich text;
+    // the primary blue is too dark to read on the dark card.
+    m_updateStatus->setTextFormat(Qt::RichText);
+    m_updateStatus->setText(
+        tr("Version %1 is available. <a href=\"%2\" style=\"color:%3;\">Download</a>")
+            .arg(result.latest,
+                 QString::fromLatin1(UpdateChecker::downloadPageUrl().toEncoded()),
+                 Theme::DarkMode ? QStringLiteral("#60A5FA")
+                                 : Theme::Primary.name()));
 }
 
 void SettingsPanel::buildAdvancedInterface(QVBoxLayout *vl)

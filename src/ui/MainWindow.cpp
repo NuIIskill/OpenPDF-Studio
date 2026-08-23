@@ -16,6 +16,7 @@
 #include "engine/edit/PdfExporter.hpp"
 #include "ui/theme/Theme.hpp"
 #include "app/AppSettings.hpp"
+#include "app/UpdateChecker.hpp"
 #include "drm/LicenseNotice.hpp"
 
 #include <QApplication>
@@ -61,6 +62,7 @@ MainWindow::MainWindow(AppSettings *settings, QWidget *parent)
 
     // After the window is on screen, not in front of it.
     QTimer::singleShot(0, this, &MainWindow::showLicenseNotices);
+    QTimer::singleShot(0, this, &MainWindow::checkForUpdates);
 }
 
 // ── Settings and license ──────────────────────────────────────────────────────
@@ -84,6 +86,41 @@ void MainWindow::showLicenseNotices()
     LicenseNotice::showExpiryReminderIfDue(this, [this]() {
         openSettings()->showLicensePage();
     });
+}
+
+void MainWindow::checkForUpdates()
+{
+    if (!m_updateChecker) {
+        m_updateChecker = new UpdateChecker(m_appSettings, this);
+        connect(m_updateChecker, &UpdateChecker::finished, this,
+                [this](const UpdateCheckResult &result) {
+            // Only a newer version is worth a window. A check that failed is
+            // not the user's problem, and "you are up to date" is a box
+            // nobody asked for - both are visible in Settings › Advanced,
+            // where the answer was actually requested.
+            if (!result.ok || !result.updateAvailable)
+                return;
+
+            auto *box = new QMessageBox(this);
+            box->setAttribute(Qt::WA_DeleteOnClose);
+            box->setIcon(QMessageBox::Information);
+            box->setWindowTitle(tr("Update available"));
+            box->setText(tr("OpenPDF Studio %1 is available.").arg(result.latest));
+            box->setInformativeText(tr("You are running %1.").arg(result.current));
+            QPushButton *openBtn = box->addButton(tr("Open download page"),
+                                                  QMessageBox::AcceptRole);
+            box->addButton(tr("Later"), QMessageBox::RejectRole);
+            box->setDefaultButton(openBtn);
+            connect(box, &QMessageBox::finished, box, [box, openBtn]() {
+                if (box->clickedButton() == openBtn)
+                    QDesktopServices::openUrl(UpdateChecker::downloadPageUrl());
+            });
+            // open(), not exec(): a notice at startup must not block the
+            // window it stands in front of.
+            box->open();
+        });
+    }
+    m_updateChecker->checkIfDue();
 }
 
 // ── UI construction ───────────────────────────────────────────────────────────

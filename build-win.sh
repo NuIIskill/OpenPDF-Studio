@@ -87,6 +87,7 @@ if [[ -d "$QT_BIN" ]]; then
     for dll in \
         libgcc_s_seh-1.dll libstdc++-6.dll libwinpthread-1.dll \
         Qt6Core.dll Qt6Gui.dll Qt6Widgets.dll Qt6PrintSupport.dll Qt6Svg.dll Qt6SvgWidgets.dll \
+        Qt6Network.dll libcrypto-3-x64.dll \
         icui18n77.dll icuuc77.dll icudata77.dll libpcre2-16-0.dll zlib1.dll \
         libfontconfig-1.dll libfreetype-6.dll libharfbuzz-0.dll libpng16-16.dll \
         libexpat-1.dll libbz2-1.dll libglib-2.0-0.dll libintl-8.dll libpcre2-8-0.dll \
@@ -130,6 +131,24 @@ if [[ -d "$QT_BIN" ]]; then
     if [[ -d "${PLUGIN_DIR}/styles" ]]; then
         mkdir -p "${BUILD_DIR}/styles"
         cp -u "${PLUGIN_DIR}/styles/"*.dll "${BUILD_DIR}/styles/" 2>/dev/null || true
+    fi
+
+    # TLS-Backend — ohne das Plugin scheitert jedes https, und die
+    # Update-Prüfung ist die einzige Verbindung, die das Programm aufbaut.
+    # Nur Schannel: das nimmt Windows' eigenen Zertifikatsspeicher und braucht
+    # keine mitgelieferte CA-Liste. Das OpenSSL-Backend bliebe ohne
+    # libssl-3-x64.dll ohnehin ungeladen. (libcrypto-3-x64.dll oben ist davon
+    # unabhängig — Qt6Network.dll importiert sie fest, ohne sie startet die
+    # .exe gar nicht.)
+    if [[ -d "${PLUGIN_DIR}/tls" ]]; then
+        mkdir -p "${BUILD_DIR}/tls"
+        cp -u "${PLUGIN_DIR}/tls/qschannelbackend.dll" "${BUILD_DIR}/tls/" 2>/dev/null || true
+    fi
+
+    # Meldet, ob überhaupt ein Netz da ist.
+    if [[ -d "${PLUGIN_DIR}/networkinformation" ]]; then
+        mkdir -p "${BUILD_DIR}/networkinformation"
+        cp -u "${PLUGIN_DIR}/networkinformation/"*.dll "${BUILD_DIR}/networkinformation/" 2>/dev/null || true
     fi
 
     # ── fontconfig config (fixes fontconfig init crash on Windows) ──────────

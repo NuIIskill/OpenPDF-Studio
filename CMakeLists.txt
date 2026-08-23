@@ -22,7 +22,7 @@ set(CMAKE_AUTOMOC ON)
 set(CMAKE_AUTORCC ON)
 set(CMAKE_AUTOUIC OFF)
 
-find_package(Qt6 REQUIRED COMPONENTS Core Widgets Gui)
+find_package(Qt6 REQUIRED COMPONENTS Core Widgets Gui Network)
 find_package(Qt6 OPTIONAL_COMPONENTS PrintSupport LinguistTools)
 qt_standard_project_setup()
 
@@ -54,6 +54,9 @@ target_link_libraries(OpenPDFStudio PRIVATE
     Qt6::Core
     Qt6::Widgets
     Qt6::Gui
+    # Nur für die Update-Prüfung (app/UpdateChecker) — der einzige Netzzugriff
+    # im Programm. Teil von qtbase, deshalb REQUIRED statt optional.
+    Qt6::Network
 )
 
 # ── PDFium ───────────────────────────────────────────────────────────────────
@@ -288,7 +291,7 @@ page organizer, annotations, OCR and export to PDF, DOCX and image formats.")
     set(CPACK_DEBIAN_FILE_NAME DEB-DEFAULT)
     set(CPACK_DEBIAN_PACKAGE_SHLIBDEPS OFF)
     set(CPACK_DEBIAN_PACKAGE_DEPENDS
-        "libqt6core6 | libqt6core6t64, libqt6gui6, libqt6widgets6, libqt6printsupport6")
+        "libqt6core6 | libqt6core6t64, libqt6gui6, libqt6widgets6, libqt6printsupport6, libqt6network6")
     # libqt6pdf6 ist raus: die PDF-Engine ist PDFium und liegt im Paket.
     set(CPACK_DEBIAN_PACKAGE_RECOMMENDS
         "libqpdf29 | libqpdf29t64, libtesseract5 | libtesseract5t64")

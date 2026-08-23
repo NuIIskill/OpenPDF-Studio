@@ -193,6 +193,18 @@ void AppSettings::setUpdateInterval(const QString &interval)
     settings().setValue(QStringLiteral("advanced/updateInterval"), interval);
 }
 
+QDateTime AppSettings::lastUpdateCheck() const
+{
+    return QDateTime::fromString(
+        settings().value(QStringLiteral("advanced/lastUpdateCheck")).toString(),
+        Qt::ISODate);
+}
+void AppSettings::setLastUpdateCheck(const QDateTime &when)
+{
+    settings().setValue(QStringLiteral("advanced/lastUpdateCheck"),
+                        when.toString(Qt::ISODate));
+}
+
 bool AppSettings::hardwareAcceleration() const
 {
     return settings().value(QStringLiteral("advanced/hardwareAcceleration"), false).toBool();

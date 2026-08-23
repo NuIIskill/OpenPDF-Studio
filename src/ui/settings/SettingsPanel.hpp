@@ -17,6 +17,8 @@ QT_END_NAMESPACE
 class AppSettings;
 class LicensePage;
 class ShortcutRow;
+class UpdateChecker;
+struct UpdateCheckResult;
 
 class SettingsPanel : public QDialog
 {
@@ -131,6 +133,13 @@ private:
 
     QList<ShortcutRow*> m_shortcutRows;
     QList<QString>      m_shortcutKeys;  // parallel to m_shortcutRows
+
+    // Updates card on the Advanced page. The checker is owned by the dialog:
+    // a check the user started is over when the dialog closes.
+    UpdateChecker *m_updateChecker   { nullptr };
+    QPushButton   *m_updateCheckBtn  { nullptr };
+    QLabel        *m_updateStatus    { nullptr };
+    void showUpdateResult(const UpdateCheckResult &result);
 
     // Zoom page widgets
     QSpinBox        *m_zoomStepSpin     { nullptr };
