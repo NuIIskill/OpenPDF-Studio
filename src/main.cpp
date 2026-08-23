@@ -508,6 +508,16 @@ int main(int argc, char *argv[])
             break;
         }
 
+        // Optional: open the "Customize Tools" card, which only exists while
+        // its button is pressed and so never shows up in a plain shot.
+        //   OpenPDFStudio --shot-window out.png in.pdf tools
+        if (args.contains(QLatin1String("tools"))) {
+            win->leftSidebar()->openCustomizePopup();
+            QEventLoop cardSettle;
+            QTimer::singleShot(600, &cardSettle, &QEventLoop::quit);
+            cardSettle.exec();
+        }
+
         const bool ok = win->grab().save(args.at(2));
         return ok ? 0 : 3;
     }

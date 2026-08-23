@@ -5,6 +5,7 @@
 #include <QDateTime>
 #include <QKeySequence>
 #include <QString>
+#include <QStringList>
 
 class AppSettings : public QObject
 {
@@ -53,6 +54,20 @@ public:
     [[nodiscard]] QString wheelAction()   const;  // "scroll" | "zoom"
     void setWheelAction(const QString &action);
 
+    // ── Toolbar ───────────────────────────────────────────────────────────
+    // The left sidebar's tools, as the user arranged them. An empty order
+    // means "never customised" - the sidebar then uses its built-in one, so
+    // tools added in a later version show up instead of being silently
+    // dropped for everybody who ever opened the dialog.
+    [[nodiscard]] QStringList toolOrder() const;
+    void setToolOrder(const QStringList &ids);
+
+    [[nodiscard]] QStringList hiddenTools() const;
+    void setHiddenTools(const QStringList &ids);
+
+    /// Forget both - back to the built-in order with nothing hidden.
+    void resetToolLayout();
+
     // ── Panels ────────────────────────────────────────────────────────────
     // When off, the window always starts with the default panel layout and
     // the stored state below is left untouched.
@@ -100,4 +115,6 @@ private:
     static constexpr auto kZoomLevel      = "view/zoomLevel";
     static constexpr auto kTheme          = "appearance/theme";
     static constexpr auto kLanguage       = "appearance/language";
+    static constexpr auto kToolOrder      = "toolbar/order";
+    static constexpr auto kToolHidden     = "toolbar/hidden";
 };

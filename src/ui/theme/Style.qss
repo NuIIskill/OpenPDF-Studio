@@ -145,6 +145,44 @@ QSplitter::handle:vertical   { height: 1px; }
     color: #2563EB;
 }
 
+/* ── Customize Tools card ────────────────────────────────── */
+QFrame#ToolCustomizeCard {
+    background: #FFFFFF;
+    border: 1px solid #E5E7EB;
+    border-radius: 12px;
+}
+QLabel#ToolCustomizeTitle {
+    font-size: 14px;
+    font-weight: 700;
+    color: #111827;
+}
+QLabel#ToolCustomizeHint {
+    font-size: 12px;
+    color: #9CA3AF;
+    padding-top: 2px;
+}
+QPushButton#ToolCustomizeClose {
+    border: none;
+    background: transparent;
+    border-radius: 5px;
+}
+QPushButton#ToolCustomizeClose:hover { background: #F3F4F6; }
+QListWidget#ToolCustomizeList {
+    background: transparent;
+    border: none;
+    outline: none;
+}
+QPushButton#ToolCustomizeReset {
+    border: none;
+    background: transparent;
+    color: #2563EB;
+    font-size: 13px;
+    font-weight: 500;
+    padding: 6px 2px;
+    text-align: left;
+}
+QPushButton#ToolCustomizeReset:hover { color: #1D4ED8; }
+
 /* ── DocumentView canvas ─────────────────────────────────── */
 #DocumentView {
     background-color: #F3F4F6;

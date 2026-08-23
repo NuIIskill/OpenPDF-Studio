@@ -143,6 +143,34 @@ void AppSettings::setWheelAction(const QString &a)
     settings().setValue(QStringLiteral("zoom/wheelAction"), a);
 }
 
+// ── Toolbar ───────────────────────────────────────────────────────────────
+
+QStringList AppSettings::toolOrder() const
+{
+    return settings().value(QLatin1String(kToolOrder)).toStringList();
+}
+
+void AppSettings::setToolOrder(const QStringList &ids)
+{
+    settings().setValue(QLatin1String(kToolOrder), ids);
+}
+
+QStringList AppSettings::hiddenTools() const
+{
+    return settings().value(QLatin1String(kToolHidden)).toStringList();
+}
+
+void AppSettings::setHiddenTools(const QStringList &ids)
+{
+    settings().setValue(QLatin1String(kToolHidden), ids);
+}
+
+void AppSettings::resetToolLayout()
+{
+    settings().remove(QLatin1String(kToolOrder));
+    settings().remove(QLatin1String(kToolHidden));
+}
+
 // ── Panels ────────────────────────────────────────────────────────────────
 
 bool AppSettings::preservePanelLayout() const

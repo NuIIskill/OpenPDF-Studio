@@ -145,7 +145,7 @@ void MainWindow::buildUi()
     m_splitter = new QSplitter(Qt::Horizontal, central);
     m_splitter->setHandleWidth(1);
     m_splitter->setChildrenCollapsible(false);
-    m_leftSidebar = new LeftSidebar(m_splitter);
+    m_leftSidebar = new LeftSidebar(m_appSettings, m_splitter);
     m_docStack    = new QStackedWidget(m_splitter);
     m_splitter->addWidget(m_leftSidebar);
     m_splitter->addWidget(m_docStack);
@@ -812,7 +812,8 @@ void MainWindow::onToolSelected(const QString &tool)
             QMessageBox::Yes);
 
         if (ans == QMessageBox::No) {
-            m_leftSidebar->setActiveTool(QStringLiteral("select"));
+            m_activeTool = QStringLiteral("select");
+            m_leftSidebar->setActiveTool(m_activeTool);
             if (DocumentView *dv = currentDocView())
                 dv->setTool(DocumentView::Tool::Select);
             return;
@@ -825,6 +826,11 @@ void MainWindow::onToolSelected(const QString &tool)
     }
 
     m_activeTool = tool;
+    // Also reached from the keyboard shortcuts, which never touch the sidebar
+    // buttons - so the highlight is set here rather than in the click handler,
+    // and every path into this slot ends with the toolbar showing the tool
+    // that is actually active. Setting it again on the click path is a no-op.
+    m_leftSidebar->setActiveTool(tool);
 
     const bool isText = (tool == QLatin1String("text"));
     m_formatBar->setVisible(m_editMode && isText);

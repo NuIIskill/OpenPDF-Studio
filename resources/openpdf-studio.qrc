@@ -67,5 +67,6 @@
         <file>icons/file-plus.svg</file>
         <file>icons/export-pdf.svg</file>
         <file>icons/export-pdfa.svg</file>
+        <file>icons/grip-vertical.svg</file>
     </qresource>
 </RCC>
