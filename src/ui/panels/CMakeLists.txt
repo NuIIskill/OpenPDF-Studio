@@ -9,4 +9,6 @@ target_sources(OpenPDFStudio PRIVATE
     ToolCustomizePopup.hpp
     ToolPanel.cpp
     ToolPanel.hpp
+    ToolPanels.cpp
+    ToolPanels.hpp
 )

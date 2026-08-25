@@ -12,6 +12,7 @@
 #include "ui/settings/ToggleSwitch.hpp"
 
 #include <QVBoxLayout>
+#include <QFileDialog>
 #include <QHBoxLayout>
 #include <QLabel>
 #include <QPushButton>
@@ -445,10 +446,12 @@ QWidget *SettingsPanel::buildMediaPage()
     vbox->addWidget(title);
     vbox->addSpacing(6);
 
-    auto *desc = new QLabel(tr("Choose how media is played in OpenPDF Studio."), page);
+    auto *desc = new QLabel(tr("Choose how video embedded in a PDF is played."), page);
     desc->setObjectName(QStringLiteral("SettingsSectionDesc"));
     vbox->addWidget(desc);
     vbox->addSpacing(24);
+
+    m_pendingMedia = m_settings ? m_settings->mediaPlayback() : QStringLiteral("inapp");
 
     auto *row = new QHBoxLayout;
     row->setSpacing(14);
@@ -456,8 +459,12 @@ QWidget *SettingsPanel::buildMediaPage()
 
     struct M { const char *icon, *id, *title, *desc; };
     const M media[] = {
-        { "play-circle", "default", QT_TR_NOOP("Default"),   QT_TR_NOOP("Use system player") },
-        { "folder-open", "custom",  QT_TR_NOOP("Custom..."), QT_TR_NOOP("Custom media player") },
+        { "play-circle", "inapp",  QT_TR_NOOP("In OpenPDF Studio"),
+          QT_TR_NOOP("Plays on the page") },
+        { "monitor",     "system", QT_TR_NOOP("System player"),
+          QT_TR_NOOP("Opens in your video player") },
+        { "folder-open", "custom", QT_TR_NOOP("Custom command"),
+          QT_TR_NOOP("Run a player of your choice") },
     };
     for (const auto &m : media)
         row->addWidget(buildOptionCard(
@@ -465,7 +472,52 @@ QWidget *SettingsPanel::buildMediaPage()
             QLatin1String(m.id), m_mediaCards, m_mediaIds, false));
     row->addStretch(1);
     vbox->addLayout(row);
+
+#ifndef HAVE_QT_MULTIMEDIA
+    // This build has no built-in player and falls back to the system one;
+    // say so rather than offer a card that does nothing.
+    vbox->addSpacing(12);
+    auto *noPlayer = new QLabel(
+        tr("This build has no built-in player. "
+           "\"In OpenPDF Studio\" falls back to the system player."), page);
+    noPlayer->setObjectName(QStringLiteral("SettingsSectionDesc"));
+    noPlayer->setWordWrap(true);
+    vbox->addWidget(noPlayer);
+#endif
+
+    // ── Custom command ───────────────────────────────────────────────────────
+    vbox->addSpacing(20);
+    m_customPlayerRow = new QWidget(page);
+    auto *cmdLayout = new QHBoxLayout(m_customPlayerRow);
+    cmdLayout->setContentsMargins(0, 0, 0, 0);
+    cmdLayout->setSpacing(8);
+
+    auto *cmdLabel = new QLabel(tr("Command:"), m_customPlayerRow);
+    cmdLayout->addWidget(cmdLabel);
+
+    m_customPlayerEdit = new QLineEdit(m_customPlayerRow);
+    m_customPlayerEdit->setPlaceholderText(QStringLiteral("mpv --fs %1"));
+    if (m_settings) m_customPlayerEdit->setText(m_settings->customPlayerCommand());
+    m_customPlayerEdit->setToolTip(
+        tr("%1 is replaced with the video file. Without it the file is appended."));
+    cmdLayout->addWidget(m_customPlayerEdit, 1);
+
+    auto *browse = new QPushButton(tr("Browse..."), m_customPlayerRow);
+    connect(browse, &QPushButton::clicked, this, [this]() {
+        const QString exe = QFileDialog::getOpenFileName(this, tr("Choose a media player"));
+        if (!exe.isEmpty())
+            m_customPlayerEdit->setText(QStringLiteral("%1 %2").arg(exe, QStringLiteral("%1")));
+    });
+    cmdLayout->addWidget(browse);
+    vbox->addWidget(m_customPlayerRow);
+
+    m_customPlayerRow->setEnabled(m_pendingMedia == QLatin1String("custom"));
+
     vbox->addStretch(1);
+
+    // The stored choice wins on open; buildOptionCard would otherwise mark
+    // "default", which no longer exists here.
+    selectCardGroup(m_pendingMedia, m_mediaCards, m_mediaIds);
     return page;
 }
 
@@ -1062,6 +1114,10 @@ QWidget *SettingsPanel::buildOptionCard(const QString &icon, const QString &titl
         if (isThemeGroup) {
             m_pendingTheme = id;
             Q_EMIT themeChangeRequested(id);
+        } else if (&group == &m_mediaCards) {
+            m_pendingMedia = id;
+            if (m_customPlayerRow)
+                m_customPlayerRow->setEnabled(id == QLatin1String("custom"));
         }
     });
     return card;
@@ -1103,6 +1159,10 @@ void SettingsPanel::applyAndClose()
 {
     m_settings->setTheme(m_pendingTheme);
     m_settings->setLanguage(m_pendingLang);
+    if (!m_pendingMedia.isEmpty())
+        m_settings->setMediaPlayback(m_pendingMedia);
+    if (m_customPlayerEdit)
+        m_settings->setCustomPlayerCommand(m_customPlayerEdit->text().trimmed());
 
     // Flush any open shortcut edit before saving
     for (ShortcutRow *r : m_shortcutRows) r->cancelIfEditing();

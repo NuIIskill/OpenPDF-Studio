@@ -3,6 +3,7 @@
 #include "ui/export/ExportDialog.hpp"
 
 #include <QMainWindow>
+#include <QHash>
 #include <QMap>
 #include <QTranslator>
 
@@ -101,6 +102,10 @@ private:
     void setRightSidebarCollapsed(bool collapsed);
     void applyPanelLayout();
     void savePanelLayout();
+
+    // Panels a tool brought with it (ToolPanels), by tool id.
+    struct ToolPanelSlot { QWidget *widget { nullptr }; int width { 0 }; };
+    QHash<QString, ToolPanelSlot> m_toolPanels;
 
     AppSettings          *m_appSettings  { nullptr };
     UpdateChecker        *m_updateChecker{ nullptr };

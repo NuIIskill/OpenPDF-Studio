@@ -80,6 +80,20 @@ public:
     [[nodiscard]] QByteArray splitterState() const;
     void setSplitterState(const QByteArray &state);
 
+    // ── Media ─────────────────────────────────────────────────────────────
+    // How embedded video is played:
+    //   "inapp"  in the program, over the page (falls back to "system" when
+    //            this build has no Qt Multimedia)
+    //   "system" the system's player
+    //   "custom" the command from customPlayerCommand()
+    [[nodiscard]] QString mediaPlayback() const;
+    void setMediaPlayback(const QString &mode);
+
+    // Command line for "custom". "%1" is replaced by the file path; without
+    // the placeholder the path is appended.
+    [[nodiscard]] QString customPlayerCommand() const;
+    void setCustomPlayerCommand(const QString &command);
+
     // ── Advanced ──────────────────────────────────────────────────────────
     [[nodiscard]] bool autoUpdateCheck() const;
     void setAutoUpdateCheck(bool enabled);

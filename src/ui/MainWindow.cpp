@@ -6,6 +6,7 @@
 #include "ui/bars/FormatBar.hpp"
 #include "ui/bars/StatusBar.hpp"
 #include "ui/panels/LeftSidebar.hpp"
+#include "ui/panels/ToolPanels.hpp"
 #include "ui/panels/RightSidebar.hpp"
 #include "ui/panels/TextPropertiesPanel.hpp"
 #include "ui/settings/SettingsPanel.hpp"
@@ -165,6 +166,18 @@ void MainWindow::buildUi()
     row->setSpacing(0);
     row->addWidget(m_splitter,     1);
     row->addWidget(m_textPanel,    0);
+
+    // Panels a tool brings with it (ToolPanels). Same slot as the text panel
+    // and the same rule: visible while their tool is chosen.
+    for (const ToolPanels::Panel &def : ToolPanels::all()) {
+        QWidget *panel = def.create(central);
+        if (!panel) continue;
+        panel->setFixedWidth(0);
+        panel->hide();
+        row->addWidget(panel, 0);
+        m_toolPanels.insert(def.toolId, { panel, def.width });
+    }
+
     row->addWidget(m_rightSidebar, 0);
     root->addLayout(row, 1);
 
@@ -798,12 +811,15 @@ void MainWindow::runExport(DocumentView *dv, const ExportRequest &req)
 
 void MainWindow::onToolSelected(const QString &tool)
 {
-    static const QStringList kEditTools = {
-        QStringLiteral("text"), QStringLiteral("comment"),
-        QStringLiteral("draw"), QStringLiteral("image"), QStringLiteral("table"),
+    // Which tools need edit mode is in the catalogue itself. That list used to
+    // stand here a second time and had to be kept in step by hand.
+    const auto needsEditMode = [](const QString &id) {
+        for (const ToolDef &t : LeftSidebar::toolCatalog())
+            if (t.id == id) return t.needsEditMode;
+        return false;
     };
 
-    if (kEditTools.contains(tool) && !m_editMode) {
+    if (needsEditMode(tool) && !m_editMode) {
         const auto ans = QMessageBox::question(
             this,
             tr("Edit Mode"),
@@ -832,6 +848,13 @@ void MainWindow::onToolSelected(const QString &tool)
     // that is actually active. Setting it again on the click path is a no-op.
     m_leftSidebar->setActiveTool(tool);
 
+    // Exactly the chosen tool's panel is open, every other one closed.
+    for (auto it = m_toolPanels.cbegin(); it != m_toolPanels.cend(); ++it) {
+        const bool wanted = (it.key() == tool);
+        it.value().widget->setFixedWidth(wanted ? it.value().width : 0);
+        it.value().widget->setVisible(wanted);
+    }
+
     const bool isText = (tool == QLatin1String("text"));
     m_formatBar->setVisible(m_editMode && isText);
 
@@ -851,6 +874,10 @@ void MainWindow::onToolSelected(const QString &tool)
         dv->setTool(DocumentView::Tool::Text);
     else if (tool == QLatin1String("image"))
         dv->setTool(DocumentView::Tool::Image);
+
+    // The Tool enum does not know tools from outside the Core. The view passes
+    // the id on to its overlays, which decide whether they are meant.
+    dv->setActiveToolId(tool);
 }
 
 // ── Theme / Language ──────────────────────────────────────────────────────────

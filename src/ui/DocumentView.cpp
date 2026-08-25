@@ -9,6 +9,7 @@
 #include "ui/view/ImageAnnotationLayer.hpp"
 #include "ui/view/HoverHighlight.hpp"
 #include "ui/view/PageLayoutEngine.hpp"
+#include "ui/view/PageOverlay.hpp"
 #include "ui/view/ZoomController.hpp"
 #include "ui/view/TextSelectionController.hpp"
 #include "ui/widgets/PasswordDialog.hpp"
@@ -129,6 +130,12 @@ void DocumentView::setTool(Tool tool)
         break;
     default:           viewport()->setCursor(Qt::ArrowCursor);       break;
     }
+}
+
+void DocumentView::setActiveToolId(const QString &toolId)
+{
+    for (PageOverlay *overlay : std::as_const(m_overlays))
+        overlay->setActiveTool(toolId);
 }
 
 QString DocumentView::selectedText() const
@@ -259,10 +266,24 @@ void DocumentView::keyPressEvent(QKeyEvent *e)
 void DocumentView::resizeEvent(QResizeEvent *e)
 {
     QScrollArea::resizeEvent(e);
-    if (m_viewMode == ViewMode::Grid)
+    if (m_viewMode == ViewMode::Grid) {
         m_layoutEngine->relayoutGrid(viewport()->width());
-    else
-        syncVisibleRect();
+        return;
+    }
+    syncVisibleRect();
+    // The canvas is CENTRED in the viewport: when the view narrows, because a
+    // panel opens on the right, every page slides sideways without any layout
+    // signal firing. Anything stuck to a page position has to follow here.
+    // Deferred, because the child widgets are still in their old places.
+    QTimer::singleShot(0, this, &DocumentView::repositionPageOverlays);
+}
+
+void DocumentView::repositionPageOverlays()
+{
+    m_selection->relayout();
+    m_imageLayer->relayout();
+    for (PageOverlay *overlay : std::as_const(m_overlays))
+        overlay->relayout();
 }
 
 QRect DocumentView::visibleCanvasRect() const
@@ -560,6 +581,14 @@ void DocumentView::dragEnterEvent(QDragEnterEvent *e)
             e->acceptProposedAction();
             return;
         }
+        // Ask the overlays here too and not only on drop: what is turned away
+        // now never arrives, the cursor shows a no-entry sign and dropEvent()
+        // is never called.
+        for (const PageOverlay *overlay : std::as_const(m_overlays)) {
+            if (!overlay->acceptsDroppedFile(path)) continue;
+            e->acceptProposedAction();
+            return;
+        }
     }
     e->ignore();
 }
@@ -577,6 +606,25 @@ void DocumentView::dropEvent(QDropEvent *e)
             e->acceptProposedAction();
             return;
         }
+        // Overlays first: they know file kinds the Core does not. One that
+        // says yes has taken the file.
+        if (!m_overlays.isEmpty()) {
+            const QPoint scroll(horizontalScrollBar()->value(), verticalScrollBar()->value());
+            const auto [page, label] = pageAtCanvasPos(e->position().toPoint() + scroll);
+            bool taken = false;
+            QString replacement;
+            for (PageOverlay *overlay : std::as_const(m_overlays))
+                if (overlay->handleDroppedFile(path, page, &replacement)) { taken = true; break; }
+            if (taken) {
+                e->acceptProposedAction();
+                if (!replacement.isEmpty())
+                    openWorkingCopy(replacement, currentFile(),
+                                    { DocumentHistory::Kind::PageAdded,
+                                      qMax(0, page + 1) });
+                return;
+            }
+        }
+
         if (m_tool == Tool::Image && isImagePath(path)) {
             const QImage img(path);
             if (!img.isNull()) {

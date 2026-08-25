@@ -6,6 +6,7 @@
 QT_BEGIN_NAMESPACE
 class QAbstractButton;
 class QComboBox;
+class QLineEdit;
 class QSpinBox;
 class QStackedWidget;
 class QScrollArea;
@@ -127,6 +128,9 @@ private:
 
     QList<QWidget *> m_mediaCards;
     QList<QString>   m_mediaIds;
+    QString          m_pendingMedia;      // "inapp" | "system" | "custom"
+    QLineEdit       *m_customPlayerEdit { nullptr };
+    QWidget         *m_customPlayerRow  { nullptr };
 
     QList<QWidget *>   m_langRows;   // LangRow* cast to QWidget*
     QList<QString>     m_langCodes;

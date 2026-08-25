@@ -24,6 +24,14 @@
 
 #include <QApplication>
 #include <QFileInfo>
+#include <QAbstractButton>
+#include <QDragEnterEvent>
+#include <QDragMoveEvent>
+#include <QDropEvent>
+#include <QMimeData>
+#include <QKeyEvent>
+#include <QLineEdit>
+#include <QScrollBar>
 #include <QTimer>
 #include <QEventLoop>
 #include <QMouseEvent>
@@ -32,6 +40,7 @@
 #include <QLocale>
 #include <QPixmap>
 #include <QMessageBox>
+#include <QPushButton>
 #include <QSettings>
 #include <QTranslator>
 #include <cstdlib>
@@ -505,6 +514,218 @@ int main(int argc, char *argv[])
             QEventLoop editSettle;
             QTimer::singleShot(1500, &editSettle, &QEventLoop::quit);
             editSettle.exec();
+            break;
+        }
+
+        // Optional: pick a tool by its catalogue id, edit mode included where
+        // the tool needs it — otherwise the handler puts up a modal question
+        // that nothing here would answer.
+        //   OpenPDFStudio --shot-window out.png in.pdf tool=video
+        for (int a = 4; a < args.size(); ++a) {
+            if (!args.at(a).startsWith(QLatin1String("tool="))) continue;
+            const QString toolId = args.at(a).mid(5);
+            Q_EMIT win->rightSidebar()->modeSelected(QStringLiteral("edit"));
+            QApplication::processEvents();
+            Q_EMIT win->leftSidebar()->toolSelected(toolId);
+            QApplication::processEvents();
+            QEventLoop toolSettle;
+            QTimer::singleShot(600, &toolSettle, &QEventLoop::quit);
+            toolSettle.exec();
+            break;
+        }
+
+        // Optional: drag a rectangle on the page canvas, the way a tool that
+        // frames an area is actually used. Coordinates are canvas pixels.
+        //   OpenPDFStudio --shot-window out.png in.pdf tool=video drag=100,80,400,250
+        for (int a = 4; a < args.size(); ++a) {
+            if (!args.at(a).startsWith(QLatin1String("drag="))) continue;
+            const QStringList xy = args.at(a).mid(5).split(u',');
+            if (xy.size() != 4) break;
+            DocumentView *dv = win->findChild<DocumentView *>();
+            if (!dv) break;
+            QWidget *canvas = dv->canvasWidget();
+            if (!canvas) break;
+            const QPoint from(xy.at(0).toInt(), xy.at(1).toInt());
+            const QPoint to(xy.at(2).toInt(), xy.at(3).toInt());
+            const struct { QEvent::Type type; QPoint at; } steps[] = {
+                { QEvent::MouseButtonPress,   from },
+                { QEvent::MouseMove,          QPoint((from.x() + to.x()) / 2,
+                                                     (from.y() + to.y()) / 2) },
+                { QEvent::MouseMove,          to },
+                { QEvent::MouseButtonRelease, to },
+            };
+            for (const auto &step : steps) {
+                QMouseEvent me(step.type, QPointF(step.at),
+                               canvas->mapToGlobal(QPointF(step.at)),
+                               step.type == QEvent::MouseMove ? Qt::NoButton : Qt::LeftButton,
+                               Qt::LeftButton, Qt::NoModifier);
+                QApplication::sendEvent(canvas, &me);
+                QApplication::processEvents();
+            }
+            QEventLoop dragSettle;
+            QTimer::singleShot(800, &dragSettle, &QEventLoop::quit);
+            dragSettle.exec();
+            break;
+        }
+
+        // Optional: fill a named text field and press a named button, so a
+        // flow that runs through a panel can be exercised without a display.
+        // Both by objectName, so this works for any panel.
+        //   OpenPDFStudio --shot-window out.png in.pdf set=Feld=Wert press=Knopf
+        for (int a = 4; a < args.size(); ++a) {
+            if (args.at(a).startsWith(QLatin1String("set="))) {
+                const QString assignment = args.at(a).mid(4);
+                const int split = assignment.indexOf(u'=');
+                if (split <= 0) continue;
+                const QString name  = assignment.left(split);
+                const QString value = assignment.mid(split + 1);
+                if (auto *field = win->findChild<QLineEdit *>(name))
+                    field->setText(value);
+                else
+                    qWarning() << "[shot] no field named" << name;
+                QApplication::processEvents();
+            } else if (args.at(a).startsWith(QLatin1String("press="))) {
+                const QString name = args.at(a).mid(6);
+                if (auto *button = win->findChild<QAbstractButton *>(name))
+                    button->click();
+                else
+                    qWarning() << "[shot] no button named" << name;
+                QApplication::processEvents();
+            } else {
+                continue;
+            }
+            QEventLoop settleStep;
+            QTimer::singleShot(400, &settleStep, &QEventLoop::quit);
+            settleStep.exec();
+        }
+
+        // Optional: answer modal questions by themselves, so a run without a
+        // person at the keyboard does not stop at the first one.
+        //   OpenPDFStudio --shot-window out.png in.pdf autoconfirm=Play once
+        // Without a text the default button is pressed.
+        for (int a = 4; a < args.size(); ++a) {
+            if (!args.at(a).startsWith(QLatin1String("autoconfirm"))) continue;
+            const QString wanted = args.at(a).section(u'=', 1);
+            auto *poll = new QTimer(win);
+            QObject::connect(poll, &QTimer::timeout, win, [wanted]() {
+                auto *box = qobject_cast<QMessageBox *>(QApplication::activeModalWidget());
+                if (!box) return;
+                if (wanted.isEmpty()) {
+                    if (QPushButton *fallback = box->defaultButton()) fallback->click();
+                    return;
+                }
+                const QList<QAbstractButton *> buttons = box->buttons();
+                for (QAbstractButton *button : buttons)
+                    if (button->text().remove(u'&') == wanted) { button->click(); return; }
+                // No button by that name: this is a different question, so
+                // answer it with its default and keep the run going.
+                if (QPushButton *fallback = box->defaultButton()) fallback->click();
+                else if (!buttons.isEmpty())                      buttons.first()->click();
+            });
+            poll->start(100);
+            break;
+        }
+
+        // Optional: click at a canvas position, and send a key to whatever has
+        // the focus afterwards. Unlike drag=, the click is delivered to the
+        // widget actually under that point — an overlay child, if one is there.
+        //   OpenPDFStudio --shot-window out.png in.pdf click=320,480 key=Delete
+        for (int a = 4; a < args.size(); ++a) {
+            if (args.at(a).startsWith(QLatin1String("click="))) {
+                const QStringList xy = args.at(a).mid(6).split(u',');
+                if (xy.size() != 2) continue;
+                DocumentView *dv = win->findChild<DocumentView *>();
+                QWidget *canvas = dv ? dv->canvasWidget() : nullptr;
+                if (!canvas) continue;
+                const QPoint at(xy.at(0).toInt(), xy.at(1).toInt());
+                QWidget *target = canvas->childAt(at);
+                const QPoint local = target ? target->mapFrom(canvas, at) : at;
+                if (!target) target = canvas;
+                for (const QEvent::Type type : { QEvent::MouseButtonPress,
+                                                 QEvent::MouseButtonRelease }) {
+                    QMouseEvent me(type, QPointF(local), target->mapToGlobal(QPointF(local)),
+                                   Qt::LeftButton, Qt::LeftButton, Qt::NoModifier);
+                    QApplication::sendEvent(target, &me);
+                }
+            } else if (args.at(a).startsWith(QLatin1String("drop="))) {
+                // Drag a file onto the view without a pointing device.
+                DocumentView *dv = win->findChild<DocumentView *>();
+                if (!dv) continue;
+                QMimeData mime;
+                mime.setUrls({ QUrl::fromLocalFile(args.at(a).mid(5)) });
+                const QPointF at(dv->viewport()->width() / 2.0,
+                                 dv->viewport()->height() / 2.0);
+                QDragEnterEvent enter(at.toPoint(), Qt::CopyAction, &mime,
+                                      Qt::LeftButton, Qt::NoModifier);
+                // Through QObject: QScrollArea makes event() protected while
+                // QObject::event is public and virtual.
+                // To the VIEWPORT, not the view: a QAbstractScrollArea passes
+                // its acceptDrops on to the viewport, and from there the events
+                // reach the view's handlers through its filter. Sent to the
+                // view directly, the class swallows them.
+                QWidget *vp = dv->viewport();
+                QApplication::sendEvent(vp, &enter);
+                if (!enter.isAccepted()) {
+                    qWarning() << "[shot] drag refused:" << args.at(a).mid(5);
+                    continue;
+                }
+                QDragMoveEvent move(at.toPoint(), Qt::CopyAction, &mime,
+                                    Qt::LeftButton, Qt::NoModifier);
+                QApplication::sendEvent(vp, &move);
+                QDropEvent drop(at, Qt::CopyAction, &mime,
+                                Qt::LeftButton, Qt::NoModifier, QEvent::Drop);
+                QApplication::sendEvent(vp, &drop);
+                QApplication::processEvents();
+                QEventLoop dropSettle;
+                QTimer::singleShot(2000, &dropSettle, &QEventLoop::quit);
+                dropSettle.exec();
+                continue;
+            } else if (args.at(a) == QLatin1String("view=grid")) {
+                if (DocumentView *dv = win->findChild<DocumentView *>())
+                    dv->setViewMode(DocumentView::ViewMode::Grid);
+                QApplication::processEvents();
+                continue;
+            } else if (args.at(a).startsWith(QLatin1String("scroll="))) {
+                if (DocumentView *dv = win->findChild<DocumentView *>())
+                    dv->verticalScrollBar()->setValue(
+                        dv->verticalScrollBar()->value() + args.at(a).mid(7).toInt());
+                QApplication::processEvents();
+                continue;
+            } else if (args.at(a).startsWith(QLatin1String("wait="))) {
+                QEventLoop pause;
+                QTimer::singleShot(args.at(a).mid(5).toInt(), &pause, &QEventLoop::quit);
+                pause.exec();
+                continue;
+            } else if (args.at(a).startsWith(QLatin1String("key="))) {
+                const QKeySequence sequence(args.at(a).mid(4));
+                if (sequence.isEmpty()) continue;
+                QWidget *target = QApplication::focusWidget();
+                if (!target) target = win;
+                const QKeyCombination combination = sequence[0];
+                for (const QEvent::Type type : { QEvent::KeyPress, QEvent::KeyRelease }) {
+                    QKeyEvent ke(type, combination.key(), combination.keyboardModifiers());
+                    QApplication::sendEvent(target, &ke);
+                }
+            } else {
+                continue;
+            }
+            QApplication::processEvents();
+            QEventLoop inputSettle;
+            QTimer::singleShot(400, &inputSettle, &QEventLoop::quit);
+            inputSettle.exec();
+        }
+
+        // Optional: save the document, the same call the Save button makes.
+        //   OpenPDFStudio --shot-window out.png in.pdf save=/tmp/ergebnis.pdf
+        for (int a = 4; a < args.size(); ++a) {
+            if (!args.at(a).startsWith(QLatin1String("save="))) continue;
+            DocumentView *dv = win->findChild<DocumentView *>();
+            if (!dv) break;
+            const bool saved = dv->saveToFile(args.at(a).mid(5));
+            qWarning() << "[shot] saved:" << saved << args.at(a).mid(5);
+            QEventLoop saveSettle;
+            QTimer::singleShot(1200, &saveSettle, &QEventLoop::quit);
+            saveSettle.exec();
             break;
         }
 

@@ -13,6 +13,7 @@
 #include "ui/view/ImageAnnotationLayer.hpp"
 #include "ui/view/HoverHighlight.hpp"
 #include "ui/view/PageLayoutEngine.hpp"
+#include "ui/view/PageOverlay.hpp"
 #include "ui/view/ZoomController.hpp"
 #include "ui/view/TextSelectionController.hpp"
 #include "ui/widgets/PasswordDialog.hpp"
@@ -134,12 +135,14 @@ DocumentView::DocumentView(QWidget *parent)
 
     m_hover = new HoverHighlight(this, this);
 
+    // Layers from optional parts of the program. Without a registered factory
+    // the list stays empty.
+    m_overlays = PageOverlays::createAll(this, this);
+
     // One place to keep every page-anchored overlay in sync with a relayout —
     // previously each relayout site had to remember both of these by hand.
-    connect(m_layoutEngine, &PageLayoutEngine::layoutChanged, this, [this]() {
-        m_selection->relayout();
-        m_imageLayer->relayout();
-    });
+    connect(m_layoutEngine, &PageLayoutEngine::layoutChanged,
+            this, &DocumentView::repositionPageOverlays);
     connect(m_layoutEngine, &PageLayoutEngine::pageActivated, this, [this](int page) {
         setViewMode(ViewMode::Single);
         QMetaObject::invokeMethod(this, [this, page]() {

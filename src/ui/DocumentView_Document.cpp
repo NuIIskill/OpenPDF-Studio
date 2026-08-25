@@ -11,6 +11,7 @@
 #include "app/SessionStore.hpp"
 #include "ui/tools/ImageAnnotation.hpp"
 #include "ui/view/ImageAnnotationLayer.hpp"
+#include "ui/view/PageOverlay.hpp"
 #include "ui/view/HoverHighlight.hpp"
 #include "ui/view/PageLayoutEngine.hpp"
 #include "ui/view/ZoomController.hpp"
@@ -99,6 +100,8 @@ void DocumentView::clearDocument()
     m_layoutEngine->clearPages();
 
     m_imageLayer->clear();
+    for (PageOverlay *overlay : std::as_const(m_overlays))
+        overlay->setDocument(QString());
 
     m_dropHint->show();
 }
@@ -129,6 +132,8 @@ bool DocumentView::openFile(const QString &path)
     // Only now that the reader let go of it may the working file be removed.
     SessionStore::discard(previousWorkingFile);
     m_imageLayer->setSource(m_src->renderer(), m_session, m_ocrEngine, m_src->contentPath());
+    for (PageOverlay *overlay : std::as_const(m_overlays))
+        overlay->setDocument(m_src->contentPath());
     m_layoutEngine->setPageCount(m_src->pageCount());
     resetContentProvider();
     m_dropHint->hide();
@@ -217,6 +222,14 @@ bool DocumentView::saveToFile(const QString &path)
         return false;
     }
 
+    // What the backend cannot write comes now: overlays write their part into
+    // the finished staging file before it takes the document's place.
+    for (PageOverlay *overlay : std::as_const(m_overlays)) {
+        if (overlay->writeTo(staging)) continue;
+        SafeWrite::discard(staging);
+        return false;
+    }
+
     // With the base moved aside, the target is not a file this process holds
     // open, so the swap needs none of the close-and-reopen dance below.
     if (detached) {
@@ -258,6 +271,11 @@ bool DocumentView::saveToFile(const QString &path)
         m_src->open(reopenPath, nullptr);
     }
     resetContentProvider();
+    // Overlays read from the file, not from the session. After a save that is
+    // a different file: what they contributed is in it now and has to be read
+    // back from there, or it would stand twice.
+    for (PageOverlay *overlay : std::as_const(m_overlays))
+        overlay->setDocument(m_src->contentPath());
     m_layoutEngine->rerenderAll();
     m_journal.recordSavedOverBase(path);
     return true;

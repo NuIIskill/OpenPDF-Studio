@@ -128,6 +128,7 @@ find_package(qpdf QUIET CONFIG)
 if(qpdf_FOUND)
     message(STATUS "qpdf ${qpdf_VERSION}: vector PDF save enabled")
     target_compile_definitions(OpenPDFStudio PRIVATE HAVE_QPDF)
+    set(OPENPDF_HAVE_QPDF TRUE)
     # qpdf::libqpdf, nicht "qpdf": der Config-Export definiert nur das Ziel mit
     # Namensraum. Ein blankes "qpdf" ist für CMake bloß ein Bibliotheksname und
     # bringt keine Include-Pfade mit — auf Linux fällt das nicht auf, weil die
@@ -138,10 +139,68 @@ elseif(PkgConfig_FOUND)
     if(QPDF_FOUND)
         message(STATUS "qpdf (pkg-config): vector PDF save enabled")
         target_compile_definitions(OpenPDFStudio PRIVATE HAVE_QPDF)
+        set(OPENPDF_HAVE_QPDF TRUE)
         target_include_directories(OpenPDFStudio PRIVATE ${QPDF_INCLUDE_DIRS})
         target_link_libraries(OpenPDFStudio PRIVATE ${QPDF_LIBRARIES})
     else()
         message(STATUS "qpdf: not found — sudo dnf install qpdf-devel for vector PDF output")
+    endif()
+endif()
+
+# ── Rich Media: modules/rich-media (source-available, siehe LICENSES/) ───────
+# Licensed separately and therefore its own directory. A checkout without
+# modules/ configures and builds unchanged; only playback and embedding are
+# missing then.
+#
+# qpdf is required: PDFium can neither read nor write the nested dictionaries
+# of a RichMedia annotation, so without it the module stays out entirely.
+option(OPENPDF_RICH_MEDIA "Build the rich-media module when it is present" ON)
+
+if(OPENPDF_RICH_MEDIA AND EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/modules/rich-media/CMakeLists.txt")
+    # Qt Multimedia is what decodes everywhere except Windows. There the
+    # module brings its own engine (MFPlay, DirectShow behind it), because the
+    # backend packaged for MinGW refuses files Windows itself plays, so Qt
+    # Multimedia is neither needed nor linked.
+    if(NOT WIN32)
+        find_package(Qt6 QUIET OPTIONAL_COMPONENTS Multimedia)
+        set(_openpdf_media_ok ${Qt6Multimedia_FOUND})
+    else()
+        set(_openpdf_media_ok TRUE)
+    endif()
+
+    # qpdf is required either way: PDFium can neither read nor write the nested
+    # dictionaries of a RichMedia annotation. A build missing one of these used
+    # to succeed and then behave differently from every other build, with
+    # settings that quietly did nothing. Half a module is worse than none.
+    if(OPENPDF_HAVE_QPDF AND _openpdf_media_ok)
+        message(STATUS "Rich Media: Modul gebaut")
+        target_compile_definitions(OpenPDFStudio PRIVATE HAVE_RICH_MEDIA)
+        target_include_directories(OpenPDFStudio PRIVATE
+            ${CMAKE_CURRENT_SOURCE_DIR}/modules)
+        if(WIN32)
+            # DirectShow, dahinter MFPlay. Alles Teil von Windows, es wird
+            # dafür nichts mitgeliefert. mfplay/mfplat fehlen hier absichtlich:
+            # die beiden DLLs werden zur Laufzeit geladen, damit ein Windows N
+            # ohne Media Feature Pack das Programm noch starten kann.
+            target_link_libraries(OpenPDFStudio PRIVATE
+                mfuuid strmiids ole32 oleaut32 uuid)
+        else()
+            target_link_libraries(OpenPDFStudio PRIVATE Qt6::Multimedia)
+        endif()
+        add_subdirectory(modules/rich-media)
+    else()
+        set(_openpdf_missing "")
+        if(NOT OPENPDF_HAVE_QPDF)
+            list(APPEND _openpdf_missing "qpdf-devel")
+        endif()
+        if(NOT _openpdf_media_ok)
+            list(APPEND _openpdf_missing "qt6-qtmultimedia-devel")
+        endif()
+        list(JOIN _openpdf_missing " " _openpdf_missing_line)
+        message(WARNING
+            "Rich Media: nicht gebaut — dieser Build kann Medien weder "
+            "abspielen noch einbetten.\n"
+            "    Beheben mit: sudo dnf install ${_openpdf_missing_line}")
     endif()
 endif()
 
@@ -251,10 +310,20 @@ page organizer, annotations, OCR and export to PDF, DOCX and image formats.")
     set(CPACK_STRIP_FILES ON)
 
     # ── RPM (Fedora/RHEL/openSUSE) ───────────────────────────────────────────
-    # Core-Lizenz. Die Business-lizenzierten Module (modules/) sind hier noch
-    # nicht enthalten — sobald eines mitpaketiert wird, gehört es in die Angabe.
-    set(CPACK_RPM_PACKAGE_LICENSE "GPL-3.0-only OR LicenseRef-OpenPDF-Commercial")
+    # Two licenses because two parts are in the package: the Core and, when
+    # built along, modules/rich-media under the Business license.
+    if(TARGET OpenPDFStudio AND OPENPDF_RICH_MEDIA
+       AND EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/modules/rich-media/CMakeLists.txt")
+        set(CPACK_RPM_PACKAGE_LICENSE
+            "(GPL-3.0-only OR LicenseRef-OpenPDF-Commercial) AND LicenseRef-OpenPDF-Business")
+    else()
+        set(CPACK_RPM_PACKAGE_LICENSE "GPL-3.0-only OR LicenseRef-OpenPDF-Commercial")
+    endif()
     set(CPACK_RPM_PACKAGE_GROUP "Applications/Productivity")
+    # qt6-qtmultimedia is not listed: AUTOREQ derives it from the binary's
+    # link against libQt6Multimedia.so.6, and the backend plugins ship in that
+    # same package. ffmpeg only converts video on insert and stays optional.
+    set(CPACK_RPM_PACKAGE_SUGGESTS "ffmpeg-free")
     set(CPACK_RPM_PACKAGE_URL "${CPACK_PACKAGE_HOMEPAGE_URL}")
     # Der RPM-Generator übernimmt CPACK_PACKAGE_DESCRIPTION nicht automatisch.
     set(CPACK_RPM_PACKAGE_DESCRIPTION "${CPACK_PACKAGE_DESCRIPTION}")
@@ -290,11 +359,16 @@ page organizer, annotations, OCR and export to PDF, DOCX and image formats.")
     set(CPACK_DEBIAN_PACKAGE_HOMEPAGE "${CPACK_PACKAGE_HOMEPAGE_URL}")
     set(CPACK_DEBIAN_FILE_NAME DEB-DEFAULT)
     set(CPACK_DEBIAN_PACKAGE_SHLIBDEPS OFF)
+    # Everything the binary links, and only that. This list stood short of
+    # qpdf and Tesseract for a while: both are linked when they are found at
+    # build time, so a package without them does not start, and listing them
+    # as Recommends left dpkg free to leave them out. The RPM never had the
+    # problem because AUTOREQ reads the sonames out of the binary.
     set(CPACK_DEBIAN_PACKAGE_DEPENDS
-        "libqt6core6 | libqt6core6t64, libqt6gui6, libqt6widgets6, libqt6printsupport6, libqt6network6")
+        "libqt6core6 | libqt6core6t64, libqt6gui6, libqt6widgets6, libqt6printsupport6, libqt6network6, libqt6multimedia6, libqpdf29 | libqpdf29t64, libtesseract5 | libtesseract5t64")
     # libqt6pdf6 ist raus: die PDF-Engine ist PDFium und liegt im Paket.
-    set(CPACK_DEBIAN_PACKAGE_RECOMMENDS
-        "libqpdf29 | libqpdf29t64, libtesseract5 | libtesseract5t64")
+    # ffmpeg only converts video while embedding it and is genuinely optional.
+    set(CPACK_DEBIAN_PACKAGE_SUGGESTS "ffmpeg")
 
     include(CPack)
 endif()

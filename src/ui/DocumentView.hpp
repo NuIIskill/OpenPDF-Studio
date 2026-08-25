@@ -18,6 +18,7 @@ class QPrinter;
 QT_END_NAMESPACE
 
 class ImageAnnotationLayer;
+class PageOverlay;
 class PageLayoutEngine;
 class HoverHighlight;
 class TextSelectionController;
@@ -69,6 +70,9 @@ public:
     void   setZoomSettings(int step, bool ctrlWheel, bool toPointer,
                            const QString &wheelAction);
     void   setTool(Tool tool);
+    /// The chosen tool's id as it stands in the sidebar catalogue. Only for
+    /// overlays, whose tools the enum above does not know.
+    void   setActiveToolId(const QString &toolId);
     void   setEditMode(bool on);
     void   setViewMode(ViewMode mode);
     bool   saveToFile(const QString &path);
@@ -168,6 +172,12 @@ private:
     void   syncVisibleRect();
     // Puts everything anchored to a page back where it belongs after a zoom.
     void   repositionForZoom();
+    // Every overlay that is anchored to a page position, back onto its page.
+    // Called whenever the pages move under them: a relayout, a zoom, and a
+    // resize of the view — the last one because the canvas is CENTRED in the
+    // viewport, so opening a side panel shifts every page sideways without
+    // any of the layout signals firing.
+    void   repositionPageOverlays();
 
 #ifdef HAVE_PDF_RENDERING
     // Bundles the engine-level objects the exporter borrows.
@@ -245,6 +255,10 @@ private:
     ImageAnnotationLayer *m_imageLayer { nullptr };
     // Hover feedback for detected regions in edit mode.
     HoverHighlight *m_hover { nullptr };
+
+    // Layers contributed by optional parts of the program. Empty when none
+    // were built.
+    QList<PageOverlay *> m_overlays;
 
     // Grid view — the widgets live in m_layoutEngine; the mode itself stays
     // here because it drives which widget the scroll area shows.

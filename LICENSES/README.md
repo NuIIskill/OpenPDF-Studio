@@ -24,7 +24,13 @@ nothing on its own; see `OPENPDF-COMMERCIAL.txt`.
 personal use, and Business Use needs a Business License after a 30-day
 evaluation; see `OPENPDF-BUSINESS.txt`. Its licensing notice is a reminder
 only - dismissing it, or a broken check, changes nothing about the rights
-granted (section 6 of that license).
+granted (section 6 of that license). Nothing in the module is gated on a key,
+and that is deliberate: the sentence above would not survive a lock.
+
+A build made from this repository contains the module unless it is turned off
+with `-DOPENPDF_RICH_MEDIA=OFF` or the directory is absent. A distribution that
+combines the two therefore ships under both licenses at once, which is what the
+RPM `License:` field says.
 
 ## Files here
 

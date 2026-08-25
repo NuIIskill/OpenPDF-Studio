@@ -233,6 +233,29 @@ void AppSettings::setLastUpdateCheck(const QDateTime &when)
                         when.toString(Qt::ISODate));
 }
 
+// ── Media ─────────────────────────────────────────────────────────────────────
+
+QString AppSettings::mediaPlayback() const
+{
+    return settings().value(QStringLiteral("media/playback"),
+                            QStringLiteral("inapp")).toString();
+}
+
+void AppSettings::setMediaPlayback(const QString &mode)
+{
+    settings().setValue(QStringLiteral("media/playback"), mode);
+}
+
+QString AppSettings::customPlayerCommand() const
+{
+    return settings().value(QStringLiteral("media/customPlayer")).toString();
+}
+
+void AppSettings::setCustomPlayerCommand(const QString &command)
+{
+    settings().setValue(QStringLiteral("media/customPlayer"), command);
+}
+
 bool AppSettings::hardwareAcceleration() const
 {
     return settings().value(QStringLiteral("advanced/hardwareAcceleration"), false).toBool();

@@ -124,6 +124,11 @@ private:
     QList<GridItem>       m_gridItems;
     QHash<QObject *, int> m_gridCardIndex;
     bool                  m_gridActive { false };
+    /// Thumbnails are rendered one per turn of the event loop, so building a
+    /// grid does not hold the whole program still. The counter tells a step
+    /// that its grid has been thrown away since it was scheduled.
+    int                   m_gridGeneration { 0 };
+    void renderNextThumbnail(int generation, int index, int attempt = 0);
 
     int m_pageCount { 0 };
     int m_zoom      { 100 };

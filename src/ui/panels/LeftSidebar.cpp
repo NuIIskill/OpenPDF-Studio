@@ -7,21 +7,41 @@
 
 #include <QVBoxLayout>
 
-const QVector<ToolDef> &LeftSidebar::toolCatalog()
+namespace {
+
+// A function-local static and not a namespace variable: registerTool() is
+// called from static initializers, whose order is not fixed. This way the
+// built-in tools are there before the first one is added.
+QVector<ToolDef> &catalog()
 {
-    static const QVector<ToolDef> kTools = {
+    static QVector<ToolDef> tools = {
         { QStringLiteral("select"),   QStringLiteral("mouse-pointer-2"), QStringLiteral(QT_TR_NOOP("Select"))     },
         { QStringLiteral("pan"),      QStringLiteral("hand"),            QStringLiteral(QT_TR_NOOP("Pan"))        },
-        { QStringLiteral("text"),     QStringLiteral("type"),            QStringLiteral(QT_TR_NOOP("Text"))       },
-        { QStringLiteral("comment"),  QStringLiteral("message-square"),  QStringLiteral(QT_TR_NOOP("Comment"))    },
-        { QStringLiteral("draw"),     QStringLiteral("pencil"),          QStringLiteral(QT_TR_NOOP("Draw"))       },
-        { QStringLiteral("image"),    QStringLiteral("image"),           QStringLiteral(QT_TR_NOOP("Image"))      },
-        { QStringLiteral("table"),    QStringLiteral("table"),           QStringLiteral(QT_TR_NOOP("Table"))      },
+        { QStringLiteral("text"),     QStringLiteral("type"),            QStringLiteral(QT_TR_NOOP("Text")),       true },
+        { QStringLiteral("comment"),  QStringLiteral("message-square"),  QStringLiteral(QT_TR_NOOP("Comment")),    true },
+        { QStringLiteral("draw"),     QStringLiteral("pencil"),          QStringLiteral(QT_TR_NOOP("Draw")),       true },
+        { QStringLiteral("image"),    QStringLiteral("image"),           QStringLiteral(QT_TR_NOOP("Image")),      true },
+        { QStringLiteral("table"),    QStringLiteral("table"),           QStringLiteral(QT_TR_NOOP("Table")),      true },
         { QStringLiteral("page"),     QStringLiteral("file"),            QStringLiteral(QT_TR_NOOP("Page"))       },
         { QStringLiteral("bookmark"), QStringLiteral("bookmark"),        QStringLiteral(QT_TR_NOOP("Bookmark"))   },
         { QStringLiteral("attach"),   QStringLiteral("paperclip"),       QStringLiteral(QT_TR_NOOP("Attachment")) },
     };
-    return kTools;
+    return tools;
+}
+
+} // namespace
+
+const QVector<ToolDef> &LeftSidebar::toolCatalog()
+{
+    return catalog();
+}
+
+void LeftSidebar::registerTool(const ToolDef &tool)
+{
+    if (tool.id.isEmpty()) return;
+    for (const ToolDef &t : catalog())
+        if (t.id == tool.id) return;
+    catalog().append(tool);
 }
 
 LeftSidebar::LeftSidebar(AppSettings *settings, QWidget *parent)

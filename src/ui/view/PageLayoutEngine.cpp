@@ -318,6 +318,7 @@ void PageLayoutEngine::clearGrid()
     m_gridItems.clear();
     m_gridCardIndex.clear();
     m_gridActive = false;
+    ++m_gridGeneration;
 }
 
 void PageLayoutEngine::buildGridItems()
@@ -360,23 +361,71 @@ void PageLayoutEngine::buildGridItems()
         vl->addWidget(thumb, 1);
         vl->addWidget(lbl, 0);
 
-        // Render at RENDER_W for quality; relayoutGrid scales to actual card width
-        QPixmap original;
-        const QSize sz100 = m_renderer->pageDisplaySize(i, 100);
-        if (sz100.width() > 0) {
-            const int   tZoom  = qMax(1, GridConst::RENDER_W * 100 / sz100.width());
-            const qreal tScale = PdfRenderer::screenScale(tZoom);
-            QImage img = m_renderer->renderPage(i, tScale * dpr);
-            if (m_session) m_session->applyToImage(i, img, tScale * dpr);
-            img.setDevicePixelRatio(dpr);
-            if (!img.isNull())
-                original = QPixmap::fromImage(std::move(img));
-        }
-        thumb->setPixmap(original);
-
+        // The cards go up at once; the pictures follow one per turn of the
+        // event loop. Rasterising every page in this loop froze the whole
+        // program for as long as it took, which during video playback showed
+        // as the player stopping dead.
         m_gridCardIndex[card] = i;
-        m_gridItems.append({card, thumb, lbl, original});
+        m_gridItems.append({card, thumb, lbl, QPixmap()});
     }
+
+    if (!m_gridItems.isEmpty()) {
+        const int generation = m_gridGeneration;
+        QMetaObject::invokeMethod(this, [this, generation]() {
+            renderNextThumbnail(generation, 0);
+        }, Qt::QueuedConnection);
+    }
+#endif
+}
+
+void PageLayoutEngine::renderNextThumbnail(int generation, int index, int attempt)
+{
+#ifdef HAVE_PDF_RENDERING
+    // The grid this step belongs to may be gone: the document was closed, the
+    // view switched back, a new grid built.
+    if (generation != m_gridGeneration || !m_renderer) return;
+    if (index < 0 || index >= m_gridItems.size()) return;
+
+    GridItem &item = m_gridItems[index];
+
+    // relayoutGrid gives the cards their size, and it runs after this was
+    // scheduled. Rendering before that would scale every picture against a
+    // card that is not there yet, which is how the first thumbnails came out
+    // as stamps. Wait a turn, but not forever.
+    const QSize area = item.thumb ? item.thumb->size() : QSize();
+    if ((area.width() < 20 || area.height() < 20) && attempt < 50) {
+        QMetaObject::invokeMethod(this, [this, generation, index, attempt]() {
+            renderNextThumbnail(generation, index, attempt + 1);
+        }, Qt::QueuedConnection);
+        return;
+    }
+
+    const qreal dpr = m_canvas->devicePixelRatioF();
+
+    // Render at RENDER_W for quality; relayoutGrid scales to actual card width
+    const QSize sz100 = m_renderer->pageDisplaySize(index, 100);
+    if (sz100.width() > 0) {
+        const int   tZoom  = qMax(1, GridConst::RENDER_W * 100 / sz100.width());
+        const qreal tScale = PdfRenderer::screenScale(tZoom);
+        QImage img = m_renderer->renderPage(index, tScale * dpr);
+        if (m_session) m_session->applyToImage(index, img, tScale * dpr);
+        img.setDevicePixelRatio(dpr);
+        if (!img.isNull()) item.original = QPixmap::fromImage(std::move(img));
+    }
+    // Into the space the layout actually gave the label, the same way
+    // relayoutGrid does it.
+    if (item.thumb && !item.original.isNull()) {
+        item.thumb->setPixmap(area.isValid() && area.width() >= 20
+            ? item.original.scaled(area, Qt::KeepAspectRatio,
+                                   Qt::SmoothTransformation)
+            : item.original);
+    }
+
+    QMetaObject::invokeMethod(this, [this, generation, index]() {
+        renderNextThumbnail(generation, index + 1);
+    }, Qt::QueuedConnection);
+#else
+    Q_UNUSED(generation) Q_UNUSED(index)
 #endif
 }
 

@@ -5,6 +5,9 @@
 # Install dependencies (Fedora):
 #   sudo dnf install mingw64-filesystem mingw64-qt6-qtbase mingw64-qt6-qtsvg
 #
+# Qt Multimedia is not needed for Windows: the media module plays through
+# DirectShow with MFPlay behind it, both part of Windows itself.
+#
 # Zwei Abhängigkeiten kommen NICHT aus den Fedora-Paketen und müssen einmalig
 # beschafft werden — ohne sie fehlen ganze Funktionen:
 #
@@ -83,17 +86,48 @@ PLUGIN_DIR="/usr/x86_64-w64-mingw32/sys-root/mingw/lib/qt6/plugins"
 if [[ -d "$QT_BIN" ]]; then
     echo "==> Deploying runtime DLLs → ${BUILD_DIR}/"
 
-    # All runtime DLLs (full recursive dep tree of OpenPDFStudio.exe)
-    for dll in \
-        libgcc_s_seh-1.dll libstdc++-6.dll libwinpthread-1.dll \
-        Qt6Core.dll Qt6Gui.dll Qt6Widgets.dll Qt6PrintSupport.dll Qt6Svg.dll Qt6SvgWidgets.dll \
-        Qt6Network.dll libcrypto-3-x64.dll \
-        icui18n77.dll icuuc77.dll icudata77.dll libpcre2-16-0.dll zlib1.dll \
-        libfontconfig-1.dll libfreetype-6.dll libharfbuzz-0.dll libpng16-16.dll \
-        libexpat-1.dll libbz2-1.dll libglib-2.0-0.dll libintl-8.dll libpcre2-8-0.dll \
-        iconv.dll; do
-        [[ -f "${QT_BIN}/${dll}" ]] && cp -u "${QT_BIN}/${dll}" "${BUILD_DIR}/"
-    done
+    # Runtime DLLs, worked out instead of listed.
+    #
+    # This used to be a hand-kept list, and a hand-kept list is wrong the
+    # moment a dependency changes: the portable build shipped without
+    # libjpeg-62.dll because nobody noticed that an image plugin had pulled it
+    # in. The closure below walks the import table of the exe, of every DLL it
+    # already carries and of every plugin, and copies whatever of that lives in
+    # the sysroot. What is not in the sysroot is a Windows system DLL and stays
+    # where it is.
+    #
+    # Runs after the plugins are in place — see deploy_dependencies below.
+    deploy_dependencies() {
+        local objdump=x86_64-w64-mingw32-objdump
+        command -v "$objdump" >/dev/null || { echo "  WARNUNG: kein $objdump"; return; }
+
+        local -A seen=()
+        local queue=() added=0
+        mapfile -t queue < <(find "${BUILD_DIR}" -maxdepth 2 \
+                                  \( -name '*.exe' -o -name '*.dll' \) -print)
+
+        while [[ ${#queue[@]} -gt 0 ]]; do
+            local file="${queue[0]}"; queue=("${queue[@]:1}")
+            local key; key="$(basename "$file" | tr '[:upper:]' '[:lower:]')"
+            [[ -n "${seen[$key]:-}" ]] && continue
+            seen[$key]=1
+
+            local dep
+            while read -r dep; do
+                [[ -z "$dep" ]] && continue
+                local low; low="$(echo "$dep" | tr '[:upper:]' '[:lower:]')"
+                [[ -n "${seen[$low]:-}" ]] && continue
+                [[ -f "${BUILD_DIR}/${dep}" ]] && continue
+                if [[ -f "${QT_BIN}/${dep}" ]]; then
+                    cp -u "${QT_BIN}/${dep}" "${BUILD_DIR}/"
+                    queue+=("${BUILD_DIR}/${dep}")
+                    added=$((added + 1))
+                fi
+            done < <("$objdump" -p "$file" 2>/dev/null \
+                     | sed -n 's/^\s*DLL Name:\s*//p')
+        done
+        echo "  Abhängigkeiten: ${added} DLL(s) aus dem Sysroot ergänzt"
+    }
 
     # PDFium kommt als vorgebautes Binary (packaging/fetch-pdfium.sh) und liegt
     # ebenfalls außerhalb des Sysroots.
@@ -167,6 +201,9 @@ if [[ -d "$QT_BIN" ]]; then
         cp -ru "${FC_SHARE}/." "${BUILD_DIR}/share/fontconfig/"
         echo "  fontconfig: conf.avail deployed"
     fi
+
+    # Last, so the closure sees the plugins as well.
+    deploy_dependencies
 
     echo "==> Deploy complete."
 else

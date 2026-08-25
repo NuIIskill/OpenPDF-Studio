@@ -1,7 +1,7 @@
 # Rich Media
 
-Playback of media embedded in PDFs — `/Screen`, `/RichMedia` and `/Movie`
-annotations — plus the UI for it.
+Media embedded in PDFs — `/Screen`, `/RichMedia` and `/Movie` annotations:
+finding it, playing it, and putting new media into a document.
 
 ```
 SPDX-License-Identifier: LicenseRef-OpenPDF-Business
@@ -15,21 +15,196 @@ and dual-licensed GPL-3.0-only or Commercial — see the repository `LICENSE`.
 
 ## Status
 
-No code lives here yet. The directory exists so that the licensing boundary is
-in place before the implementation lands, rather than being drawn around code
-that already shipped as Core.
+The module is built. It finds media in a PDF, plays it, and embeds new media
+into one.
 
-What exists today is Core, and stays Core — these are hooks, not the module:
+```
+modules/rich-media/
+  MediaModule.cpp          the only place that registers with the Core
+  engine/
+    MediaAsset.hpp         a find: page, rect, name, MIME, object number
+    MediaScanner.*         qpdf: /RichMedia, /Screen + Rendition, /Movie
+    MediaExtractor.*       the bytes onto disk, on click rather than on open
+    MediaSpec.hpp          an insert: source, poster, trigger, playback, place
+    MediaSession.*         what is inserted or dropped but not yet saved
+    MediaFormat.*          container and codec, read out of the file itself
+    MediaConvert.*         ffmpeg: rewrite as H.264 in MP4
+    MediaDrop.*            a dropped video becomes a page of its own
+    RichMediaWriter.*      qpdf: annotation, filespec, EF stream, /AP poster
+    PosterFrame.*          still frame via VideoStill, drawn placeholder otherwise
+    VideoStill*.cpp        one frame out of a video, per platform
+    ExternalPlayer.*       hand-off to vlc/mpv/system, with a cleaned env
+  ui/
+    MediaLayer.*           the PageOverlay: finds, places, plays, writes
+    MediaFrame.*           what sits over a medium on the page
+    MediaPlayerFrame.*     the player on the page, above a PlayerEngine
+    *PlayerEngine.cpp      what decodes: Qt Multimedia, or Windows' own
+    RichMediaPanel.*       the insert panel in the right-hand rail
+```
 
-- `src/engine/edit/ContentMap.cpp`, `src/engine/edit/ContentModel.cpp` —
-  classify media annotations as `ContentItem::Type::Media` so the editor
-  leaves them alone.
-- `src/ui/view/HoverHighlight.cpp` — the red "Media" hover outline.
-- `src/ui/panels/SettingsPanel.cpp` — the *Media Playback* settings page
-  (system player / custom player). Currently a preference without a consumer.
+`HAVE_RICH_MEDIA` gates the whole directory and requires qpdf, plus Qt
+Multimedia everywhere except Windows, which brings its own decoders. Neither is
+optional, and that is the point: a build missing one of them used to succeed
+and then behave differently from every other build, with settings that quietly
+did nothing. Half a module is worse than none, so configure refuses it and
+names the package to install (`qt6-qtmultimedia-devel`). The Windows build
+links `mfplay`, `mf`, `mfplat`, `mfuuid` and `strmiids`, all part of the
+system.
 
-Recognising a media annotation and refusing to edit it is viewer behaviour and
-belongs to the Core. Playing it is the module.
+Everything the module does works the same on every platform it builds on:
+
+| what | how | needs |
+| --- | --- | --- |
+| playback | Qt Multimedia, or DirectShow and MFPlay on Windows | see above |
+| poster | one frame through the same decoder that plays | see above |
+| format check | the container and codec read out of the file | nothing |
+| reading, writing | qpdf | qpdf |
+| conversion to H.264 | ffmpeg | ffmpeg, when present |
+
+Conversion is the one thing that reaches outside, because encoding video is not
+something this program carries its own code for. It behaves identically
+everywhere: with ffmpeg the offer appears, without it the user is told what the
+consequence is. Reading a file's format used to ask ffprobe and no longer does
+— `MediaFormat` walks the ISO base media boxes far enough to name the container
+and the codec, which is exactly the question being asked.
+
+Written on insert is what Acrobat writes itself, checked object by object
+against a document Acrobat produced:
+
+```
+/Annot /RichMedia  /F 68  /NM (RM1)  /BS << /S /S /W 0 >>  /Border [0 0 0]
+  /AP << /N <form xobject: poster, letterboxed, /DCTDecode image> >>
+  /RichMediaContent  << /Assets <ref> /Configurations <ref> >>     (no /Type)
+      /Assets         << /Names [ (clip.mp4) <filespec> ] >>
+      /Configurations [ << /Subtype /Video /Instances <ref> >> ]   (no /Type)
+          /Instances  [ << /Asset <filespec> /Params <ref> >> ]    (no /Type)
+              /Params << /Binding /Background /FlashVars (source=…) >>
+  /RichMediaSettings /Activation << /Condition /XA
+                                    /Configuration <ref>
+                                    /Presentation << /Style /Embedded … >> >>
+```
+
+Two places where we deliberately differ from Acrobat: it writes a `skin=…swf`
+into `/FlashVars` that it resolves from its own installation and does not embed,
+and it puts the file into `/EF` under both `/F` and `/UF`. The first is a
+promise nobody here can keep; the second is redundant.
+
+The `/AP` appearance stream is not decoration. PDFium draws it, and so does
+every other viewer — without it the place a video sits is a white hole in
+anything that cannot play the video.
+
+**Format.** A PDF may embed any file, but it is only played where a viewer
+knows the format, and the common denominator is H.264 in an MP4 container:
+that plays in the PDF viewers that play media at all, and in browsers and on
+phones besides. Anything else is caught by `MediaProbe` before it is embedded,
+and the user is offered a conversion (`libx264`, `yuv420p`, `+faststart`; a
+stream that is already H.264 is only repackaged). The question put to the user
+is about reach, not about one product — naming a single viewer would be both
+narrower and less true. Without ffprobe nothing is checked; without ffmpeg the
+user is told what will happen and can embed anyway.
+
+Two rules the code keeps:
+
+- Only embedded assets are played. A `/Movie` or `/Screen` annotation pointing
+  at a path or an address outside the document is shown and refused — a viewer
+  that follows addresses out of a stranger's document betrays its reader.
+- Nothing starts by itself. `/RichMediaSettings /Activation /Condition` is
+  written as `/XA` (on click) unless the user asks for `/PO`, and the reading
+  side never auto-plays.
+
+**Dropping a video onto the document** gives it a page of its own, the way
+Acrobat does it: the page takes the video's dimensions at 150 dpi and the
+annotation covers it edge to edge. The longest side is held between 288 and
+420 pt. The upper bound is measured, not guessed — the page Acrobat wrote in
+`Binder1.pdf` is 418 pt wide, well under A4, and the same arithmetic on the
+same 870 x 654 pixels gives 417.6 x 313.9 pt here. Without that cap a
+1920-wide video would open a page of 922 pt, half again as wide as A4, sitting
+in the document like a foreign body.
+
+A page cannot be a session change, so this writes a working copy and hands it
+to the view — the same route the page organizer takes, and the user's file
+stays untouched until they save.
+
+Both the drag and the drop ask the overlays. That is not redundancy: a file
+turned away when it enters the view never reaches the drop handler at all, and
+an MP4 was refused with a no-entry cursor until `dragEnterEvent` learned to ask
+as well.
+
+**Playing in OpenPDF Studio means only that.** When the setting says so, the
+file is never handed to a player outside this program, not even when the
+built-in one fails: the user decided where their media may be opened, and
+starting a foreign process against that decision is worse than not playing.
+The other two settings are the user asking for an outside player, and there it
+is allowed.
+
+Playback starts with a question. A document that is merely open must not be
+able to start a decoder — let alone a player process outside this program — on
+a single click, so the first playback in a document asks: play once, always for
+this document, or not at all. The careful answer is the preset one, and trust
+lasts for the session and covers exactly that document. Media the user has just
+inserted is exempt; they picked the file a moment ago.
+
+**Two engines, chosen at compile time.** `PlayerEngine::create()` returns Qt
+Multimedia everywhere and a Windows engine on Windows. The frame above them is
+the same: transport bar, poster, geometry. An engine that hands over pictures
+is painted here; one that draws into a window of its own is only told where.
+
+Windows needs its own because the only backend packaged for MinGW is
+`windowsmediaplugin`, which builds a Media Foundation session with an EVR
+presenter and answers "Media session serious error" for files the same machine
+plays elsewhere without trouble. What the Windows engine uses instead is what
+the system has had all along, and what Acrobat plays through: DirectShow and
+MFPlay, both part of every Windows, needing no DLL we ship. Each draws into a
+window that Windows clips to the player widget, so scrolling behaves. Grabbing
+a still follows the same split (`VideoStill`), or the poster of a video that
+plays perfectly well would come out as a drawn placeholder.
+
+**Which of the two, and in which order.** DirectShow is asked first, and not
+because it is the better engine. It is the cheaper question: it answers in
+milliseconds for anything it cannot open, and it leaves Media Foundation
+untouched. MP4 is what it declines on Windows, since no MP4 splitter ships with
+the system, and that is the moment MFPlay is started and takes over. A graph
+that renders only part of a file counts as no graph, because sound without a
+picture looks like playback and hides the road that would have shown the video.
+
+Media Foundation is started on that first use and not at construction. It loads
+a decoding stack on startup, and where that stack is broken it takes the
+process down before a file has even been named — which is exactly what Wine
+does, where the same MP4 then plays through DirectShow without a complaint.
+
+The Qt engine hands frames over instead of using a `QVideoWidget`. Two bugs
+hung on that widget: the first playback stayed black because its output surface
+did not exist yet when the first frame arrived, and scrolling pushed the
+picture over the toolbar because it may take a native window that knows nothing
+about the scroll area's clip. Converting once per frame and scaling lazily
+while painting keeps the cost off the paint path.
+
+When an engine does give up, the dialog names what the file actually is and
+offers two ways on that the user picks: a 1080p copy made with ffmpeg and
+played in the program, or the system player. The copy exists only for playback;
+the document keeps the original, and a medium that needed one is played from it
+from then on. A copyable block underneath carries version, error, file and
+which backends are present, so a report says something.
+
+**Removing.** With the Rich Media tool active a click selects a medium instead
+of playing it; `Delete` and the context menu remove it. A medium that is
+already in the document cannot disappear before the next save, so its frame
+switches to covering the spot in the page's own colour, sampled from the
+rendered page around it — the same approach the Core uses for text that has
+been deleted but not yet written out.
+
+### Not built yet
+
+- Presentation mode plays nothing; the poster is what the projector shows.
+- The export dialog has no "keep or drop media" option.
+- The insert panel offers *Web Embed* and *Button*, both disabled: they need
+  structures other than an embedded file.
+- A medium already in the document can be removed but not moved or resized.
+- Nothing here is on the undo stack, and none of it shows up in the change
+  history.
+- Removal is not on the undo stack and does not appear in the change history.
+- `License::` still takes a key unchecked. The signed offline key was to land
+  with this module and did not.
 
 ## What belongs here
 
@@ -54,10 +229,9 @@ external player, and the module's own settings.
    guarded so a checkout without this directory still configures.
 3. Keep it behind a `HAVE_RICH_MEDIA` define, so the Core-only build stays a
    build that actually gets exercised.
-4. Remember the backend rule: a binary combining this module with the Core
-   must be built under the Commercial License and therefore with the
-   `Qt6::Pdf` backend, never with GPL-licensed Poppler. See
-   `LICENSES/README.md`.
+4. The backend rule this used to carry is spent: Poppler and Qt6::Pdf are both
+   gone, PDFium is the only engine and is BSD-licensed, so combining this
+   module with the Core raises no engine question. See `LICENSES/README.md`.
 
 ## Where a Business License key comes from
 

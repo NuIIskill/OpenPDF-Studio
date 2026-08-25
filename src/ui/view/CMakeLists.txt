@@ -6,6 +6,8 @@ target_sources(OpenPDFStudio PRIVATE
     PageCanvas.hpp
     PageLayoutEngine.cpp
     PageLayoutEngine.hpp
+    PageOverlay.cpp
+    PageOverlay.hpp
     TextSelectionController.cpp
     TextSelectionController.hpp
     ZoomController.cpp
