@@ -8,6 +8,7 @@
 
 class InlineEditor;
 
+// Provides the movable and resizable frame around an InlineEditor.
 class TextBoxFrame : public QWidget
 {
     Q_OBJECT
@@ -15,17 +16,19 @@ public:
     explicit TextBoxFrame(QWidget *parent = nullptr);
 
     void setDecorations(bool on);
-    void present(const QString &text, const QRectF &canvasBounds, int fontSize,
+    void present(const QString &text, const QRectF &canvasBounds, qreal fontSize,
                  const QColor &color = QColor(0x11, 0x11, 0x11),
                  const QString &fontFamily = QString(),
                  bool bold = false, bool italic = false);
-    void setFontSize(int pixelFontSize);
+    void setFontSize(qreal pixelFontSize);
     void setTextColor(const QColor &color);
     // Change font family/style live (size, color, content preserved).
     void setTextFont(const QString &family, bool bold, bool italic);
     // Reposition and resize for a new zoom level without disturbing the editor's
     // current text or cursor selection.
-    void repositionForZoom(const QRectF &canvasBounds, int pixelFontSize);
+    void repositionForZoom(const QRectF &canvasBounds, qreal pixelFontSize,
+                           const TextBoxProperties &box, qreal scale);
+    void setTextAnchor(bool valid, const QPointF &penOffsetPt);
     void setForbiddenZones(const QList<QRect> &zones);
     // Clamp drag/resize to this rect (canvas coords). Pass null rect to disable clamping.
     void setPageRect(const QRect &pageRect);
@@ -65,8 +68,9 @@ private:
     Handle hitTest(const QPoint &pos) const;
     void   applyCursor(Handle h);
     QRect  innerRect() const;
+    void   layoutEditor();
     // Minimum inner height for a given font pixel size (see the .cpp).
-    static int minInnerHeight(int fontPixelSize);
+    static int minInnerHeight(qreal fontPixelSize);
 
     InlineEditor *m_editor      { nullptr };
     Handle        m_drag        { Handle::None };
@@ -82,6 +86,8 @@ private:
     bool          m_autoHeight { true };
     TextBoxProperties m_box;
     qreal         m_scale { 1.0 };
+    QPointF       m_anchorPt;
+    bool          m_hasAnchor { false };
     QList<QRect>  m_forbidden;
     QRect         m_pageRect;              // empty = no clamping
 };

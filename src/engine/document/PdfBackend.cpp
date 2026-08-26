@@ -2,6 +2,8 @@
 
 #ifdef HAVE_PDF_RENDERING
 
+#include "engine/edit/EditSession.hpp"
+
 #ifdef HAVE_PDFIUM
 #  include "engine/document/PdfiumBackend.hpp"
 #endif
@@ -18,6 +20,18 @@ std::unique_ptr<PdfBackend> PdfBackend::create()
 #else
     return nullptr;
 #endif
+}
+
+QImage PdfBackend::renderPage(int page, qreal scale, const EditSession *session) const
+{
+    QImage img = renderPage(page, scale);
+    if (session && !img.isNull()) session->applyToImage(page, img, scale);
+    return img;
+}
+
+QString PdfBackend::embeddedFontFamily(int, const QPointF &) const
+{
+    return {};
 }
 
 #endif // HAVE_PDF_RENDERING

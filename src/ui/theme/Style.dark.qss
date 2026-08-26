@@ -127,6 +127,64 @@ QSplitter::handle:vertical   { height: 1px; }
     background-color: #4A4A4A;
 }
 
+/* ── Bookmarks ───────────────────────────────────────────── */
+#BookmarkPanel {
+    background: #353535;
+    border-right: 1px solid #484848;
+}
+QLabel#BookmarkPanelTitle {
+    color: #F3F4F6;
+    font-size: 14px;
+    font-weight: 600;
+}
+QPushButton#BookmarkPanelClose,
+QPushButton#BookmarkAction {
+    background: transparent;
+    border: none;
+    border-radius: 6px;
+}
+QPushButton#BookmarkPanelClose:hover,
+QPushButton#BookmarkAction:hover { background: #484848; }
+QPushButton#BookmarkAction:pressed { background: #555555; }
+QPushButton#BookmarkAction:disabled { background: transparent; }
+QLineEdit#BookmarkSearch {
+    background: #3D3D3D;
+    border: 1px solid #555555;
+    border-radius: 6px;
+    color: #F3F4F6;
+    font-size: 12px;
+    padding: 0 8px;
+}
+QLineEdit#BookmarkSearch:focus { border-color: #60A5FA; }
+QTreeWidget#BookmarkTree {
+    background: transparent;
+    border: none;
+    color: #E5E7EB;
+    font-size: 12px;
+    outline: none;
+}
+QTreeWidget#BookmarkTree::item {
+    min-height: 30px;
+    padding: 1px 3px;
+    border-radius: 4px;
+}
+QTreeWidget#BookmarkTree::item:hover { background: #404040; }
+QTreeWidget#BookmarkTree::item:selected {
+    background: #3F4C5F;
+    color: #93C5FD;
+}
+QTreeWidget#BookmarkTree::branch:closed:has-children {
+    image: url(:/icons/chevron-right.svg);
+}
+QTreeWidget#BookmarkTree::branch:open:has-children {
+    image: url(:/icons/chevron-down.svg);
+}
+QLabel#BookmarkEmpty {
+    color: #9CA3AF;
+    font-size: 12px;
+    padding: 24px;
+}
+
 /* ── Customize Tools card ────────────────────────────────── */
 QFrame#ToolCustomizeCard {
     background: #404040;

@@ -18,9 +18,9 @@ QSize PdfRenderer::pageDisplaySize(int page, int zoomPercent) const
                      : QSize();
 }
 
-QImage PdfRenderer::renderPage(int page, qreal scale) const
+QImage PdfRenderer::renderPage(int page, qreal scale, const EditSession *session) const
 {
-    return m_backend ? m_backend->renderPage(page, scale) : QImage();
+    return m_backend ? m_backend->renderPage(page, scale, session) : QImage();
 }
 
 #endif // HAVE_PDF_RENDERING

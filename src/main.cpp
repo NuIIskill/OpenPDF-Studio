@@ -32,6 +32,7 @@
 #include <QKeyEvent>
 #include <QLineEdit>
 #include <QScrollBar>
+#include <QTextEdit>
 #include <QTimer>
 #include <QEventLoop>
 #include <QMouseEvent>
@@ -431,15 +432,36 @@ int main(int argc, char *argv[])
         }
 
         EditSession session;
+        EditSession::Edit blank;
+        blank.page         = page - 1;
+        blank.pdfBounds    = block.pdfBounds;
+        blank.sourceRect   = block.pdfBounds;
+        blank.originalText = block.text;
+        blank.eraseRects   = backend->glyphRects(page - 1, block.pdfBounds);
+        session.addEdit(blank);
+
         EditSession::Edit edit;
         edit.page         = page - 1;
         edit.pdfBounds    = block.pdfBounds;
+        edit.sourceRect   = block.pdfBounds;
         edit.originalText = block.text;
         edit.newText      = replacement;
-        edit.eraseRects   = backend->glyphRects(page - 1, block.pdfBounds);
         session.addEdit(edit);
 
+        out << QStringLiteral("block=%1,%2,%3,%4\n")
+                   .arg(block.pdfBounds.x(), 0, 'f', 1)
+                   .arg(block.pdfBounds.y(), 0, 'f', 1)
+                   .arg(block.pdfBounds.width(), 0, 'f', 1)
+                   .arg(block.pdfBounds.height(), 0, 'f', 1);
         out << "ersetzt<<\n" << block.text << "\n>>ersetzt\n";
+
+        for (int a = 4; a < args.size(); ++a) {
+            if (!args.at(a).startsWith(QLatin1String("preview="))) continue;
+            const QImage shot = backend->renderPage(page - 1, 2.0, &session);
+            if (shot.isNull() || !shot.save(args.at(a).mid(8), "PNG")) return 3;
+            out << "vorschau=" << args.at(a).mid(8) << "\n";
+            break;
+        }
         return backend->saveWithEdits(args.at(3), session) ? 0 : 3;
 #else
         return 3;
@@ -514,6 +536,117 @@ int main(int argc, char *argv[])
             QEventLoop editSettle;
             QTimer::singleShot(1500, &editSettle, &QEventLoop::quit);
             editSettle.exec();
+
+
+            for (int r = 4; r < args.size(); ++r) {
+                if (!args.at(r).startsWith(QLatin1String("move="))) continue;
+                const QStringList d = args.at(r).mid(5).split(u',');
+                if (d.size() != 2) break;
+                auto *ed = dv->findChild<QTextEdit *>(QStringLiteral("InlineEditor"));
+                QWidget *frame = ed ? ed->parentWidget() : nullptr;
+                if (!frame) break;
+                const QPoint grab(frame->width() / 2, 3);
+                const QPoint to = grab + QPoint(d.at(0).toInt(), d.at(1).toInt());
+                const auto send = [&](QEvent::Type t, const QPoint &at) {
+                    QMouseEvent me(t, QPointF(at), frame->mapToGlobal(QPointF(at)),
+                                   Qt::LeftButton,
+                                   t == QEvent::MouseButtonRelease ? Qt::NoButton
+                                                                   : Qt::LeftButton,
+                                   Qt::NoModifier);
+                    QApplication::sendEvent(frame, &me);
+                    QApplication::processEvents();
+                };
+                send(QEvent::MouseButtonPress, grab);
+                send(QEvent::MouseMove, grab + (to - grab) / 2);
+                send(QEvent::MouseMove, to);
+                send(QEvent::MouseButtonRelease, to);
+                QEventLoop settle;
+                QTimer::singleShot(800, &settle, &QEventLoop::quit);
+                settle.exec();
+                break;
+            }
+
+            for (int r = 4; r < args.size(); ++r) {
+                if (!args.at(r).startsWith(QLatin1String("type="))) continue;
+                if (auto *ed = dv->findChild<QTextEdit *>(
+                        QStringLiteral("InlineEditor"))) {
+                    ed->selectAll();
+                    ed->insertPlainText(args.at(r).mid(5));
+                    QApplication::processEvents();
+                }
+                break;
+            }
+            if (args.contains(QStringLiteral("commit"))) {
+                QWidget *vp = dv->viewport();
+                const QPoint away(vp->width() - 30, vp->height() - 30);
+                for (const QEvent::Type type : { QEvent::MouseButtonPress,
+                                                 QEvent::MouseButtonRelease }) {
+                    QMouseEvent me(type, QPointF(away), vp->mapToGlobal(QPointF(away)),
+                                   Qt::LeftButton, Qt::LeftButton, Qt::NoModifier);
+                    QApplication::sendEvent(vp, &me);
+                }
+                QEventLoop done;
+                QTimer::singleShot(1200, &done, &QEventLoop::quit);
+                done.exec();
+                QTextStream(stdout) << "undo=" << dv->undoStack()->count() << "\n";
+
+                for (int r2 = 4; r2 < args.size(); ++r2) {
+                    if (!args.at(r2).startsWith(QLatin1String("then="))) continue;
+                    const QStringList xy2 = args.at(r2).mid(5).split(u',');
+                    if (xy2.size() != 2) break;
+                    const QPoint again(xy2.at(0).toInt(), xy2.at(1).toInt());
+                    QWidget *vp2 = dv->viewport();
+                    for (const QEvent::Type type : { QEvent::MouseButtonPress,
+                                                     QEvent::MouseButtonRelease }) {
+                        QMouseEvent me(type, QPointF(again),
+                                       vp2->mapToGlobal(QPointF(again)),
+                                       Qt::LeftButton, Qt::LeftButton, Qt::NoModifier);
+                        QApplication::sendEvent(vp2, &me);
+                    }
+                    QEventLoop opened;
+                    QTimer::singleShot(1200, &opened, &QEventLoop::quit);
+                    opened.exec();
+                    const QPoint off(vp2->width() - 30, vp2->height() - 30);
+                    for (const QEvent::Type type : { QEvent::MouseButtonPress,
+                                                     QEvent::MouseButtonRelease }) {
+                        QMouseEvent me(type, QPointF(off), vp2->mapToGlobal(QPointF(off)),
+                                       Qt::LeftButton, Qt::LeftButton, Qt::NoModifier);
+                        QApplication::sendEvent(vp2, &me);
+                    }
+                    QEventLoop closed;
+                    QTimer::singleShot(1200, &closed, &QEventLoop::quit);
+                    closed.exec();
+                    QTextStream(stdout) << "undo2=" << dv->undoStack()->count() << "\n";
+                    break;
+                }
+            }
+
+            for (int r = 4; r < args.size(); ++r) {
+                if (!args.at(r).startsWith(QLatin1String("size="))) continue;
+                for (const QString &step : args.at(r).mid(5).split(u',')) {
+                    const QStringList wh = step.split(u'x');
+                    if (wh.size() != 2) continue;
+                    win->resize(wh.at(0).toInt(), wh.at(1).toInt());
+                    QApplication::processEvents();
+                    QEventLoop sizeSettle;
+                    QTimer::singleShot(700, &sizeSettle, &QEventLoop::quit);
+                    sizeSettle.exec();
+                }
+                break;
+            }
+
+            for (int z = 4; z < args.size(); ++z) {
+                if (!args.at(z).startsWith(QLatin1String("zoom="))) continue;
+                for (const QString &step : args.at(z).mid(5).split(u','))
+                    if (const int pct = step.toInt(); pct > 0) {
+                        dv->setZoom(pct);
+                        QApplication::processEvents();
+                        QEventLoop zoomSettle;
+                        QTimer::singleShot(700, &zoomSettle, &QEventLoop::quit);
+                        zoomSettle.exec();
+                    }
+                break;
+            }
             break;
         }
 

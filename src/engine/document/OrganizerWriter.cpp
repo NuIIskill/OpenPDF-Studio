@@ -22,6 +22,10 @@
 
 bool OrganizerWriter::writeVector(const QString &outPath)
 {
+#ifndef HAVE_QPDF
+    Q_UNUSED(outPath)
+    return false;
+#else
     try {
         QPDF out;
         out.emptyPDF();
@@ -149,6 +153,7 @@ bool OrganizerWriter::writeVector(const QString &outPath)
         qWarning() << "[QPDF] organizer vector save failed:" << ex.what();
         return false;
     }
+#endif
 }
 
 bool OrganizerWriter::verifyWritten(const QString &path) const

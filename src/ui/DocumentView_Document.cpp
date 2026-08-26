@@ -5,6 +5,7 @@
 #include "ui/DocumentView.hpp"
 
 #include "app/PdfPwStore.hpp"
+#include "engine/document/BookmarkWriter.hpp"
 #include "engine/document/DocumentSource.hpp"
 #include "engine/edit/InkMetrics.hpp"
 #include "app/SafeWrite.hpp"
@@ -61,6 +62,18 @@
 #include <algorithm>
 #include <limits>
 
+namespace {
+
+bool editableBookmarks(const QList<PdfBookmark> &bookmarks)
+{
+    for (const PdfBookmark &bookmark : bookmarks)
+        if (!bookmark.supported || !editableBookmarks(bookmark.children))
+            return false;
+    return true;
+}
+
+} // namespace
+
 void DocumentView::clearDocument()
 {
     cancelCurrentEdit();
@@ -88,6 +101,9 @@ void DocumentView::clearDocument()
     m_src->setContentPath(QString());
     m_journal.targetPath.clear();
     m_journal.workingCopyDirty = false;
+    m_bookmarks.clear();
+    m_bookmarksDirty = false;
+    Q_EMIT bookmarkDataChanged();
     // The log describes a document that is no longer open; its snapshots go
     // with it, or the session directory fills up with states nothing points at.
     m_journal.history()->reset();
@@ -129,6 +145,9 @@ bool DocumentView::openFile(const QString &path)
     m_edit.clearOcrCache();
     m_journal.targetPath.clear();
     m_journal.workingCopyDirty = false;
+    m_bookmarks      = m_src->backend()->bookmarks();
+    m_bookmarksDirty = false;
+    Q_EMIT bookmarkDataChanged();
     // Only now that the reader let go of it may the working file be removed.
     SessionStore::discard(previousWorkingFile);
     m_imageLayer->setSource(m_src->renderer(), m_session, m_ocrEngine, m_src->contentPath());
@@ -152,6 +171,9 @@ bool DocumentView::openFile(const QString &path)
     m_src->setContentPath(path);
     m_journal.targetPath.clear();
     m_journal.workingCopyDirty = false;
+    m_bookmarks.clear();
+    m_bookmarksDirty = false;
+    Q_EMIT bookmarkDataChanged();
     SessionStore::discard(previousWorkingFile);
     m_src->setPageCount(1);
     m_dropHint->show();
@@ -230,11 +252,20 @@ bool DocumentView::saveToFile(const QString &path)
         return false;
     }
 
+    if (m_bookmarksDirty
+            && !BookmarkWriter::write(staging, m_bookmarks,
+                                      PdfPwStore::get(m_src->contentPath()))) {
+        SafeWrite::discard(staging);
+        return false;
+    }
+
     // With the base moved aside, the target is not a file this process holds
     // open, so the swap needs none of the close-and-reopen dance below.
     if (detached) {
         if (!SafeWrite::commit(staging, path)) return false;
+        m_bookmarksDirty = false;
         m_journal.markSaved(path);
+        Q_EMIT bookmarkDataChanged();
         return true;
     }
 
@@ -276,6 +307,9 @@ bool DocumentView::saveToFile(const QString &path)
     // back from there, or it would stand twice.
     for (PageOverlay *overlay : std::as_const(m_overlays))
         overlay->setDocument(m_src->contentPath());
+    if (m_src->backend()) m_bookmarks = m_src->backend()->bookmarks();
+    m_bookmarksDirty = false;
+    Q_EMIT bookmarkDataChanged();
     m_layoutEngine->rerenderAll();
     m_journal.recordSavedOverBase(path);
     return true;
@@ -283,6 +317,20 @@ bool DocumentView::saveToFile(const QString &path)
     Q_UNUSED(path)
     return false;
 #endif
+}
+
+void DocumentView::setBookmarks(const QList<PdfBookmark> &bookmarks)
+{
+    if (bookmarks == m_bookmarks) return;
+    m_bookmarks = bookmarks;
+    m_bookmarksDirty = true;
+    Q_EMIT bookmarkDataChanged();
+}
+
+bool DocumentView::bookmarkEditingAvailable() const
+{
+    return m_src->pageCount() > 0 && BookmarkWriter::available()
+        && editableBookmarks(m_bookmarks);
 }
 
 #ifdef HAVE_PDF_RENDERING
@@ -474,4 +522,3 @@ bool DocumentView::printDocument(QPrinter *printer, const QList<int> &pages)
 #  endif
 }
 #endif
-

@@ -128,7 +128,8 @@ void EditController::setFontSize(int ptSize)
             const QRectF cb(
                 activeEditBounds.topLeft() * scale + QPointF(lbl->pos()),
                 activeEditBounds.size() * scale);
-            m_frame->repositionForZoom(cb, qMax(6, qRound(ptSize * scale)));
+            m_frame->repositionForZoom(cb, qMax(1.0, ptSize * scale),
+                                       currentBox, scale);
         }
     } else {
         currentEditorFontSizePt   = ptSize;
@@ -187,12 +188,12 @@ void EditController::setTextBoxProperties(const TextBoxProperties &properties)
     const QLabel *lbl = m_canvas->pageLabel(activeEditPage);
     if (!lbl) return;
     const qreal scale = PdfRenderer::screenScale(m_zoom->zoom());
-    m_frame->setBoxProperties(currentBox, scale);
     m_frame->setPageRect(lbl->geometry());
     const QRectF cb(activeEditBounds.topLeft() * scale + QPointF(lbl->pos()),
                     activeEditBounds.size() * scale);
     m_frame->repositionForZoom(
-        cb, qMax(6, qRound(currentEditorRenderSizePt * scale)));
+        cb, qMax(1.0, currentEditorRenderSizePt * scale),
+        currentBox, scale);
     Q_EMIT textBoxPropertiesChanged(textBoxProperties());
 #else
     Q_UNUSED(properties)
@@ -357,8 +358,8 @@ bool EditController::resolveEditTarget(const QPoint &canvasPos, EditOpen &o)
             o.block = backend->textAt(pageIdx, o.pdfPt, o.erasedZones);
     }
 
-    // If still nothing, fall back to OCR (scanned / image PDF)
-    if (!o.block.isValid() && m_ocr && m_ocr->isReady()) {
+    if (!o.block.isValid() && m_ocr && m_ocr->isReady()
+            && m_src->backend() && !m_src->backend()->hasSelectableText(pageIdx)) {
         if (!m_ocrCache.contains(pageIdx)) {
             const qreal ocrScale = qMax(o.scale * m_canvas->canvasWidget()->devicePixelRatioF(), 300.0 / 72.0);
             QApplication::setOverrideCursor(Qt::WaitCursor);
@@ -405,6 +406,10 @@ bool EditController::resolveEditTarget(const QPoint &canvasPos, EditOpen &o)
                              || m_session->isBlankCovering(o.block.page,
                                                            o.block.pdfBounds)))
         return false;
+
+    if (o.contentItem.isValid() && !o.contentItem.isFormField()
+            && !o.contentItem.bounds.intersects(o.block.pdfBounds))
+        o.contentItem = ContentItem{};
 
     o.displayText = o.block.text;
     return true;
@@ -544,21 +549,17 @@ void EditController::chooseEditorFont(EditOpen &o)
         editorFontChangedByUser = false;
     }
 
-    // Calibrate against the ORIGINAL ink (see InkMetrics). What must be
-    // preserved is how tall the text LOOKS, and the point size alone does not
-    // decide that: the editor paints with a different family than the document
-    // (always so on the Poppler backend, which reports none) and equal point
-    // sizes render visibly different ink there. Editing a line must never
-    // resize it, so the size we PAINT with is the one whose ink height matches
-    // what the page actually shows.
+    if (!o.isSessionEdit && !o.contentItem.isFormField()) {
+        if (auto *backend = m_src->backend()) {
+            const QString embedded =
+                backend->embeddedFontFamily(o.block.page, o.pdfPt);
+            if (!embedded.isEmpty()) currentEditorFontFamily = embedded;
+        }
+    }
+
     //
-    // That fitted size is not the one the file gets. An exact size is what the
-    // PDF itself states, and the vector save must write it back untouched — a
-    // size bent to fit a substitute face would be wrong in the document's own
-    // font. So the two part ways here: fitted on screen, exact on disk. Only an
-    // estimated size, which is nothing but a guess, is replaced outright.
     currentEditorRenderSizePt = currentEditorFontSizePt;
-    o.measurable = !o.isSessionEdit && !o.contentItem.isFormField()
+    o.measurable = !sizeIsExact && !o.isSessionEdit && !o.contentItem.isFormField()
                 && !o.displayText.isEmpty() && !o.sampleImage().isNull();
     if (!o.measurable) return;
 
@@ -630,16 +631,26 @@ void EditController::anchorEditOrigin(EditOpen &o)
 
 void EditController::fitEditHeight(EditOpen &o)
 {
-    // Expand edit bounds to cover the full rendered line height.  Glyph
-    // polygons capture only the inked area (cap height ≈ 72% of font size);
-    // large headings can leave original characters peeking out beneath the
-    // blank fill without this. Sizes here are the ones being PAINTED — this
-    // is about what the frame has to cover on screen.
     if (currentEditorRenderSizePt <= 0) return;
 
-    const double minH = currentEditorRenderSizePt * 1.15;
-    if (activeEditBounds.height() < minH) {
-        activeEditBounds.setHeight(minH);
+    QFont line(currentEditorFontFamily.isEmpty()
+                   ? QStringLiteral("Helvetica") : currentEditorFontFamily);
+    line.setStyleHint(QFont::SansSerif);
+    line.setPixelSize(qMax(1, qRound(currentEditorRenderSizePt * o.scale)));
+    line.setBold(currentEditorBold);
+    line.setItalic(currentEditorItalic);
+    const QFontMetricsF fm(line);
+    const double scale = qMax(0.01, o.scale);
+
+    if (activeEditHasOrigin) {
+        const double baseline = o.textOrigin.y();
+        activeEditBounds.setTop(qMin(activeEditBounds.top(),
+                                     baseline - fm.ascent() / scale));
+        activeEditBounds.setBottom(qMax(activeEditBounds.bottom(),
+                                        baseline + fm.descent() / scale));
+        clampToPdfPage(activeEditPage, activeEditBounds);
+    } else if (activeEditBounds.height() < fm.height() / scale) {
+        activeEditBounds.setHeight(fm.height() / scale);
         clampToPdfPage(activeEditPage, activeEditBounds);
     }
     // Hard cap: no single-line edit frame should exceed 5× the detected
@@ -719,7 +730,7 @@ void EditController::fitEditWidth(EditOpen &o)
     const QStringList lines = o.displayText.split(u'\n');
     for (const QString &ln : lines)
         needW = qMax(needW, fm.horizontalAdvance(ln));
-    needW += currentEditorRenderSizePt * 0.6;   // caret/AA headroom
+    needW += 1.5;
     if (needW > activeEditBounds.width())
         activeEditBounds.setWidth(
             qMin(needW, o.pageSize.width() - activeEditBounds.left() - 2.0));
@@ -750,9 +761,10 @@ void EditController::presentEditor(EditOpen &o)
     const QRectF canvasBounds(
         activeEditBounds.topLeft() * o.scale + QPointF(o.label->pos()),
         activeEditBounds.size() * o.scale);
-    const int fontSize = qMax(6, qRound(currentEditorRenderSizePt * o.scale));
+    const qreal fontSize = qMax(1.0, currentEditorRenderSizePt * o.scale);
 
     m_frame->setDecorations(true);
+    m_frame->setTextAnchor(activeEditHasOrigin, activeEditOriginOffset);
     m_frame->setForbiddenZones({});
     m_frame->setPageRect(o.label->geometry());
     // Single-line edits extend horizontally while typing instead of wrapping.
@@ -774,6 +786,7 @@ void EditController::presentEditor(EditOpen &o)
     // Captured AFTER present(): the frame grows to fit its content on open and
     // reports the grown geometry back through boundsChanged, so this is the
     // resting state — any later deviation really is the user's doing.
+    activeEditOriginalText        = m_frame->currentText();
     activeEditInPlace             = true;
     activeEditPresentedBounds     = activeEditBounds;
     activeEditPresentedFontSizePt = currentEditorFontSizePt;

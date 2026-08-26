@@ -10,13 +10,7 @@
 #include <QString>
 
 
-// Stores all pending text and image edits for one document session.
-//
-// Knows how to apply them to a QImage — that is the live view, where an edit
-// is painted over the rendered page. It does NOT know how to write them to a
-// file: that is the backend's job (PdfBackend::saveWithEdits), because how an
-// edit reaches the document depends entirely on what the engine can do with it.
-// The session is the list of what the user changed, nothing more.
+// Stores pending text and image edits for one document session.
 class EditSession
 {
 public:
@@ -36,10 +30,6 @@ public:
         // Size written to the FILE — the size the PDF itself states whenever
         // that is known, so a save can put it back unchanged.
         double  fontSizePt { 0.0 };
-        // Size the live view paints with. It is deliberately a second number:
-        // the family on screen is hardly ever the embedded one, and the same
-        // point size in a different face renders visibly taller or shorter
-        // ink. This one is fitted to the ink the original actually showed.
         // 0 → use fontSizePt.
         double  renderSizePt { 0.0 };
         // Where the replaced text started, as an offset from pdfBounds'
@@ -134,6 +124,8 @@ public:
 
     void clear();
 
+    const QList<Edit> &edits() const { return m_edits; }
+
     // Snapshot / restore for undo-redo.
     QList<Edit> snapshotEdits() const   { return m_edits; }
     void        restoreEdits(QList<Edit> s) { m_edits = std::move(s); }
@@ -163,25 +155,21 @@ public:
     // contain pdfPt. Fills *out with the full edit when found.
     bool findEditAt(int page, const QPointF &pdfPt, Edit *out = nullptr) const;
 
+    enum class Paint { Everything, FormFields };
+
     // Paint replacements onto an already-rendered QImage (used for live view).
     // scale = PDF-point-to-pixel factor used when rendering.
-    void applyToImage(int page, QImage &img, qreal scale) const;
+    void applyToImage(int page, QImage &img, qreal scale,
+                      Paint what = Paint::Everything) const;
 
-    // Reconstructs the background inside the rects by copying the real pixels
-    // just above/below (per column, majority vote; vertical blend when the two
-    // sides disagree). No color guessing — handles backgrounds that change
-    // across the area (box edges, stripes, gradients, images).
-    // The multi-rect overload treats the rects as ONE block: per column it
-    // spans from the topmost to the bottommost covering rect and samples
-    // OUTSIDE that span — sampling between tightly stacked text lines would
-    // hit the neighbouring line's glyphs and smear them into the fill.
+private:
+    static void paintTextEdit(QPainter &p, const Edit &e, qreal scale);
+
     static void paintBackgroundPatch(QPainter &p, const QImage &img,
                                      const QRect &rectPx);
     static void paintBackgroundPatch(QPainter &p, const QImage &img,
                                      const QList<QRect> &rectsPx);
 
-private:
-    static void paintTextEdit(QPainter &p, const Edit &e, qreal scale);
     // Erases the edit area by reconstructing the surrounding background
     // (paintBackgroundPatch); Edit::bgColor is only the last-resort fallback.
     static void paintBlankEdit(QPainter &p, const QImage &img, const Edit &e,

@@ -248,6 +248,8 @@ DocumentView::~DocumentView()
     // document. discard() only touches files inside the session directory, so
     // handing it a user's own document does nothing. A view that dies without
     // running this (a crash) leaves the copy for recovery, which is the point.
+    m_undoStack->disconnect(this);
+
     SessionStore::discard(m_src->contentPath());
     delete m_ocrEngine;
 #ifdef HAVE_PDF_RENDERING

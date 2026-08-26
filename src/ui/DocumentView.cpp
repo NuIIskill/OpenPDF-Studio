@@ -81,7 +81,11 @@ void DocumentView::repositionForZoom()
     // are repositioned again when that layout has settled.
     m_selection->relayout();
     QTimer::singleShot(0, this, [this]() { m_selection->relayout(); });
+    repositionEditorFrame();
+}
 
+void DocumentView::repositionEditorFrame()
+{
 #ifdef HAVE_PDF_RENDERING
     // The blank that hides the original text sticks to its page inside the
     // layout engine, so a re-render at the new zoom keeps it — only the editor
@@ -103,11 +107,11 @@ void DocumentView::repositionForZoom()
         // zoom the page is actually rendered at.
         const qreal scale = PdfRenderer::screenScale(m_zoomCtl->zoom());
         m_editorFrame->setPageRect(lbl->geometry());  // page rect changes with zoom
-        m_editorFrame->setBoxProperties(m_edit.currentBox, scale);
         const QRectF cb(m_edit.activeEditBounds.topLeft() * scale + QPointF(lbl->pos()),
                         m_edit.activeEditBounds.size() * scale);
         m_editorFrame->repositionForZoom(
-            cb, qMax(6, qRound(m_edit.currentEditorRenderSizePt * scale)));
+            cb, qMax(1.0, m_edit.currentEditorRenderSizePt * scale),
+            m_edit.currentBox, scale);
     });
 #endif
 }
@@ -284,6 +288,7 @@ void DocumentView::repositionPageOverlays()
     m_imageLayer->relayout();
     for (PageOverlay *overlay : std::as_const(m_overlays))
         overlay->relayout();
+    repositionEditorFrame();
 }
 
 QRect DocumentView::visibleCanvasRect() const

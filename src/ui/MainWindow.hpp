@@ -9,6 +9,7 @@
 
 class TopToolbar;
 class LeftSidebar;
+class BookmarkPanel;
 class DocumentView;
 class RightSidebar;
 class TextPropertiesPanel;
@@ -83,6 +84,7 @@ private:
     bool confirmAndSave(DocumentView *dv);
     void openTextPanel();
     void closeTextPanel();
+    void refreshBookmarkPanel();
     void loadShortcuts();
     void loadZoomSettings();
 
@@ -112,6 +114,7 @@ private:
     TopToolbar           *m_topToolbar   { nullptr };
     FormatBar            *m_formatBar    { nullptr };
     LeftSidebar          *m_leftSidebar  { nullptr };
+    BookmarkPanel        *m_bookmarkPanel{ nullptr };
     TextPropertiesPanel  *m_textPanel    { nullptr };
     RightSidebar         *m_rightSidebar { nullptr };
     StatusBar            *m_statusBar    { nullptr };

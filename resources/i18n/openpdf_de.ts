@@ -743,11 +743,6 @@ Text- und Bildbearbeitungen seit damals stehen in keiner Datei und gehen verlore
         <translation>Tabelle</translation>
     </message>
     <message>
-        <location filename="../../src/ui/panels/LeftSidebar.cpp" line="32"/>
-        <source>Page</source>
-        <translation>Seite</translation>
-    </message>
-    <message>
         <location filename="../../src/ui/panels/LeftSidebar.cpp" line="33"/>
         <source>Bookmark</source>
         <translation>Lesezeichen</translation>
@@ -1841,5 +1836,22 @@ Enter the password to open it:</source>
         <source>No Document</source>
         <translation>Kein Dokument</translation>
     </message>
+</context>
+<context>
+    <name>BookmarkPanel</name>
+    <message><source>Bookmarks</source><translation>Lesezeichen</translation></message>
+    <message><source>Search bookmarks</source><translation>Lesezeichen durchsuchen</translation></message>
+    <message><source>This document has no bookmarks.</source><translation>Dieses Dokument enthält keine Lesezeichen.</translation></message>
+    <message><source>Open a PDF to view its bookmarks.</source><translation>Öffnen Sie eine PDF, um ihre Lesezeichen anzuzeigen.</translation></message>
+    <message><source>Close bookmarks</source><translation>Lesezeichen schließen</translation></message>
+    <message><source>Add bookmark for current page</source><translation>Lesezeichen für die aktuelle Seite hinzufügen</translation></message>
+    <message><source>Rename bookmark</source><translation>Lesezeichen umbenennen</translation></message>
+    <message><source>Delete bookmark</source><translation>Lesezeichen löschen</translation></message>
+    <message><source>Move bookmark up</source><translation>Lesezeichen nach oben verschieben</translation></message>
+    <message><source>Move bookmark down</source><translation>Lesezeichen nach unten verschieben</translation></message>
+    <message><source>Add bookmark</source><translation>Lesezeichen hinzufügen</translation></message>
+    <message><source>Title:</source><translation>Titel:</translation></message>
+    <message><source>Page %1</source><translation>Seite %1</translation></message>
+    <message><source>Delete &quot;%1&quot; and its child bookmarks?</source><translation>„%1“ und alle untergeordneten Lesezeichen löschen?</translation></message>
 </context>
 </TS>

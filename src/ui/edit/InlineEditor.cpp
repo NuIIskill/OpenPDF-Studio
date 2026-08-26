@@ -6,6 +6,8 @@
 #include <QFocusEvent>
 #include <QWheelEvent>
 #include <QTextBlock>
+#include <QTextLayout>
+#include <QTextLine>
 #include <QTextBlockFormat>
 #include <QTextCursor>
 #include <QTextListFormat>
@@ -46,20 +48,23 @@ void InlineEditor::applyStyle()
               .arg(family);
     const qreal pad = qMax(0.0, m_box.paddingPt * m_scale);
     const qreal tracking = m_box.characterSpacingPt * m_scale;
+    QFont doc = styledFont(m_currentFontPx);
+    if (!qFuzzyIsNull(tracking))
+        doc.setLetterSpacing(QFont::AbsoluteSpacing, tracking);
+    setFont(doc);
+    document()->setDefaultFont(doc);
     setStyleSheet(QString(
         "QTextEdit#InlineEditor {"
         "  background: transparent;"
         "  border: none;"
         "  font-family: %1;"
-        "  font-size: %2px;"
-        "  font-weight: %3;"
-        "  font-style: %4;"
-        "  padding: %6px;"
-        "  letter-spacing: %7px;"
-        "  color: %5;"
+        "  font-weight: %2;"
+        "  font-style: %3;"
+        "  padding: %5px;"
+        "  letter-spacing: %6px;"
+        "  color: %4;"
         "}")
         .arg(familyList)
-        .arg(qMax(8, m_currentFontPx))
         .arg(m_bold ? 700 : 400)
         .arg(m_italic ? QStringLiteral("italic") : QStringLiteral("normal"))
         .arg(m_currentColor.name())
@@ -135,21 +140,51 @@ void InlineEditor::resizeEvent(QResizeEvent *e)
     QTimer::singleShot(0, this, &InlineEditor::updateVerticalAlignment);
 }
 
-QFont InlineEditor::styledFont(int pixelFontSize) const
+QFont InlineEditor::styledFont(qreal pixelFontSize) const
 {
     QFont f(m_family.isEmpty() ? QStringLiteral("Helvetica") : m_family);
     f.setStyleHint(QFont::SansSerif);
-    f.setPixelSize(qMax(8, pixelFontSize));
+    f.setPointSizeF(qMax(0.5, pixelFontSize) * 72.0 / screenDpi());
+    f.setHintingPreference(QFont::PreferNoHinting);
     f.setBold(m_bold);
     f.setItalic(m_italic);
     return f;
 }
 
-void InlineEditor::present(const QString &text, int pixelFontSize, const QColor &color,
+QString InlineEditor::laidOutText() const
+{
+    QString out;
+    for (QTextBlock block = document()->begin(); block.isValid();
+         block = block.next()) {
+        if (!out.isEmpty()) out += QLatin1Char('\n');
+        const QTextLayout *layout = block.layout();
+        if (!layout || layout->lineCount() <= 1) { out += block.text(); continue; }
+        const QString text = block.text();
+        for (int i = 0; i < layout->lineCount(); ++i) {
+            const QTextLine line = layout->lineAt(i);
+            if (i > 0) out += QLatin1Char('\n');
+            out += QStringView(text).mid(line.textStart(), line.textLength())
+                       .toString();
+        }
+    }
+    return out;
+}
+
+qreal InlineEditor::firstBaselineOffset() const
+{
+    const QTextBlock block = document()->firstBlock();
+    if (block.isValid() && block.layout() && block.layout()->lineCount() > 0) {
+        const QTextLine line = block.layout()->lineAt(0);
+        return block.layout()->position().y() + line.y() + line.ascent();
+    }
+    return QFontMetricsF(styledFont(m_currentFontPx)).ascent();
+}
+
+void InlineEditor::present(const QString &text, qreal pixelFontSize, const QColor &color,
                            const QString &family, bool bold, bool italic)
 {
     m_currentColor  = color.isValid() ? color : QColor(0x11, 0x11, 0x11);
-    m_currentFontPx = qMax(8, pixelFontSize);
+    m_currentFontPx = qMax(0.5, qreal(pixelFontSize));
     m_family        = family;
     m_bold          = bold;
     m_italic        = italic;
@@ -162,8 +197,19 @@ void InlineEditor::present(const QString &text, int pixelFontSize, const QColor 
 
 void InlineEditor::setFontSize(int pixelFontSize)
 {
-    m_currentFontPx = qMax(8, pixelFontSize);
+    setFontSizeF(pixelFontSize);
+}
+
+void InlineEditor::setFontSizeF(qreal pixelFontSize)
+{
+    m_currentFontPx = qMax(0.5, pixelFontSize);
     applyStyle();
+}
+
+qreal InlineEditor::screenDpi() const
+{
+    const qreal dpi = logicalDpiY();
+    return dpi > 1.0 ? dpi : 96.0;
 }
 
 void InlineEditor::setColor(const QColor &color)

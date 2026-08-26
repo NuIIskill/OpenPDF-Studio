@@ -133,6 +133,13 @@ responsibilities sharing a file. `DocumentView` is the standing example of what
 that costs and is being split down accordingly - new state belongs in a
 controller under `ui/view/`, not on the view.
 
+## Comments
+
+Write code comments in English. Documentation comments should only give a
+short, one-sentence description of a class or namespace. Do not document
+methods or fields, narrate the implementation or its history, or explain
+behavior that is already clear from the code.
+
 ## Testing
 
 **Nothing test-related is committed.** `tests/` is gitignored, and the root

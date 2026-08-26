@@ -35,6 +35,12 @@ inline bool separatesWords(const QRectF &prev, const QRectF &next, double fontSi
     return gap > qMax(2.0, fontSize * 0.5);
 }
 
+inline bool separatesBlocks(const QRectF &prev, const QRectF &next, double fontSize)
+{
+    const double gap = next.left() - prev.right();
+    return gap > qMax(12.0, fontSize * 2.5);
+}
+
 /// Liegen zwei Zeichen auf derselben Zeile?
 ///
 /// Verglichen werden Schriftgrundlinien, nicht Kastenmitten: ein Komma hängt

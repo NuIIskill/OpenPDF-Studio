@@ -9,7 +9,6 @@
 #include <QFrame>
 #include <QLabel>
 #include <QMouseEvent>
-#include <QPainter>
 #include <QPalette>
 #include <QTimer>
 #include <QVBoxLayout>
@@ -223,7 +222,19 @@ void PageLayoutEngine::renderNow(int page)
 
     const qreal dpr   = m_canvas->devicePixelRatioF();
     const qreal scale = PdfRenderer::screenScale(m_zoom);
-    QImage img = m_renderer->renderPage(page, scale * dpr);
+
+    EditSession preview;
+    const EditSession *use = m_session;
+    if (m_session && m_blank.page == page) {
+        preview = *m_session;
+        EditSession::Edit blank;
+        blank.page       = page;
+        blank.pdfBounds  = m_blank.bounds;
+        blank.eraseRects = m_blank.rects;
+        preview.addEdit(std::move(blank));
+        use = &preview;
+    }
+    QImage img = m_renderer->renderPage(page, scale * dpr, use);
     if (img.isNull()) {
         // A render that failed (a page Poppler chokes on, or no memory for the
         // bitmap at high zoom) must not leave the pixmap of the PREVIOUS zoom
@@ -234,33 +245,6 @@ void PageLayoutEngine::renderNow(int page)
         return;
     }
 
-    // NOTE: paint in RAW device pixels first, tag the DPR only afterwards — a
-    // QPainter on a DPR-tagged image multiplies every coordinate by dpr and
-    // would displace the erase rects and all edit painting on scaled displays
-    // (fractional scaling!).
-    const qreal s = scale * dpr;
-    if (m_blank.page == page) {
-        // Erase the original text BEFORE applying session edits so it is
-        // hidden even on the first click. Two safety properties:
-        //   • only the tight glyph rects are touched (graphics survive)
-        //   • the background is reconstructed from real surrounding pixels,
-        //     never a guessed color
-        const qreal pad = qMax(1.0, 2.5 * s);
-        const QList<QRectF> areas = m_blank.rects.isEmpty()
-                                        ? QList<QRectF>{ m_blank.bounds }
-                                        : m_blank.rects;
-        QList<QRect> rects;
-        rects.reserve(areas.size());
-        for (const QRectF &a : areas) {
-            const QRectF px(a.topLeft() * s, a.size() * s);
-            rects.append(px.adjusted(-pad, -pad, pad, pad).toAlignedRect());
-        }
-        // One call for the whole block: the reconstruction samples outside
-        // the block, never between its tightly stacked lines.
-        QPainter p(&img);
-        EditSession::paintBackgroundPatch(p, img, rects);
-    }
-    if (m_session) m_session->applyToImage(page, img, s);
     img.setDevicePixelRatio(dpr);
 
     QPixmap pm = QPixmap::fromImage(std::move(img));
@@ -407,8 +391,7 @@ void PageLayoutEngine::renderNextThumbnail(int generation, int index, int attemp
     if (sz100.width() > 0) {
         const int   tZoom  = qMax(1, GridConst::RENDER_W * 100 / sz100.width());
         const qreal tScale = PdfRenderer::screenScale(tZoom);
-        QImage img = m_renderer->renderPage(index, tScale * dpr);
-        if (m_session) m_session->applyToImage(index, img, tScale * dpr);
+        QImage img = m_renderer->renderPage(index, tScale * dpr, m_session);
         img.setDevicePixelRatio(dpr);
         if (!img.isNull()) item.original = QPixmap::fromImage(std::move(img));
     }

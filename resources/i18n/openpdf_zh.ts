@@ -147,11 +147,6 @@ Please use a build that includes Qt6::Pdf support.
         <translation>表格</translation>
     </message>
     <message>
-        <location filename="../../src/ui/LeftSidebar.cpp" line="32"/>
-        <source>Page</source>
-        <translation>页面</translation>
-    </message>
-    <message>
         <location filename="../../src/ui/LeftSidebar.cpp" line="33"/>
         <source>Bookmark</source>
         <translation>书签</translation>

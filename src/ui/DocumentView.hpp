@@ -25,6 +25,7 @@ class TextSelectionController;
 class ZoomController;
 
 #include "engine/document/DocumentJournal.hpp"
+#include "engine/document/PdfBookmark.hpp"
 #include "engine/document/DocumentSource.hpp"
 #include "ui/edit/EditController.hpp"
 #include "app/DocumentHistory.hpp"
@@ -105,6 +106,9 @@ public:
     int         currentPage()      const;
     // Scrolls the given 0-based page to the top of the viewport.
     void        goToPage(int page);
+    const QList<PdfBookmark> &bookmarks() const { return m_bookmarks; }
+    void        setBookmarks(const QList<PdfBookmark> &bookmarks);
+    bool        bookmarkEditingAvailable() const;
     ViewMode    viewMode()         const { return m_viewMode; }
     QUndoStack *undoStack()        const { return m_undoStack; }
     /// Change log of the open document — what the history panel shows.
@@ -114,7 +118,8 @@ public:
     /// reopening the snapshot that entry belongs to. False when the state
     /// could not be restored; the document is then left as it was.
     bool        restoreHistoryState(int index);
-    bool        hasUnsavedEdits()  const { return m_journal.hasUnsavedEdits(); }
+    bool        hasUnsavedEdits()  const
+    { return m_journal.hasUnsavedEdits() || m_bookmarksDirty; }
     bool        pdfRenderingAvailable() const;
     QList<DocxPage> allPageContent(const QList<int> &pages = {});
     bool exportPagesToImages(const QString &outputPath, int quality = 85,
@@ -151,6 +156,7 @@ Q_SIGNALS:
     void editorFontChanged(const QString &family, bool bold, bool italic);
     void textBoxPropertiesChanged(const TextBoxProperties &properties);
     void textBoxEditingChanged(bool active);
+    void bookmarkDataChanged();
 
 protected:
     bool eventFilter(QObject *obj, QEvent *e) override;
@@ -172,6 +178,7 @@ private:
     void   syncVisibleRect();
     // Puts everything anchored to a page back where it belongs after a zoom.
     void   repositionForZoom();
+    void   repositionEditorFrame();
     // Every overlay that is anchored to a page position, back onto its page.
     // Called whenever the pages move under them: a relayout, a zoom, and a
     // resize of the view — the last one because the canvas is CENTRED in the
@@ -271,6 +278,9 @@ private:
 
     // Save target, dirty flag and change log of the open document.
     DocumentJournal m_journal;
+
+    QList<PdfBookmark> m_bookmarks;
+    bool               m_bookmarksDirty { false };
 
     int     m_lastReportedPage { -1 };   // 0-based; -1 = nothing reported yet
     Tool    m_tool      { Tool::Select };

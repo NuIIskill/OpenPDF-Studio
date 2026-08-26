@@ -6,6 +6,7 @@
 
 #ifdef HAVE_PDF_RENDERING
 
+class EditSession;
 class PdfBackend;
 
 /// Page rasterisation in the units the view thinks in.
@@ -33,7 +34,8 @@ public:
 
     QSizeF pageSizePts(int page) const;
     QSize  pageDisplaySize(int page, int zoomPercent) const;
-    QImage renderPage(int page, qreal scale) const;
+    QImage renderPage(int page, qreal scale,
+                      const EditSession *session = nullptr) const;
 
 private:
     PdfBackend *m_backend;

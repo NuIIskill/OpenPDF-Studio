@@ -232,11 +232,17 @@ bool EditSession::findEditAt(int page, const QPointF &pdfPt, Edit *out) const
 
 // ── Live-view raster rendering (QImage overlay) ───────────────────────────────
 
-void EditSession::applyToImage(int page, QImage &img, qreal scale) const
+void EditSession::applyToImage(int page, QImage &img, qreal scale, Paint what) const
 {
     if (img.isNull()) return;
-    const bool hasText   = hasEditsOnPage(page);
-    const bool hasImages = hasImageEditsOnPage(page);
+    const bool fieldsOnly = what == Paint::FormFields;
+    const auto wanted = [fieldsOnly](const Edit &e) {
+        return !fieldsOnly || !e.formField.isEmpty();
+    };
+    bool hasText = false;
+    for (const auto &e : m_edits)
+        if (e.page == page && wanted(e)) { hasText = true; break; }
+    const bool hasImages = !fieldsOnly && hasImageEditsOnPage(page);
     if (!hasText && !hasImages) return;
 
     QPainter p(&img);
@@ -244,10 +250,10 @@ void EditSession::applyToImage(int page, QImage &img, qreal scale) const
         // Two-pass: all blanks before all text draws. Blanks reconstruct the
         // background from the freshly rendered page pixels around them.
         for (const auto &e : m_edits)
-            if (e.page == page && e.newText.isNull())
+            if (e.page == page && e.newText.isNull() && wanted(e))
                 paintBlankEdit(p, img, e, scale);
         for (const auto &e : m_edits)
-            if (e.page == page && !e.newText.isEmpty())
+            if (e.page == page && !e.newText.isEmpty() && wanted(e))
                 paintTextEdit(p, e, scale);
     }
     if (hasImages) {

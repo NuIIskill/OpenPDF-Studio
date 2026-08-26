@@ -22,7 +22,6 @@ QVector<ToolDef> &catalog()
         { QStringLiteral("draw"),     QStringLiteral("pencil"),          QStringLiteral(QT_TR_NOOP("Draw")),       true },
         { QStringLiteral("image"),    QStringLiteral("image"),           QStringLiteral(QT_TR_NOOP("Image")),      true },
         { QStringLiteral("table"),    QStringLiteral("table"),           QStringLiteral(QT_TR_NOOP("Table")),      true },
-        { QStringLiteral("page"),     QStringLiteral("file"),            QStringLiteral(QT_TR_NOOP("Page"))       },
         { QStringLiteral("bookmark"), QStringLiteral("bookmark"),        QStringLiteral(QT_TR_NOOP("Bookmark"))   },
         { QStringLiteral("attach"),   QStringLiteral("paperclip"),       QStringLiteral(QT_TR_NOOP("Attachment")) },
     };

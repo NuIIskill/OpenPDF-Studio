@@ -2,6 +2,7 @@
 
 #include "ui/PresentationWindow.hpp"
 #include "ui/DocumentView.hpp"
+#include "ui/bookmarks/BookmarkPanel.hpp"
 #include "ui/bars/TopToolbar.hpp"
 #include "ui/bars/FormatBar.hpp"
 #include "ui/bars/StatusBar.hpp"
@@ -142,16 +143,22 @@ void MainWindow::buildUi()
     m_formatBar->hide();
     root->addWidget(m_formatBar);
 
-    // Splitter: only left sidebar + canvas.
+    // The bookmark panel belongs beside the left tool strip, as in other PDF
+    // editors. It is a splitter child so the canvas immediately gives back
+    // the space when the panel is closed.
     m_splitter = new QSplitter(Qt::Horizontal, central);
     m_splitter->setHandleWidth(1);
     m_splitter->setChildrenCollapsible(false);
     m_leftSidebar = new LeftSidebar(m_appSettings, m_splitter);
+    m_bookmarkPanel = new BookmarkPanel(m_splitter);
+    m_bookmarkPanel->hide();
     m_docStack    = new QStackedWidget(m_splitter);
     m_splitter->addWidget(m_leftSidebar);
+    m_splitter->addWidget(m_bookmarkPanel);
     m_splitter->addWidget(m_docStack);
     m_splitter->setStretchFactor(0, 0);
-    m_splitter->setStretchFactor(1, 1);
+    m_splitter->setStretchFactor(1, 0);
+    m_splitter->setStretchFactor(2, 1);
 
     // Panel and right strip live OUTSIDE the splitter in a plain QHBoxLayout.
     // Toggling is done via setFixedWidth(0 / kWidth) — the QHBoxLayout engine
@@ -210,6 +217,16 @@ void MainWindow::connectSignals()
     // Left sidebar
     connect(m_leftSidebar, &LeftSidebar::toolSelected,        this, &MainWindow::onToolSelected);
     connect(m_leftSidebar, &LeftSidebar::settingsRequested, this, [this]() { openSettings(); });
+    connect(m_bookmarkPanel, &BookmarkPanel::closeRequested, this, [this]() {
+        onToolSelected(QStringLiteral("select"));
+    });
+    connect(m_bookmarkPanel, &BookmarkPanel::pageRequested, this, [this](int page) {
+        if (DocumentView *dv = currentDocView()) dv->goToPage(page);
+    });
+    connect(m_bookmarkPanel, &BookmarkPanel::bookmarksEdited, this,
+            [this](const QList<PdfBookmark> &bookmarks) {
+        if (DocumentView *dv = currentDocView()) dv->setBookmarks(bookmarks);
+    });
 
     // Right sidebar
     connect(m_rightSidebar, &RightSidebar::modeSelected, this, &MainWindow::onModeSelected);
@@ -342,12 +359,15 @@ DocumentView *MainWindow::addDocView()
             m_topToolbar->setTabLabel(i, fi.fileName());
         }
         m_statusBar->setPageInfo(1, pages);
+        if (dv == currentDocView()) refreshBookmarkPanel();
     });
 
     // Keep the page indicator in step with scrolling / jumps in the view
     connect(dv, &DocumentView::pageChanged, this, [this, dv](int current, int total) {
-        if (dv == currentDocView())
+        if (dv == currentDocView()) {
             m_statusBar->setPageInfo(current, total);
+            m_bookmarkPanel->setCurrentPage(current - 1);
+        }
     });
 
     // Keep view-mode buttons in sync (e.g. when user clicks a grid card to return to single)
@@ -404,6 +424,7 @@ DocumentView *MainWindow::currentDocView() const
 void MainWindow::onNewTab()
 {
     addDocView();
+    refreshBookmarkPanel();
 }
 
 void MainWindow::onTabActivated(int index)
@@ -418,6 +439,7 @@ void MainWindow::onTabActivated(int index)
                              dv->pageCount() > 0 ? dv->pageCount() : 1);
     m_topToolbar->setZoom(m_zoom);
     m_topToolbar->setViewMode(dv->viewMode() == DocumentView::ViewMode::Grid);
+    refreshBookmarkPanel();
 }
 
 void MainWindow::onTabCloseRequested(int index)
@@ -431,6 +453,7 @@ void MainWindow::onTabCloseRequested(int index)
         dv->clearDocument();
         m_topToolbar->setTabLabel(0, {});
         m_statusBar->setPageInfo(1, 1);
+        refreshBookmarkPanel();
         return;
     }
 
@@ -443,6 +466,7 @@ void MainWindow::onTabCloseRequested(int index)
         const int next = qMin(index, m_docViews.size() - 1);
         m_docStack->setCurrentWidget(m_docViews[next]);
         m_topToolbar->setCurrentTab(next);
+        refreshBookmarkPanel();
     }
 }
 
@@ -830,6 +854,7 @@ void MainWindow::onToolSelected(const QString &tool)
         if (ans == QMessageBox::No) {
             m_activeTool = QStringLiteral("select");
             m_leftSidebar->setActiveTool(m_activeTool);
+            m_bookmarkPanel->hide();
             if (DocumentView *dv = currentDocView())
                 dv->setTool(DocumentView::Tool::Select);
             return;
@@ -847,6 +872,10 @@ void MainWindow::onToolSelected(const QString &tool)
     // and every path into this slot ends with the toolbar showing the tool
     // that is actually active. Setting it again on the click path is a no-op.
     m_leftSidebar->setActiveTool(tool);
+
+    const bool showBookmarks = (tool == QLatin1String("bookmark"));
+    m_bookmarkPanel->setVisible(showBookmarks);
+    if (showBookmarks) refreshBookmarkPanel();
 
     // Exactly the chosen tool's panel is open, every other one closed.
     for (auto it = m_toolPanels.cbegin(); it != m_toolPanels.cend(); ++it) {
@@ -874,6 +903,8 @@ void MainWindow::onToolSelected(const QString &tool)
         dv->setTool(DocumentView::Tool::Text);
     else if (tool == QLatin1String("image"))
         dv->setTool(DocumentView::Tool::Image);
+    else if (tool == QLatin1String("bookmark"))
+        dv->setTool(DocumentView::Tool::Select);
 
     // The Tool enum does not know tools from outside the Core. The view passes
     // the id on to its overlays, which decide whether they are meant.
@@ -887,6 +918,7 @@ void MainWindow::applyTheme(const QString &mode)
     Theme::apply(mode);
     m_topToolbar->refreshTheme();
     m_leftSidebar->refreshTheme();
+    m_bookmarkPanel->refreshTheme();
     m_rightSidebar->refreshTheme();
     m_statusBar->refreshTheme();
     m_formatBar->refreshTheme();
@@ -920,6 +952,7 @@ void MainWindow::retranslateUi()
     m_topToolbar->retranslateUi();
     m_formatBar->retranslateUi();
     m_leftSidebar->retranslateUi();
+    m_bookmarkPanel->retranslateUi();
     m_rightSidebar->retranslateUi();
     m_textPanel->retranslateUi();
     m_statusBar->retranslateUi();
@@ -1000,6 +1033,18 @@ void MainWindow::closeTextPanel()
     m_textPanelOpen = false;
     m_textPanel->hide();
     m_textPanel->setFixedWidth(0);
+}
+
+void MainWindow::refreshBookmarkPanel()
+{
+    DocumentView *dv = currentDocView();
+    if (!dv) {
+        m_bookmarkPanel->setDocument({}, 0, false);
+        return;
+    }
+    m_bookmarkPanel->setDocument(dv->bookmarks(), dv->pageCount(),
+                                 dv->bookmarkEditingAvailable());
+    m_bookmarkPanel->setCurrentPage(dv->currentPage());
 }
 
 bool MainWindow::confirmAndSave(DocumentView *dv)

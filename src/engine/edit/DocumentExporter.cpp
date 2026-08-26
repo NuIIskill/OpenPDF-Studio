@@ -267,9 +267,8 @@ bool DocumentExporter::exportPagesToImages(const QString &outputPath,
                                       : quality >= 55 ? 1.5 : 1.0;
     for (int i : wanted) {
         if (i < 0 || i >= m_src.pageCount) continue;
-        QImage image = m_src.renderer->renderPage(i, scale);
+        QImage image = m_src.renderer->renderPage(i, scale, m_src.session);
         if (image.isNull()) return false;
-        if (m_src.session) m_src.session->applyToImage(i, image, scale);
         const QString path = wanted.size() == 1
             ? outputPath
             : out.dir().filePath(out.completeBaseName()
@@ -318,11 +317,10 @@ bool DocumentExporter::printPages(QPrinter *printer, const QList<int> &pages) co
         }
         firstPage = false;
 
-        QImage image = m_src.renderer->renderPage(i, scale);
-        if (image.isNull()) continue;
         // Same source of truth as the image export: the session holds edits
         // that are not in the rendered file yet, and printing must show them.
-        if (m_src.session) m_src.session->applyToImage(i, image, scale);
+        QImage image = m_src.renderer->renderPage(i, scale, m_src.session);
+        if (image.isNull()) continue;
 
         const QRectF target = painter.viewport();
         if (target.isEmpty()) continue;

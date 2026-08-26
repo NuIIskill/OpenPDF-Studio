@@ -2,6 +2,7 @@
 
 #ifdef HAVE_PDF_RENDERING
 
+#include "engine/document/PdfBookmark.hpp"
 #include "engine/edit/TextBlock.hpp"
 
 #include <QImage>
@@ -75,6 +76,9 @@ public:
 
     virtual int pageCount() const = 0;
 
+    /// The document outline in display order. Page indices are zero-based.
+    virtual QList<PdfBookmark> bookmarks() const { return {}; }
+
     virtual QSizeF pageSizePts(int page) const = 0;
 
     /// Size in pixels of the image renderPage() returns for `scale`. Backends
@@ -86,6 +90,9 @@ public:
     /// `scale` is output pixels per PDF point. Returns a null image when the
     /// page cannot be rendered; a broken page must never take the app down.
     virtual QImage renderPage(int page, qreal scale) const = 0;
+
+    virtual QImage renderPage(int page, qreal scale,
+                              const EditSession *session) const;
 
     /// Per-page region model (text, paragraphs, table cells, form fields,
     /// images) for the open document, or null when this build cannot build one.
@@ -144,6 +151,10 @@ public:
     virtual Selection selectPage(int page,
                                  const std::optional<QPointF> &from,
                                  const std::optional<QPointF> &to) const = 0;
+
+    virtual bool hasSelectableText(int page) const = 0;
+
+    virtual QString embeddedFontFamily(int page, const QPointF &pdfPt) const;
 
     /// Enge Wortkästen des Blocks in `area`. Damit wird beim Ersetzen NUR die
     /// Schrift übermalt und nicht die Fläche — sonst verschwinden Diagramme,
