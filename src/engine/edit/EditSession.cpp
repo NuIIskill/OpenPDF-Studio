@@ -150,6 +150,7 @@ void EditSession::clear()
 {
     m_edits.clear();
     if (!m_imageEdits.isEmpty()) { m_imageEdits.clear(); ++m_imageRevision; }
+    m_linkEdits.clear();
 }
 
 // ── Image-edit CRUD ───────────────────────────────────────────────────────────
@@ -180,6 +181,19 @@ void EditSession::clearImageEdits()
     if (m_imageEdits.isEmpty()) return;
     m_imageEdits.clear();
     ++m_imageRevision;
+}
+
+void EditSession::replaceLinkEdits(QList<LinkEdit> edits)
+{
+    if (m_linkEdits == edits) return;
+    m_linkEdits = std::move(edits);
+}
+
+bool EditSession::hasLinkEditsOnPage(int page) const
+{
+    for (const LinkEdit &edit : m_linkEdits)
+        if (edit.page == page) return true;
+    return false;
 }
 
 // ── Queries ───────────────────────────────────────────────────────────────────

@@ -41,6 +41,16 @@ inline bool separatesBlocks(const QRectF &prev, const QRectF &next, double fontS
     return gap > qMax(12.0, fontSize * 2.5);
 }
 
+inline bool sameGlyph(const QRectF &a, const QRectF &b)
+{
+    const QRectF hit = a.intersected(b);
+    if (hit.isEmpty()) return false;
+    const double areaA = a.width() * a.height();
+    const double areaB = b.width() * b.height();
+    const double small = qMax(1e-6, qMin(areaA, areaB));
+    return hit.width() * hit.height() / small > 0.7;
+}
+
 /// Liegen zwei Zeichen auf derselben Zeile?
 ///
 /// Verglichen werden Schriftgrundlinien, nicht Kastenmitten: ein Komma hängt

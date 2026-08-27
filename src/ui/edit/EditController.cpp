@@ -166,6 +166,22 @@ void EditController::notifyBoundsChanged()
         Q_EMIT textBoxPropertiesChanged(textBoxProperties());
 }
 
+void EditController::refreshLivePreview(const QString &text)
+{
+#ifdef HAVE_PDF_RENDERING
+    if (activeEditPage < 0) { Q_EMIT livePreviewChanged(-1, {}); return; }
+    QList<EditSession::Edit> edits;
+    if (activeEditFieldName.isEmpty() && !text.isEmpty()) {
+        const QRectF eraseAt = activeEditEraseBounds.isNull()
+                                   ? activeEditOriginalBounds : activeEditEraseBounds;
+        edits.append(makeSessionEdit(activeEditPage, activeEditBounds, eraseAt, text));
+    }
+    Q_EMIT livePreviewChanged(activeEditPage, edits);
+#else
+    Q_UNUSED(text)
+#endif
+}
+
 void EditController::setTextBoxProperties(const TextBoxProperties &properties)
 {
 #ifdef HAVE_PDF_RENDERING
@@ -423,6 +439,12 @@ void EditController::applyEditTargetBounds(EditOpen &o)
     clampToPdfPage(o.block.page, activeEditBounds);
     activeEditOriginalBounds = activeEditBounds;
     activeEditNeedsBlank     = true;   // editing existing text → must erase original
+    activeEditEraseBounds    = activeEditBounds;
+    if (o.isSessionEdit) {
+        activeEditNeedsBlank  = !o.sessionEdit.eraseRects.isEmpty();
+        activeEditEraseBounds = o.sessionEdit.sourceRect.isNull()
+                                    ? activeEditBounds : o.sessionEdit.sourceRect;
+    }
     currentBox = o.isSessionEdit ? o.sessionEdit.box : TextBoxProperties{};
     activeEditFieldName.clear();
 
@@ -557,7 +579,6 @@ void EditController::chooseEditorFont(EditOpen &o)
         }
     }
 
-    //
     currentEditorRenderSizePt = currentEditorFontSizePt;
     o.measurable = !sizeIsExact && !o.isSessionEdit && !o.contentItem.isFormField()
                 && !o.displayText.isEmpty() && !o.sampleImage().isNull();
@@ -749,11 +770,16 @@ void EditController::presentEditor(EditOpen &o)
     // Erasure targets: ONLY the tight glyph rects of the original text.
     // A whole-bounds erase would destroy graphics (chart bars, images,
     // rules) sharing the rectangle with the text.
-    activeEditEraseRects.clear();
-    if (activeEditNeedsBlank) {
-        if (auto *backend = m_src->backend())
-            activeEditEraseRects = backend->glyphRects(
-                o.block.page, activeEditOriginalBounds, o.erasedZones);
+    if (o.isSessionEdit) {
+        activeEditEraseRects = o.sessionEdit.eraseRects;
+    } else {
+        activeEditEraseRects.clear();
+        if (activeEditNeedsBlank) {
+            if (auto *backend = m_src->backend())
+                activeEditEraseRects = backend->glyphRects(
+                    o.block.page, activeEditOriginalBounds, o.erasedZones);
+        }
+        activeEditEraseBounds = activeEditOriginalBounds;
     }
 
     // Recompute canvas bounds from the (possibly expanded) activeEditBounds so
@@ -764,11 +790,20 @@ void EditController::presentEditor(EditOpen &o)
     const qreal fontSize = qMax(1.0, currentEditorRenderSizePt * o.scale);
 
     m_frame->setDecorations(true);
+    m_frame->setGlyphsVisible(!activeEditFieldName.isEmpty());
+    m_frame->setLineSpacingPt(activeEditLineSpacingPt);
+    if (auto *backend = m_src->backend()) {
+        const int    page = o.block.page;
+        const QPointF at  = o.pdfPt;
+        const double size = currentEditorFontSizePt;
+        m_frame->setAdvanceMeasure([backend, page, at, size](const QString &text) {
+            return backend->textWidthPt(page, at, text, size);
+        });
+    }
     m_frame->setTextAnchor(activeEditHasOrigin, activeEditOriginOffset);
     m_frame->setForbiddenZones({});
     m_frame->setPageRect(o.label->geometry());
-    // Single-line edits extend horizontally while typing instead of wrapping.
-    m_frame->setGrowHorizontal(!o.displayText.contains(u'\n'));
+    m_frame->setGrowHorizontal(true);
     currentBox.bounds = activeEditBounds;
     m_frame->setBoxProperties(currentBox, o.scale);
     m_frame->resetCommitGuard();
@@ -787,6 +822,7 @@ void EditController::presentEditor(EditOpen &o)
     // reports the grown geometry back through boundsChanged, so this is the
     // resting state — any later deviation really is the user's doing.
     activeEditOriginalText        = m_frame->currentText();
+    refreshLivePreview(activeEditOriginalText);
     activeEditInPlace             = true;
     activeEditPresentedBounds     = activeEditBounds;
     activeEditPresentedFontSizePt = currentEditorFontSizePt;
@@ -848,6 +884,7 @@ EditSession::Edit EditController::makeSessionEdit(int page, const QRectF &bounds
     e.fontChanged = editorFontChangedByUser;
     e.sizeChanged = editorSizeChangedByUser;
     e.formField   = activeEditFieldName;
+    if (activeEditNeedsBlank) e.eraseRects = activeEditEraseRects;
     e.box         = currentBox;
     e.box.bounds  = bounds;
     return e;
@@ -871,6 +908,7 @@ void EditController::commit(const QString &newText)
     activeEditSourcePage = -1;
 
     m_frame->hide();  // may trigger recursive commit, which exits early ↑
+    Q_EMIT livePreviewChanged(-1, {});
     Q_EMIT textBoxEditingChanged(false);
 
     const QString trimNew = newText.trimmed();
@@ -938,15 +976,17 @@ void EditController::commit(const QString &newText)
     // The second condition must be gated on activeEditNeedsBlank — for fresh drag
     // boxes the origBounds is just the initial drag rect, not real PDF content to erase.
     const bool needBlank = activeEditNeedsBlank;
+    const QRectF eraseAt = activeEditEraseBounds.isNull() ? origBounds
+                                                          : activeEditEraseBounds;
     if (needBlank) {
-        EditSession::Edit blank = makeSessionEdit(srcPage, origBounds, origBounds,
+        EditSession::Edit blank = makeSessionEdit(srcPage, eraseAt, eraseAt,
                                                   QString());
         blank.eraseRects = activeEditEraseRects;   // glyphs only, not the rect
         m_session->addEdit(std::move(blank));
     }
 
     if (!trimNew.isEmpty())
-        m_session->addEdit(makeSessionEdit(page, bounds, origBounds, newText));
+        m_session->addEdit(makeSessionEdit(page, bounds, eraseAt, newText));
     activeEditFieldName.clear();
 
     // Snapshot AFTER state.  Only push an undo command if the session actually
@@ -996,6 +1036,7 @@ void EditController::cancel()
     activeEditInPlace    = false;
     m_session->restoreSuspended();
     m_frame->hide();
+    Q_EMIT livePreviewChanged(-1, {});
     Q_EMIT textBoxEditingChanged(false);
     if (page >= 0)
         Q_EMIT pageNeedsRerender(page);
@@ -1057,6 +1098,7 @@ void EditController::createTextFrame(const QRect &viewportDragRect)
     m_hover->hide();
     const int fontSize = qMax(8, qRound(12.0 * scale));
     m_frame->setDecorations(true);  // new text box: show border + handles
+    m_frame->setGlyphsVisible(false);
     m_frame->setGrowHorizontal(false);   // user chose this width
     m_frame->setBoxProperties(currentBox, scale);
     m_frame->setPageRect(pageLbl->geometry());

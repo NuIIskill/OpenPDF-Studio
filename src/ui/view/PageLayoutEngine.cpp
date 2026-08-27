@@ -225,13 +225,18 @@ void PageLayoutEngine::renderNow(int page)
 
     EditSession preview;
     const EditSession *use = m_session;
-    if (m_session && m_blank.page == page) {
+    if (m_session && (m_blank.page == page || m_preview.page == page)) {
         preview = *m_session;
-        EditSession::Edit blank;
-        blank.page       = page;
-        blank.pdfBounds  = m_blank.bounds;
-        blank.eraseRects = m_blank.rects;
-        preview.addEdit(std::move(blank));
+        if (m_blank.page == page) {
+            EditSession::Edit blank;
+            blank.page       = page;
+            blank.pdfBounds  = m_blank.bounds;
+            blank.eraseRects = m_blank.rects;
+            preview.addEdit(std::move(blank));
+        }
+        if (m_preview.page == page)
+            for (const EditSession::Edit &e : m_preview.edits)
+                preview.addEdit(e);
         use = &preview;
     }
     QImage img = m_renderer->renderPage(page, scale * dpr, use);
@@ -277,6 +282,7 @@ void PageLayoutEngine::rerenderPage(int page)
 {
     if (page < 0 || page >= m_pageLabels.size()) return;
     if (m_blank.page == page) m_blank = {};   // the edit that owned it is over
+    if (m_preview.page == page) m_preview = {};
     m_rendered.remove(page);
     const auto [first, last] = visibleRange();
     // Off-screen pages have no pixmap to refresh; dropping the cache entry
@@ -291,6 +297,15 @@ void PageLayoutEngine::rerenderPageWithBlank(int page, const QRectF &pdfBoundsPt
     m_blank = { page, pdfBoundsPts, eraseRects };
     m_rendered.remove(page);
     renderNow(page);
+}
+
+void PageLayoutEngine::setPreviewEdits(int page, const QList<EditSession::Edit> &edits)
+{
+    if (m_preview.page == page && m_preview.edits == edits) return;
+    const int was = m_preview.page;
+    m_preview = { page, edits };
+    if (was >= 0 && was != page) { m_rendered.remove(was); renderNow(was); }
+    if (page >= 0) { m_rendered.remove(page); renderNow(page); }
 }
 
 // ── Grid view ─────────────────────────────────────────────────────────────────

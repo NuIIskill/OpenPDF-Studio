@@ -12,6 +12,7 @@
 #include "app/SessionStore.hpp"
 #include "ui/tools/ImageAnnotation.hpp"
 #include "ui/view/ImageAnnotationLayer.hpp"
+#include "ui/view/LinkAnnotationLayer.hpp"
 #include "ui/view/PageOverlay.hpp"
 #include "ui/view/HoverHighlight.hpp"
 #include "ui/view/PageLayoutEngine.hpp"
@@ -116,6 +117,7 @@ void DocumentView::clearDocument()
     m_layoutEngine->clearPages();
 
     m_imageLayer->clear();
+    m_linkLayer->clear();
     for (PageOverlay *overlay : std::as_const(m_overlays))
         overlay->setDocument(QString());
 
@@ -157,6 +159,7 @@ bool DocumentView::openFile(const QString &path)
     resetContentProvider();
     m_dropHint->hide();
     m_layoutEngine->buildPages();
+    m_linkLayer->reload();
     // Once the scroll area has laid the new pages out, hand the engine the
     // window it actually renders — until then the page positions are all 0.
     QMetaObject::invokeMethod(this, [this]() { syncVisibleRect(); },
@@ -302,6 +305,7 @@ bool DocumentView::saveToFile(const QString &path)
         m_src->open(reopenPath, nullptr);
     }
     resetContentProvider();
+    m_linkLayer->reload();
     // Overlays read from the file, not from the session. After a save that is
     // a different file: what they contributed is in it now and has to be read
     // back from there, or it would stand twice.

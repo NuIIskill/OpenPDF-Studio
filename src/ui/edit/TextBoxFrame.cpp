@@ -1,6 +1,7 @@
 #include "ui/edit/TextBoxFrame.hpp"
 #include "ui/edit/InlineEditor.hpp"
 
+#include <QDebug>
 #include <QPainter>
 #include <QPen>
 #include <QMouseEvent>
@@ -45,6 +46,17 @@ QRectF TextBoxFrame::innerCanvasRect() const
 }
 
 void TextBoxFrame::setDecorations(bool on) { m_decorations = on; }
+void TextBoxFrame::setGlyphsVisible(bool on) { m_editor->setGlyphsVisible(on); }
+void TextBoxFrame::setAdvanceMeasure(std::function<double(const QString &)> measure)
+{
+    m_editor->setAdvanceMeasure(std::move(measure));
+}
+
+void TextBoxFrame::setLineSpacingPt(qreal pt)
+{
+    m_editor->setLineSpacingPt(pt);
+    if (isVisible()) { growToFitText(); layoutEditor(); }
+}
 void TextBoxFrame::setTextColor(const QColor &c) { m_editor->setColor(c); }
 void TextBoxFrame::setTextFont(const QString &family, bool bold, bool italic)
 {
@@ -81,40 +93,42 @@ void TextBoxFrame::setGrowHorizontal(bool on)
 
 void TextBoxFrame::growToFitText()
 {
-    int newW = width();
+    if (m_boxPt.isEmpty()) return;
 
-    // Single-line edits: grow the WIDTH while typing (up to the page edge)
-    // so the line extends instead of wrapping — a wrap here is committed
-    // into the document as a bogus paragraph break.
-    if (m_growHorizontal) {
-        const QFontMetricsF fm(m_editor->styledFont(m_editor->fontPixelSizeF()));
-        qreal longest = 0.0;
-        const QStringList lines = m_editor->toPlainText().split(u'\n');
-        for (const QString &ln : lines)
-            longest = qMax(longest, fm.horizontalAdvance(ln));
-        const int neededW = qCeil(longest) + 3
-                          + (m_decorations ? 2 * kPad : 0);
-        if (neededW > newW) {
-            newW = neededW;
-            if (!m_pageRect.isNull())
-                newW = qMin(newW, m_pageRect.right() - x() + 1);
-        }
+    const qreal fontPt = m_editor->fontPixelSizeF() / m_scale;
+    const int   lines  = qMax(1, m_editor->document()->blockCount());
+    const qreal stepPt = m_editor->lineSpacingPt() > 0.0 ? m_editor->lineSpacingPt()
+                                                         : fontPt * 1.2;
+    qreal brauchtW = m_boxPt.width();
+    qreal brauchtH = m_boxPt.height();
+
+    if (m_growHorizontal)
+        brauchtW = qMax(m_editor->contentWidthPt(), m_minInnerW / m_scale);
+
+    if (m_autoHeight) {
+        brauchtH = m_growHorizontal
+            ? (lines - 1) * stepPt + fontPt * 1.25
+            : m_editor->document()->size().height() / m_scale;
+        brauchtH = qMax(brauchtH,
+                        minInnerHeight(m_editor->fontPixelSizeF()) / m_scale);
     }
 
-    // The document wraps at the editor width, so its size() is the exact
-    // space the text needs at that width.
-    const int needed = qCeil(m_editor->document()->size().height());
-    int newH = height();
-    if (m_autoHeight)
-        newH = qMax(height(), needed + (m_decorations ? 2 * kPad : 0) + 2);
-    // Never grow beyond the page — a runaway height (bad detection, huge
-    // font) must not blow the frame across the whole viewport.
-    if (!m_pageRect.isNull())
-        newH = qMin(newH, m_pageRect.bottom() - y() + 1);
+    if (qFuzzyCompare(brauchtW + 1.0, m_boxPt.width() + 1.0)
+            && qFuzzyCompare(brauchtH + 1.0, m_boxPt.height() + 1.0))
+        return;
+    m_boxPt = QSizeF(brauchtW, brauchtH);
+    applyBoxSize();
+}
 
-    if (newW != width() || newH != height())
-        resize(newW, newH);   // resizeEvent → boundsChanged updates the
-                              // edit bounds in DocumentView
+void TextBoxFrame::applyBoxSize()
+{
+    int w = qCeil(m_boxPt.width() * m_scale) + (m_decorations ? 2 * kPad : 0);
+    int h = qCeil(m_boxPt.height() * m_scale) + (m_decorations ? 2 * kPad : 0);
+    if (!m_pageRect.isNull()) {
+        w = qMin(w, m_pageRect.right() - x() + 1);
+        h = qMin(h, m_pageRect.bottom() - y() + 1);
+    }
+    if (w != width() || h != height()) resize(w, h);
 }
 
 int TextBoxFrame::minInnerHeight(qreal fontPixelSize)
@@ -131,11 +145,10 @@ void TextBoxFrame::repositionForZoom(const QRectF &canvasBounds, qreal px,
     m_autoHeight = box.autoHeight;
     m_editor->setBoxProperties(box, m_scale);
 
+    m_boxPt = canvasBounds.size() / m_scale;
     QRect outer = canvasBounds.toAlignedRect();
     if (m_decorations)
         outer = outer.adjusted(-kPad, -kPad, kPad, kPad);
-    outer.setWidth(qMax(outer.width(),  m_minInnerW + 2 * kPad));
-    outer.setHeight(qMax(outer.height(), minInnerHeight(px) + 2 * kPad));
 
     // m_presenting suppresses boundsChanged for the WHOLE reposition, growth
     // included. A zoom must not redefine what is being edited: the frame's
@@ -148,8 +161,11 @@ void TextBoxFrame::repositionForZoom(const QRectF &canvasBounds, qreal px,
     setGeometry(outer);
     layoutEditor();
     m_editor->setFontSizeF(px);
-    growToFitText();   // keep all text visible at the new zoom level
     m_presenting = false;
+    if (isVisible() && !m_editor->hasFocus()) {
+        m_editor->suppressNextFocusOut();
+        m_editor->setFocus();
+    }
     update();
 }
 void TextBoxFrame::setTextAnchor(bool valid, const QPointF &penOffsetPt)
@@ -184,12 +200,12 @@ void TextBoxFrame::present(const QString &text, const QRectF &canvasBounds, qrea
     // edit bounds and misplace the committed edit.
     m_minInnerW = text.trimmed().isEmpty() ? 120 : 24;
 
-    QRect outer = canvasBounds.toAlignedRect();
-    if (m_decorations) {
+    m_boxPt = canvasBounds.size() / m_scale;
+    QRect outer(canvasBounds.topLeft().toPoint(),
+                QSize(qCeil(m_boxPt.width() * m_scale),
+                      qCeil(m_boxPt.height() * m_scale)));
+    if (m_decorations)
         outer = outer.adjusted(-kPad, -kPad, kPad, kPad);
-        outer.setWidth(qMax(outer.width(),  m_minInnerW + 2 * kPad));
-        outer.setHeight(qMax(outer.height(), minInnerHeight(fontSize) + 2 * kPad));
-    }
 
     // Guard boundsChanged during present() — the outer rect expands by kPad on all
     // sides, so innerRect() would give slightly different PDF coords than the true
@@ -223,6 +239,10 @@ void TextBoxFrame::present(const QString &text, const QRectF &canvasBounds, qrea
 
 void TextBoxFrame::resizeEvent(QResizeEvent *)
 {
+    if (!m_presenting && m_scale > 0.0) {
+        const QRect in = innerRect();
+        m_boxPt = QSizeF(in.width() / m_scale, in.height() / m_scale);
+    }
     layoutEditor();
     if (isVisible() && !m_presenting)
         Q_EMIT boundsChanged(QRectF(innerRect()).translated(pos()));
@@ -236,12 +256,19 @@ void TextBoxFrame::moveEvent(QMoveEvent *)
 
 // ── Hit testing ───────────────────────────────────────────────────────────────
 
+int TextBoxFrame::handleSize() const
+{
+    const QRect in = innerRect();
+    return qBound(3, qMin(in.width(), in.height()) / 3, kH);
+}
+
 TextBoxFrame::Handle TextBoxFrame::hitTest(const QPoint &p) const
 {
     const QRect in = innerRect();
     if (in.contains(p)) return Handle::None;
 
-    const auto nearTo = [](int a, int b) { return qAbs(a - b) <= kH; };
+    const int zone = handleSize() + 2;
+    const auto nearTo = [zone](int a, int b) { return qAbs(a - b) <= zone; };
     const bool hL  = nearTo(p.x(), in.left()),     hR = nearTo(p.x(), in.right());
     const bool hT  = nearTo(p.y(), in.top()),      hB = nearTo(p.y(), in.bottom());
     const bool hMX = nearTo(p.x(), in.center().x());
@@ -399,21 +426,26 @@ void TextBoxFrame::paintEvent(QPaintEvent *)
 
     const QRect in = innerRect();
 
+    const int hw = handleSize();
+    const bool mitten = qMin(in.width(), in.height()) >= 40;
+    const QRect ring = in;
+
     // Dashed blue border
-    QPen pen(QColor(0x3B, 0x82, 0xF6), 2, Qt::CustomDashLine);
+    QPen pen(QColor(0x3B, 0x82, 0xF6), 1.0, Qt::CustomDashLine);
     pen.setDashPattern({4.0, 3.0});
     p.setPen(pen);
     p.setBrush(Qt::NoBrush);
-    p.drawRect(in.adjusted(-1, -1, 1, 1));
+    p.drawRect(ring);
 
-    const int hw = kH, half = hw / 2;
-    const int l = in.left() - half,  r  = in.right()  - half;
-    const int t = in.top()  - half,  b  = in.bottom() - half;
-    const int mx = in.center().x() - half, my = in.center().y() - half;
+    const int l = ring.left() - hw,   r  = ring.right() + 1;
+    const int t = ring.top()  - hw,   b  = ring.bottom() + 1;
+    const int mx = ring.center().x() - hw / 2, my = ring.center().y() - hw / 2;
     p.setPen(QPen(QColor(0x3B, 0x82, 0xF6), 1));
     p.setBrush(QColor(0x3B, 0x82, 0xF6));
-    for (const QPoint &at : { QPoint(l, t), QPoint(mx, t), QPoint(r, t),
-                              QPoint(l, my),                QPoint(r, my),
-                              QPoint(l, b), QPoint(mx, b), QPoint(r, b) })
+    QList<QPoint> ecken { QPoint(l, t), QPoint(r, t), QPoint(l, b), QPoint(r, b) };
+    if (mitten)
+        ecken << QPoint(mx, t) << QPoint(mx, b) << QPoint(l, my) << QPoint(r, my);
+    for (const QPoint &at : std::as_const(ecken))
         p.drawRect(QRect(at, QSize(hw, hw)));
+
 }

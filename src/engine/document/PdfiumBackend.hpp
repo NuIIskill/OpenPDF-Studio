@@ -26,6 +26,7 @@ public:
 
     int    pageCount() const override;
     QList<PdfBookmark> bookmarks() const override;
+    QList<Link> pageLinks(int page) const override;
     QSizeF pageSizePts(int page) const override;
     QSize  pixelSize(int page, qreal scale) const override;
     QImage renderPage(int page, qreal scale) const override;
@@ -44,6 +45,8 @@ public:
     QList<QRectF> glyphRects(int page, const QRectF &area,
                              const QList<QRectF> &exclude = {}) const override;
     QString embeddedFontFamily(int page, const QPointF &pdfPt) const override;
+    double  textWidthPt(int page, const QPointF &pdfPt,
+                        const QString &text, double sizePt) const override;
     bool    hasSelectableText(int page) const override;
 
     Selection selectPage(int page, const std::optional<QPointF> &from,

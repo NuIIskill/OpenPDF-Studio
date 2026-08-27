@@ -79,6 +79,15 @@ public:
     /// The document outline in display order. Page indices are zero-based.
     virtual QList<PdfBookmark> bookmarks() const { return {}; }
 
+    struct Link {
+        QRectF  bounds;
+        QString url;
+        QList<QRectF> textRects;
+        bool styledByOpenPdf { false };
+    };
+
+    virtual QList<Link> pageLinks(int page) const { Q_UNUSED(page) return {}; }
+
     virtual QSizeF pageSizePts(int page) const = 0;
 
     /// Size in pixels of the image renderPage() returns for `scale`. Backends
@@ -155,6 +164,9 @@ public:
     virtual bool hasSelectableText(int page) const = 0;
 
     virtual QString embeddedFontFamily(int page, const QPointF &pdfPt) const;
+
+    virtual double textWidthPt(int page, const QPointF &pdfPt,
+                               const QString &text, double sizePt) const;
 
     /// Enge Wortkästen des Blocks in `area`. Damit wird beim Ersetzen NUR die
     /// Schrift übermalt und nicht die Fläche — sonst verschwinden Diagramme,

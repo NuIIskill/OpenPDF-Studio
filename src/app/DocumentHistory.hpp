@@ -36,6 +36,9 @@ public:
         TextRemoved,     ///< text erased on `page`
         ImageInserted,
         ImageRemoved,
+        LinkAdded,
+        LinkEdited,
+        LinkRemoved,
         PageRotated,     ///< `value` = degrees, positive = clockwise
         PageDeleted,
         PageAdded,

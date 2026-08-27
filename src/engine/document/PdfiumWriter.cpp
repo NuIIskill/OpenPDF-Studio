@@ -227,6 +227,8 @@ bool PdfiumWriter::save(const QString &sourcePath, const QString &outputPath,
     }
     for (const EditSession::ImageEdit &e : session.imageEdits())
         touch(e.page);
+    for (const EditSession::LinkEdit &e : session.linkEdits())
+        touch(e.page);
 
     for (int pageIndex : touched) {
         FPDF_PAGE page = FPDF_LoadPage(doc, pageIndex);

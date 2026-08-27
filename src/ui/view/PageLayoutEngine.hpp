@@ -18,7 +18,7 @@ class QWidget;
 QT_END_NAMESPACE
 
 #ifdef HAVE_PDF_RENDERING
-class EditSession;
+#  include "engine/edit/EditSession.hpp"
 class PdfRenderer;
 #endif
 
@@ -67,6 +67,8 @@ public:
     // zoom while the editor is open would bring the original text back.
     void rerenderPageWithBlank(int page, const QRectF &pdfBoundsPts,
                                const QList<QRectF> &eraseRects);
+
+    void setPreviewEdits(int page, const QList<EditSession::Edit> &edits);
 
     QLabel *pageLabel(int page) const { return m_pageLabels.value(page, nullptr); }
     int     pageLabelCount()    const { return static_cast<int>(m_pageLabels.size()); }
@@ -119,6 +121,9 @@ private:
     // Erase patch that survives re-renders of its page (see rerenderPageWithBlank).
     struct Blank { int page = -1; QRectF bounds; QList<QRectF> rects; };
     Blank m_blank;
+
+    struct Preview { int page = -1; QList<EditSession::Edit> edits; };
+    Preview m_preview;
 
     struct GridItem { QFrame *card; QLabel *thumb; QLabel *label; QPixmap original; };
     QList<GridItem>       m_gridItems;

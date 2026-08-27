@@ -1,6 +1,8 @@
 #include "ui/edit/InlineEditor.hpp"
 
 #include <QApplication>
+#include <QDebug>
+#include <QPainter>
 #include <QAbstractTextDocumentLayout>
 #include <QKeyEvent>
 #include <QFocusEvent>
@@ -31,8 +33,21 @@ InlineEditor::InlineEditor(QWidget *parent)
     // No inner offsets: the text must sit exactly on the original PDF text
     // position (the frame aligns its inner rect with the block bounds).
     document()->setDocumentMargin(0);
+    m_caretTimer = new QTimer(this);
+    m_caretTimer->setInterval(530);
+    connect(m_caretTimer, &QTimer::timeout, this, [this]() {
+        m_caretOn = !m_caretOn;
+        viewport()->update();
+    });
+    m_caretTimer->start();
     connect(this, &QTextEdit::textChanged, this, [this]() {
-        Q_EMIT changed(toPlainText());
+        const QString jetzt = toPlainText();
+        if (jetzt != m_lastText && !m_caretPinned) {
+            m_caretOn = true;
+            m_caretTimer->start();
+        }
+        m_lastText = jetzt;
+        Q_EMIT changed(jetzt);
         QTimer::singleShot(0, this, &InlineEditor::updateVerticalAlignment);
     });
 }
@@ -53,6 +68,8 @@ void InlineEditor::applyStyle()
         doc.setLetterSpacing(QFont::AbsoluteSpacing, tracking);
     setFont(doc);
     document()->setDefaultFont(doc);
+    const QString ink = m_glyphs ? m_currentColor.name()
+                                 : QStringLiteral("transparent");
     setStyleSheet(QString(
         "QTextEdit#InlineEditor {"
         "  background: transparent;"
@@ -63,13 +80,18 @@ void InlineEditor::applyStyle()
         "  padding: %5px;"
         "  letter-spacing: %6px;"
         "  color: %4;"
+        "  selection-color: %4;"
+        "  selection-background-color: %7;"
         "}")
         .arg(familyList)
         .arg(m_bold ? 700 : 400)
         .arg(m_italic ? QStringLiteral("italic") : QStringLiteral("normal"))
-        .arg(m_currentColor.name())
+        .arg(ink)
         .arg(pad, 0, 'f', 1)
-        .arg(tracking, 0, 'f', 2));
+        .arg(tracking, 0, 'f', 2)
+        .arg(m_glyphs ? QStringLiteral("rgba(59,130,246,255)")
+                      : QStringLiteral("rgba(59,130,246,38)")));
+    setCursorWidth(m_glyphs ? 1 : 0);
 }
 
 void InlineEditor::applyParagraphSpacing()
@@ -90,6 +112,9 @@ void InlineEditor::applyParagraphSpacing()
         if (m_box.lineSpacingMultiplier > 0.0)
             fmt.setLineHeight(m_box.lineSpacingMultiplier * 100.0,
                               QTextBlockFormat::ProportionalHeight);
+        else if (m_lineSpacingPt > 0.0)
+            fmt.setLineHeight(m_lineSpacingPt * m_scale,
+                              QTextBlockFormat::FixedHeight);
         else
             fmt.setLineHeight(100.0, QTextBlockFormat::ProportionalHeight);
         blockCursor.setBlockFormat(fmt);
@@ -151,6 +176,24 @@ QFont InlineEditor::styledFont(qreal pixelFontSize) const
     return f;
 }
 
+void InlineEditor::paintEvent(QPaintEvent *e)
+{
+    QTextEdit::paintEvent(e);
+    if (m_glyphs || !m_caretOn || !hasFocus()) return;
+
+    QRect caret = cursorRect();
+    if (m_advance) {
+        const QTextCursor c = textCursor();
+        const QTextBlock blk = c.block();
+        const double breite = m_advance(blk.text().left(c.positionInBlock()));
+        if (breite >= 0.0)
+            caret.moveLeft(qRound(breite * m_scale));
+    }
+    caret.setWidth(qMax(1, qRound(m_currentFontPx / 11.0)));
+    QPainter p(viewport());
+    p.fillRect(caret, m_currentColor.isValid() ? m_currentColor : QColor(Qt::black));
+}
+
 QString InlineEditor::laidOutText() const
 {
     QString out;
@@ -191,7 +234,7 @@ void InlineEditor::present(const QString &text, qreal pixelFontSize, const QColo
     applyStyle();
     setPlainText(text);
     applyParagraphSpacing();
-    selectAll();
+    moveCursor(QTextCursor::End);
     show();
 }
 
@@ -210,6 +253,50 @@ qreal InlineEditor::screenDpi() const
 {
     const qreal dpi = logicalDpiY();
     return dpi > 1.0 ? dpi : 96.0;
+}
+
+qreal InlineEditor::contentWidthPt() const
+{
+    qreal breit = 0.0;
+    for (QTextBlock b = document()->begin(); b.isValid(); b = b.next()) {
+        const QString zeile = b.text();
+        if (zeile.isEmpty()) continue;
+        double w = m_advance ? m_advance(zeile) : -1.0;
+        if (w < 0.0) {
+            w = QFontMetricsF(styledFont(m_currentFontPx)).horizontalAdvance(zeile)
+                / qMax(0.01, m_scale);
+        }
+        breit = qMax(breit, w);
+    }
+    return breit;
+}
+
+void InlineEditor::setAdvanceMeasure(std::function<double(const QString &)> measure)
+{
+    m_advance = std::move(measure);
+    viewport()->update();
+}
+
+void InlineEditor::setCaretVisible(bool on)
+{
+    m_caretPinned = true;
+    m_caretTimer->stop();
+    m_caretOn = on;
+    viewport()->update();
+}
+
+void InlineEditor::setLineSpacingPt(qreal pt)
+{
+    if (qFuzzyCompare(m_lineSpacingPt + 1.0, pt + 1.0)) return;
+    m_lineSpacingPt = qMax(0.0, pt);
+    applyParagraphSpacing();
+}
+
+void InlineEditor::setGlyphsVisible(bool on)
+{
+    if (m_glyphs == on) return;
+    m_glyphs = on;
+    applyStyle();
 }
 
 void InlineEditor::setColor(const QColor &color)

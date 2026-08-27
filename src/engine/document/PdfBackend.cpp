@@ -34,4 +34,9 @@ QString PdfBackend::embeddedFontFamily(int, const QPointF &) const
     return {};
 }
 
+double PdfBackend::textWidthPt(int, const QPointF &, const QString &, double) const
+{
+    return -1.0;
+}
+
 #endif // HAVE_PDF_RENDERING

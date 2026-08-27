@@ -7,6 +7,7 @@
 #include "app/SessionStore.hpp"
 #include "ui/tools/ImageAnnotation.hpp"
 #include "ui/view/ImageAnnotationLayer.hpp"
+#include "ui/view/LinkAnnotationLayer.hpp"
 #include "ui/view/HoverHighlight.hpp"
 #include "ui/view/PageLayoutEngine.hpp"
 #include "ui/view/PageOverlay.hpp"
@@ -80,6 +81,7 @@ void DocumentView::repositionForZoom()
     // Page labels can be re-laid out once more after this, so the highlights
     // are repositioned again when that layout has settled.
     m_selection->relayout();
+    m_linkLayer->relayout();
     QTimer::singleShot(0, this, [this]() { m_selection->relayout(); });
     repositionEditorFrame();
 }
@@ -123,6 +125,7 @@ void DocumentView::setTool(Tool tool)
 
     // Image annotations are interactive only while the image tool is active.
     m_imageLayer->setToolActive(tool == Tool::Image);
+    m_linkLayer->setToolActive(tool == Tool::Attach);
 
     switch (tool) {
     case Tool::Pan:    viewport()->setCursor(Qt::OpenHandCursor);    break;
@@ -131,6 +134,9 @@ void DocumentView::setTool(Tool tool)
     case Tool::Image:
         viewport()->setCursor(Qt::CrossCursor);
         m_imageLayer->scanVisiblePage(firstVisiblePage());
+        break;
+    case Tool::Attach:
+        viewport()->setCursor(Qt::IBeamCursor);
         break;
     default:           viewport()->setCursor(Qt::ArrowCursor);       break;
     }
@@ -286,6 +292,7 @@ void DocumentView::repositionPageOverlays()
 {
     m_selection->relayout();
     m_imageLayer->relayout();
+    m_linkLayer->relayout();
     for (PageOverlay *overlay : std::as_const(m_overlays))
         overlay->relayout();
     repositionEditorFrame();
@@ -444,6 +451,7 @@ bool DocumentView::eventFilter(QObject *obj, QEvent *e)
 
             switch (m_tool) {
             case Tool::Select:
+            case Tool::Attach:
                 m_selection->handlePress(cvsPos);
                 break;
             case Tool::Pan:
@@ -490,6 +498,7 @@ bool DocumentView::eventFilter(QObject *obj, QEvent *e)
             const QPoint vpPos = toViewport(me->pos());
             switch (m_tool) {
             case Tool::Select:
+            case Tool::Attach:
                 if ((me->buttons() & Qt::LeftButton)
                         && m_selection->handleMove(toCanvas(me->pos())))
                     return true;
@@ -540,6 +549,7 @@ bool DocumentView::eventFilter(QObject *obj, QEvent *e)
             }
             switch (m_tool) {
             case Tool::Select:
+            case Tool::Attach:
                 m_rubberBand->hide();
                 if (m_selection->handleRelease()) return true;
                 break;
@@ -548,6 +558,13 @@ bool DocumentView::eventFilter(QObject *obj, QEvent *e)
             }
         }
     } else if (e->type() == QEvent::ContextMenu) {
+        if (m_tool == Tool::Attach) {
+            auto *ce = static_cast<QContextMenuEvent *>(e);
+            if (m_linkLayer->showEmptyContextMenu(
+                    toCanvas(ce->pos()), ce->globalPos(), m_selection->selectedParts()))
+                m_selection->clear();
+            return true;
+        }
         // Show the general context menu whenever edit mode is active or a
         // content-editing tool is selected.  For the image tool, ImageAnnotation
         // accepts its own context-menu event so it never reaches the canvas — the

@@ -308,6 +308,9 @@ QString HistoryDialog::titleFor(const DocumentHistory::Entry &e)
     case Kind::TextRemoved:    return tr("Text removed");
     case Kind::ImageInserted:  return tr("Image inserted");
     case Kind::ImageRemoved:   return tr("Image removed");
+    case Kind::LinkAdded:      return tr("Link added");
+    case Kind::LinkEdited:     return tr("Link changed");
+    case Kind::LinkRemoved:    return tr("Link removed");
     case Kind::PageRotated:    return e.count > 1 ? tr("Pages rotated")
                                                   : tr("Page rotated");
     case Kind::PageDeleted:    return e.count > 1 ? tr("Pages deleted")
@@ -337,6 +340,9 @@ QString HistoryDialog::detailFor(const DocumentHistory::Entry &e)
     case Kind::TextRemoved:
     case Kind::ImageInserted:
     case Kind::ImageRemoved:
+    case Kind::LinkAdded:
+    case Kind::LinkEdited:
+    case Kind::LinkRemoved:
         return page;
     case Kind::PageRotated: {
         const QString turn = e.value < 0 ? tr("%1° counter-clockwise").arg(-e.value)
@@ -365,6 +371,9 @@ QString HistoryDialog::iconFor(DocumentHistory::Kind kind)
     case Kind::TextRemoved:    return QStringLiteral("type");
     case Kind::ImageInserted:
     case Kind::ImageRemoved:   return QStringLiteral("image");
+    case Kind::LinkAdded:
+    case Kind::LinkEdited:     return QStringLiteral("paperclip");
+    case Kind::LinkRemoved:    return QStringLiteral("trash-2");
     case Kind::PageRotated:    return QStringLiteral("rotate-cw");
     case Kind::PageDeleted:    return QStringLiteral("trash-2");
     case Kind::PageAdded:      return QStringLiteral("file-plus");

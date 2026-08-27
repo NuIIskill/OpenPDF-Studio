@@ -85,7 +85,6 @@ public:
     /// Session image state as of the last successful save, so a document that
     /// has been saved does not keep claiming it has unsaved changes. Text
     /// edits are measured by the undo stack's clean marker instead, which
-    /// follows undo AND redo; images only have this counter.
     quint64 savedImageRevision { 0 };
 
 private:

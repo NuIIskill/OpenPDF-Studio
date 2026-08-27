@@ -903,7 +903,11 @@ void MainWindow::onToolSelected(const QString &tool)
         dv->setTool(DocumentView::Tool::Text);
     else if (tool == QLatin1String("image"))
         dv->setTool(DocumentView::Tool::Image);
+    else if (tool == QLatin1String("attach"))
+        dv->setTool(DocumentView::Tool::Attach);
     else if (tool == QLatin1String("bookmark"))
+        dv->setTool(DocumentView::Tool::Select);
+    else
         dv->setTool(DocumentView::Tool::Select);
 
     // The Tool enum does not know tools from outside the Core. The view passes

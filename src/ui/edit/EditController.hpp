@@ -80,6 +80,7 @@ public:
     void setTextBoxProperties(const TextBoxProperties &properties);
     TextBoxProperties textBoxProperties() const;
     void notifyBoundsChanged();
+    void refreshLivePreview(const QString &text);
     void setTextBoxDefaults(const TextBoxProperties &properties) { defaultBox = properties; }
     void setHorizontalAlignment(Qt::Alignment alignment);
     void setListStyle(TextBoxProperties::ListStyle style);
@@ -114,6 +115,7 @@ Q_SIGNALS:
     void pageNeedsRerender(int page);
     /// Redraw a page with `bounds` blanked, hiding the text being edited.
     void pageNeedsBlank(int page, const QRectF &bounds);
+    void livePreviewChanged(int page, const QList<EditSession::Edit> &edits);
     /// An edit happened and belongs in the document's change log.
     void changeRecorded(const DocumentHistory::Change &change);
 
@@ -128,6 +130,7 @@ public:
     // Tight glyph rects of the original text — erasure targets ONLY these,
     // never the whole bounds rect (which would wipe co-located graphics).
     QList<QRectF> activeEditEraseRects;
+    QRectF        activeEditEraseBounds;
     // true  → edit was opened by clicking on existing text (handleEditClick); a blank
     //         edit must be committed to erase the original text before drawing the new.
     // false → editor was created fresh via drag (createTextFrame); no erasure needed —

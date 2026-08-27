@@ -11,6 +11,7 @@
 #include "app/SessionStore.hpp"
 #include "ui/tools/ImageAnnotation.hpp"
 #include "ui/view/ImageAnnotationLayer.hpp"
+#include "ui/view/LinkAnnotationLayer.hpp"
 #include "ui/view/HoverHighlight.hpp"
 #include "ui/view/PageLayoutEngine.hpp"
 #include "ui/view/PageOverlay.hpp"
@@ -115,6 +116,19 @@ DocumentView::DocumentView(QWidget *parent)
     connect(m_imageLayer, &ImageAnnotationLayer::imageRemoved, this, [this](int page) {
         m_journal.recordChange({ DocumentHistory::Kind::ImageRemoved, page });
     });
+    m_linkLayer = new LinkAnnotationLayer(this, this);
+    connect(m_linkLayer, &LinkAnnotationLayer::pageNeedsRerender,
+            this, &DocumentView::rerenderPage);
+    connect(m_linkLayer, &LinkAnnotationLayer::linkAdded,
+            this, [this](int page, int count) {
+        m_journal.recordChange({ DocumentHistory::Kind::LinkAdded, page, count });
+    });
+    connect(m_linkLayer, &LinkAnnotationLayer::linkEdited, this, [this](int page) {
+        m_journal.recordChange({ DocumentHistory::Kind::LinkEdited, page });
+    });
+    connect(m_linkLayer, &LinkAnnotationLayer::linkRemoved, this, [this](int page) {
+        m_journal.recordChange({ DocumentHistory::Kind::LinkRemoved, page });
+    });
 
     // Undo and redo move the document between states the history already
     // knows, so the history follows the stack instead of recording anything.
@@ -156,6 +170,13 @@ DocumentView::DocumentView(QWidget *parent)
     m_editorFrame = new TextBoxFrame(m_canvas);
     connect(m_editorFrame, &TextBoxFrame::committed, this, &DocumentView::commitCurrentEdit);
     connect(m_editorFrame, &TextBoxFrame::cancelled,  this, &DocumentView::cancelCurrentEdit);
+    connect(m_editorFrame, &TextBoxFrame::changed, this, [this](const QString &text) {
+        m_edit.refreshLivePreview(text);
+    });
+    connect(&m_edit, &EditController::livePreviewChanged, this,
+            [this](int page, const QList<EditSession::Edit> &edits) {
+        m_layoutEngine->setPreviewEdits(page, edits);
+    });
     // While the editor is open, its widget IS the live view of the text —
     // nothing is painted onto the page underneath (painting the same text
     // there produced visible doubling on drag/zoom). The page only shows the
@@ -190,6 +211,7 @@ DocumentView::DocumentView(QWidget *parent)
         m_edit.activeEditBounds = newBounds;
         m_edit.currentBox.bounds = newBounds;
         m_edit.notifyBoundsChanged();
+        m_edit.refreshLivePreview(m_editorFrame->currentText());
     });
     m_hover->setEditorFrame(m_editorFrame);
 
@@ -199,6 +221,7 @@ DocumentView::DocumentView(QWidget *parent)
     // mehr gibt.
     m_selection->setSource(m_src->renderer(), m_src.get());
     m_layoutEngine->setSource(m_src->renderer(), m_session);
+    m_linkLayer->setSource(m_src->backend(), m_session, m_undoStack);
 #endif
 
     m_ocrEngine = new OcrEngine();
@@ -270,6 +293,30 @@ void DocumentView::setEditMode(bool on)
     m_hover->hide();
     m_editMode = on;
     if (!on) setTool(m_tool); // restore tool cursor when leaving edit mode
+}
+
+QRectF DocumentView::editBounds() const
+{
+#ifdef HAVE_PDF_RENDERING
+    return m_edit.activeEditPage >= 0 ? m_edit.activeEditBounds : QRectF();
+#else
+    return {};
+#endif
+}
+
+QRectF DocumentView::editFrameRect() const
+{
+#ifdef HAVE_PDF_RENDERING
+    if (m_edit.activeEditPage < 0 || !m_editorFrame->isVisible()) return {};
+    const QLabel *lbl = pageLabel(m_edit.activeEditPage);
+    if (!lbl) return {};
+    const qreal scale = PdfRenderer::screenScale(m_zoomCtl->zoom());
+    const QRectF inner = m_editorFrame->innerCanvasRect();
+    return QRectF((inner.topLeft() - QPointF(lbl->pos())) / scale,
+                  inner.size() / scale);
+#else
+    return {};
+#endif
 }
 
 void DocumentView::rerenderPageWithBlank(int page, const QRectF &pdfBoundsPts)

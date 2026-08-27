@@ -18,9 +18,6 @@ QT_BEGIN_NAMESPACE
 class QWidget;
 QT_END_NAMESPACE
 
-// Text marking with the Select tool. Works in normal mode and in edit mode:
-// the select tool only ever reads text, it never touches the session, so there
-// is no reason to gate it on the mode.
 //
 // Anchors come in as canvas coords; the selection itself is stored in PDF
 // points so it survives zoom changes and relayouts.
@@ -32,6 +29,11 @@ class TextSelectionController : public QObject
     Q_OBJECT
 
 public:
+    struct SelectionPart {
+        int           page { -1 };
+        QList<QRectF> rects;
+    };
+
     explicit TextSelectionController(PageCanvas *canvas, QObject *parent = nullptr);
 
 #ifdef HAVE_PDF_RENDERING
@@ -56,6 +58,7 @@ public:
 
     bool    hasSelection() const { return !m_parts.isEmpty(); }
     QString selectedText() const;
+    QList<SelectionPart> selectedParts() const;
     void    copyToClipboard() const;
 
 Q_SIGNALS:

@@ -92,7 +92,6 @@ bool DocumentJournal::hasUnsavedEdits() const
     if (!m_session) return false;
     // Text edits: the undo stack knows whether the document is back at the
     // state that was written. Images carry no undo command, so they are
-    // compared against the revision the save recorded.
     return !m_undo->isClean()
         || m_session->imageRevision() != savedImageRevision;
 #else

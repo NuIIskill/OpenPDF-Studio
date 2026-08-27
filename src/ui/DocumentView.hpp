@@ -18,6 +18,7 @@ class QPrinter;
 QT_END_NAMESPACE
 
 class ImageAnnotationLayer;
+class LinkAnnotationLayer;
 class PageOverlay;
 class PageLayoutEngine;
 class HoverHighlight;
@@ -48,7 +49,7 @@ class DocumentView : public QScrollArea, public PageCanvas
     Q_OBJECT
 
 public:
-    enum class Tool     { Select, Pan, Text, Comment, Image };
+    enum class Tool     { Select, Pan, Text, Comment, Image, Attach };
     enum class ViewMode { Single, Grid };
 
     explicit DocumentView(QWidget *parent = nullptr);
@@ -111,6 +112,8 @@ public:
     bool        bookmarkEditingAvailable() const;
     ViewMode    viewMode()         const { return m_viewMode; }
     QUndoStack *undoStack()        const { return m_undoStack; }
+    QRectF editBounds() const;
+    QRectF editFrameRect() const;
     /// Change log of the open document — what the history panel shows.
     DocumentHistory *history()     const { return m_journal.history(); }
     /// Puts the document back into the state history entry `index` describes.
@@ -260,6 +263,7 @@ private:
 
     // Placed images and detected image regions, tracked in PDF coordinate space.
     ImageAnnotationLayer *m_imageLayer { nullptr };
+    LinkAnnotationLayer  *m_linkLayer  { nullptr };
     // Hover feedback for detected regions in edit mode.
     HoverHighlight *m_hover { nullptr };
 

@@ -10,7 +10,7 @@
 #include <QString>
 
 
-// Stores pending text and image edits for one document session.
+// Stores pending text, image and link edits for one document session.
 class EditSession
 {
 public:
@@ -19,6 +19,20 @@ public:
         int    page;
         QRectF pdfBounds;  // position/size in PDF points (top-left origin)
         QImage image;
+    };
+
+    struct LinkEdit {
+        int     page { -1 };
+        QRectF  originalBounds;
+        QRectF  pdfBounds;
+        QString originalUrl;
+        QString url;
+        QList<QRectF> textRects;
+        bool    existing { false };
+        bool    removed  { false };
+        bool    colorText { false };
+
+        bool operator==(const LinkEdit &) const = default;
     };
 
     // A single text edit entry (public so undo/redo commands can snapshot them).
@@ -119,8 +133,12 @@ public:
     void addImageEdit(int page, const QRectF &pdfBounds, const QImage &image);
     void removeImageEdit(int page, const QRectF &pdfBounds);
     bool hasImageEditsOnPage(int page) const;
+    bool hasLinkEditsOnPage(int page) const;
     void clearImageEdits();
     const QList<ImageEdit> &imageEdits() const { return m_imageEdits; }
+
+    void replaceLinkEdits(QList<LinkEdit> edits);
+    const QList<LinkEdit> &linkEdits() const { return m_linkEdits; }
 
     void clear();
 
@@ -131,7 +149,8 @@ public:
     void        restoreEdits(QList<Edit> s) { m_edits = std::move(s); }
 
     bool    hasEditsOnPage(int page) const;
-    bool    hasAnyEdits() const { return !m_edits.isEmpty() || !m_imageEdits.isEmpty(); }
+    bool    hasAnyEdits() const
+    { return !m_edits.isEmpty() || !m_imageEdits.isEmpty() || !m_linkEdits.isEmpty(); }
 
     // Returns current edited text at (page, pdfBounds), or null QString if none.
     QString editTextAt(int page, const QRectF &pdfBounds) const;
@@ -181,4 +200,5 @@ private:
     QList<Edit>       m_suspendedEdits;  // saved by suspendEditsAt(), restored by restoreSuspended()
     QList<ImageEdit>  m_imageEdits;
     quint64           m_imageRevision { 0 };
+    QList<LinkEdit>   m_linkEdits;
 };

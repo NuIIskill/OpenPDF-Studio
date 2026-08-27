@@ -32,6 +32,8 @@
 #include <QKeyEvent>
 #include <QLineEdit>
 #include <QScrollBar>
+#include "ui/edit/InlineEditor.hpp"
+
 #include <QTextEdit>
 #include <QTimer>
 #include <QEventLoop>
@@ -525,6 +527,15 @@ int main(int argc, char *argv[])
             // through — and only then does the format bar appear.
             Q_EMIT win->leftSidebar()->toolSelected(QStringLiteral("text"));
             QApplication::processEvents();
+            for (int z = 4; z < args.size(); ++z) {
+                if (!args.at(z).startsWith(QLatin1String("prezoom="))) continue;
+                dv->setZoom(args.at(z).mid(8).toInt());
+                QApplication::processEvents();
+                QEventLoop zs;
+                QTimer::singleShot(900, &zs, &QEventLoop::quit);
+                zs.exec();
+                break;
+            }
             const QPoint at(xy.at(0).toInt(), xy.at(1).toInt());
             QWidget *vp = dv->viewport();
             for (const QEvent::Type type : { QEvent::MouseButtonPress,
@@ -545,10 +556,12 @@ int main(int argc, char *argv[])
                 auto *ed = dv->findChild<QTextEdit *>(QStringLiteral("InlineEditor"));
                 QWidget *frame = ed ? ed->parentWidget() : nullptr;
                 if (!frame) break;
-                const QPoint grab(frame->width() / 2, 3);
-                const QPoint to = grab + QPoint(d.at(0).toInt(), d.at(1).toInt());
-                const auto send = [&](QEvent::Type t, const QPoint &at) {
-                    QMouseEvent me(t, QPointF(at), frame->mapToGlobal(QPointF(at)),
+                const QPoint grab(frame->width() * 3 / 8, 3);
+                const QPoint weg(d.at(0).toInt(), d.at(1).toInt());
+                const QPoint g0 = frame->mapToGlobal(grab);
+                const auto send = [&](QEvent::Type t, const QPoint &lokal,
+                                      const QPoint &global) {
+                    QMouseEvent me(t, QPointF(lokal), QPointF(global),
                                    Qt::LeftButton,
                                    t == QEvent::MouseButtonRelease ? Qt::NoButton
                                                                    : Qt::LeftButton,
@@ -556,10 +569,10 @@ int main(int argc, char *argv[])
                     QApplication::sendEvent(frame, &me);
                     QApplication::processEvents();
                 };
-                send(QEvent::MouseButtonPress, grab);
-                send(QEvent::MouseMove, grab + (to - grab) / 2);
-                send(QEvent::MouseMove, to);
-                send(QEvent::MouseButtonRelease, to);
+                send(QEvent::MouseButtonPress, grab, g0);
+                send(QEvent::MouseMove, grab + weg / 2, g0 + weg / 2);
+                send(QEvent::MouseMove, grab + weg, g0 + weg);
+                send(QEvent::MouseButtonRelease, grab + weg, g0 + weg);
                 QEventLoop settle;
                 QTimer::singleShot(800, &settle, &QEventLoop::quit);
                 settle.exec();
@@ -576,6 +589,34 @@ int main(int argc, char *argv[])
                 }
                 break;
             }
+            const auto zeigeBounds = [&](const char *wann) {
+                const QRectF b = dv->editBounds();
+                const QRectF f = dv->editFrameRect();
+                QTextStream(stdout) << "bounds " << wann << "="
+                    << QStringLiteral("%1,%2,%3,%4").arg(b.x(), 0, 'f', 2)
+                           .arg(b.y(), 0, 'f', 2).arg(b.width(), 0, 'f', 2)
+                           .arg(b.height(), 0, 'f', 2)
+                    << "  rahmen=" << QStringLiteral("%1,%2,%3,%4").arg(f.x(), 0, 'f', 2)
+                           .arg(f.y(), 0, 'f', 2).arg(f.width(), 0, 'f', 2)
+                           .arg(f.height(), 0, 'f', 2)
+                    << "\n";
+            };
+            if (args.contains(QStringLiteral("bounds"))) zeigeBounds("offen");
+
+            if (args.contains(QStringLiteral("nocaret"))
+                    || args.contains(QStringLiteral("caret"))) {
+                if (auto *ed = dv->findChild<InlineEditor *>())
+                    ed->setCaretVisible(args.contains(QStringLiteral("caret")));
+                QApplication::processEvents();
+            }
+
+            QPoint boxCenter(-1, -1);
+            if (auto *ed = dv->findChild<QTextEdit *>(QStringLiteral("InlineEditor"))) {
+                if (QWidget *fr = ed->parentWidget(); fr && fr->isVisible())
+                    boxCenter = dv->viewport()->mapFromGlobal(
+                        fr->mapToGlobal(fr->rect().center()));
+            }
+
             if (args.contains(QStringLiteral("commit"))) {
                 QWidget *vp = dv->viewport();
                 const QPoint away(vp->width() - 30, vp->height() - 30);
@@ -592,33 +633,62 @@ int main(int argc, char *argv[])
 
                 for (int r2 = 4; r2 < args.size(); ++r2) {
                     if (!args.at(r2).startsWith(QLatin1String("then="))) continue;
-                    const QStringList xy2 = args.at(r2).mid(5).split(u',');
-                    if (xy2.size() != 2) break;
-                    const QPoint again(xy2.at(0).toInt(), xy2.at(1).toInt());
+                    QPoint again = boxCenter;
+                    if (args.at(r2).mid(5) != QLatin1String("box")) {
+                        const QStringList xy2 = args.at(r2).mid(5).split(u',');
+                        if (xy2.size() != 2) break;
+                        again = QPoint(xy2.at(0).toInt(), xy2.at(1).toInt());
+                    }
+                    if (again.x() < 0) break;
                     QWidget *vp2 = dv->viewport();
-                    for (const QEvent::Type type : { QEvent::MouseButtonPress,
-                                                     QEvent::MouseButtonRelease }) {
-                        QMouseEvent me(type, QPointF(again),
-                                       vp2->mapToGlobal(QPointF(again)),
-                                       Qt::LeftButton, Qt::LeftButton, Qt::NoModifier);
-                        QApplication::sendEvent(vp2, &me);
+                    for (int k = 0; k < 2; ++k) {
+                        for (const QEvent::Type type : { QEvent::MouseButtonPress,
+                                                         QEvent::MouseButtonRelease }) {
+                            QMouseEvent me(type, QPointF(again),
+                                           vp2->mapToGlobal(QPointF(again)),
+                                           Qt::LeftButton, Qt::LeftButton, Qt::NoModifier);
+                            QApplication::sendEvent(vp2, &me);
+                        }
+                        QEventLoop settle;
+                        QTimer::singleShot(600, &settle, &QEventLoop::quit);
+                        settle.exec();
                     }
                     QEventLoop opened;
                     QTimer::singleShot(1200, &opened, &QEventLoop::quit);
                     opened.exec();
-                    const QPoint off(vp2->width() - 30, vp2->height() - 30);
-                    for (const QEvent::Type type : { QEvent::MouseButtonPress,
-                                                     QEvent::MouseButtonRelease }) {
-                        QMouseEvent me(type, QPointF(off), vp2->mapToGlobal(QPointF(off)),
-                                       Qt::LeftButton, Qt::LeftButton, Qt::NoModifier);
-                        QApplication::sendEvent(vp2, &me);
+                    for (int r3 = 4; r3 < args.size(); ++r3) {
+                        if (!args.at(r3).startsWith(QLatin1String("then-type="))) continue;
+                        if (auto *ed2 = dv->findChild<QTextEdit *>(
+                                QStringLiteral("InlineEditor"))) {
+                            ed2->selectAll();
+                            ed2->insertPlainText(args.at(r3).mid(10));
+                            QApplication::processEvents();
+                        }
+                        break;
                     }
-                    QEventLoop closed;
-                    QTimer::singleShot(1200, &closed, &QEventLoop::quit);
-                    closed.exec();
+                    if (!args.contains(QStringLiteral("then-open"))) {
+                        const QPoint off(vp2->width() - 30, vp2->height() - 30);
+                        for (const QEvent::Type type : { QEvent::MouseButtonPress,
+                                                         QEvent::MouseButtonRelease }) {
+                            QMouseEvent me(type, QPointF(off), vp2->mapToGlobal(QPointF(off)),
+                                           Qt::LeftButton, Qt::LeftButton, Qt::NoModifier);
+                            QApplication::sendEvent(vp2, &me);
+                        }
+                        QEventLoop closed;
+                        QTimer::singleShot(1200, &closed, &QEventLoop::quit);
+                        closed.exec();
+                    }
                     QTextStream(stdout) << "undo2=" << dv->undoStack()->count() << "\n";
                     break;
                 }
+            }
+
+            for (int r4 = 4; r4 < args.size(); ++r4) {
+                if (!args.at(r4).startsWith(QLatin1String("save="))) continue;
+                QTextStream(stdout) << "gespeichert="
+                                    << (dv->saveToFile(args.at(r4).mid(5)) ? "ja" : "nein")
+                                    << "\n";
+                break;
             }
 
             for (int r = 4; r < args.size(); ++r) {
@@ -644,6 +714,8 @@ int main(int argc, char *argv[])
                         QEventLoop zoomSettle;
                         QTimer::singleShot(700, &zoomSettle, &QEventLoop::quit);
                         zoomSettle.exec();
+                        if (args.contains(QStringLiteral("bounds")))
+                            zeigeBounds(qPrintable(QString::number(pct)));
                     }
                 break;
             }

@@ -4,7 +4,10 @@
 
 #include "engine/edit/EditSession.hpp"
 
+#include "fpdf_annot.h"
+#include "fpdf_doc.h"
 #include "fpdf_edit.h"
+#include "fpdf_text.h"
 
 #include <QByteArray>
 #include <QList>
@@ -34,7 +37,7 @@ QList<QRectF> eraseAreas(const EditSession::Edit &edit)
 
 bool removesOriginal(const EditSession::Edit &edit)
 {
-    return edit.newText.isNull() || !edit.eraseRects.isEmpty();
+    return edit.newText.isNull();
 }
 
 
@@ -390,6 +393,240 @@ void insertImage(FPDF_DOCUMENT doc, FPDF_PAGE page,
     FPDFBitmap_Destroy(bitmap);
 }
 
+QString uriOf(FPDF_DOCUMENT doc, FPDF_ANNOTATION annot)
+{
+    const FPDF_LINK link = FPDFAnnot_GetLink(annot);
+    const FPDF_ACTION action = link ? FPDFLink_GetAction(link) : nullptr;
+    if (!action || FPDFAction_GetType(action) != PDFACTION_URI) return {};
+    const unsigned long bytes = FPDFAction_GetURIPath(doc, action, nullptr, 0);
+    if (bytes <= 1) return {};
+    std::vector<char> buffer(bytes, 0);
+    if (FPDFAction_GetURIPath(doc, action, buffer.data(), bytes) <= 1) return {};
+    return QString::fromUtf8(buffer.data());
+}
+
+QRectF linkBounds(FPDF_ANNOTATION annot, double pageHeight)
+{
+    FS_RECTF rect {};
+    if (!FPDFAnnot_GetRect(annot, &rect)) return {};
+    return QRectF(rect.left, pageHeight - rect.top,
+                  rect.right - rect.left, rect.top - rect.bottom);
+}
+
+bool sameBounds(const QRectF &a, const QRectF &b)
+{
+    constexpr double tolerance = 0.5;
+    return std::abs(a.left() - b.left()) <= tolerance
+        && std::abs(a.top() - b.top()) <= tolerance
+        && std::abs(a.right() - b.right()) <= tolerance
+        && std::abs(a.bottom() - b.bottom()) <= tolerance;
+}
+
+void setLinkRect(FPDF_ANNOTATION annot, const QRectF &bounds, double pageHeight)
+{
+    FS_RECTF rect {};
+    rect.left   = static_cast<float>(bounds.left());
+    rect.right  = static_cast<float>(bounds.right());
+    rect.bottom = static_cast<float>(pageHeight - bounds.bottom());
+    rect.top    = static_cast<float>(pageHeight - bounds.top());
+    FPDFAnnot_SetRect(annot, &rect);
+}
+
+void appendLinkQuadPoints(FPDF_ANNOTATION annot, const QList<QRectF> &rects,
+                          double pageHeight)
+{
+    for (const QRectF &rect : rects) {
+        FS_QUADPOINTSF quad {};
+        quad.x1 = static_cast<float>(rect.left());
+        quad.y1 = static_cast<float>(pageHeight - rect.top());
+        quad.x2 = static_cast<float>(rect.right());
+        quad.y2 = quad.y1;
+        quad.x3 = quad.x1;
+        quad.y3 = static_cast<float>(pageHeight - rect.bottom());
+        quad.x4 = quad.x2;
+        quad.y4 = quad.y3;
+        FPDFAnnot_AppendAttachmentPoints(annot, &quad);
+    }
+}
+
+QString pageObjectMarkName(FPDF_PAGEOBJECTMARK mark)
+{
+    unsigned long bytes = 0;
+    if (!mark || !FPDFPageObjMark_GetName(mark, nullptr, 0, &bytes) || bytes <= 2)
+        return {};
+    std::vector<unsigned short> buffer(bytes / 2 + 1, 0);
+    if (!FPDFPageObjMark_GetName(mark, buffer.data(), bytes, &bytes)) return {};
+    return QString::fromUtf16(reinterpret_cast<const char16_t *>(buffer.data()));
+}
+
+FPDF_PAGEOBJECTMARK linkStyleMark(FPDF_PAGEOBJECT object)
+{
+    const int count = FPDFPageObj_CountMarks(object);
+    for (int i = 0; i < count; ++i)
+        if (pageObjectMarkName(
+                FPDFPageObj_GetMark(object, static_cast<unsigned long>(i)))
+                == QLatin1String("OpenPDFLinkStyle"))
+            return FPDFPageObj_GetMark(object, static_cast<unsigned long>(i));
+    return nullptr;
+}
+
+FPDF_PAGEOBJECTMARK markLinkStyle(FPDF_DOCUMENT doc, FPDF_PAGEOBJECT object,
+                                  bool rememberFill)
+{
+    if (!object) return nullptr;
+    if (FPDF_PAGEOBJECTMARK existing = linkStyleMark(object)) return existing;
+    FPDF_PAGEOBJECTMARK mark = FPDFPageObj_AddMark(object, "OpenPDFLinkStyle");
+    if (!mark || !rememberFill) return mark;
+
+    unsigned int r = 0, g = 0, b = 0, a = 255;
+    FPDFPageObj_GetFillColor(object, &r, &g, &b, &a);
+    FPDFPageObjMark_SetIntParam(doc, object, mark, "R", static_cast<int>(r));
+    FPDFPageObjMark_SetIntParam(doc, object, mark, "G", static_cast<int>(g));
+    FPDFPageObjMark_SetIntParam(doc, object, mark, "B", static_cast<int>(b));
+    FPDFPageObjMark_SetIntParam(doc, object, mark, "A", static_cast<int>(a));
+    return mark;
+}
+
+FPDF_PAGEOBJECT blueUnderline(FPDF_DOCUMENT doc, const QRectF &rect,
+                              double pageHeight)
+{
+    const float y = static_cast<float>(pageHeight - rect.bottom() + 0.8);
+    FPDF_PAGEOBJECT path = FPDFPageObj_CreateNewPath(
+        static_cast<float>(rect.left()), y);
+    if (!path) return nullptr;
+    FPDFPath_LineTo(path, static_cast<float>(rect.right()), y);
+    FPDFPageObj_SetStrokeColor(path, 0, 102, 204, 255);
+    FPDFPageObj_SetStrokeWidth(path, 0.7f);
+    FPDFPath_SetDrawMode(path, FPDF_FILLMODE_NONE, true);
+    markLinkStyle(doc, path, false);
+    return path;
+}
+
+bool centerIn(const QRectF &box, const QList<QRectF> &rects)
+{
+    for (const QRectF &rect : rects)
+        if (rect.contains(box.center())) return true;
+    return false;
+}
+
+void colorLinkedText(FPDF_DOCUMENT doc, FPDF_PAGE page, int pageIndex,
+                     const EditSession &session, double pageHeight)
+{
+    QList<QRectF> rects;
+    for (const EditSession::LinkEdit &edit : session.linkEdits()) {
+        if (edit.page != pageIndex || edit.existing || edit.removed || !edit.colorText)
+            continue;
+        rects += edit.textRects.isEmpty() ? QList<QRectF>{ edit.pdfBounds }
+                                         : edit.textRects;
+    }
+    if (rects.isEmpty()) return;
+
+    std::vector<FPDF_PAGEOBJECT> objects;
+
+    FPDF_TEXTPAGE textPage = FPDFText_LoadPage(page);
+    if (!textPage) return;
+    const int count = FPDFText_CountChars(textPage);
+    objects.reserve(count > 0 ? static_cast<size_t>(count) : 0);
+    for (int i = 0; i < count; ++i) {
+        double left = 0, right = 0, bottom = 0, top = 0;
+        if (!FPDFText_GetCharBox(textPage, i, &left, &right, &bottom, &top)) continue;
+        const QRectF box(left, pageHeight - top, right - left, top - bottom);
+        if (!centerIn(box, rects)) continue;
+
+        FPDF_PAGEOBJECT object = FPDFText_GetTextObject(textPage, i);
+        if (object && std::find(objects.begin(), objects.end(), object) == objects.end())
+            objects.push_back(object);
+    }
+    FPDFText_ClosePage(textPage);
+
+    for (FPDF_PAGEOBJECT object : objects) {
+        markLinkStyle(doc, object, true);
+        FPDFPageObj_SetFillColor(object, 0, 102, 204, 255);
+    }
+    for (const QRectF &rect : rects)
+        if (FPDF_PAGEOBJECT underline = blueUnderline(doc, rect, pageHeight))
+            FPDFPage_InsertObject(page, underline);
+}
+
+void removeLinkStyle(FPDF_DOCUMENT doc, FPDF_PAGE page, const QList<QRectF> &rects,
+                     double pageHeight)
+{
+    Q_UNUSED(doc)
+    std::vector<FPDF_PAGEOBJECT> removed;
+    const int count = FPDFPage_CountObjects(page);
+    for (int i = 0; i < count; ++i) {
+        FPDF_PAGEOBJECT object = FPDFPage_GetObject(page, i);
+        FPDF_PAGEOBJECTMARK mark = object ? linkStyleMark(object) : nullptr;
+        if (!mark) continue;
+        const QRectF bounds = objectBoundsQt(object, pageHeight);
+        if (!rects.isEmpty() && !centerIn(bounds, rects)) {
+            bool overlaps = false;
+            for (const QRectF &rect : rects)
+                if (rect.intersects(bounds)) { overlaps = true; break; }
+            if (!overlaps) continue;
+        }
+        if (FPDFPageObj_GetType(object) == FPDF_PAGEOBJ_TEXT) {
+            int r = 0, g = 0, b = 0, a = 255;
+            FPDFPageObjMark_GetParamIntValue(mark, "R", &r);
+            FPDFPageObjMark_GetParamIntValue(mark, "G", &g);
+            FPDFPageObjMark_GetParamIntValue(mark, "B", &b);
+            FPDFPageObjMark_GetParamIntValue(mark, "A", &a);
+            FPDFPageObj_SetFillColor(object, r, g, b, a);
+            FPDFPageObj_RemoveMark(object, mark);
+        } else if (FPDFPage_RemoveObject(page, object)) {
+            removed.push_back(object);
+        }
+    }
+    for (FPDF_PAGEOBJECT object : removed) FPDFPageObj_Destroy(object);
+}
+
+void applyLinkEdits(FPDF_DOCUMENT doc, FPDF_PAGE page, int pageIndex,
+                    const EditSession &session, double pageHeight)
+{
+    for (const EditSession::LinkEdit &edit : session.linkEdits()) {
+        if (edit.page != pageIndex || !edit.existing) continue;
+
+        if (edit.removed && edit.colorText)
+            removeLinkStyle(doc, page,
+                edit.textRects.isEmpty() ? QList<QRectF>{ edit.pdfBounds }
+                                         : edit.textRects,
+                pageHeight);
+
+        const int count = FPDFPage_GetAnnotCount(page);
+        for (int i = 0; i < count; ++i) {
+            FPDF_ANNOTATION annot = FPDFPage_GetAnnot(page, i);
+            if (!annot) continue;
+            const bool match = FPDFAnnot_GetSubtype(annot) == FPDF_ANNOT_LINK
+                && uriOf(doc, annot) == edit.originalUrl
+                && sameBounds(linkBounds(annot, pageHeight), edit.originalBounds);
+            if (!match) {
+                FPDFPage_CloseAnnot(annot);
+                continue;
+            }
+            if (edit.removed) {
+                FPDFPage_CloseAnnot(annot);
+                FPDFPage_RemoveAnnot(page, i);
+            } else {
+                setLinkRect(annot, edit.pdfBounds, pageHeight);
+                FPDFAnnot_SetURI(annot, edit.url.toUtf8().constData());
+                FPDFPage_CloseAnnot(annot);
+            }
+            break;
+        }
+    }
+
+    for (const EditSession::LinkEdit &edit : session.linkEdits()) {
+        if (edit.page != pageIndex || edit.existing || edit.removed) continue;
+        FPDF_ANNOTATION annot = FPDFPage_CreateAnnot(page, FPDF_ANNOT_LINK);
+        if (!annot) continue;
+        setLinkRect(annot, edit.pdfBounds, pageHeight);
+        appendLinkQuadPoints(annot, edit.textRects, pageHeight);
+        FPDFAnnot_SetBorder(annot, 0.0f, 0.0f, 0.0f);
+        FPDFAnnot_SetURI(annot, edit.url.toUtf8().constData());
+        FPDFPage_CloseAnnot(annot);
+    }
+}
+
 } // namespace
 
 void PdfiumEdits::applyToPage(FPDF_DOCUMENT doc, FPDF_PAGE page, int pageIndex,
@@ -417,6 +654,9 @@ void PdfiumEdits::applyToPage(FPDF_DOCUMENT doc, FPDF_PAGE page, int pageIndex,
 
     for (const EditSession::ImageEdit &ie : session.imageEdits())
         if (ie.page == pageIndex) insertImage(doc, page, ie, pageHeight);
+
+    colorLinkedText(doc, page, pageIndex, session, pageHeight);
+    applyLinkEdits(doc, page, pageIndex, session, pageHeight);
 
     for (Replaced &r : replaced)
         for (FPDF_PAGEOBJECT obj : r.removed) FPDFPageObj_Destroy(obj);

@@ -3,6 +3,12 @@
 #include <QFont>
 #include <QTextEdit>
 
+#include <functional>
+
+QT_BEGIN_NAMESPACE
+class QTimer;
+QT_END_NAMESPACE
+
 #include "engine/edit/TextBoxProperties.hpp"
 
 // Provides inline text editing inside a TextBoxFrame.
@@ -32,6 +38,13 @@ public:
     QString laidOutText() const;
     int   fontPixelSize() const { return qRound(m_currentFontPx); }
     qreal fontPixelSizeF() const { return m_currentFontPx; }
+    void setGlyphsVisible(bool on);
+    void setLineSpacingPt(qreal pt);
+    qreal lineSpacingPt() const { return m_lineSpacingPt; }
+    qreal contentWidthPt() const;
+    void setCaretVisible(bool on);
+    void setAdvanceMeasure(std::function<double(const QString &)> measure);
+    bool glyphsVisible() const { return m_glyphs; }
     void  setFontSizeF(qreal pixelFontSize);
 
 Q_SIGNALS:
@@ -40,6 +53,7 @@ Q_SIGNALS:
     void changed(const QString &text);
 
 protected:
+    void paintEvent(QPaintEvent *e) override;
     void keyPressEvent(QKeyEvent *e) override;
     void focusOutEvent(QFocusEvent *e) override;
     void wheelEvent(QWheelEvent *e) override;
@@ -61,6 +75,13 @@ private:
     bool    m_dragMode        { false };
     QColor  m_currentColor    { 0x11, 0x11, 0x11 };
     qreal   m_currentFontPx   { 12.0 };
+    bool    m_glyphs          { false };
+    qreal   m_lineSpacingPt   { 0.0 };
+    std::function<double(const QString &)> m_advance;
+    bool    m_caretPinned     { false };
+    QString m_lastText;
+    bool    m_caretOn         { true };
+    QTimer *m_caretTimer      { nullptr };
     QString m_family;
     bool    m_bold            { false };
     bool    m_italic          { false };

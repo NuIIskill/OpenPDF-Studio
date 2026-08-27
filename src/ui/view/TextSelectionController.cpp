@@ -204,6 +204,15 @@ QString TextSelectionController::selectedText() const
     return parts.join(QStringLiteral("\n"));
 }
 
+QList<TextSelectionController::SelectionPart> TextSelectionController::selectedParts() const
+{
+    QList<SelectionPart> result;
+    result.reserve(m_parts.size());
+    for (const Part &part : m_parts)
+        result.append({ part.page, part.rects });
+    return result;
+}
+
 void TextSelectionController::copyToClipboard() const
 {
     const QString text = selectedText();

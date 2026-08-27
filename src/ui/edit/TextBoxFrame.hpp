@@ -4,6 +4,12 @@
 #include <QRect>
 #include <QWidget>
 
+#include <functional>
+
+QT_BEGIN_NAMESPACE
+class QTimer;
+QT_END_NAMESPACE
+
 #include "engine/edit/TextBoxProperties.hpp"
 
 class InlineEditor;
@@ -16,6 +22,9 @@ public:
     explicit TextBoxFrame(QWidget *parent = nullptr);
 
     void setDecorations(bool on);
+    void setGlyphsVisible(bool on);
+    void setLineSpacingPt(qreal pt);
+    void setAdvanceMeasure(std::function<double(const QString &)> measure);
     void present(const QString &text, const QRectF &canvasBounds, qreal fontSize,
                  const QColor &color = QColor(0x11, 0x11, 0x11),
                  const QString &fontFamily = QString(),
@@ -68,7 +77,9 @@ private:
     Handle hitTest(const QPoint &pos) const;
     void   applyCursor(Handle h);
     QRect  innerRect() const;
+    int    handleSize() const;
     void   layoutEditor();
+    void   applyBoxSize();
     // Minimum inner height for a given font pixel size (see the .cpp).
     static int minInnerHeight(qreal fontPixelSize);
 
@@ -86,8 +97,10 @@ private:
     bool          m_autoHeight { true };
     TextBoxProperties m_box;
     qreal         m_scale { 1.0 };
+    QSizeF        m_boxPt;
     QPointF       m_anchorPt;
     bool          m_hasAnchor { false };
+
     QList<QRect>  m_forbidden;
     QRect         m_pageRect;              // empty = no clamping
 };
