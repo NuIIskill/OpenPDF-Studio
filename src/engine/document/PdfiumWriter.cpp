@@ -227,7 +227,11 @@ bool PdfiumWriter::save(const QString &sourcePath, const QString &outputPath,
     }
     for (const EditSession::ImageEdit &e : session.imageEdits())
         touch(e.page);
+    for (const EditSession::DrawStroke &stroke : session.drawStrokes())
+        touch(stroke.page);
     for (const EditSession::LinkEdit &e : session.linkEdits())
+        touch(e.page);
+    for (const EditSession::NoteEdit &e : session.noteEdits())
         touch(e.page);
 
     for (int pageIndex : touched) {
@@ -235,6 +239,7 @@ bool PdfiumWriter::save(const QString &sourcePath, const QString &outputPath,
         if (!page) continue;
 
         PdfiumEdits::applyToPage(doc, page, pageIndex, session);
+        PdfiumEdits::applyNoteEdits(page, pageIndex, session);
         for (const EditSession::Edit &edit : fieldsByPage.value(pageIndex))
             setFieldValue(page, edit.formField, edit.newText);
 

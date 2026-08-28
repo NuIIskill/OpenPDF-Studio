@@ -10,10 +10,12 @@
 class TopToolbar;
 class LeftSidebar;
 class BookmarkPanel;
+class NotesPanel;
 class DocumentView;
 class RightSidebar;
 class TextPropertiesPanel;
 class FormatBar;
+class DrawBar;
 class StatusBar;
 class AppSettings;
 class SettingsPanel;
@@ -113,8 +115,10 @@ private:
     UpdateChecker        *m_updateChecker{ nullptr };
     TopToolbar           *m_topToolbar   { nullptr };
     FormatBar            *m_formatBar    { nullptr };
+    DrawBar              *m_drawBar      { nullptr };
     LeftSidebar          *m_leftSidebar  { nullptr };
     BookmarkPanel        *m_bookmarkPanel{ nullptr };
+    NotesPanel           *m_notesPanel   { nullptr };
     TextPropertiesPanel  *m_textPanel    { nullptr };
     RightSidebar         *m_rightSidebar { nullptr };
     StatusBar            *m_statusBar    { nullptr };

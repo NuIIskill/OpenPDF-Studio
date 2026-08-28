@@ -19,6 +19,8 @@ QT_END_NAMESPACE
 
 class ImageAnnotationLayer;
 class LinkAnnotationLayer;
+class NoteLayer;
+class DrawingLayer;
 class PageOverlay;
 class PageLayoutEngine;
 class HoverHighlight;
@@ -35,6 +37,8 @@ class ZoomController;
 #include "engine/edit/DocxExporter.hpp"
 #include "engine/edit/DocumentExporter.hpp"
 #include "ui/view/PageCanvas.hpp"
+#include "ui/notes/Note.hpp"
+#include "ui/draw/DrawTool.hpp"
 
 #ifdef HAVE_PDF_RENDERING
 #  include "engine/render/PdfRenderer.hpp"
@@ -50,7 +54,7 @@ class DocumentView : public QScrollArea, public PageCanvas
     Q_OBJECT
 
 public:
-    enum class Tool     { Select, Pan, Text, Comment, Image, Attach };
+    enum class Tool     { Select, Pan, Text, Comment, Draw, Image, Attach };
     enum class ViewMode { Single, Grid };
 
     explicit DocumentView(QWidget *parent = nullptr);
@@ -95,11 +99,17 @@ public:
     void   setEditorListStyle(TextBoxProperties::ListStyle style);
     void   changeEditorIndent(int delta);
     void   setEditorLineSpacing(double multiplier);
+    void   setDrawTool(DrawTool tool);
+    void   setDrawColor(const QColor &color);
+    void   setDrawWidth(qreal widthPt);
 
     /// Document identity and save target — the file the user opened, which is
     /// not necessarily the file currently being rendered (see contentFile()).
     QString     currentFile()      const
-    { return m_journal.targetPath.isEmpty() ? m_src->contentPath() : m_journal.targetPath; }
+    {
+        if (m_journal.workingCopyDirty && m_journal.targetPath.isEmpty()) return {};
+        return m_journal.targetPath.isEmpty() ? m_src->contentPath() : m_journal.targetPath;
+    }
     /// The PDF on disk the view is reading from. This is what anything that
     /// needs the current page content (export, presentation, organizer) must
     /// open — it holds the working copy while changes are uncommitted.
@@ -141,6 +151,12 @@ public:
     QString     selectedText() const;
     void        copySelectedText();
     void        openFind();
+    QList<NoteData> notes() const;
+    void createNote();
+    void selectNote(const QString &id);
+    void updateNote(const QString &id, const QString &title, const QString &text);
+    void deleteNote(const QString &id);
+    void setNotePinned(const QString &id, bool pinned);
 
     // ── PageCanvas ────────────────────────────────────────────────────────────
     QWidget *canvasWidget()   const override { return m_canvas; }
@@ -164,6 +180,8 @@ Q_SIGNALS:
     void textBoxPropertiesChanged(const TextBoxProperties &properties);
     void textBoxEditingChanged(bool active);
     void bookmarkDataChanged();
+    void notesChanged(const QList<NoteData> &notes);
+    void noteSelected(const QString &id);
 
 protected:
     bool eventFilter(QObject *obj, QEvent *e) override;
@@ -269,6 +287,8 @@ private:
     // Placed images and detected image regions, tracked in PDF coordinate space.
     ImageAnnotationLayer *m_imageLayer { nullptr };
     LinkAnnotationLayer  *m_linkLayer  { nullptr };
+    NoteLayer            *m_noteLayer  { nullptr };
+    DrawingLayer         *m_drawingLayer { nullptr };
     // Hover feedback for detected regions in edit mode.
     HoverHighlight *m_hover { nullptr };
 

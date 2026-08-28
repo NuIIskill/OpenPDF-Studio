@@ -142,11 +142,6 @@ Please use a build that includes Qt6::Pdf support.
         <translation>Afbeelding</translation>
     </message>
     <message>
-        <location filename="../../src/ui/LeftSidebar.cpp" line="31"/>
-        <source>Table</source>
-        <translation>Tabel</translation>
-    </message>
-    <message>
         <location filename="../../src/ui/LeftSidebar.cpp" line="33"/>
         <source>Bookmark</source>
         <translation>Bladwijzer</translation>

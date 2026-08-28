@@ -13,6 +13,8 @@
 #include "ui/tools/ImageAnnotation.hpp"
 #include "ui/view/ImageAnnotationLayer.hpp"
 #include "ui/view/LinkAnnotationLayer.hpp"
+#include "ui/notes/NoteLayer.hpp"
+#include "ui/draw/DrawingLayer.hpp"
 #include "ui/view/FindController.hpp"
 #include "ui/view/PageOverlay.hpp"
 #include "ui/view/HoverHighlight.hpp"
@@ -120,6 +122,8 @@ void DocumentView::clearDocument()
 
     m_imageLayer->clear();
     m_linkLayer->clear();
+    m_noteLayer->clear();
+    m_drawingLayer->clear();
     for (PageOverlay *overlay : std::as_const(m_overlays))
         overlay->setDocument(QString());
 
@@ -163,6 +167,7 @@ bool DocumentView::openFile(const QString &path)
     m_layoutEngine->buildPages();
     m_find->documentChanged();
     m_linkLayer->reload();
+    m_noteLayer->reload();
     // Once the scroll area has laid the new pages out, hand the engine the
     // window it actually renders — until then the page positions are all 0.
     QMetaObject::invokeMethod(this, [this]() { syncVisibleRect(); },
@@ -214,7 +219,14 @@ bool DocumentView::openWorkingCopy(const QString &contentPath,
         PdfPwStore::set(contentPath, PdfPwStore::get(targetPath));
 
     if (!openFile(contentPath)) return false;
-    if (targetPath.isEmpty() || targetPath == contentPath) return true;
+    if (targetPath.isEmpty()) {
+        // The content exists only in the session so far. Keep the document
+        // untitled and dirty so its first regular save asks for a real path.
+        m_journal.workingCopyDirty = true;
+        Q_EMIT fileOpened(QString(), m_src->pageCount());
+        return true;
+    }
+    if (targetPath == contentPath) return true;
 
     m_journal.targetPath       = targetPath;
     m_journal.workingCopyDirty = true;
@@ -310,6 +322,7 @@ bool DocumentView::saveToFile(const QString &path)
     }
     resetContentProvider();
     m_linkLayer->reload();
+    m_noteLayer->reload();
     // Overlays read from the file, not from the session. After a save that is
     // a different file: what they contributed is in it now and has to be read
     // back from there, or it would stand twice.

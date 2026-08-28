@@ -289,7 +289,7 @@ void HistoryDialog::requestRestore(int index)
             this, tr("Go back to this state"),
             tr("This state is part of an earlier version of the document, so it "
                "has to be loaded again.\n\n"
-               "Text and image edits made since then are not part of any file "
+               "Text, image and drawing edits made since then are not part of any file "
                "yet and will be lost. Continue?"),
             QMessageBox::Yes | QMessageBox::No, QMessageBox::No);
         if (answer != QMessageBox::Yes) return;
@@ -311,6 +311,11 @@ QString HistoryDialog::titleFor(const DocumentHistory::Entry &e)
     case Kind::LinkAdded:      return tr("Link added");
     case Kind::LinkEdited:     return tr("Link changed");
     case Kind::LinkRemoved:    return tr("Link removed");
+    case Kind::NoteAdded:      return tr("Note added");
+    case Kind::NoteEdited:     return tr("Note changed");
+    case Kind::NoteRemoved:    return tr("Note removed");
+    case Kind::DrawingAdded:   return tr("Drawing added");
+    case Kind::DrawingRemoved: return tr("Drawing removed");
     case Kind::PageRotated:    return e.count > 1 ? tr("Pages rotated")
                                                   : tr("Page rotated");
     case Kind::PageDeleted:    return e.count > 1 ? tr("Pages deleted")
@@ -343,6 +348,11 @@ QString HistoryDialog::detailFor(const DocumentHistory::Entry &e)
     case Kind::LinkAdded:
     case Kind::LinkEdited:
     case Kind::LinkRemoved:
+    case Kind::NoteAdded:
+    case Kind::NoteEdited:
+    case Kind::NoteRemoved:
+    case Kind::DrawingAdded:
+    case Kind::DrawingRemoved:
         return page;
     case Kind::PageRotated: {
         const QString turn = e.value < 0 ? tr("%1° counter-clockwise").arg(-e.value)
@@ -374,6 +384,11 @@ QString HistoryDialog::iconFor(DocumentHistory::Kind kind)
     case Kind::LinkAdded:
     case Kind::LinkEdited:     return QStringLiteral("paperclip");
     case Kind::LinkRemoved:    return QStringLiteral("trash-2");
+    case Kind::NoteAdded:
+    case Kind::NoteEdited:     return QStringLiteral("message-square");
+    case Kind::NoteRemoved:    return QStringLiteral("trash-2");
+    case Kind::DrawingAdded:   return QStringLiteral("pencil");
+    case Kind::DrawingRemoved: return QStringLiteral("trash-2");
     case Kind::PageRotated:    return QStringLiteral("rotate-cw");
     case Kind::PageDeleted:    return QStringLiteral("trash-2");
     case Kind::PageAdded:      return QStringLiteral("file-plus");

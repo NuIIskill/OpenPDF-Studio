@@ -559,10 +559,10 @@ Das Dokument selbst wird nicht verändert — nur die Liste der Stände, zu dene
         <location filename="../../src/ui/dialogs/HistoryDialog.cpp" line="453"/>
         <source>This state is part of an earlier version of the document, so it has to be loaded again.
 
-Text and image edits made since then are not part of any file yet and will be lost. Continue?</source>
+Text, image and drawing edits made since then are not part of any file yet and will be lost. Continue?</source>
         <translation>Dieser Stand gehört zu einer früheren Fassung des Dokuments und muss neu geladen werden.
 
-Text- und Bildbearbeitungen seit damals stehen in keiner Datei und gehen verloren. Fortfahren?</translation>
+Text-, Bild- und Zeichenbearbeitungen seit damals stehen in keiner Datei und gehen verloren. Fortfahren?</translation>
     </message>
     <message>
         <location filename="../../src/ui/dialogs/HistoryDialog.cpp" line="469"/>
@@ -736,11 +736,6 @@ Text- und Bildbearbeitungen seit damals stehen in keiner Datei und gehen verlore
         <location filename="../../src/ui/panels/LeftSidebar.cpp" line="30"/>
         <source>Image</source>
         <translation>Bild</translation>
-    </message>
-    <message>
-        <location filename="../../src/ui/panels/LeftSidebar.cpp" line="31"/>
-        <source>Table</source>
-        <translation>Tabelle</translation>
     </message>
     <message>
         <location filename="../../src/ui/panels/LeftSidebar.cpp" line="33"/>
@@ -1860,5 +1855,63 @@ Enter the password to open it:</source>
     <message><source>Previous match (Shift+Enter)</source><translation>Vorheriger Treffer (Umschalt+Eingabetaste)</translation></message>
     <message><source>Next match (Enter)</source><translation>Nächster Treffer (Eingabetaste)</translation></message>
     <message><source>Close (Esc)</source><translation>Schließen (Esc)</translation></message>
+</context>
+<context>
+    <name>LeftSidebar</name>
+    <message><source>Notes</source><translation>Notizen</translation></message>
+</context>
+<context>
+    <name>SettingsPanel</name>
+    <message><source>Notes</source><translation>Notizen</translation></message>
+</context>
+<context>
+    <name>HistoryDialog</name>
+    <message><source>Note added</source><translation>Notiz hinzugefügt</translation></message>
+    <message><source>Note changed</source><translation>Notiz geändert</translation></message>
+    <message><source>Note removed</source><translation>Notiz entfernt</translation></message>
+    <message><source>Drawing added</source><translation>Zeichnung hinzugefügt</translation></message>
+    <message><source>Drawing removed</source><translation>Zeichnung entfernt</translation></message>
+</context>
+<context>
+    <name>NoteLayer</name>
+    <message><source>Unpin note</source><translation>Notiz lösen</translation></message>
+    <message><source>Note</source><translation>Notiz</translation></message>
+    <message><source>Pin note</source><translation>Notiz anheften</translation></message>
+    <message><source>Edit note</source><translation>Notiz bearbeiten</translation></message>
+    <message><source>Page %1</source><translation>Seite %1</translation></message>
+    <message><source>Untitled note</source><translation>Notiz ohne Titel</translation></message>
+    <message><source>Delete note</source><translation>Notiz löschen</translation></message>
+    <message><source>Add note</source><translation>Notiz hinzufügen</translation></message>
+    <message><source>New note</source><translation>Neue Notiz</translation></message>
+</context>
+<context>
+    <name>NotesPanel</name>
+    <message><source>Pin</source><translation>Anheften</translation></message>
+    <message><source>Save</source><translation>Speichern</translation></message>
+    <message><source>Notes</source><translation>Notizen</translation></message>
+    <message><source>Title</source><translation>Titel</translation></message>
+    <message><source>Unpin</source><translation>Lösen</translation></message>
+    <message><source>No notes yet. Add one and place it on the current page.</source><translation>Noch keine Notizen. Fügen Sie eine Notiz auf der aktuellen Seite hinzu.</translation></message>
+    <message><source>Cancel</source><translation>Abbrechen</translation></message>
+    <message><source>Delete</source><translation>Löschen</translation></message>
+    <message><source>Write a note…</source><translation>Notiz schreiben…</translation></message>
+    <message><source>Page %1</source><translation>Seite %1</translation></message>
+    <message><source>Untitled note</source><translation>Notiz ohne Titel</translation></message>
+    <message><source>Close notes</source><translation>Notizen schließen</translation></message>
+    <message><source>New note</source><translation>Neue Notiz</translation></message>
+</context>
+<context>
+    <name>DrawBar</name>
+    <message><source>Pen</source><translation>Stift</translation></message>
+    <message><source>Highlighter</source><translation>Textmarker</translation></message>
+    <message><source>Eraser</source><translation>Radierer</translation></message>
+    <message><source>Thin</source><translation>Dünn</translation></message>
+    <message><source>Medium</source><translation>Mittel</translation></message>
+    <message><source>Thick</source><translation>Dick</translation></message>
+</context>
+<context>
+    <name>DrawingLayer</name>
+    <message><source>Erase drawing</source><translation>Zeichnung radieren</translation></message>
+    <message><source>Draw stroke</source><translation>Strich zeichnen</translation></message>
 </context>
 </TS>

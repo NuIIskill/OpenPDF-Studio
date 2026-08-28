@@ -12,6 +12,8 @@
 #include "ui/tools/ImageAnnotation.hpp"
 #include "ui/view/ImageAnnotationLayer.hpp"
 #include "ui/view/LinkAnnotationLayer.hpp"
+#include "ui/notes/NoteLayer.hpp"
+#include "ui/draw/DrawingLayer.hpp"
 #include "ui/view/HoverHighlight.hpp"
 #include "ui/view/FindController.hpp"
 #include "ui/view/PageLayoutEngine.hpp"
@@ -134,6 +136,32 @@ DocumentView::DocumentView(QWidget *parent)
     connect(m_linkLayer, &LinkAnnotationLayer::linkRemoved, this, [this](int page) {
         m_journal.recordChange({ DocumentHistory::Kind::LinkRemoved, page });
     });
+    m_noteLayer = new NoteLayer(this, this);
+    connect(m_noteLayer, &NoteLayer::notesChanged,
+            this, &DocumentView::notesChanged);
+    connect(m_noteLayer, &NoteLayer::noteActivated, this,
+            [this](const QString &id, int page) {
+        goToPage(page);
+        Q_EMIT noteSelected(id);
+    });
+    connect(m_noteLayer, &NoteLayer::noteAdded, this, [this](int page) {
+        m_journal.recordChange({ DocumentHistory::Kind::NoteAdded, page });
+    });
+    connect(m_noteLayer, &NoteLayer::noteEdited, this, [this](int page) {
+        m_journal.recordChange({ DocumentHistory::Kind::NoteEdited, page });
+    });
+    connect(m_noteLayer, &NoteLayer::noteRemoved, this, [this](int page) {
+        m_journal.recordChange({ DocumentHistory::Kind::NoteRemoved, page });
+    });
+    m_drawingLayer = new DrawingLayer(this, this);
+    connect(m_drawingLayer, &DrawingLayer::pageNeedsRerender,
+            this, &DocumentView::rerenderPage);
+    connect(m_drawingLayer, &DrawingLayer::strokeAdded, this, [this](int page) {
+        m_journal.recordChange({ DocumentHistory::Kind::DrawingAdded, page });
+    });
+    connect(m_drawingLayer, &DrawingLayer::strokesRemoved, this, [this](int page) {
+        m_journal.recordChange({ DocumentHistory::Kind::DrawingRemoved, page });
+    });
 
     // Undo and redo move the document between states the history already
     // knows, so the history follows the stack instead of recording anything.
@@ -227,6 +255,8 @@ DocumentView::DocumentView(QWidget *parent)
     m_selection->setSource(m_src->renderer(), m_src.get());
     m_layoutEngine->setSource(m_src->renderer(), m_session);
     m_linkLayer->setSource(m_src->backend(), m_session, m_undoStack);
+    m_noteLayer->setSource(m_src->backend(), m_session, m_undoStack);
+    m_drawingLayer->setSource(m_session, m_undoStack);
 #endif
 
     m_ocrEngine = new OcrEngine();
@@ -362,6 +392,8 @@ void DocumentView::discardEditHistory()
     // behind they would hang over a document that no longer contains them —
     // and the next save would paint them into it a second time.
     m_imageLayer->clear();
+    m_noteLayer->clear();
+    m_drawingLayer->clear();
     m_undoStack->clear();
     m_journal.savedImageRevision = m_session->imageRevision();
 }

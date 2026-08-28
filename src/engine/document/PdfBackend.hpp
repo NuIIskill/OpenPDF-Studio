@@ -88,6 +88,16 @@ public:
 
     virtual QList<Link> pageLinks(int page) const { Q_UNUSED(page) return {}; }
 
+    struct Note {
+        QString id;
+        QString title;
+        QString text;
+        QRectF  bounds;
+        bool    pinned { false };
+    };
+
+    virtual QList<Note> pageNotes(int page) const { Q_UNUSED(page) return {}; }
+
     virtual QSizeF pageSizePts(int page) const = 0;
 
     /// Size in pixels of the image renderPage() returns for `scale`. Backends

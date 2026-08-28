@@ -23,8 +23,9 @@
         <file>icons/type.svg</file>
         <file>icons/message-square.svg</file>
         <file>icons/pencil.svg</file>
+        <file>icons/highlighter.svg</file>
+        <file>icons/eraser.svg</file>
         <file>icons/image.svg</file>
-        <file>icons/table.svg</file>
         <file>icons/bookmark.svg</file>
         <file>icons/paperclip.svg</file>
         <file>icons/settings.svg</file>

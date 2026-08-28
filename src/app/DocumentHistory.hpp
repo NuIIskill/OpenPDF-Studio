@@ -39,6 +39,11 @@ public:
         LinkAdded,
         LinkEdited,
         LinkRemoved,
+        NoteAdded,
+        NoteEdited,
+        NoteRemoved,
+        DrawingAdded,
+        DrawingRemoved,
         PageRotated,     ///< `value` = degrees, positive = clockwise
         PageDeleted,
         PageAdded,

@@ -142,11 +142,6 @@ Please use a build that includes Qt6::Pdf support.
         <translation>이미지</translation>
     </message>
     <message>
-        <location filename="../../src/ui/LeftSidebar.cpp" line="31"/>
-        <source>Table</source>
-        <translation>표</translation>
-    </message>
-    <message>
         <location filename="../../src/ui/LeftSidebar.cpp" line="33"/>
         <source>Bookmark</source>
         <translation>책갈피</translation>

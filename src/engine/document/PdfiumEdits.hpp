@@ -12,6 +12,8 @@ namespace PdfiumEdits {
 void applyToPage(FPDF_DOCUMENT doc, FPDF_PAGE page, int pageIndex,
                  const EditSession &session);
 
+void applyNoteEdits(FPDF_PAGE page, int pageIndex, const EditSession &session);
+
 } // namespace PdfiumEdits
 
 #endif

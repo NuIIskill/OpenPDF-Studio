@@ -858,13 +858,9 @@ void PdfOrganizerDialog::save()
         return;
     }
 
-    // Nothing to take the changes into (organizer opened without a document),
-    // or no writable session directory: ask for a destination rather than
-    // parking the user's work somewhere they will not find it again.
-    if (m_targetPath.isEmpty()) {
-        saveAs();
-        return;
-    }
+    // An untitled document has no target path yet, but still belongs in the
+    // session. SessionStore gives that working copy an "untitled" name; the
+    // document view keeps it unsaved until the user chooses a real target.
     const QString workPath = SessionStore::newWorkingFile(m_targetPath);
     if (workPath.isEmpty()) {
         saveAs();

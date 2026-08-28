@@ -27,6 +27,7 @@ public:
     int    pageCount() const override;
     QList<PdfBookmark> bookmarks() const override;
     QList<Link> pageLinks(int page) const override;
+    QList<Note> pageNotes(int page) const override;
     QSizeF pageSizePts(int page) const override;
     QSize  pixelSize(int page, qreal scale) const override;
     QImage renderPage(int page, qreal scale) const override;

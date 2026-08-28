@@ -1,6 +1,7 @@
 #include "engine/edit/EditSession.hpp"
 
 #include <QPainter>
+#include <QPainterPath>
 #include <QFont>
 #include <QDebug>
 #include <climits>
@@ -150,7 +151,9 @@ void EditSession::clear()
 {
     m_edits.clear();
     if (!m_imageEdits.isEmpty()) { m_imageEdits.clear(); ++m_imageRevision; }
+    m_drawStrokes.clear();
     m_linkEdits.clear();
+    m_noteEdits.clear();
 }
 
 // ── Image-edit CRUD ───────────────────────────────────────────────────────────
@@ -176,6 +179,19 @@ bool EditSession::hasImageEditsOnPage(int page) const
     return false;
 }
 
+void EditSession::replaceDrawStrokes(QList<DrawStroke> strokes)
+{
+    if (m_drawStrokes == strokes) return;
+    m_drawStrokes = std::move(strokes);
+}
+
+bool EditSession::hasDrawEditsOnPage(int page) const
+{
+    for (const DrawStroke &stroke : m_drawStrokes)
+        if (stroke.page == page) return true;
+    return false;
+}
+
 void EditSession::clearImageEdits()
 {
     if (m_imageEdits.isEmpty()) return;
@@ -192,6 +208,19 @@ void EditSession::replaceLinkEdits(QList<LinkEdit> edits)
 bool EditSession::hasLinkEditsOnPage(int page) const
 {
     for (const LinkEdit &edit : m_linkEdits)
+        if (edit.page == page) return true;
+    return false;
+}
+
+void EditSession::replaceNoteEdits(QList<NoteEdit> edits)
+{
+    if (m_noteEdits == edits) return;
+    m_noteEdits = std::move(edits);
+}
+
+bool EditSession::hasNoteEditsOnPage(int page) const
+{
+    for (const NoteEdit &edit : m_noteEdits)
         if (edit.page == page) return true;
     return false;
 }
@@ -257,7 +286,8 @@ void EditSession::applyToImage(int page, QImage &img, qreal scale, Paint what) c
     for (const auto &e : m_edits)
         if (e.page == page && wanted(e)) { hasText = true; break; }
     const bool hasImages = !fieldsOnly && hasImageEditsOnPage(page);
-    if (!hasText && !hasImages) return;
+    const bool hasDraw   = !fieldsOnly && hasDrawEditsOnPage(page);
+    if (!hasText && !hasImages && !hasDraw) return;
 
     QPainter p(&img);
     if (hasText) {
@@ -279,6 +309,23 @@ void EditSession::applyToImage(int page, QImage &img, qreal scale, Paint what) c
                 qRound(ie.pdfBounds.width()  * scale),
                 qRound(ie.pdfBounds.height() * scale));
             p.drawImage(dst, ie.image);
+        }
+    }
+    if (hasDraw) {
+        p.setRenderHint(QPainter::Antialiasing);
+        for (const DrawStroke &stroke : m_drawStrokes) {
+            if (stroke.page != page || stroke.points.isEmpty()) continue;
+            QPen pen(stroke.color, qMax<qreal>(0.5, stroke.widthPt * scale),
+                     Qt::SolidLine, Qt::RoundCap, Qt::RoundJoin);
+            p.setPen(pen);
+            if (stroke.points.size() == 1) {
+                p.drawPoint(stroke.points.first() * scale);
+                continue;
+            }
+            QPainterPath path(stroke.points.first() * scale);
+            for (int i = 1; i < stroke.points.size(); ++i)
+                path.lineTo(stroke.points.at(i) * scale);
+            p.drawPath(path);
         }
     }
 }

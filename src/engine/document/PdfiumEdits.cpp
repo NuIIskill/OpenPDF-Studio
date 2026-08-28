@@ -393,6 +393,39 @@ void insertImage(FPDF_DOCUMENT doc, FPDF_PAGE page,
     FPDFBitmap_Destroy(bitmap);
 }
 
+void insertDrawStroke(FPDF_PAGE page, const EditSession::DrawStroke &stroke,
+                      double pageHeight)
+{
+    if (stroke.points.isEmpty()) return;
+
+    const QPointF first = stroke.points.first();
+    FPDF_PAGEOBJECT path = FPDFPageObj_CreateNewPath(
+        static_cast<float>(first.x()),
+        static_cast<float>(toPdfY(first.y(), pageHeight)));
+    if (!path) return;
+
+    if (stroke.points.size() == 1) {
+        FPDFPath_LineTo(path,
+            static_cast<float>(first.x() + 0.01),
+            static_cast<float>(toPdfY(first.y(), pageHeight)));
+    } else {
+        for (int i = 1; i < stroke.points.size(); ++i) {
+            const QPointF point = stroke.points.at(i);
+            FPDFPath_LineTo(path, static_cast<float>(point.x()),
+                            static_cast<float>(toPdfY(point.y(), pageHeight)));
+        }
+    }
+
+    const QColor color = stroke.color;
+    FPDFPageObj_SetStrokeColor(path, color.red(), color.green(), color.blue(),
+                               color.alpha());
+    FPDFPageObj_SetStrokeWidth(path, static_cast<float>(stroke.widthPt));
+    FPDFPageObj_SetLineCap(path, FPDF_LINECAP_ROUND);
+    FPDFPageObj_SetLineJoin(path, FPDF_LINEJOIN_ROUND);
+    FPDFPath_SetDrawMode(path, FPDF_FILLMODE_NONE, true);
+    FPDFPage_InsertObject(page, path);
+}
+
 QString uriOf(FPDF_DOCUMENT doc, FPDF_ANNOTATION annot)
 {
     const FPDF_LINK link = FPDFAnnot_GetLink(annot);
@@ -655,11 +688,124 @@ void PdfiumEdits::applyToPage(FPDF_DOCUMENT doc, FPDF_PAGE page, int pageIndex,
     for (const EditSession::ImageEdit &ie : session.imageEdits())
         if (ie.page == pageIndex) insertImage(doc, page, ie, pageHeight);
 
+    for (const EditSession::DrawStroke &stroke : session.drawStrokes())
+        if (stroke.page == pageIndex) insertDrawStroke(page, stroke, pageHeight);
+
     colorLinkedText(doc, page, pageIndex, session, pageHeight);
     applyLinkEdits(doc, page, pageIndex, session, pageHeight);
 
     for (Replaced &r : replaced)
         for (FPDF_PAGEOBJECT obj : r.removed) FPDFPageObj_Destroy(obj);
+}
+
+namespace {
+
+void setAnnotationString(FPDF_ANNOTATION annotation, const char *key,
+                         const QString &value)
+{
+    const std::u16string utf16 = value.toStdU16String();
+    FPDFAnnot_SetStringValue(annotation, key,
+        reinterpret_cast<FPDF_WIDESTRING>(utf16.c_str()));
+}
+
+QRectF noteBounds(FPDF_ANNOTATION annotation, double pageHeight)
+{
+    FS_RECTF rect {};
+    if (!FPDFAnnot_GetRect(annotation, &rect)) return {};
+    return QRectF(rect.left, pageHeight - rect.top,
+                  rect.right - rect.left, rect.top - rect.bottom);
+}
+
+QString noteString(FPDF_ANNOTATION annotation, const char *key)
+{
+    const unsigned long bytes = FPDFAnnot_GetStringValue(annotation, key, nullptr, 0);
+    if (bytes <= sizeof(char16_t)) return {};
+    std::vector<char16_t> buffer((bytes + sizeof(char16_t) - 1) / sizeof(char16_t));
+    const unsigned long written = FPDFAnnot_GetStringValue(
+        annotation, key, reinterpret_cast<FPDF_WCHAR *>(buffer.data()), bytes);
+    if (written <= sizeof(char16_t)) return {};
+    return QString::fromUtf16(buffer.data(),
+        static_cast<qsizetype>(written / sizeof(char16_t) - 1));
+}
+
+void setNoteRect(FPDF_ANNOTATION annotation, const QRectF &bounds,
+                 double pageHeight)
+{
+    FS_RECTF rect;
+    rect.left   = static_cast<float>(bounds.left());
+    rect.right  = static_cast<float>(bounds.right());
+    rect.top    = static_cast<float>(pageHeight - bounds.top());
+    rect.bottom = static_cast<float>(pageHeight - bounds.bottom());
+    FPDFAnnot_SetRect(annotation, &rect);
+}
+
+bool sameNoteBounds(const QRectF &a, const QRectF &b)
+{
+    return qAbs(a.left() - b.left()) < 0.5
+        && qAbs(a.top() - b.top()) < 0.5
+        && qAbs(a.width() - b.width()) < 0.5
+        && qAbs(a.height() - b.height()) < 0.5;
+}
+
+} // namespace
+
+void PdfiumEdits::applyNoteEdits(FPDF_PAGE page, int pageIndex,
+                                 const EditSession &session)
+{
+    if (!page) return;
+    const double pageHeight = FPDF_GetPageHeightF(page);
+
+    for (const EditSession::NoteEdit &edit : session.noteEdits()) {
+        if (edit.page != pageIndex || !edit.existing) continue;
+
+        const int count = FPDFPage_GetAnnotCount(page);
+        for (int i = 0; i < count; ++i) {
+            FPDF_ANNOTATION annotation = FPDFPage_GetAnnot(page, i);
+            if (!annotation) continue;
+            const bool rightType = FPDFAnnot_GetSubtype(annotation) == FPDF_ANNOT_TEXT;
+            const QString id = rightType ? noteString(annotation, "NM") : QString();
+            const bool matches = rightType && (
+                (!edit.originalId.isEmpty() && id == edit.originalId)
+                || (edit.originalId.isEmpty()
+                    && noteString(annotation, "Contents") == edit.originalText
+                    && sameNoteBounds(noteBounds(annotation, pageHeight),
+                                      edit.originalBounds)));
+            if (!matches) {
+                FPDFPage_CloseAnnot(annotation);
+                continue;
+            }
+            if (edit.removed) {
+                FPDFPage_CloseAnnot(annotation);
+                FPDFPage_RemoveAnnot(page, i);
+            } else {
+                setNoteRect(annotation, edit.pdfBounds, pageHeight);
+                setAnnotationString(annotation, "NM", edit.id);
+                setAnnotationString(annotation, "T", edit.title);
+                setAnnotationString(annotation, "Contents", edit.text);
+                setAnnotationString(annotation, "OpenPDFPinned",
+                                    edit.pinned ? QStringLiteral("1")
+                                                : QStringLiteral("0"));
+                FPDFPage_CloseAnnot(annotation);
+            }
+            break;
+        }
+    }
+
+    for (const EditSession::NoteEdit &edit : session.noteEdits()) {
+        if (edit.page != pageIndex || edit.existing || edit.removed) continue;
+        FPDF_ANNOTATION annotation = FPDFPage_CreateAnnot(page, FPDF_ANNOT_TEXT);
+        if (!annotation) continue;
+        setNoteRect(annotation, edit.pdfBounds, pageHeight);
+        setAnnotationString(annotation, "NM", edit.id);
+        setAnnotationString(annotation, "T", edit.title);
+        setAnnotationString(annotation, "Contents", edit.text);
+        setAnnotationString(annotation, "OpenPDFPinned",
+                            edit.pinned ? QStringLiteral("1")
+                                        : QStringLiteral("0"));
+        FPDFAnnot_SetColor(annotation, FPDFANNOT_COLORTYPE_Color,
+                           255, 204, 0, 255);
+        FPDFPage_CloseAnnot(annotation);
+    }
 }
 
 #endif

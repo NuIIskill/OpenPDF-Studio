@@ -133,6 +133,14 @@ responsibilities sharing a file. `DocumentView` is the standing example of what
 that costs and is being split down accordingly - new state belongs in a
 controller under `ui/view/`, not on the view.
 
+## Scope discipline
+
+Make the smallest change that directly satisfies the request. Do not turn a
+one-off change into a generalized API, framework, migration, compatibility
+layer or new behavior for saved user state unless the user explicitly asks for
+it. If the request cannot be implemented without widening its scope, stop and
+ask before changing anything.
+
 ## Comments
 
 Write code comments in English. Documentation comments should only give a

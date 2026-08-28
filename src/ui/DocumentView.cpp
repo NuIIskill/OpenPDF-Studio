@@ -8,6 +8,8 @@
 #include "ui/tools/ImageAnnotation.hpp"
 #include "ui/view/ImageAnnotationLayer.hpp"
 #include "ui/view/LinkAnnotationLayer.hpp"
+#include "ui/notes/NoteLayer.hpp"
+#include "ui/draw/DrawingLayer.hpp"
 #include "ui/view/HoverHighlight.hpp"
 #include "ui/view/FindController.hpp"
 #include "ui/view/PageLayoutEngine.hpp"
@@ -83,6 +85,8 @@ void DocumentView::repositionForZoom()
     // are repositioned again when that layout has settled.
     m_selection->relayout();
     m_linkLayer->relayout();
+    m_noteLayer->relayout();
+    m_drawingLayer->relayout();
     QTimer::singleShot(0, this, [this]() { m_selection->relayout(); });
     repositionEditorFrame();
 }
@@ -127,6 +131,8 @@ void DocumentView::setTool(Tool tool)
     // Image annotations are interactive only while the image tool is active.
     m_imageLayer->setToolActive(tool == Tool::Image);
     m_linkLayer->setToolActive(tool == Tool::Attach);
+    m_noteLayer->setToolActive(tool == Tool::Comment);
+    m_drawingLayer->setActive(m_editMode && tool == Tool::Draw);
 
     switch (tool) {
     case Tool::Pan:    viewport()->setCursor(Qt::OpenHandCursor);    break;
@@ -138,6 +144,10 @@ void DocumentView::setTool(Tool tool)
         break;
     case Tool::Attach:
         viewport()->setCursor(Qt::IBeamCursor);
+        break;
+    case Tool::Comment:
+    case Tool::Draw:
+        viewport()->setCursor(Qt::CrossCursor);
         break;
     default:           viewport()->setCursor(Qt::ArrowCursor);       break;
     }
@@ -162,6 +172,53 @@ void DocumentView::copySelectedText()
 void DocumentView::openFind()
 {
     m_find->open();
+}
+
+void DocumentView::setDrawTool(DrawTool tool)
+{
+    m_drawingLayer->setTool(tool);
+}
+
+void DocumentView::setDrawColor(const QColor &color)
+{
+    m_drawingLayer->setColor(color);
+}
+
+void DocumentView::setDrawWidth(qreal widthPt)
+{
+    m_drawingLayer->setWidth(widthPt);
+}
+
+QList<NoteData> DocumentView::notes() const
+{
+    return m_noteLayer ? m_noteLayer->notes() : QList<NoteData>{};
+}
+
+void DocumentView::createNote()
+{
+    if (m_noteLayer && pageCount() > 0)
+        m_noteLayer->addAtPageCenter(currentPage());
+}
+
+void DocumentView::selectNote(const QString &id)
+{
+    if (m_noteLayer) m_noteLayer->activate(id);
+}
+
+void DocumentView::updateNote(const QString &id, const QString &title,
+                              const QString &text)
+{
+    if (m_noteLayer) m_noteLayer->update(id, title, text);
+}
+
+void DocumentView::deleteNote(const QString &id)
+{
+    if (m_noteLayer) m_noteLayer->remove(id);
+}
+
+void DocumentView::setNotePinned(const QString &id, bool pinned)
+{
+    if (m_noteLayer) m_noteLayer->setPinned(id, pinned);
 }
 
 // ── Editor font state (FormatBar sync) ────────────────────────────────────────
@@ -307,6 +364,8 @@ void DocumentView::repositionPageOverlays()
     if (m_find) m_find->relayout();
     m_imageLayer->relayout();
     m_linkLayer->relayout();
+    m_noteLayer->relayout();
+    m_drawingLayer->relayout();
     for (PageOverlay *overlay : std::as_const(m_overlays))
         overlay->relayout();
     repositionEditorFrame();
@@ -481,6 +540,16 @@ bool DocumentView::eventFilter(QObject *obj, QEvent *e)
                 return true;
             }
 
+            if (m_tool == Tool::Comment) {
+                m_noteLayer->addAt(cvsPos);
+                return true;
+            }
+
+            if (m_tool == Tool::Draw) {
+                m_drawingLayer->handlePress(cvsPos);
+                return true;
+            }
+
             switch (m_tool) {
             case Tool::Select:
             case Tool::Attach:
@@ -497,6 +566,10 @@ bool DocumentView::eventFilter(QObject *obj, QEvent *e)
         }
     } else if (e->type() == QEvent::MouseMove) {
         auto *me = static_cast<QMouseEvent *>(e);
+        if (m_tool == Tool::Draw && (me->buttons() & Qt::LeftButton)) {
+            m_drawingLayer->handleMove(toCanvas(me->pos()));
+            return true;
+        }
         // Hover feedback over detected content regions (Acrobat-style).
         if (m_editMode && m_tool == Tool::Text && !m_textTracking)
             m_hover->showAt(toCanvas(me->pos()));
@@ -549,6 +622,10 @@ bool DocumentView::eventFilter(QObject *obj, QEvent *e)
     } else if (e->type() == QEvent::MouseButtonRelease) {
         auto *me = static_cast<QMouseEvent *>(e);
         if (me->button() == Qt::LeftButton) {
+            if (m_tool == Tool::Draw) {
+                m_drawingLayer->handleRelease();
+                return true;
+            }
             if (m_editMode && m_tool == Tool::Text && m_textTracking) {
                 m_textTracking = false;
                 if (m_textDragging) {

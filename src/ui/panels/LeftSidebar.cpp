@@ -18,10 +18,9 @@ QVector<ToolDef> &catalog()
         { QStringLiteral("select"),   QStringLiteral("mouse-pointer-2"), QStringLiteral(QT_TR_NOOP("Select"))     },
         { QStringLiteral("pan"),      QStringLiteral("hand"),            QStringLiteral(QT_TR_NOOP("Pan"))        },
         { QStringLiteral("text"),     QStringLiteral("type"),            QStringLiteral(QT_TR_NOOP("Text")),       true },
-        { QStringLiteral("comment"),  QStringLiteral("message-square"),  QStringLiteral(QT_TR_NOOP("Comment")),    true },
+        { QStringLiteral("comment"),  QStringLiteral("message-square"),  QStringLiteral(QT_TR_NOOP("Notes")),      true },
         { QStringLiteral("draw"),     QStringLiteral("pencil"),          QStringLiteral(QT_TR_NOOP("Draw")),       true },
         { QStringLiteral("image"),    QStringLiteral("image"),           QStringLiteral(QT_TR_NOOP("Image")),      true },
-        { QStringLiteral("table"),    QStringLiteral("table"),           QStringLiteral(QT_TR_NOOP("Table")),      true },
         { QStringLiteral("bookmark"), QStringLiteral("bookmark"),        QStringLiteral(QT_TR_NOOP("Bookmark"))   },
         { QStringLiteral("attach"),   QStringLiteral("paperclip"),       QStringLiteral(QT_TR_NOOP("Attachment")), true },
     };

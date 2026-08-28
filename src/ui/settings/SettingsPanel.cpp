@@ -619,7 +619,7 @@ QWidget *SettingsPanel::buildShortcutsPage()
             { QT_TR_NOOP("Redo"),          "redo",     "Ctrl+Y"       },
             { QT_TR_NOOP("Find"),          "find",     "Ctrl+F"       },
             { QT_TR_NOOP("Text Tool"),     "texttool", "T"            },
-            { QT_TR_NOOP("Add Comment"),   "comment",  "C"            },
+            { QT_TR_NOOP("Notes"),         "comment",  "N"            },
             { QT_TR_NOOP("Zoom In"),       "zoomin",       "Ctrl++"       },
             { QT_TR_NOOP("Zoom Out"),      "zoomout",      "Ctrl+-"       },
             { QT_TR_NOOP("Presentation"),  "presentation", "F5"           },

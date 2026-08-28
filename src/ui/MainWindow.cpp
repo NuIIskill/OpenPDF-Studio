@@ -3,8 +3,10 @@
 #include "ui/PresentationWindow.hpp"
 #include "ui/DocumentView.hpp"
 #include "ui/bookmarks/BookmarkPanel.hpp"
+#include "ui/notes/NotesPanel.hpp"
 #include "ui/bars/TopToolbar.hpp"
 #include "ui/bars/FormatBar.hpp"
+#include "ui/draw/DrawBar.hpp"
 #include "ui/bars/StatusBar.hpp"
 #include "ui/panels/LeftSidebar.hpp"
 #include "ui/panels/ToolPanels.hpp"
@@ -143,6 +145,10 @@ void MainWindow::buildUi()
     m_formatBar->hide();
     root->addWidget(m_formatBar);
 
+    m_drawBar = new DrawBar(central);
+    m_drawBar->hide();
+    root->addWidget(m_drawBar);
+
     // The bookmark panel belongs beside the left tool strip, as in other PDF
     // editors. It is a splitter child so the canvas immediately gives back
     // the space when the panel is closed.
@@ -164,15 +170,21 @@ void MainWindow::buildUi()
     // Toggling is done via setFixedWidth(0 / kWidth) — the QHBoxLayout engine
     // immediately redistributes the freed/taken space to the splitter.
     m_textPanel    = new TextPropertiesPanel(central);
+    m_notesPanel   = new NotesPanel(central);
+    m_notesPanel->setDocumentAvailable(false);
     m_rightSidebar = new RightSidebar(central);
     m_textPanel->setFixedWidth(0);   // collapsed by default
     m_textPanel->hide();
+    m_notesPanel->setFixedWidth(0);
+    m_notesPanel->hide();
 
     auto *row = new QHBoxLayout();
     row->setContentsMargins(0, 0, 0, 0);
     row->setSpacing(0);
     row->addWidget(m_splitter,     1);
     row->addWidget(m_textPanel,    0);
+    row->addWidget(m_notesPanel,   0);
+    m_toolPanels.insert(QStringLiteral("comment"), { m_notesPanel, 356 });
 
     // Panels a tool brings with it (ToolPanels). Same slot as the text panel
     // and the same rule: visible while their tool is chosen.
@@ -226,6 +238,26 @@ void MainWindow::connectSignals()
     connect(m_bookmarkPanel, &BookmarkPanel::bookmarksEdited, this,
             [this](const QList<PdfBookmark> &bookmarks) {
         if (DocumentView *dv = currentDocView()) dv->setBookmarks(bookmarks);
+    });
+    connect(m_notesPanel, &NotesPanel::closeRequested, this, [this]() {
+        onToolSelected(QStringLiteral("select"));
+    });
+    connect(m_notesPanel, &NotesPanel::newNoteRequested, this, [this]() {
+        if (DocumentView *dv = currentDocView()) dv->createNote();
+    });
+    connect(m_notesPanel, &NotesPanel::noteSelected, this, [this](const QString &id) {
+        if (DocumentView *dv = currentDocView()) dv->selectNote(id);
+    });
+    connect(m_notesPanel, &NotesPanel::saveRequested, this,
+            [this](const QString &id, const QString &title, const QString &text) {
+        if (DocumentView *dv = currentDocView()) dv->updateNote(id, title, text);
+    });
+    connect(m_notesPanel, &NotesPanel::deleteRequested, this, [this](const QString &id) {
+        if (DocumentView *dv = currentDocView()) dv->deleteNote(id);
+    });
+    connect(m_notesPanel, &NotesPanel::pinRequested, this,
+            [this](const QString &id, bool pinned) {
+        if (DocumentView *dv = currentDocView()) dv->setNotePinned(id, pinned);
     });
 
     // Right sidebar
@@ -284,6 +316,15 @@ void MainWindow::connectSignals()
         if (DocumentView *dv = currentDocView()) dv->setEditorLineSpacing(multiplier);
     });
 
+    connect(m_drawBar, &DrawBar::toolChanged, this, [this](DrawTool tool) {
+        if (DocumentView *dv = currentDocView()) dv->setDrawTool(tool);
+    });
+    connect(m_drawBar, &DrawBar::widthChanged, this, [this](qreal widthPt) {
+        if (DocumentView *dv = currentDocView()) dv->setDrawWidth(widthPt);
+    });
+    connect(m_drawBar, &DrawBar::colorChanged, this, [this](const QColor &color) {
+        if (DocumentView *dv = currentDocView()) dv->setDrawColor(color);
+    });
     // All keyboard shortcuts — created once here, sequences updated by loadShortcuts()
     struct Def { const char *key; void (MainWindow::*slot)(); };
     const Def defs[] = {
@@ -361,6 +402,7 @@ DocumentView *MainWindow::addDocView()
             m_topToolbar->setTabLabel(i, fi.fileName());
         }
         m_statusBar->setPageInfo(1, pages);
+        if (dv == currentDocView()) m_notesPanel->setDocumentAvailable(pages > 0);
         if (dv == currentDocView()) refreshBookmarkPanel();
     });
 
@@ -404,6 +446,14 @@ DocumentView *MainWindow::addDocView()
         if (dv == currentDocView())
             m_textPanel->setEditorActive(active);
     });
+    connect(dv, &DocumentView::notesChanged, this,
+            [this, dv](const QList<NoteData> &notes) {
+        if (dv == currentDocView()) m_notesPanel->setNotes(notes);
+    });
+    connect(dv, &DocumentView::noteSelected, this,
+            [this, dv](const QString &id) {
+        if (dv == currentDocView()) m_notesPanel->setSelectedNote(id);
+    });
 
     // Sync zoom label when user zooms via mouse wheel
     connect(dv, &DocumentView::zoomChanged, this, [this, dv](int percent) {
@@ -415,6 +465,8 @@ DocumentView *MainWindow::addDocView()
 
     m_docStack->setCurrentWidget(dv);
     m_topToolbar->setCurrentTab(idx);
+    m_notesPanel->setNotes(dv->notes());
+    m_notesPanel->setDocumentAvailable(dv->pageCount() > 0);
     return dv;
 }
 
@@ -426,6 +478,8 @@ DocumentView *MainWindow::currentDocView() const
 void MainWindow::onNewTab()
 {
     addDocView();
+    if (DocumentView *dv = currentDocView()) dv->setEditMode(m_editMode);
+    onToolSelected(m_activeTool);
     refreshBookmarkPanel();
 }
 
@@ -442,6 +496,9 @@ void MainWindow::onTabActivated(int index)
     m_topToolbar->setZoom(m_zoom);
     m_topToolbar->setViewMode(dv->viewMode() == DocumentView::ViewMode::Grid);
     refreshBookmarkPanel();
+    m_notesPanel->setNotes(dv->notes());
+    m_notesPanel->setDocumentAvailable(dv->pageCount() > 0);
+    onToolSelected(m_activeTool);
 }
 
 void MainWindow::onTabCloseRequested(int index)
@@ -455,6 +512,7 @@ void MainWindow::onTabCloseRequested(int index)
         dv->clearDocument();
         m_topToolbar->setTabLabel(0, {});
         m_statusBar->setPageInfo(1, 1);
+        m_notesPanel->setDocumentAvailable(false);
         refreshBookmarkPanel();
         return;
     }
@@ -468,6 +526,9 @@ void MainWindow::onTabCloseRequested(int index)
         const int next = qMin(index, m_docViews.size() - 1);
         m_docStack->setCurrentWidget(m_docViews[next]);
         m_topToolbar->setCurrentTab(next);
+        m_notesPanel->setNotes(m_docViews[next]->notes());
+        m_notesPanel->setDocumentAvailable(m_docViews[next]->pageCount() > 0);
+        onToolSelected(m_activeTool);
         refreshBookmarkPanel();
     }
 }
@@ -653,7 +714,7 @@ void MainWindow::loadShortcuts()
         { "redo",     "Ctrl+Y"       },
         { "find",         "Ctrl+F"       },
         { "texttool",     "T"            },
-        { "comment",      "C"            },
+        { "comment",      "N"            },
         { "zoomin",       "Ctrl++"       },
         { "zoomout",      "Ctrl+-"       },
         { "presentation", "F5"           },
@@ -686,6 +747,8 @@ void MainWindow::onModeSelected(const QString &mode)
         if (!m_editMode) {
             closeTextPanel();
             m_formatBar->hide();
+            m_drawBar->hide();
+            onToolSelected(QStringLiteral("select"));
         }
     } else if (mode == QLatin1String("export")) {
         DocumentView *dv   = currentDocView();
@@ -887,7 +950,9 @@ void MainWindow::onToolSelected(const QString &tool)
     }
 
     const bool isText = (tool == QLatin1String("text"));
+    const bool isDraw = (tool == QLatin1String("draw"));
     m_formatBar->setVisible(m_editMode && isText);
+    m_drawBar->setVisible(m_editMode && isDraw);
 
     if (m_editMode && isText)
         openTextPanel();
@@ -905,6 +970,14 @@ void MainWindow::onToolSelected(const QString &tool)
         dv->setTool(DocumentView::Tool::Text);
     else if (tool == QLatin1String("image"))
         dv->setTool(DocumentView::Tool::Image);
+    else if (tool == QLatin1String("comment"))
+        dv->setTool(DocumentView::Tool::Comment);
+    else if (tool == QLatin1String("draw")) {
+        dv->setDrawTool(m_drawBar->currentTool());
+        dv->setDrawColor(m_drawBar->currentColor());
+        dv->setDrawWidth(m_drawBar->currentWidth());
+        dv->setTool(DocumentView::Tool::Draw);
+    }
     else if (tool == QLatin1String("attach"))
         dv->setTool(DocumentView::Tool::Attach);
     else if (tool == QLatin1String("bookmark"))
@@ -925,9 +998,11 @@ void MainWindow::applyTheme(const QString &mode)
     m_topToolbar->refreshTheme();
     m_leftSidebar->refreshTheme();
     m_bookmarkPanel->refreshTheme();
+    m_notesPanel->refreshTheme();
     m_rightSidebar->refreshTheme();
     m_statusBar->refreshTheme();
     m_formatBar->refreshTheme();
+    m_drawBar->refreshTheme();
     for (DocumentView *dv : m_docViews)
         dv->refreshTheme();
     style()->unpolish(this);
@@ -959,8 +1034,10 @@ void MainWindow::retranslateUi()
 {
     m_topToolbar->retranslateUi();
     m_formatBar->retranslateUi();
+    m_drawBar->retranslateUi();
     m_leftSidebar->retranslateUi();
     m_bookmarkPanel->retranslateUi();
+    m_notesPanel->retranslateUi();
     m_rightSidebar->retranslateUi();
     m_textPanel->retranslateUi();
     m_statusBar->retranslateUi();

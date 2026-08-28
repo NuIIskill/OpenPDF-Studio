@@ -8,9 +8,10 @@
 #include <QSet>
 #include <QImage>
 #include <QString>
+#include <QVector>
 
 
-// Stores pending text, image and link edits for one document session.
+// Stores pending content and annotation edits for one document session.
 class EditSession
 {
 public:
@@ -19,6 +20,15 @@ public:
         int    page;
         QRectF pdfBounds;  // position/size in PDF points (top-left origin)
         QImage image;
+    };
+
+    struct DrawStroke {
+        int              page { -1 };
+        QVector<QPointF> points;
+        QColor           color { QColor(QStringLiteral("#145DFF")) };
+        qreal            widthPt { 2.5 };
+
+        bool operator==(const DrawStroke &) const = default;
     };
 
     struct LinkEdit {
@@ -33,6 +43,23 @@ public:
         bool    colorText { false };
 
         bool operator==(const LinkEdit &) const = default;
+    };
+
+    struct NoteEdit {
+        int     page { -1 };
+        QString id;
+        QString originalId;
+        QString title;
+        QString text;
+        QString originalText;
+        QRectF  pdfBounds;
+        QRectF  originalBounds;
+        bool    existing { false };
+        bool    removed  { false };
+        bool    pinned { false };
+        bool    originalPinned { false };
+
+        bool operator==(const NoteEdit &) const = default;
     };
 
     // A single text edit entry (public so undo/redo commands can snapshot them).
@@ -133,12 +160,19 @@ public:
     void addImageEdit(int page, const QRectF &pdfBounds, const QImage &image);
     void removeImageEdit(int page, const QRectF &pdfBounds);
     bool hasImageEditsOnPage(int page) const;
+    bool hasDrawEditsOnPage(int page) const;
     bool hasLinkEditsOnPage(int page) const;
+    bool hasNoteEditsOnPage(int page) const;
     void clearImageEdits();
     const QList<ImageEdit> &imageEdits() const { return m_imageEdits; }
 
+    void replaceDrawStrokes(QList<DrawStroke> strokes);
+    const QList<DrawStroke> &drawStrokes() const { return m_drawStrokes; }
+
     void replaceLinkEdits(QList<LinkEdit> edits);
     const QList<LinkEdit> &linkEdits() const { return m_linkEdits; }
+    void replaceNoteEdits(QList<NoteEdit> edits);
+    const QList<NoteEdit> &noteEdits() const { return m_noteEdits; }
 
     void clear();
 
@@ -150,7 +184,9 @@ public:
 
     bool    hasEditsOnPage(int page) const;
     bool    hasAnyEdits() const
-    { return !m_edits.isEmpty() || !m_imageEdits.isEmpty() || !m_linkEdits.isEmpty(); }
+    { return !m_edits.isEmpty() || !m_imageEdits.isEmpty()
+          || !m_drawStrokes.isEmpty() || !m_linkEdits.isEmpty()
+          || !m_noteEdits.isEmpty(); }
 
     // Returns current edited text at (page, pdfBounds), or null QString if none.
     QString editTextAt(int page, const QRectF &pdfBounds) const;
@@ -200,5 +236,7 @@ private:
     QList<Edit>       m_suspendedEdits;  // saved by suspendEditsAt(), restored by restoreSuspended()
     QList<ImageEdit>  m_imageEdits;
     quint64           m_imageRevision { 0 };
+    QList<DrawStroke> m_drawStrokes;
     QList<LinkEdit>   m_linkEdits;
+    QList<NoteEdit>   m_noteEdits;
 };

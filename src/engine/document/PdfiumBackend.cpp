@@ -73,6 +73,18 @@ QString bookmarkTitle(FPDF_BOOKMARK bookmark)
                               static_cast<qsizetype>(written / sizeof(char16_t) - 1));
 }
 
+QString annotationString(FPDF_ANNOTATION annotation, const char *key)
+{
+    const unsigned long bytes = FPDFAnnot_GetStringValue(annotation, key, nullptr, 0);
+    if (bytes <= sizeof(char16_t)) return {};
+    std::vector<char16_t> buffer((bytes + sizeof(char16_t) - 1) / sizeof(char16_t));
+    const unsigned long written = FPDFAnnot_GetStringValue(
+        annotation, key, reinterpret_cast<FPDF_WCHAR *>(buffer.data()), bytes);
+    if (written <= sizeof(char16_t)) return {};
+    return QString::fromUtf16(buffer.data(),
+        static_cast<qsizetype>(written / sizeof(char16_t) - 1));
+}
+
 int bookmarkPage(FPDF_DOCUMENT document, FPDF_BOOKMARK bookmark, bool &supported)
 {
     FPDF_DEST dest = FPDFBookmark_GetDest(document, bookmark);
@@ -277,6 +289,38 @@ QList<PdfBackend::Link> PdfiumBackend::pageLinks(int page) const
     return result;
 }
 
+QList<PdfBackend::Note> PdfiumBackend::pageNotes(int page) const
+{
+    QList<Note> result;
+    if (!m_doc || page < 0 || page >= pageCount()) return result;
+
+    FPDF_PAGE pg = FPDF_LoadPage(m_doc, page);
+    if (!pg) return result;
+    const double pageHeight = FPDF_GetPageHeightF(pg);
+
+    const int count = FPDFPage_GetAnnotCount(pg);
+    for (int i = 0; i < count; ++i) {
+        FPDF_ANNOTATION annotation = FPDFPage_GetAnnot(pg, i);
+        if (!annotation) continue;
+        FS_RECTF rect {};
+        if (FPDFAnnot_GetSubtype(annotation) == FPDF_ANNOT_TEXT
+                && FPDFAnnot_GetRect(annotation, &rect)) {
+            Note note;
+            note.id     = annotationString(annotation, "NM");
+            note.title  = annotationString(annotation, "T");
+            note.text   = annotationString(annotation, "Contents");
+            note.pinned = annotationString(annotation, "OpenPDFPinned")
+                       == QLatin1String("1");
+            note.bounds = QRectF(rect.left, pageHeight - rect.top,
+                                 rect.right - rect.left, rect.top - rect.bottom);
+            if (note.bounds.isValid()) result.append(std::move(note));
+        }
+        FPDFPage_CloseAnnot(annotation);
+    }
+    FPDF_ClosePage(pg);
+    return result;
+}
+
 QSizeF PdfiumBackend::pageSizePts(int page) const
 {
     if (!m_doc) return {};
@@ -313,6 +357,7 @@ QImage PdfiumBackend::renderPageInternal(int page, qreal scale,
 
     if (session && !session->hasEditsOnPage(page)
             && !session->hasImageEditsOnPage(page)
+            && !session->hasDrawEditsOnPage(page)
             && !session->hasLinkEditsOnPage(page))
         session = nullptr;
 
