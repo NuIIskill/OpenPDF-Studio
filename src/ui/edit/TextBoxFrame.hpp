@@ -61,6 +61,9 @@ Q_SIGNALS:
     void boundsChanged(QRectF inner);
 
 protected:
+    // The editor covers the frame and sees every click first; presses on the
+    // border strip belong to the frame.
+    bool eventFilter(QObject *watched, QEvent *event) override;
     void paintEvent(QPaintEvent *) override;
     void mousePressEvent(QMouseEvent *) override;
     void mouseMoveEvent(QMouseEvent *) override;
@@ -98,6 +101,8 @@ private:
     TextBoxProperties m_box;
     qreal         m_scale { 1.0 };
     QSizeF        m_boxPt;
+    // Set once the user drags a handle: typing may then only grow the box.
+    bool          m_userSized { false };
     QPointF       m_anchorPt;
     bool          m_hasAnchor { false };
 

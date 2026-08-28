@@ -307,7 +307,9 @@ void MainWindow::connectSignals()
         connect(sc, &QShortcut::activated, this, fn);
         m_shortcuts.insert(QLatin1String(key), sc);
     };
-    addLambda("find",         [this]() { /* TODO: open find dialog */ });
+    addLambda("find",         [this]() {
+        if (DocumentView *dv = currentDocView()) dv->openFind();
+    });
     addLambda("texttool",     [this]() { onToolSelected(QStringLiteral("text")); });
     addLambda("comment",      [this]() { onToolSelected(QStringLiteral("comment")); });
     addLambda("presentation", [this]() { onStartPresentation(); });
@@ -926,6 +928,8 @@ void MainWindow::applyTheme(const QString &mode)
     m_rightSidebar->refreshTheme();
     m_statusBar->refreshTheme();
     m_formatBar->refreshTheme();
+    for (DocumentView *dv : m_docViews)
+        dv->refreshTheme();
     style()->unpolish(this);
     style()->polish(this);
     update();

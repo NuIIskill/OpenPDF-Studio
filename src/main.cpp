@@ -425,8 +425,8 @@ int main(int argc, char *argv[])
             return backend->saveWithEdits(args.at(3), fieldSession) ? 0 : 3;
         }
 
-        // Genau der Weg, den der Inline-Editor geht: Zeile am Punkt suchen,
-        // ihre Glyphenkästen als Löschflächen nehmen, Ersatztext eintragen.
+        // The path the inline editor takes: find the line at the point, take
+        // its glyph boxes as erase areas, record the replacement text.
         const TextBlock block = backend->textAt(page - 1, at);
         if (!block.isValid()) {
             QTextStream(stdout) << "kein Text an dieser Stelle\n";
@@ -549,6 +549,118 @@ int main(int argc, char *argv[])
             editSettle.exec();
 
 
+            // resize=<dx>,<dy> drags a handle, the way a user resizes the box.
+            for (int r = 4; r < args.size(); ++r) {
+                if (!args.at(r).startsWith(QLatin1String("resize="))) continue;
+                // resize=[<handle>:]<dx>,<dy> with handle se (default), e, s, sw, ne.
+                QString spec = args.at(r).mid(7);
+                QString griff = QStringLiteral("se");
+                if (const int dp = spec.indexOf(u':'); dp > 0) {
+                    griff = spec.left(dp);
+                    spec  = spec.mid(dp + 1);
+                }
+                const QStringList d = spec.split(u',');
+                if (d.size() != 2) break;
+                auto *ed = dv->findChild<QTextEdit *>(QStringLiteral("InlineEditor"));
+                QWidget *frame = ed ? ed->parentWidget() : nullptr;
+                if (!frame) break;
+                // The visible line sits on the box edge, kPad in from the
+                // widget edge, which is where a user grabs.
+                const int W = frame->width(), H = frame->height();
+                const int L = 14, R = W - 15, T = 14, B = H - 15;
+                QPoint grab(R, B);
+                if      (griff == QLatin1String("e"))  grab = QPoint(R, H / 2);
+                else if (griff == QLatin1String("s"))  grab = QPoint(W / 2, B);
+                else if (griff == QLatin1String("w"))  grab = QPoint(L, H / 2);
+                else if (griff == QLatin1String("n"))  grab = QPoint(W / 2, T);
+                else if (griff == QLatin1String("sw")) grab = QPoint(L, B);
+                else if (griff == QLatin1String("ne")) grab = QPoint(R, T);
+                const QPoint weg(d.at(0).toInt(), d.at(1).toInt());
+                const QPoint g0 = frame->mapToGlobal(grab);
+                const auto send = [&](QEvent::Type t, const QPoint &lokal,
+                                      const QPoint &global) {
+                    QMouseEvent me(t, QPointF(lokal), QPointF(global),
+                                   Qt::LeftButton,
+                                   t == QEvent::MouseButtonRelease ? Qt::NoButton
+                                                                   : Qt::LeftButton,
+                                   Qt::NoModifier);
+                    QApplication::sendEvent(frame, &me);
+                    QApplication::processEvents();
+                };
+                // Which widget is really there: if the mouse never reaches the
+                // frame, no hitTest result can make the box resizable.
+                {
+                    QTextStream out(stdout);
+                    out << "rahmen im fenster="
+                        << frame->mapTo(win, QPoint(0,0)).x() << ","
+                        << frame->mapTo(win, QPoint(0,0)).y() << " "
+                        << frame->width() << "x" << frame->height()
+                        << "  fenster=" << win->width() << "x" << win->height() << "\n";
+                    const QPoint ecken[8] = {
+                        {10, 10}, {W/2, 10}, {W-11, 10},
+                        {10, H/2}, {W-11, H/2},
+                        {10, H-11}, {W/2, H-11}, {W-11, H-11} };
+                    const char *namen[8] = {"nw","n","ne","w","e","sw","s","se"};
+                    for (int k = 0; k < 8; ++k) {
+                        QWidget *u = frame->childAt(ecken[k]);
+                        out << "  " << namen[k] << " lokal=" << ecken[k].x() << ","
+                            << ecken[k].y() << " kind="
+                            << (u ? u->metaObject()->className() : "(keins, also Rahmen)")
+                            << "\n";
+                    }
+                }
+                // Deliver through Qt, not straight to the frame: only that
+                // path is the one a user takes.
+                if (args.contains(QStringLiteral("echt"))) {
+                    QWidget *ziel = QApplication::widgetAt(g0);
+                    {
+                        QTextStream out(stdout);
+                        out << "zustellung an=";
+                        for (QWidget *w = ziel; w; w = w->parentWidget())
+                            out << w->metaObject()->className()
+                                << "(" << (w->objectName().isEmpty()
+                                               ? QStringLiteral("-") : w->objectName())
+                                << ") < ";
+                        out << "\n";
+                        if (ziel) {
+                            out << "   geometrie=" << ziel->geometry().x() << ","
+                                << ziel->geometry().y() << " "
+                                << ziel->width() << "x" << ziel->height()
+                                << "  mausdurchlaessig="
+                                << ziel->testAttribute(Qt::WA_TransparentForMouseEvents)
+                                << "\n";
+                        }
+                    }
+                    if (ziel) {
+                        const auto echt = [&](QEvent::Type t, const QPoint &global) {
+                            QMouseEvent me(t, QPointF(ziel->mapFromGlobal(global)),
+                                           QPointF(global), Qt::LeftButton,
+                                           t == QEvent::MouseButtonRelease ? Qt::NoButton
+                                                                           : Qt::LeftButton,
+                                           Qt::NoModifier);
+                            QApplication::sendEvent(ziel, &me);
+                            QApplication::processEvents();
+                        };
+                        echt(QEvent::MouseButtonPress, g0);
+                        echt(QEvent::MouseMove, g0 + weg / 2);
+                        echt(QEvent::MouseMove, g0 + weg);
+                        echt(QEvent::MouseButtonRelease, g0 + weg);
+                        QEventLoop s2;
+                        QTimer::singleShot(800, &s2, &QEventLoop::quit);
+                        s2.exec();
+                        break;
+                    }
+                }
+                send(QEvent::MouseButtonPress, grab, g0);
+                send(QEvent::MouseMove, grab + weg / 2, g0 + weg / 2);
+                send(QEvent::MouseMove, grab + weg, g0 + weg);
+                send(QEvent::MouseButtonRelease, grab + weg, g0 + weg);
+                QEventLoop settle;
+                QTimer::singleShot(800, &settle, &QEventLoop::quit);
+                settle.exec();
+                break;
+            }
+
             for (int r = 4; r < args.size(); ++r) {
                 if (!args.at(r).startsWith(QLatin1String("move="))) continue;
                 const QStringList d = args.at(r).mid(5).split(u',');
@@ -596,12 +708,13 @@ int main(int argc, char *argv[])
                     << QStringLiteral("%1,%2,%3,%4").arg(b.x(), 0, 'f', 2)
                            .arg(b.y(), 0, 'f', 2).arg(b.width(), 0, 'f', 2)
                            .arg(b.height(), 0, 'f', 2)
+                    << "  schrift=" << QString::number(dv->editFontSizePt(), 'f', 2)
                     << "  rahmen=" << QStringLiteral("%1,%2,%3,%4").arg(f.x(), 0, 'f', 2)
                            .arg(f.y(), 0, 'f', 2).arg(f.width(), 0, 'f', 2)
                            .arg(f.height(), 0, 'f', 2)
                     << "\n";
             };
-            if (args.contains(QStringLiteral("bounds"))) zeigeBounds("offen");
+            if (args.contains(QStringLiteral("bounds"))) zeigeBounds("danach");
 
             if (args.contains(QStringLiteral("nocaret"))
                     || args.contains(QStringLiteral("caret"))) {

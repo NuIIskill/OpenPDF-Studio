@@ -714,4 +714,50 @@ PdfBackend::Selection PdfiumBackend::selectPage(int page,
     return out;
 }
 
+QList<PdfBackend::TextMatch> PdfiumBackend::findText(const QString &text) const
+{
+    QList<TextMatch> matches;
+    if (!m_doc || text.isEmpty()) return matches;
+
+    std::vector<unsigned short> needle;
+    needle.reserve(static_cast<size_t>(text.size()) + 1);
+    for (const QChar ch : text)
+        needle.push_back(ch.unicode());
+    needle.push_back(0);
+
+    for (int page = 0; page < pageCount(); ++page) {
+        FPDF_PAGE pg = FPDF_LoadPage(m_doc, page);
+        if (!pg) continue;
+        FPDF_TEXTPAGE textPage = FPDFText_LoadPage(pg);
+        if (!textPage) {
+            FPDF_ClosePage(pg);
+            continue;
+        }
+
+        FPDF_SCHHANDLE search = FPDFText_FindStart(textPage, needle.data(), 0, 0);
+        const double pageHeight = FPDF_GetPageHeightF(pg);
+        while (search && FPDFText_FindNext(search)) {
+            const int start = FPDFText_GetSchResultIndex(search);
+            const int count = FPDFText_GetSchCount(search);
+            TextMatch match;
+            match.page = page;
+
+            const int rectCount = FPDFText_CountRects(textPage, start, count);
+            for (int i = 0; i < rectCount; ++i) {
+                double left = 0.0, top = 0.0, right = 0.0, bottom = 0.0;
+                if (!FPDFText_GetRect(textPage, i, &left, &top, &right, &bottom))
+                    continue;
+                match.rects.append(QRectF(left, pageHeight - top,
+                                           right - left, top - bottom));
+            }
+            if (!match.rects.isEmpty()) matches.append(std::move(match));
+        }
+
+        if (search) FPDFText_FindClose(search);
+        FPDFText_ClosePage(textPage);
+        FPDF_ClosePage(pg);
+    }
+    return matches;
+}
+
 #endif // HAVE_PDF_RENDERING && HAVE_PDFIUM

@@ -251,6 +251,50 @@ QPushButton#ToolCustomizeReset:hover { color: #1D4ED8; }
     background-color: #F3F4F6;
 }
 
+#DocumentFindOverlay {
+    background: transparent;
+}
+
+QFrame#DocumentFindBar {
+    background: #FFFFFF;
+    border: 1px solid #D1D5DB;
+    border-radius: 7px;
+}
+
+QLineEdit#DocumentFindInput {
+    background: #FFFFFF;
+    color: #111827;
+    border: 1px solid #D1D5DB;
+    border-radius: 5px;
+    padding: 0px 8px;
+    selection-background-color: #DBEAFE;
+    selection-color: #111827;
+}
+
+QLineEdit#DocumentFindInput:focus {
+    border-color: #93C5FD;
+}
+
+QLabel#DocumentFindCounter {
+    color: #4B5563;
+    font-size: 12px;
+}
+
+QPushButton#DocumentFindButton {
+    background: transparent;
+    border: none;
+    border-radius: 5px;
+    padding: 0px;
+}
+
+QPushButton#DocumentFindButton:hover {
+    background: #F3F4F6;
+}
+
+QPushButton#DocumentFindButton:pressed {
+    background: #E5E7EB;
+}
+
 /* PDF page labels — always white paper */
 QLabel#PageLabel {
     background: #FFFFFF;

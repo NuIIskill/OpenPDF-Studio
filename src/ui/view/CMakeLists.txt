@@ -1,4 +1,6 @@
 target_sources(OpenPDFStudio PRIVATE
+    FindController.cpp
+    FindController.hpp
     HoverHighlight.cpp
     HoverHighlight.hpp
     ImageAnnotationLayer.cpp

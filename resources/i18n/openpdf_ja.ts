@@ -678,4 +678,11 @@ Please use a build that includes Qt6::Pdf support.
         <translation>ドキュメントなし</translation>
     </message>
 </context>
+<context>
+    <name>FindController</name>
+    <message><source>Find in document</source><translation>文書内を検索</translation></message>
+    <message><source>Previous match (Shift+Enter)</source><translation>前の一致（Shift+Enter）</translation></message>
+    <message><source>Next match (Enter)</source><translation>次の一致（Enter）</translation></message>
+    <message><source>Close (Esc)</source><translation>閉じる（Esc）</translation></message>
+</context>
 </TS>

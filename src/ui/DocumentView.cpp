@@ -9,6 +9,7 @@
 #include "ui/view/ImageAnnotationLayer.hpp"
 #include "ui/view/LinkAnnotationLayer.hpp"
 #include "ui/view/HoverHighlight.hpp"
+#include "ui/view/FindController.hpp"
 #include "ui/view/PageLayoutEngine.hpp"
 #include "ui/view/PageOverlay.hpp"
 #include "ui/view/ZoomController.hpp"
@@ -158,6 +159,11 @@ void DocumentView::copySelectedText()
     m_selection->copyToClipboard();
 }
 
+void DocumentView::openFind()
+{
+    m_find->open();
+}
+
 // ── Editor font state (FormatBar sync) ────────────────────────────────────────
 
 int DocumentView::currentPage() const
@@ -247,6 +253,12 @@ void DocumentView::retranslateUi()
         "Please use a build that includes Qt6::Pdf support.\n"
         "(See build-win.sh for instructions.)"));
 #endif
+    if (m_find) m_find->retranslateUi();
+}
+
+void DocumentView::refreshTheme()
+{
+    if (m_find) m_find->refreshTheme();
 }
 
 void DocumentView::changeEvent(QEvent *e)
@@ -276,6 +288,7 @@ void DocumentView::keyPressEvent(QKeyEvent *e)
 void DocumentView::resizeEvent(QResizeEvent *e)
 {
     QScrollArea::resizeEvent(e);
+    if (m_find) m_find->relayout();
     if (m_viewMode == ViewMode::Grid) {
         m_layoutEngine->relayoutGrid(viewport()->width());
         return;
@@ -291,11 +304,30 @@ void DocumentView::resizeEvent(QResizeEvent *e)
 void DocumentView::repositionPageOverlays()
 {
     m_selection->relayout();
+    if (m_find) m_find->relayout();
     m_imageLayer->relayout();
     m_linkLayer->relayout();
     for (PageOverlay *overlay : std::as_const(m_overlays))
         overlay->relayout();
     repositionEditorFrame();
+}
+
+void DocumentView::scrollToSearchMatch(int page, const QRectF &bounds)
+{
+    if (page < 0 || page >= pageLabelCount()) return;
+    if (m_viewMode == ViewMode::Grid) setViewMode(ViewMode::Single);
+
+    QMetaObject::invokeMethod(this, [this, page, bounds]() {
+        if (m_layout) m_layout->activate();
+        const QLabel *label = pageLabel(page);
+        if (!label) return;
+        const int matchY = label->pos().y()
+            + qRound(bounds.center().y() * screenScale());
+        verticalScrollBar()->setValue(
+            qMax(0, matchY - viewport()->height() / 2));
+        reportCurrentPage();
+        m_find->relayout();
+    }, Qt::QueuedConnection);
 }
 
 QRect DocumentView::visibleCanvasRect() const

@@ -233,6 +233,50 @@ QPushButton#ToolCustomizeReset:hover { color: #93C5FD; }
     background-color: #2B2B2B;
 }
 
+#DocumentFindOverlay {
+    background: transparent;
+}
+
+QFrame#DocumentFindBar {
+    background: #353535;
+    border: 1px solid #555555;
+    border-radius: 7px;
+}
+
+QLineEdit#DocumentFindInput {
+    background: #3D3D3D;
+    color: #F3F4F6;
+    border: 1px solid #555555;
+    border-radius: 5px;
+    padding: 0px 8px;
+    selection-background-color: #1D4ED8;
+    selection-color: #FFFFFF;
+}
+
+QLineEdit#DocumentFindInput:focus {
+    border-color: #60A5FA;
+}
+
+QLabel#DocumentFindCounter {
+    color: #B8B8B8;
+    font-size: 12px;
+}
+
+QPushButton#DocumentFindButton {
+    background: transparent;
+    border: none;
+    border-radius: 5px;
+    padding: 0px;
+}
+
+QPushButton#DocumentFindButton:hover {
+    background: #484848;
+}
+
+QPushButton#DocumentFindButton:pressed {
+    background: #555555;
+}
+
 #DocumentView QScrollBar:vertical {
     background: transparent;
     width: 6px;

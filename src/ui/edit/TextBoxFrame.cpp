@@ -2,6 +2,7 @@
 #include "ui/edit/InlineEditor.hpp"
 
 #include <QDebug>
+#include <QApplication>
 #include <QPainter>
 #include <QPen>
 #include <QMouseEvent>
@@ -21,6 +22,8 @@ TextBoxFrame::TextBoxFrame(QWidget *parent) : QWidget(parent)
     hide();
 
     m_editor = new InlineEditor(this);
+    // The editor covers the frame; see eventFilter().
+    m_editor->viewport()->installEventFilter(this);
     m_editor->setAutoFillBackground(false);
     m_editor->viewport()->setAutoFillBackground(false);
     m_editor->viewport()->setStyleSheet("background: transparent;");
@@ -83,17 +86,14 @@ void TextBoxFrame::setBoxProperties(const TextBoxProperties &properties, qreal s
 void TextBoxFrame::setGrowHorizontal(bool on)
 {
     m_growHorizontal = on;
-    // A single-line edit must not wrap, at any zoom. Font sizes are whole
-    // pixels, so the text is relatively wider than its box at low zoom and the
-    // line broke in two — which grew the frame to two lines and, on commit,
-    // painted a line break that is not in the document. growToFitText widens
-    // the frame for these edits instead.
+    // A single-line edit must not wrap at any zoom; the frame widens instead.
     m_editor->setLineWrapMode(on ? QTextEdit::NoWrap : QTextEdit::WidgetWidth);
 }
 
 void TextBoxFrame::growToFitText()
 {
-    if (m_boxPt.isEmpty()) return;
+    // While a handle is dragged the user sets the size, not the content.
+    if (m_boxPt.isEmpty() || m_drag != Handle::None) return;
 
     const qreal fontPt = m_editor->fontPixelSizeF() / m_scale;
     const int   lines  = qMax(1, m_editor->document()->blockCount());
@@ -111,6 +111,12 @@ void TextBoxFrame::growToFitText()
             : m_editor->document()->size().height() / m_scale;
         brauchtH = qMax(brauchtH,
                         minInnerHeight(m_editor->fontPixelSizeF()) / m_scale);
+    }
+
+    // A size the user dragged wins; content may still grow the box.
+    if (m_userSized) {
+        brauchtW = qMax(brauchtW, m_boxPt.width());
+        brauchtH = qMax(brauchtH, m_boxPt.height());
     }
 
     if (qFuzzyCompare(brauchtW + 1.0, m_boxPt.width() + 1.0)
@@ -150,14 +156,7 @@ void TextBoxFrame::repositionForZoom(const QRectF &canvasBounds, qreal px,
     if (m_decorations)
         outer = outer.adjusted(-kPad, -kPad, kPad, kPad);
 
-    // m_presenting suppresses boundsChanged for the WHOLE reposition, growth
-    // included. A zoom must not redefine what is being edited: the frame's
-    // minimum size, its padding and the growth headroom are fixed PIXEL
-    // amounts, so feeding the grown geometry back as PDF points made the
-    // tracked bounds bigger at every zoom step (worst at low zoom, where a
-    // pixel is worth more points) until the box covered half the page — and
-    // it marked an untouched edit as changed. The bounds are already known in
-    // document space; here the frame only re-renders them at a new scale.
+    // A zoom only re-renders known bounds, so it must not emit boundsChanged.
     setGeometry(outer);
     layoutEditor();
     m_editor->setFontSizeF(px);
@@ -195,22 +194,18 @@ void TextBoxFrame::present(const QString &text, const QRectF &canvasBounds, qrea
                            const QColor &color, const QString &fontFamily,
                            bool bold, bool italic)
 {
-    // Empty (drag-created) boxes need room to type into; boxes over existing
-    // text keep the text's width — inflating it would leak into the tracked
-    // edit bounds and misplace the committed edit.
+    // Empty boxes need room to type into; boxes over text keep its width.
     m_minInnerW = text.trimmed().isEmpty() ? 120 : 24;
 
     m_boxPt = canvasBounds.size() / m_scale;
+    m_userSized = false;
     QRect outer(canvasBounds.topLeft().toPoint(),
                 QSize(qCeil(m_boxPt.width() * m_scale),
                       qCeil(m_boxPt.height() * m_scale)));
     if (m_decorations)
         outer = outer.adjusted(-kPad, -kPad, kPad, kPad);
 
-    // Guard boundsChanged during present() — the outer rect expands by kPad on all
-    // sides, so innerRect() would give slightly different PDF coords than the true
-    // block bounds. DocumentView set m_activeEditBounds from block.pdfBounds directly;
-    // don't overwrite it with a canvas-rounded value here.
+    // innerRect() would round the caller's exact block bounds; keep theirs.
     m_presenting = true;
     setGeometry(outer);
     layoutEditor();
@@ -221,9 +216,7 @@ void TextBoxFrame::present(const QString &text, const QRectF &canvasBounds, qrea
     update();
     m_presenting = false;
 
-    // If the text needs more room than the detected bounds (e.g. a paragraph
-    // taller than its rect), grow now — no text may open hidden. Emits
-    // boundsChanged so DocumentView tracks the grown edit area.
+    // No text may open hidden, so grow past the detected bounds if needed.
     growToFitText();
     layoutEditor();
 
@@ -265,7 +258,10 @@ int TextBoxFrame::handleSize() const
 TextBoxFrame::Handle TextBoxFrame::hitTest(const QPoint &p) const
 {
     const QRect in = innerRect();
-    if (in.contains(p)) return Handle::None;
+    // The border line sits on this edge, so a strip inside it still grabs.
+    constexpr int griff = 3;
+    if (in.adjusted(griff, griff, -griff, -griff).contains(p))
+        return Handle::None;
 
     const int zone = handleSize() + 2;
     const auto nearTo = [zone](int a, int b) { return qAbs(a - b) <= zone; };
@@ -307,9 +303,9 @@ void TextBoxFrame::mousePressEvent(QMouseEvent *e)
     if (e->button() == Qt::LeftButton) {
         const Handle h = hitTest(e->pos());
         if (h != Handle::None) {
-            m_drag         = h;
-            m_dragOrigin   = e->globalPosition().toPoint();
-            m_dragStartGeo = geometry();
+            m_drag           = h;
+            m_dragOrigin     = e->globalPosition().toPoint();
+            m_dragStartGeo   = geometry();
             applyCursor(h);
             m_editor->setDragMode(true);
             m_editor->suppressNextFocusOut();
@@ -348,9 +344,8 @@ void TextBoxFrame::mouseMoveEvent(QMouseEvent *e)
             geo.setBottom(qMax(geo.bottom() + d.y(), geo.top() + minH));
     }
 
-    // Moving is FREE across the whole canvas — the box may be dragged onto
-    // any other page; DocumentView retargets the page under the box center
-    // via boundsChanged. Only resizing stays clamped to the current page.
+    // Moving is free across the canvas, so the box can be dragged onto another
+    // page. Only resizing stays clamped to the current one.
     if (!m_pageRect.isNull() && m_drag != Handle::Move) {
         geo = geo.intersected(m_pageRect).normalized();
         if (geo.width() < minW || geo.height() < minH)
@@ -364,15 +359,25 @@ void TextBoxFrame::mouseMoveEvent(QMouseEvent *e)
 void TextBoxFrame::mouseReleaseEvent(QMouseEvent *e)
 {
     if (e->button() == Qt::LeftButton && m_drag != Handle::None) {
-        // A 1-2 px jitter while clicking the border must not move the box —
-        // an accidental offset commits the text slightly displaced.
+        // Jitter while clicking the border must not displace the text.
         if (m_drag == Handle::Move
                 && (geometry().topLeft() - m_dragStartGeo.topLeft())
                        .manhattanLength() <= 2)
             setGeometry(m_dragStartGeo);
+        // A resized box keeps its width: the text reflows into it instead of
+        // the box following the longest line.
+        else if (m_drag != Handle::Move && geometry() != m_dragStartGeo) {
+            m_userSized = true;
+            if (m_growHorizontal) {
+                m_growHorizontal = false;
+                m_editor->setLineWrapMode(QTextEdit::WidgetWidth);
+            }
+        }
         m_drag = Handle::None;
         unsetCursor();
         e->accept();
+        growToFitText();
+        layoutEditor();
         Q_EMIT dragEnded();
         m_editor->suppressNextFocusOut();
         m_editor->setFocus();
@@ -387,6 +392,34 @@ void TextBoxFrame::mouseReleaseEvent(QMouseEvent *e)
 }
 
 // ── Paint ─────────────────────────────────────────────────────────────────────
+
+bool TextBoxFrame::eventFilter(QObject *watched, QEvent *event)
+{
+    if (!m_decorations || watched != m_editor->viewport())
+        return QWidget::eventFilter(watched, event);
+
+    switch (event->type()) {
+    case QEvent::MouseButtonPress:
+    case QEvent::MouseMove:
+    case QEvent::MouseButtonRelease:
+        break;
+    default:
+        return QWidget::eventFilter(watched, event);
+    }
+
+    auto *me = static_cast<QMouseEvent *>(event);
+    const QPoint imRahmen = m_editor->viewport()->mapTo(this, me->pos());
+    // During a drag every event belongs to the frame: Qt keeps delivering to
+    // the editor, where the press landed.
+    if (m_drag == Handle::None && hitTest(imRahmen) == Handle::None)
+        return QWidget::eventFilter(watched, event);
+
+    QMouseEvent weiter(me->type(), QPointF(imRahmen), me->scenePosition(),
+                       me->globalPosition(), me->button(), me->buttons(),
+                       me->modifiers(), me->source());
+    QApplication::sendEvent(this, &weiter);
+    return true;
+}
 
 void TextBoxFrame::paintEvent(QPaintEvent *)
 {

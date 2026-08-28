@@ -49,6 +49,7 @@ public:
                         const QString &text, double sizePt) const override;
     bool    hasSelectableText(int page) const override;
 
+    QList<TextMatch> findText(const QString &text) const override;
     Selection selectPage(int page, const std::optional<QPointF> &from,
                          const std::optional<QPointF> &to) const override;
 

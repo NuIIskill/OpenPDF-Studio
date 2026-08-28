@@ -22,6 +22,7 @@ class LinkAnnotationLayer;
 class PageOverlay;
 class PageLayoutEngine;
 class HoverHighlight;
+class FindController;
 class TextSelectionController;
 class ZoomController;
 
@@ -79,6 +80,7 @@ public:
     void   setViewMode(ViewMode mode);
     bool   saveToFile(const QString &path);
     void   retranslateUi();
+    void   refreshTheme();
     // Called by MainWindow when the user changes the font size in the FormatBar.
     void   setEditorFontSize(int ptSize);
     // Called by MainWindow when the user changes the text color in the FormatBar.
@@ -114,6 +116,7 @@ public:
     QUndoStack *undoStack()        const { return m_undoStack; }
     QRectF editBounds() const;
     QRectF editFrameRect() const;
+    double editFontSizePt() const;
     /// Change log of the open document — what the history panel shows.
     DocumentHistory *history()     const { return m_journal.history(); }
     /// Puts the document back into the state history entry `index` describes.
@@ -137,6 +140,7 @@ public:
     // Select tool: text marked on the page (empty when nothing is selected).
     QString     selectedText() const;
     void        copySelectedText();
+    void        openFind();
 
     // ── PageCanvas ────────────────────────────────────────────────────────────
     QWidget *canvasWidget()   const override { return m_canvas; }
@@ -188,6 +192,7 @@ private:
     // viewport, so opening a side panel shifts every page sideways without
     // any of the layout signals firing.
     void   repositionPageOverlays();
+    void   scrollToSearchMatch(int page, const QRectF &bounds);
 
 #ifdef HAVE_PDF_RENDERING
     // Bundles the engine-level objects the exporter borrows.
@@ -299,6 +304,9 @@ private:
 
     // Select-tool text marking, including its highlight overlays.
     TextSelectionController *m_selection { nullptr };
+
+    // Floating Ctrl+F bar and its page-anchored result highlights.
+    FindController *m_find { nullptr };
 
     // Text-tool drag-to-create state (viewport coords)
     bool   m_textTracking { false };

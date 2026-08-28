@@ -148,6 +148,13 @@ public:
         QString       text;
     };
 
+    struct TextMatch {
+        int           page { -1 };
+        QList<QRectF> rects;
+    };
+
+    virtual QList<TextMatch> findText(const QString &text) const = 0;
+
     /// Auswahl auf `page` zwischen zwei Ankern in PDF-Punkten. Ein nicht
     /// gesetzter Anker heißt „vom Anfang" beziehungsweise „bis zum Ende" der
     /// Seite — genau das bekommen die Seiten in der Mitte einer mehrseitigen

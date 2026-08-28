@@ -1854,4 +1854,11 @@ Enter the password to open it:</source>
     <message><source>Page %1</source><translation>Seite %1</translation></message>
     <message><source>Delete &quot;%1&quot; and its child bookmarks?</source><translation>„%1“ und alle untergeordneten Lesezeichen löschen?</translation></message>
 </context>
+<context>
+    <name>FindController</name>
+    <message><source>Find in document</source><translation>Im Dokument suchen</translation></message>
+    <message><source>Previous match (Shift+Enter)</source><translation>Vorheriger Treffer (Umschalt+Eingabetaste)</translation></message>
+    <message><source>Next match (Enter)</source><translation>Nächster Treffer (Eingabetaste)</translation></message>
+    <message><source>Close (Esc)</source><translation>Schließen (Esc)</translation></message>
+</context>
 </TS>

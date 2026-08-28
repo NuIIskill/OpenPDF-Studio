@@ -678,4 +678,11 @@ Please use a build that includes Qt6::Pdf support.
         <translation>Aucun document</translation>
     </message>
 </context>
+<context>
+    <name>FindController</name>
+    <message><source>Find in document</source><translation>Rechercher dans le document</translation></message>
+    <message><source>Previous match (Shift+Enter)</source><translation>Résultat précédent (Maj+Entrée)</translation></message>
+    <message><source>Next match (Enter)</source><translation>Résultat suivant (Entrée)</translation></message>
+    <message><source>Close (Esc)</source><translation>Fermer (Échap)</translation></message>
+</context>
 </TS>

@@ -13,6 +13,7 @@
 #include "ui/tools/ImageAnnotation.hpp"
 #include "ui/view/ImageAnnotationLayer.hpp"
 #include "ui/view/LinkAnnotationLayer.hpp"
+#include "ui/view/FindController.hpp"
 #include "ui/view/PageOverlay.hpp"
 #include "ui/view/HoverHighlight.hpp"
 #include "ui/view/PageLayoutEngine.hpp"
@@ -79,6 +80,7 @@ void DocumentView::clearDocument()
 {
     cancelCurrentEdit();
     m_selection->clear();
+    m_find->documentChanged();
 
     if (m_viewMode == ViewMode::Grid) {
         m_layoutEngine->clearGrid();
@@ -159,6 +161,7 @@ bool DocumentView::openFile(const QString &path)
     resetContentProvider();
     m_dropHint->hide();
     m_layoutEngine->buildPages();
+    m_find->documentChanged();
     m_linkLayer->reload();
     // Once the scroll area has laid the new pages out, hand the engine the
     // window it actually renders — until then the page positions are all 0.
@@ -179,6 +182,7 @@ bool DocumentView::openFile(const QString &path)
     Q_EMIT bookmarkDataChanged();
     SessionStore::discard(previousWorkingFile);
     m_src->setPageCount(1);
+    m_find->documentChanged();
     m_dropHint->show();
     retranslateUi();
     m_journal.noteDocumentOpened(QFileInfo(currentFile()).fileName());

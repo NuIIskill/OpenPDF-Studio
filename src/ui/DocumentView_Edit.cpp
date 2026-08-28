@@ -13,6 +13,7 @@
 #include "ui/view/ImageAnnotationLayer.hpp"
 #include "ui/view/LinkAnnotationLayer.hpp"
 #include "ui/view/HoverHighlight.hpp"
+#include "ui/view/FindController.hpp"
 #include "ui/view/PageLayoutEngine.hpp"
 #include "ui/view/PageOverlay.hpp"
 #include "ui/view/ZoomController.hpp"
@@ -106,6 +107,10 @@ DocumentView::DocumentView(QWidget *parent)
     m_selection = new TextSelectionController(this, this);
     connect(m_selection, &TextSelectionController::focusRequested,
             this, [this]() { setFocus(Qt::MouseFocusReason); });
+
+    m_find = new FindController(this, viewport(), m_src.get(), this);
+    connect(m_find, &FindController::matchActivated,
+            this, &DocumentView::scrollToSearchMatch);
 
     m_imageLayer = new ImageAnnotationLayer(this, this);
     connect(m_imageLayer, &ImageAnnotationLayer::pageNeedsRerender,
@@ -301,6 +306,15 @@ QRectF DocumentView::editBounds() const
     return m_edit.activeEditPage >= 0 ? m_edit.activeEditBounds : QRectF();
 #else
     return {};
+#endif
+}
+
+double DocumentView::editFontSizePt() const
+{
+#ifdef HAVE_PDF_RENDERING
+    return m_edit.activeEditPage >= 0 ? m_edit.currentEditorFontSizePt : 0.0;
+#else
+    return 0.0;
 #endif
 }
 
