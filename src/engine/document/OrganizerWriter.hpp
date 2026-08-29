@@ -6,16 +6,15 @@
 #include <QMap>
 #include <QString>
 
-// One page of the organized document: where it comes from, how it is turned.
+/// Describes one source page and its organizer transformations.
 struct OrganizerPage {
     QString pdfPath;
     int     pageIndex { 0 };
     bool    isBlank   { false };
-    int     rotation  { 0 };   // 0, 90, 180, 270
+    int     rotation  { 0 };
 };
 
-// Writes an organized page list to a PDF. Tries a vector save that copies the
-// source pages, falls back to rasterising them.
+/// Writes an organized page list to a PDF.
 class OrganizerWriter
 {
 public:
@@ -23,7 +22,7 @@ public:
     struct Result {
         bool  ok { false };
         Error error { Error::None };
-        int   lostPages { 0 };   // RenderFailures: how many did not render
+        int   lostPages { 0 };
         int   totalPages { 0 };
     };
 

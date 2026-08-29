@@ -12,9 +12,6 @@
 
 namespace {
 
-// Qt PDF renders onto a TRANSPARENT background — the "paper" reads as
-// rgba(0,0,0,0). Composite over white before interpreting any pixel, or
-// blank paper counts as pitch black.
 inline QRgb pixelOverWhite(const QImage &img, int x, int y)
 {
     const QRgb c = img.pixel(x, y);
@@ -31,9 +28,6 @@ inline int lumAt(const QImage &img, int x, int y)
     return (qRed(c) * 299 + qGreen(c) * 587 + qBlue(c) * 114) / 1000;
 }
 
-// Background = most frequent luminance in the region. Taking the mode (not
-// "white") keeps the measurement working on colored table rows and on dark
-// headers with light text.
 int backgroundLuminance(const QImage &img, const QRect &sr)
 {
     QMap<int, int> hist;
@@ -46,18 +40,6 @@ int backgroundLuminance(const QImage &img, const QRect &sr)
     return bgLum;
 }
 
-// ── Font-size calibration ─────────────────────────────────────────────────────
-// How tall text LOOKS is not decided by its point size alone: the ink-to-em
-// ratio differs from font to font, and the family we paint an edit with is
-// rarely the embedded one (the Poppler backend reports no family at all, and
-// the vector save substitutes Standard-14 fonts). On top of that, only the
-// qpdf scanner knows the real /Tf size — every other source estimates it from
-// line boxes. So the size is derived from what is actually on the page: the
-// measured ink height of the original glyphs.
-
-// Vertical ink runs inside `region`: a run is a sequence of rows carrying
-// pixels that stand out from the region's background, reported as its first
-// row, its height in rows, and the number of ink pixels it holds.
 struct InkRun { int top; int height; qint64 pixels; };
 
 QList<InkRun> inkRuns(const QImage &img, const QRect &region)
@@ -74,7 +56,7 @@ QList<InkRun> inkRuns(const QImage &img, const QRect &region)
         int ink = 0;
         for (int x = sr.left(); x <= sr.right(); ++x)
             if (std::abs(lumAt(img, x, y) - bgLum) > 40) ++ink;
-        // Two pixels per row: a single one is antialiasing noise.
+
         if (ink >= 2) {
             if (start < 0) { start = y; pixels = 0; }
             pixels += ink;
@@ -87,7 +69,6 @@ QList<InkRun> inkRuns(const QImage &img, const QRect &region)
     return runs;
 }
 
-// Leftmost column between rows `top` and `bottom` that carries ink, or -1.
 int inkLeftPx(const QImage &img, const QRect &region, int top, int bottom)
 {
     const QRect sr = region.intersected(img.rect());
@@ -106,17 +87,7 @@ int inkLeftPx(const QImage &img, const QRect &region, int top, int bottom)
     return -1;
 }
 
-// The main ink run inside `region` — the run holding the most ink, which for
-// text is the body of the letters. `top` is its first row (-1 = nothing found),
-// `height` its extent, `left` the first column carrying ink within it.
-//
-// Both sides of the calibration go through this same function, and that is the
-// whole point: page and probe must be measured alike, down to which part of the
-// glyphs counts. Taking the densest run rather than the full ink extent is what
-// makes that possible — an accent sits beyond a gap that is indistinguishable
-// from tight line spacing, so no honest rule could include it on the page side.
-// The caller's job is to hand this function a region with room to spare, or the
-// run comes back clipped on one side only (see measuredInkPt).
+/// Stores one contiguous ink run.
 struct InkLine { int top { -1 }; int height { 0 }; int left { -1 }; };
 
 InkLine inkLinePx(const QImage &img, const QRect &region)
@@ -124,8 +95,6 @@ InkLine inkLinePx(const QImage &img, const QRect &region)
     const QList<InkRun> runs = inkRuns(img, region);
     if (runs.isEmpty()) return {};
 
-    // Ink count, not height: it keeps accents, rules and cell borders from
-    // being mistaken for the text — they are thin AND sparse.
     const InkRun *main = &runs.first();
     for (const InkRun &r : runs)
         if (r.pixels > main->pixels) main = &r;
@@ -137,7 +106,7 @@ InkLine inkLinePx(const QImage &img, const QRect &region)
     return out;
 }
 
-}   // namespace
+}
 
 namespace InkMetrics {
 
@@ -169,7 +138,7 @@ QColor sampleTextColor(const QImage &img, const QRect &region)
         b += qBlue(pixels[i].rgb);
     }
     const QColor core(int(r / n), int(g / n), int(b / n));
-    // Nothing dark at all → no real text under the rect; default ink.
+
     if (core.lightnessF() > 0.82) return QColor(0x11, 0x11, 0x11);
     return core;
 }
@@ -207,12 +176,6 @@ MeasuredInk measuredInkPt(const QImage &img, const QRectF &boundsPt, qreal scale
     const MeasuredInk tight = measure(boundsPt);
     if (tight.height <= 0.0) return tight;
 
-    // A line box cuts accents and descenders off, so measuring inside it
-    // reports LESS ink than the text really has — while the reference this is
-    // compared against is drawn with room to spare. That gap alone shrinks
-    // every edited line by a few percent. Measuring again with headroom closes
-    // it, as long as the extra rows did not drag a neighbouring line in: a
-    // second line of text roughly doubles the run, real accents add a fraction.
     const double pad = qMax(1.0, boundsPt.height() * 0.25);
     const MeasuredInk padded = measure(boundsPt.adjusted(0, -pad, 0, pad));
     if (padded.height > tight.height && padded.height <= tight.height * 1.35)
@@ -222,23 +185,21 @@ MeasuredInk measuredInkPt(const QImage &img, const QRectF &boundsPt, qreal scale
 
 FontInk fontInkPerPt(const QString &text, QFont f)
 {
-    constexpr int kRef = 64;   // large enough that hinting rounding is noise
+    constexpr int kRef = 64;
     f.setPixelSize(kRef);
     const QFontMetricsF fm(f);
 
     QList<double> heights, rises, bearings;
     const QStringList lines = text.split(u'\n');
     for (const QString &raw : lines) {
-        // The vertical extremes come from a handful of glyphs; capping the
-        // length keeps the probe image small on very long lines.
+
         const QString ln = raw.trimmed().left(120);
         if (ln.isEmpty()) continue;
 
         const int w = qBound(4 * kRef,
                              qCeil(fm.horizontalAdvance(ln)) + 2 * kRef,
                              8000);
-        // Pen at (kRef/2, 2*kRef) — drawn from the baseline, so the measured
-        // ink box is directly relative to the anchor the caller needs.
+
         constexpr int kPenX = kRef / 2;
         constexpr int kBase = 2 * kRef;
         QImage probe(w, 4 * kRef, QImage::Format_RGB32);
@@ -267,4 +228,4 @@ FontInk fontInkPerPt(const QString &text, QFont f)
     return { median(heights), median(rises), median(bearings) };
 }
 
-}   // namespace InkMetrics
+}

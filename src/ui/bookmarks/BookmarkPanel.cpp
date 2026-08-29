@@ -34,7 +34,7 @@ QList<int> variantPath(const QVariant &variant)
     return path;
 }
 
-} // namespace
+}
 
 BookmarkPanel::BookmarkPanel(QWidget *parent)
     : QWidget(parent)

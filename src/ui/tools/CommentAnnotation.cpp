@@ -19,7 +19,6 @@ CommentAnnotation::CommentAnnotation(QWidget *parent)
     root->setContentsMargins(0, 0, 0, 0);
     root->setSpacing(0);
 
-    // Drag bar
     auto *bar = new QWidget(this);
     bar->setFixedHeight(BAR_H);
     bar->setStyleSheet(QStringLiteral("background:#FB923C; border-radius:3px 3px 0 0;"));
@@ -60,7 +59,6 @@ CommentAnnotation::CommentAnnotation(QWidget *parent)
 
     root->addWidget(bar);
 
-    // Text area
     m_edit = new QTextEdit(this);
     m_edit->setPlaceholderText(tr("Enter comment…"));
     m_edit->setStyleSheet(QStringLiteral(

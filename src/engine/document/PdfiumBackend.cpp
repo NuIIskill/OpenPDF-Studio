@@ -24,13 +24,6 @@
 
 namespace {
 
-// FPDF_InitLibrary gehört genau einmal pro Prozess aufgerufen, aber es gibt
-// mehrere Backends gleichzeitig: eines für die Ansicht, eines für den Organizer,
-// eines für die Präsentation. Ein Zähler hält die Bibliothek so lange am Leben,
-// wie mindestens eines davon existiert.
-//
-// Nicht threadsicher, und das ist Absicht — Backends entstehen ausschließlich im
-// UI-Thread. Sollte sich das je ändern, gehört hier ein Mutex hin.
 int g_pdfiumUsers = 0;
 
 void retainPdfium()
@@ -50,7 +43,6 @@ void releasePdfium()
     FPDF_DestroyLibrary();
 }
 
-// Öffnet mit genau einem Passwort. Leer heißt "ohne".
 FPDF_DOCUMENT loadWith(const QByteArray &utf8Path, const QString &password)
 {
     const QByteArray pw = password.toUtf8();
@@ -154,7 +146,7 @@ bool objectTouches(FPDF_PAGEOBJECT object, const QList<QRectF> &rects,
     return false;
 }
 
-} // namespace
+}
 
 PdfiumBackend::PdfiumBackend()
 {
@@ -172,18 +164,15 @@ bool PdfiumBackend::open(const QString &path, const PasswordAsker &ask)
     if (path.isEmpty()) return false;
     const QByteArray utf8 = path.toUtf8();
 
-    // Erst mit dem, was für diese Datei schon bekannt ist (Wiederöffnen,
-    // Arbeitskopie) — danach erst wird gefragt.
     FPDF_DOCUMENT opened = loadWith(utf8, PdfPwStore::get(path));
 
     for (int attempt = 0; ask && !opened && FPDF_GetLastError() == FPDF_ERR_PASSWORD;
          ++attempt) {
         const std::optional<QString> entered = ask(path, attempt > 0);
-        if (!entered) break;                            // abgebrochen
+        if (!entered) break;
         opened = loadWith(utf8, *entered);
         if (opened) {
-            // Jeder andere Leser dieser Datei — Inhaltsscanner, Sitzung,
-            // Exporter — holt sich das Passwort von hier.
+
             PdfPwStore::set(path, *entered);
         }
     }
@@ -191,8 +180,7 @@ bool PdfiumBackend::open(const QString &path, const PasswordAsker &ask)
     if (!opened) {
         qWarning() << "PdfiumBackend: could not open" << path
                    << "- error" << FPDF_GetLastError();
-        // Das vorherige Dokument bleibt offen und die Ansicht zeigt weiter, was
-        // sie hatte — genau wie bei den beiden anderen Backends.
+
         return false;
     }
 
@@ -331,8 +319,7 @@ QSizeF PdfiumBackend::pageSizePts(int page) const
 
 QSize PdfiumBackend::pixelSize(int page, qreal scale) const
 {
-    // Gerundet wie im Qt-Backend, das dieselbe Engine benutzt: so bleibt der
-    // Vergleich zwischen beiden ein Vergleich der Engine und nicht der Rundung.
+
     const QSizeF pts = pageSizePts(page);
     return QSize(qRound(pts.width() * scale), qRound(pts.height() * scale));
 }
@@ -366,10 +353,6 @@ QImage PdfiumBackend::renderPageInternal(int page, qreal scale,
 
     if (session) PdfiumEdits::applyToPage(m_doc, pg, page, *session);
 
-    // alpha = 0: die Bitmap hat kein Alpha, das Layout ist BGRx und entspricht
-    // damit QImage::Format_RGB32. Vorher weiß füllen — dann stellt sich die
-    // Frage nach vormultipliziertem Alpha gar nicht erst, und die Seite sieht
-    // aus wie bei den anderen Backends.
     FPDF_BITMAP bmp = FPDFBitmap_Create(px.width(), px.height(), 0);
     if (!bmp) { FPDF_ClosePage(pg); return {}; }
     FPDFBitmap_FillRect(bmp, 0, 0, px.width(), px.height(), 0xFFFFFFFF);
@@ -378,8 +361,7 @@ QImage PdfiumBackend::renderPageInternal(int page, qreal scale,
     const auto *buffer = static_cast<const uchar *>(FPDFBitmap_GetBuffer(bmp));
     QImage rendered;
     if (buffer) {
-        // Der Puffer gehört PDFium und stirbt gleich — deshalb eine echte Kopie
-        // und keine Sicht darauf.
+
         rendered = QImage(buffer, px.width(), px.height(),
                           FPDFBitmap_GetStride(bmp), QImage::Format_RGB32).copy();
     }
@@ -405,29 +387,15 @@ bool PdfiumBackend::saveWithEdits(const QString &outputPath,
     return PdfiumWriter::save(m_path, outputPath, session);
 }
 
-// ── Text ─────────────────────────────────────────────────────────────────────
-//
-// PDFiums Text-API rechnet in PDF-Koordinaten: Ursprung unten links, Y nach
-// oben. Das Interface hier — und alles darüber — rechnet oben links mit Y nach
-// unten. Umgerechnet wird deshalb an genau einer Stelle, in linesOfPage(); ab
-// da ist alles Qt-Konvention.
-
-/// Ein Zeichen mit seinem Kasten, bereits in Qt-Koordinaten.
-///
-/// Im globalen Namensraum, weil der Header ihn vorwärts deklariert.
 struct PdfiumChar {
     QRectF box;
     QChar  ch;
-    int    index { 0 };   ///< Index in PDFiums eigener Zeichenliste
+    int    index { 0 };
     double fontSize { 0.0 };
-    /// Y der Schriftgrundlinie. Zeilen werden danach gebildet und NICHT nach
-    /// der Kastenmitte: ein Komma hängt unter die Grundlinie, ein Großbuchstabe
-    /// ragt darüber. Nach Mitten gruppiert brach die Zeile "… sicher, wenn …"
-    /// genau am Komma.
+
     double baseline { 0.0 };
 };
 
-/// Eine sichtbare Zeile mit ihrem Text.
 struct PdfiumLine {
     QRectF  rect;
     QString text;
@@ -443,8 +411,6 @@ bool centerInAny(const QRectF &box, const QList<QRectF> &zones)
     return false;
 }
 
-/// Lesereihenfolge: erst die Zeile, dann die Position darin. Dieselbe Regel wie
-/// im Poppler-Backend, damit sich beide gleich verhalten.
 bool readingOrderLess(const PdfiumChar &a, const PdfiumChar &b)
 {
     if (!PdfiumTextRules::sameLine(a.baseline, b.baseline,
@@ -453,9 +419,6 @@ bool readingOrderLess(const PdfiumChar &a, const PdfiumChar &b)
     return a.box.left() < b.box.left();
 }
 
-/// Index des Zeichens, zu dem ein Anker gehört. Senkrechter Abstand wiegt
-/// schwerer, damit ein Punkt im rechten Rand am Ende SEINER Zeile landet und
-/// nicht in einer waagerecht näheren darüber.
 int anchorIndex(const std::vector<PdfiumChar> &chars, const QPointF &pt)
 {
     if (chars.empty()) return -1;
@@ -471,7 +434,7 @@ int anchorIndex(const std::vector<PdfiumChar> &chars, const QPointF &pt)
     return best;
 }
 
-} // namespace
+}
 
 std::vector<PdfiumLine> PdfiumBackend::linesOfPage(int page,
                                                    const QList<QRectF> &exclude,
@@ -502,10 +465,9 @@ std::vector<PdfiumLine> PdfiumBackend::linesOfPage(int page,
         double originX = 0, originY = 0;
         FPDFText_GetCharOrigin(tp, i, &originX, &originY);
 
-        // Hier und nur hier wird gespiegelt: PDF rechnet von unten, wir von oben.
         const QRectF box(left, pageHeight - top, right - left, top - bottom);
         if (box.width() <= 0.0 && box.height() <= 0.0) continue;
-        // Von der Sitzung überschriebene Stellen gelten als leer.
+
         if (centerInAny(box, exclude)) continue;
 
         chars.push_back({ box, ch, i, FPDFText_GetFontSize(tp, i),
@@ -513,7 +475,6 @@ std::vector<PdfiumLine> PdfiumBackend::linesOfPage(int page,
     }
     std::sort(chars.begin(), chars.end(), readingOrderLess);
 
-    // Anker beschneiden den Bereich; ohne Anker gilt die ganze Seite.
     int first = 0;
     int last  = static_cast<int>(chars.size()) - 1;
     if (from) first = anchorIndex(chars, *from);
@@ -619,12 +580,6 @@ TextBlock PdfiumBackend::textAt(int page, const QPointF &pdfPt,
     }
     if (!best) return {};
 
-    // Nur treffen, was in Reichweite liegt: ein Klick weit neben dem Text darf
-    // nicht die nächstbeste Zeile aufmachen. 40 pt ist dieselbe Grenze, die der
-    // Qt-Extraktor in seinem dritten Durchgang ansetzt und die das
-    // Regionenmodell für seine Umkreissuche benutzt — eine engere Fassung ließ
-    // hier Klicks ins Leere laufen, die auf dem alten Pfad noch eine Zeile
-    // öffneten.
     const QRectF &r = best->rect;
     const double dy = qMax(0.0, qMax(r.top()  - pdfPt.y(), pdfPt.y() - r.bottom()));
     const double dx = qMax(0.0, qMax(r.left() - pdfPt.x(), pdfPt.x() - r.right()));
@@ -717,6 +672,31 @@ double PdfiumBackend::textWidthPt(int page, const QPointF &pdfPt,
     return width;
 }
 
+double PdfiumBackend::standardTextWidthPt(const QString &family, bool bold,
+                                          bool italic, const QString &text,
+                                          double sizePt) const
+{
+    if (!m_doc || sizePt <= 0.0) return -1.0;
+    if (text.isEmpty()) return 0.0;
+    FPDF_FONT font = FPDFText_LoadStandardFont(
+        m_doc, PdfiumFonts::standardFontFor(family, bold, italic).constData());
+    if (!font) return -1.0;
+    double width = 0.0;
+    for (const uint cp : text.toUcs4()) {
+        float advance = 0.f;
+        if (FPDFFont_GetGlyphWidth(font, cp, static_cast<float>(sizePt), &advance))
+            width += advance;
+    }
+    FPDFFont_Close(font);
+    return width;
+}
+
+bool PdfiumBackend::canEmbedFont(const QString &family, bool bold,
+                                 bool italic) const
+{
+    return !PdfiumFonts::fontData(family, bold, italic).isEmpty();
+}
+
 QString PdfiumBackend::embeddedFontFamily(int page, const QPointF &pdfPt) const
 {
     if (!m_doc) return {};
@@ -805,4 +785,4 @@ QList<PdfBackend::TextMatch> PdfiumBackend::findText(const QString &text) const
     return matches;
 }
 
-#endif // HAVE_PDF_RENDERING && HAVE_PDFIUM
+#endif

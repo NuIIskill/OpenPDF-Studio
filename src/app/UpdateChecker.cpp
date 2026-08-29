@@ -17,16 +17,12 @@
 
 namespace {
 
-// The same list the tags page shows, as JSON. per_page is capped at 100 by
-// GitHub; the newest tags come first, so one page is always enough.
 constexpr auto kApiUrl =
     "https://api.github.com/repos/NuIIskill/OpenPDF-Studio/tags?per_page=100";
-// Where the ready-made packages are - the tags above only answer "which
-// version is the current one", not "where do I get it".
+
 constexpr auto kDownloadPage = "https://openpdf-studio.nullskill.de/download.html";
 
-// A tag broken into what can be compared: the numeric components, and
-// whatever was appended after a '-' or '+' ("rc1", "beta.2", a build id).
+/// Stores the comparable parts of a release tag.
 struct Version {
     QList<int> parts;
     QString    pre;
@@ -53,7 +49,7 @@ Version parseVersion(const QString &tag)
         bool ok = false;
         const int n = f.toInt(&ok);
         if (!ok || n < 0)
-            return v;          // not a version — the caller skips it
+            return v;
         v.parts.append(n);
     }
     v.valid = !v.parts.isEmpty();
@@ -69,14 +65,14 @@ int compare(const Version &a, const Version &b)
         if (x != y)
             return x < y ? -1 : 1;
     }
-    // Same numbers: the finished release outranks its own pre-releases.
+
     if (a.pre == b.pre)      return 0;
     if (a.pre.isEmpty())     return 1;
     if (b.pre.isEmpty())     return -1;
     return a.pre < b.pre ? -1 : 1;
 }
 
-} // namespace
+}
 
 UpdateChecker::UpdateChecker(AppSettings *settings, QObject *parent)
     : QObject(parent)
@@ -126,8 +122,7 @@ bool UpdateChecker::isDue(const QString &interval, const QDateTime &last,
 {
     if (interval == QLatin1String("startup"))
         return true;
-    // Never checked, or the clock has moved backwards since — either way
-    // waiting for a date that may never come is worse than one more request.
+
     if (!last.isValid() || last > now)
         return true;
 
@@ -136,7 +131,7 @@ bool UpdateChecker::isDue(const QString &interval, const QDateTime &last,
         return days >= 7;
     if (interval == QLatin1String("monthly"))
         return days >= 30;
-    return days >= 1;   // "daily", and anything unrecognised
+    return days >= 1;
 }
 
 void UpdateChecker::checkNow()
@@ -165,11 +160,10 @@ void UpdateChecker::send()
     QNetworkRequest req{QUrl(QLatin1StringView(kApiUrl))};
     req.setRawHeader("Accept", "application/vnd.github+json");
     req.setRawHeader("X-GitHub-Api-Version", "2022-11-28");
-    // GitHub rejects requests without one.
+
     req.setHeader(QNetworkRequest::UserAgentHeader,
                   QStringLiteral("OpenPDF-Studio/%1").arg(currentVersion()));
-    // A stalled connection must not leave the checker busy for the rest of
-    // the session — the button in Advanced would stay dead.
+
     req.setTransferTimeout(15000);
 
     m_reply = m_nam->get(req);
@@ -216,8 +210,7 @@ void UpdateChecker::handleReply()
 
     r.ok = true;
     r.updateAvailable = compareVersions(r.latest, r.current) > 0;
-    // Only a check that got an answer counts against the interval; an
-    // offline start should try again next time rather than wait a day.
+
     if (m_settings)
         m_settings->setLastUpdateCheck(QDateTime::currentDateTimeUtc());
 

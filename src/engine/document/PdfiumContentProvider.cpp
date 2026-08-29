@@ -16,21 +16,16 @@
 
 namespace {
 
-/// Text eines PDFium-Aufrufs, der UTF-16 in einen Puffer schreibt und dessen
-/// Größe in BYTES zurückgibt — inklusive abschließender Null. Diese Konvention
-/// ist bei jedem der Aufrufe gleich und einmal an einer Stelle zu behandeln
-/// besser als fünfmal daneben.
 template <typename Fn>
 QString utf16Value(Fn &&call)
 {
     const unsigned long bytes = call(nullptr, 0);
-    if (bytes <= 2) return {};                  // nur die Null
+    if (bytes <= 2) return {};
     std::vector<unsigned short> buffer(bytes / 2 + 1, 0);
     call(buffer.data(), bytes);
     return QString::fromUtf16(reinterpret_cast<const char16_t *>(buffer.data()));
 }
 
-/// PDF rechnet von unten, das Regionenmodell von oben.
 QRectF toTopLeft(const FS_RECTF &r, double pageHeight)
 {
     return QRectF(r.left, pageHeight - r.top,
@@ -45,7 +40,6 @@ QColor fillColorAt(FPDF_TEXTPAGE tp, int index)
     return QColor(static_cast<int>(r), static_cast<int>(g), static_cast<int>(b));
 }
 
-/// Zeichenketten-Eintrag aus dem Wörterbuch einer Annotation.
 QString annotString(FPDF_ANNOTATION annot, const char *key)
 {
     return utf16Value([&](unsigned short *buf, unsigned long len) {
@@ -53,9 +47,6 @@ QString annotString(FPDF_ANNOTATION annot, const char *key)
     });
 }
 
-/// Schriftgröße aus dem /DA eines Formularfeldes, etwa "/Helv 12 Tf 0 g".
-/// Gesucht ist die Zahl unmittelbar vor dem Operator "Tf"; 0 heißt "automatisch"
-/// und gilt hier als unbekannt.
 double fontSizeFromDA(const QString &da)
 {
     const QStringList tokens = da.split(QRegularExpression(QStringLiteral("\\s+")),
@@ -79,7 +70,7 @@ QString fontNameAt(FPDF_TEXTPAGE tp, int index)
     return QString::fromUtf8(buffer.data());
 }
 
-} // namespace
+}
 
 PdfiumContentProvider::PdfiumContentProvider(FPDF_DOCUMENT doc)
     : m_doc(doc)
@@ -95,9 +86,7 @@ QList<ContentItem> PdfiumContentProvider::buildPage(int page)
 
 QList<ContentItem> PdfiumContentProvider::pageItemsForExport(int page)
 {
-    // Keep one item per visual line/cell, as the 0.2.5 export path did. The
-    // DOCX layout pass needs those baselines to reconstruct row pitch and
-    // wrapped cells; merged editor paragraphs discard that information.
+
     return buildPageItems(page, false);
 }
 
@@ -121,8 +110,6 @@ QList<ContentItem> PdfiumContentProvider::buildPageItems(int page,
     }
     FPDF_ClosePage(pg);
 
-    // Reihenfolge wie im Poppler-Pfad: Felder zuerst, damit ein Klick in ein
-    // Formularfeld dieses trifft und nicht den Text, der darin steht.
     QList<ContentItem> result;
     result.reserve(fields.size() + text.size() + media.size());
     result += fields;
@@ -155,7 +142,7 @@ QList<ContentCluster> PdfiumContentProvider::collectWords(FPDF_TEXTPAGE tp,
 
         const QChar ch(static_cast<char16_t>(FPDFText_GetUnicode(tp, i)));
         if (ch.isNull()) continue;
-        if (ch.isSpace()) { flush(); continue; }   // Leerzeichen trennen Wörter
+        if (ch.isSpace()) { flush(); continue; }
 
         double originX = 0, originY = 0;
         FPDFText_GetCharOrigin(tp, i, &originX, &originY);
@@ -163,7 +150,6 @@ QList<ContentCluster> PdfiumContentProvider::collectWords(FPDF_TEXTPAGE tp,
         const double baseline = pageHeight - originY;
         const double fontSize = FPDFText_GetFontSize(tp, i);
 
-        // Ein Zeilenwechsel oder eine Lücke ohne Leerzeichen beendet das Wort.
         if (open && (!PdfiumTextRules::sameLine(baseline, lastBaseline, box.height())
                      || PdfiumTextRules::separatesWords(lastBox, box, fontSize)))
             flush();
@@ -171,8 +157,7 @@ QList<ContentCluster> PdfiumContentProvider::collectWords(FPDF_TEXTPAGE tp,
         if (!open) {
             current.bounds        = box;
             current.text          = QString(ch);
-            // Die Schriftgröße steht im Dokument und muss nicht aus Kastenhöhen
-            // geschätzt werden — der Unterschied zu beiden Vorgängern.
+
             current.fontSizePt    = fontSize > 0.0 ? fontSize : qMax(2.0, box.height());
             current.fontSizeExact = fontSize > 0.0;
             current.rawFontName   = fontNameAt(tp, i);
@@ -205,8 +190,7 @@ void PdfiumContentProvider::collectAnnotations(FPDF_PAGE pg, double pageHeight,
         const int  subtype  = FPDFAnnot_GetSubtype(annot);
 
         if (haveRect && subtype == FPDF_ANNOT_WIDGET) {
-            // Nur Textfelder: Knöpfe und Auswahllisten kann der Inline-Editor
-            // nicht bearbeiten, und als anklickbare Region wären sie im Weg.
+
             if (annotString(annot, "FT") == QLatin1String("Tx")) {
                 ContentItem item;
                 item.type      = ContentItem::Type::FormField;
@@ -215,7 +199,7 @@ void PdfiumContentProvider::collectAnnotations(FPDF_PAGE pg, double pageHeight,
                 item.text      = annotString(annot, "V");
                 const double size = fontSizeFromDA(annotString(annot, "DA"));
                 if (size > 0.0) {
-                    item.fontSizePt    = size;   // aus dem /DA des Feldes — exakt
+                    item.fontSizePt    = size;
                     item.fontSizeExact = true;
                 }
                 if (item.isValid()) fields->append(std::move(item));
@@ -223,7 +207,7 @@ void PdfiumContentProvider::collectAnnotations(FPDF_PAGE pg, double pageHeight,
         } else if (haveRect && (subtype == FPDF_ANNOT_SCREEN
                                 || subtype == FPDF_ANNOT_MOVIE
                                 || subtype == FPDF_ANNOT_RICHMEDIA)) {
-            // Medien werden erkannt, damit der Editor sie in Ruhe lässt.
+
             ContentItem item;
             item.type   = ContentItem::Type::Media;
             item.bounds = toTopLeft(rect, pageHeight);
@@ -234,4 +218,4 @@ void PdfiumContentProvider::collectAnnotations(FPDF_PAGE pg, double pageHeight,
     }
 }
 
-#endif // HAVE_PDF_RENDERING && HAVE_PDFIUM
+#endif

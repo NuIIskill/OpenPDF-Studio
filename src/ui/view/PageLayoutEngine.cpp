@@ -17,8 +17,8 @@
 #include <limits>
 
 namespace GridConst {
-    constexpr int RENDER_W  = 400;  // internal render quality (px wide)
-    constexpr int MIN_CARD_W = 180; // minimum card width for column count calculation
+    constexpr int RENDER_W  = 400;
+    constexpr int MIN_CARD_W = 180;
     constexpr int LABEL_H   = 24;
     constexpr int V_PAD     = 10;
     constexpr int COL_GAP   = 16;
@@ -27,11 +27,9 @@ namespace GridConst {
 }
 
 namespace {
-    // A wheel gesture arrives as a burst of ticks. Rendering after each one
-    // means the user waits for renders of zoom levels that were already left
-    // behind — collect the burst and render the level it ended on.
+
     constexpr int kZoomRenderDelayMs   = 110;
-    // Scrolling only ever exposes pages, so it can react much faster.
+
     constexpr int kScrollRenderDelayMs = 30;
 }
 
@@ -54,8 +52,6 @@ void PageLayoutEngine::setSource(PdfRenderer *renderer, EditSession *session)
     m_session  = session;
 }
 #endif
-
-// ── Single-column pages ───────────────────────────────────────────────────────
 
 void PageLayoutEngine::clearPages()
 {
@@ -88,9 +84,6 @@ void PageLayoutEngine::buildPages()
         m_pageLabels.append(lbl);
     }
 
-    // A freshly built document is shown from the top, whatever the previous
-    // one was scrolled to — keep the window there so the first render pass
-    // covers the pages the user is about to see.
     m_visibleRect.moveTo(0, 0);
     rerenderAll();
 }
@@ -113,8 +106,7 @@ void PageLayoutEngine::setVisibleRect(const QRect &canvasRect)
 void PageLayoutEngine::scheduleRender(int delayMs)
 {
     if (m_pageLabels.isEmpty()) return;
-    // A pass that is already due sooner keeps its deadline: a scroll during a
-    // zoom burst must not be pushed back behind the zoom's longer delay.
+
     if (m_renderTimer->isActive() && m_renderTimer->remainingTime() <= delayMs)
         return;
     m_renderTimer->start(delayMs);
@@ -129,9 +121,6 @@ void PageLayoutEngine::resizePages()
         if (sz.isEmpty()) continue;
         QLabel *lbl = m_pageLabels[i];
 
-        // Stand-in until the real render lands. It is always scaled from the
-        // last REAL render, never from a previous stand-in, so a burst of
-        // wheel ticks does not blur the page a little more every time.
         const auto it = m_rendered.constFind(i);
         if (it != m_rendered.cend() && !it->pixmap.isNull()) {
             const qreal dpr = it->pixmap.devicePixelRatio();
@@ -143,8 +132,7 @@ void PageLayoutEngine::resizePages()
         }
         lbl->setFixedSize(sz);
     }
-    // The page positions are read right after this (scroll anchoring, editor
-    // placement), and Qt would only update them once the event loop runs.
+
     if (m_layout) m_layout->activate();
 #endif
     Q_EMIT layoutChanged();
@@ -153,10 +141,8 @@ void PageLayoutEngine::resizePages()
 std::pair<int, int> PageLayoutEngine::visibleRange() const
 {
     if (m_pageLabels.isEmpty()) return { 0, -1 };
-    if (m_visibleRect.isEmpty()) return { 0, 0 };   // not measured yet: first page
+    if (m_visibleRect.isEmpty()) return { 0, 0 };
 
-    // Half a screen of slack on each side so a short scroll never lands on a
-    // page that still has to be rendered.
     const int slack = m_visibleRect.height() / 2;
     const QRect window = m_visibleRect.adjusted(0, -slack, 0, slack);
 
@@ -169,8 +155,6 @@ std::pair<int, int> PageLayoutEngine::visibleRange() const
     }
     if (first >= 0) return { first, last };
 
-    // Nothing intersects (page geometry not laid out yet, scrolled past the
-    // end): fall back to the page closest to the middle of the window.
     const int center = window.center().y();
     int best = 0, bestDist = std::numeric_limits<int>::max();
     for (int i = 0; i < m_pageLabels.size(); ++i) {
@@ -191,12 +175,10 @@ void PageLayoutEngine::renderPending()
 
     bool changed = false;
 
-    // Free what left the window BEFORE rendering what entered it, so the peak
-    // stays at a couple of pages even at 300 %.
     for (auto it = m_rendered.begin(); it != m_rendered.end(); ) {
         if (it.key() < first || it.key() > last) {
             if (QLabel *lbl = m_pageLabels.value(it.key(), nullptr))
-                lbl->setPixmap(QPixmap());   // falls back to the white page sheet
+                lbl->setPixmap(QPixmap());
             it = m_rendered.erase(it);
             changed = true;
         } else {
@@ -241,10 +223,7 @@ void PageLayoutEngine::renderNow(int page)
     }
     QImage img = m_renderer->renderPage(page, scale * dpr, use);
     if (img.isNull()) {
-        // A render that failed (a page Poppler chokes on, or no memory for the
-        // bitmap at high zoom) must not leave the pixmap of the PREVIOUS zoom
-        // on the label — it would be drawn clipped inside the new page size
-        // and look like a corrupted page.
+
         lbl->setPixmap(QPixmap());
         m_rendered.remove(page);
         return;
@@ -253,10 +232,7 @@ void PageLayoutEngine::renderNow(int page)
     img.setDevicePixelRatio(dpr);
 
     QPixmap pm = QPixmap::fromImage(std::move(img));
-    // pageDisplaySize() sized the widget for the same zoom, but on a fractional
-    // display scale the two roundings can still end up a pixel apart. Keep the
-    // widget exactly as large as what it shows — QLabel centres a pixmap that
-    // does not fit and clips it.
+
     const QSize logical = (QSizeF(pm.size()) / pm.devicePixelRatio()).toSize();
     if (!logical.isEmpty() && logical != lbl->size()) lbl->setFixedSize(logical);
     lbl->setPixmap(pm);
@@ -268,10 +244,7 @@ void PageLayoutEngine::renderNow(int page)
 
 void PageLayoutEngine::rerenderAll()
 {
-    // Everything on screen is stale (new document, saved file, undo). Dropping
-    // the pixmaps instead of only the cache also frees the pages that are
-    // currently off screen; the visible ones are painted again right below,
-    // before anything reaches the screen.
+
     for (QLabel *lbl : m_pageLabels) lbl->setPixmap(QPixmap());
     m_rendered.clear();
     resizePages();
@@ -281,12 +254,11 @@ void PageLayoutEngine::rerenderAll()
 void PageLayoutEngine::rerenderPage(int page)
 {
     if (page < 0 || page >= m_pageLabels.size()) return;
-    if (m_blank.page == page) m_blank = {};   // the edit that owned it is over
+    if (m_blank.page == page) m_blank = {};
     if (m_preview.page == page) m_preview = {};
     m_rendered.remove(page);
     const auto [first, last] = visibleRange();
-    // Off-screen pages have no pixmap to refresh; dropping the cache entry
-    // above is enough to make them render fresh when they scroll back in.
+
     if (page >= first && page <= last) renderNow(page);
 }
 
@@ -307,8 +279,6 @@ void PageLayoutEngine::setPreviewEdits(int page, const QList<EditSession::Edit> 
     if (was >= 0 && was != page) { m_rendered.remove(was); renderNow(was); }
     if (page >= 0) { m_rendered.remove(page); renderNow(page); }
 }
-
-// ── Grid view ─────────────────────────────────────────────────────────────────
 
 void PageLayoutEngine::clearGrid()
 {
@@ -349,8 +319,6 @@ void PageLayoutEngine::buildGridItems()
         pal.setColor(QPalette::Window, Qt::white);
         thumb->setPalette(pal);
 
-        // Translated under the DocumentView context before the extraction —
-        // naming it explicitly keeps the existing .ts entries valid.
         auto *lbl = new QLabel(
             QCoreApplication::translate("DocumentView", "Page %1").arg(i + 1), card);
         lbl->setObjectName(QStringLiteral("GridPageLabel"));
@@ -360,10 +328,6 @@ void PageLayoutEngine::buildGridItems()
         vl->addWidget(thumb, 1);
         vl->addWidget(lbl, 0);
 
-        // The cards go up at once; the pictures follow one per turn of the
-        // event loop. Rasterising every page in this loop froze the whole
-        // program for as long as it took, which during video playback showed
-        // as the player stopping dead.
         m_gridCardIndex[card] = i;
         m_gridItems.append({card, thumb, lbl, QPixmap()});
     }
@@ -380,17 +344,12 @@ void PageLayoutEngine::buildGridItems()
 void PageLayoutEngine::renderNextThumbnail(int generation, int index, int attempt)
 {
 #ifdef HAVE_PDF_RENDERING
-    // The grid this step belongs to may be gone: the document was closed, the
-    // view switched back, a new grid built.
+
     if (generation != m_gridGeneration || !m_renderer) return;
     if (index < 0 || index >= m_gridItems.size()) return;
 
     GridItem &item = m_gridItems[index];
 
-    // relayoutGrid gives the cards their size, and it runs after this was
-    // scheduled. Rendering before that would scale every picture against a
-    // card that is not there yet, which is how the first thumbnails came out
-    // as stamps. Wait a turn, but not forever.
     const QSize area = item.thumb ? item.thumb->size() : QSize();
     if ((area.width() < 20 || area.height() < 20) && attempt < 50) {
         QMetaObject::invokeMethod(this, [this, generation, index, attempt]() {
@@ -401,7 +360,6 @@ void PageLayoutEngine::renderNextThumbnail(int generation, int index, int attemp
 
     const qreal dpr = m_canvas->devicePixelRatioF();
 
-    // Render at RENDER_W for quality; relayoutGrid scales to actual card width
     const QSize sz100 = m_renderer->pageDisplaySize(index, 100);
     if (sz100.width() > 0) {
         const int   tZoom  = qMax(1, GridConst::RENDER_W * 100 / sz100.width());
@@ -410,8 +368,7 @@ void PageLayoutEngine::renderNextThumbnail(int generation, int index, int attemp
         img.setDevicePixelRatio(dpr);
         if (!img.isNull()) item.original = QPixmap::fromImage(std::move(img));
     }
-    // Into the space the layout actually gave the label, the same way
-    // relayoutGrid does it.
+
     if (item.thumb && !item.original.isNull()) {
         item.thumb->setPixmap(area.isValid() && area.width() >= 20
             ? item.original.scaled(area, Qt::KeepAspectRatio,
@@ -431,22 +388,15 @@ void PageLayoutEngine::relayoutGrid(int availableWidth)
 {
     if (m_gridItems.isEmpty()) return;
 
-    // availableWidth is the scroll area's viewport width, measured by the caller
-    // either from resizeEvent (after Qt has already resized the viewport) or from
-    // a QueuedConnection (after the event loop processes the new widget install).
-    // setWidgetResizable(true) keeps the canvas at exactly viewport width, so this
-    // is the authoritative measurement.
     const int availW = qMax(GridConst::MIN_CARD_W + GridConst::MARGIN * 2,
                             availableWidth);
 
-    // Fill the full row: compute column count from MIN_CARD_W, then expand each card.
     const int cols  = qMax(1, (availW - GridConst::MARGIN * 2 + GridConst::COL_GAP)
                                / (GridConst::MIN_CARD_W + GridConst::COL_GAP));
     const int cardW = (availW - GridConst::MARGIN * 2 - (cols - 1) * GridConst::COL_GAP) / cols;
     const int thumbW = qMax(1, cardW - GridConst::V_PAD * 2);
 
-    // Compute thumb height from page 0 aspect ratio
-    int thumbH = qRound(thumbW * 1.414);  // A4 portrait fallback
+    int thumbH = qRound(thumbW * 1.414);
 #ifdef HAVE_PDF_RENDERING
     if (m_renderer && m_pageCount > 0) {
         const QSize sz100 = m_renderer->pageDisplaySize(0, 100);
@@ -460,8 +410,6 @@ void PageLayoutEngine::relayoutGrid(int availableWidth)
                        + rows * (cardH + GridConst::ROW_GAP) - GridConst::ROW_GAP
                        + GridConst::MARGIN;
 
-    // setWidgetResizable(true) manages the width; we only control the height so the
-    // scroll area can add a vertical scrollbar when the grid is taller than the viewport.
     m_gridCanvas->setMinimumHeight(totalH);
 
     for (int i = 0; i < m_gridItems.size(); ++i) {
@@ -471,7 +419,6 @@ void PageLayoutEngine::relayoutGrid(int availableWidth)
         const int y   = GridConst::MARGIN + row * (cardH + GridConst::ROW_GAP);
         m_gridItems[i].card->setGeometry(x, y, cardW, cardH);
 
-        // Scale stored original pixmap to match the current thumb area
         if (!m_gridItems[i].original.isNull())
             m_gridItems[i].thumb->setPixmap(
                 m_gridItems[i].original.scaled(thumbW, thumbH,
@@ -481,7 +428,7 @@ void PageLayoutEngine::relayoutGrid(int availableWidth)
 
 bool PageLayoutEngine::eventFilter(QObject *obj, QEvent *e)
 {
-    // Grid card click → the view switches to single mode and scrolls there.
+
     if (m_gridActive && e->type() == QEvent::MouseButtonRelease) {
         auto it = m_gridCardIndex.constFind(obj);
         if (it != m_gridCardIndex.cend()) {

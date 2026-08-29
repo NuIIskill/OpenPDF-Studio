@@ -31,8 +31,6 @@ bool MediaScanner::available()
 
 namespace {
 
-// ── Small helpers on objects ─────────────────────────────────────────────────
-
 QString nameOf(QPDFObjectHandle oh, const char *key)
 {
     QPDFObjectHandle v = oh.getKey(key);
@@ -45,8 +43,6 @@ QString stringOf(QPDFObjectHandle oh, const char *key)
     return v.isString() ? QString::fromStdString(v.getUTF8Value()) : QString();
 }
 
-/// A filespec's embedded file stream, or null. The keys are platform variants
-/// of the same attachment; the first that really is a stream wins.
 QPDFObjectHandle embeddedStream(QPDFObjectHandle filespec)
 {
     if (!filespec.isDictionary()) return QPDFObjectHandle::newNull();
@@ -66,9 +62,6 @@ QString filespecName(QPDFObjectHandle filespec)
     return uf.isEmpty() ? stringOf(filespec, "/F") : uf;
 }
 
-/// An embedded file stream's /Subtype is the MIME type written as a name:
-/// "video/mp4" appears as /video#2Fmp4. getName() already unescapes it; the
-/// leading slash stays.
 QString mimeFromStream(QPDFObjectHandle stream)
 {
     if (!stream.isStream()) return QString();
@@ -102,13 +95,6 @@ qint64 declaredSize(QPDFObjectHandle stream)
     return size.isInteger() ? static_cast<qint64>(size.getIntValue()) : 0;
 }
 
-// ── The three annotation kinds ───────────────────────────────────────────────
-
-/// /RichMedia, what Acrobat writes when inserting a video.
-///
-/// The configuration first, because it says which asset is meant to play; a
-/// document may carry several. Only when that yields nothing usable does the
-/// name tree get walked.
 QPDFObjectHandle richMediaAsset(QPDFObjectHandle annot, QPDF &pdf)
 {
     QPDFObjectHandle content = annot.getKey("/RichMediaContent");
@@ -133,18 +119,50 @@ QPDFObjectHandle richMediaAsset(QPDFObjectHandle annot, QPDF &pdf)
     QPDFObjectHandle assets = content.getKey("/Assets");
     if (!assets.isDictionary()) return QPDFObjectHandle::newNull();
     try {
-        QPDFNameTreeObjectHelper tree(assets, pdf, /*auto_repair=*/false);
+        QPDFNameTreeObjectHelper tree(assets, pdf,  false);
         for (auto it = tree.begin(); it != tree.end(); ++it)
             if (!embeddedStream(it->second).isNull()) return it->second;
     } catch (const std::exception &) {
-        // A broken name tree is no reason to give up on the document.
+
     }
     return QPDFObjectHandle::newNull();
 }
 
-/// /Screen: playback through a rendition action, the older standard route.
-/// The clip hangs under /A /R /C /D, and /D is either a filespec or the
-/// stream itself.
+void readRichMediaOptions(QPDFObjectHandle annot, MediaAsset *asset)
+{
+    QPDFObjectHandle settings = annot.getKey("/RichMediaSettings");
+    if (!settings.isDictionary()) return;
+    QPDFObjectHandle activation = settings.getKey("/Activation");
+    if (!activation.isDictionary()) return;
+
+    asset->activateOnPageOpen = nameOf(activation, "/Condition") == QLatin1String("/PO");
+    QPDFObjectHandle presentation = activation.getKey("/Presentation");
+    if (presentation.isDictionary()) {
+        asset->floating = nameOf(presentation, "/Style") == QLatin1String("/Windowed");
+        QPDFObjectHandle toolbar = presentation.getKey("/Toolbar");
+        if (toolbar.isBool()) asset->showControls = toolbar.getBoolValue();
+    }
+
+    QPDFObjectHandle content = annot.getKey("/RichMediaContent");
+    if (!content.isDictionary()) return;
+    QPDFObjectHandle configs = content.getKey("/Configurations");
+    if (!configs.isArray() || configs.getArrayNItems() == 0) return;
+    QPDFObjectHandle config = configs.getArrayItem(0);
+    if (!config.isDictionary()) return;
+    QPDFObjectHandle instances = config.getKey("/Instances");
+    if (!instances.isArray() || instances.getArrayNItems() == 0) return;
+    QPDFObjectHandle instance = instances.getArrayItem(0);
+    if (!instance.isDictionary()) return;
+    QPDFObjectHandle params = instance.getKey("/Params");
+    if (!params.isDictionary()) return;
+    const QString flashVars = stringOf(params, "/FlashVars");
+    for (const QString &part : flashVars.split(QLatin1Char('&'))) {
+        if (part == QLatin1String("loop=true")) asset->loop = true;
+        if (part.startsWith(QLatin1String("volume=")))
+            asset->muted = part.mid(7).toDouble() <= 0.0;
+    }
+}
+
 void screenClip(QPDFObjectHandle annot, QPDFObjectHandle *filespec,
                 QPDFObjectHandle *stream, QString *mime)
 {
@@ -163,8 +181,6 @@ void screenClip(QPDFObjectHandle annot, QPDFObjectHandle *filespec,
     if (data.isStream())          *stream   = data;
     else if (data.isDictionary()) *filespec = data;
 }
-
-// ── Page geometry ────────────────────────────────────────────────────────────
 
 struct PageBox { double left { 0 }, top { 0 }; bool valid { false }; };
 
@@ -190,9 +206,6 @@ PageBox pageBox(QPDFPageObjectHelper &page)
     return box;
 }
 
-/// /Rect is in PDF coordinates (Y up, origin at the page box corner); the
-/// program works with Y down from the top edge. Same conversion as in
-/// PdfiumContentProvider.
 QRectF toTopLeft(QPDFObjectHandle rect, const PageBox &box)
 {
     double v[4];
@@ -204,7 +217,7 @@ QRectF toTopLeft(QPDFObjectHandle rect, const PageBox &box)
     return QRectF(x0 - box.left, box.top - y1, x1 - x0, y1 - y0);
 }
 
-} // namespace
+}
 
 QList<MediaAsset> MediaScanner::scan(const QString &pdfPath)
 {
@@ -241,6 +254,7 @@ QList<MediaAsset> MediaScanner::scan(const QString &pdfPath)
                     asset.kind = MediaAsset::Kind::RichMedia;
                     filespec   = richMediaAsset(annot, pdf);
                     stream     = embeddedStream(filespec);
+                    readRichMediaOptions(annot, &asset);
                 } else if (subtype == QLatin1String("/Screen")) {
                     asset.kind = MediaAsset::Kind::Screen;
                     screenClip(annot, &filespec, &stream, &asset.mimeType);
@@ -251,8 +265,7 @@ QList<MediaAsset> MediaScanner::scan(const QString &pdfPath)
                     if (movie.isDictionary()) {
                         filespec = movie.getKey("/F");
                         stream   = embeddedStream(filespec);
-                        // /F may just be a path. The video then lives outside
-                        // the document and stays out.
+
                         if (filespec.isString())
                             asset.name = QString::fromStdString(filespec.getUTF8Value());
                     }
@@ -294,7 +307,7 @@ QList<MediaAsset> MediaScanner::scan(const QString &pdfPath)
     return found;
 }
 
-#else   // !HAVE_QPDF
+#else
 
 QList<MediaAsset> MediaScanner::scan(const QString &)
 {

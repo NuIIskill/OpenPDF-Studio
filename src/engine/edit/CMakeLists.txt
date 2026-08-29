@@ -17,8 +17,12 @@ target_sources(OpenPDFStudio PRIVATE
     InkMetrics.hpp
     PdfExporter.cpp
     PdfExporter.hpp
+    StandardFont.cpp
+    StandardFont.hpp
     TextBlock.hpp
     TextBoxProperties.hpp
+    TextWrap.cpp
+    TextWrap.hpp
     ZipWriter.cpp
     ZipWriter.hpp
 )

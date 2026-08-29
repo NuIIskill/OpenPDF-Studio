@@ -2,15 +2,13 @@
 
 namespace {
 
-// A function-local static: factories are registered from static initializers,
-// whose order is not fixed.
 QList<PageOverlays::Factory> &factories()
 {
     static QList<PageOverlays::Factory> list;
     return list;
 }
 
-} // namespace
+}
 
 void PageOverlays::add(Factory factory)
 {

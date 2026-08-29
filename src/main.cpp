@@ -52,11 +52,6 @@
 #  include <windows.h>
 #  include <string>
 
-// On Windows, the cross-compiled fontconfig DLL has Linux paths hardcoded
-// as its system config location.  Setting FONTCONFIG_FILE before QApplication
-// is created (which loads Qt6Gui.dll and triggers fontconfig init) prevents
-// fontconfig from crashing when it can't find its config at the Linux path.
-// We point it to a fonts.conf deployed alongside the exe (in etc/fonts/).
 static void initFontconfigWindows()
 {
     char buf[MAX_PATH];
@@ -66,14 +61,13 @@ static void initFontconfigWindows()
     const std::string exeDir = (lastSep != std::string::npos)
                                    ? exePath.substr(0, lastSep)
                                    : ".";
-    // Try the bundled fonts.conf first; fall back to letting fontconfig use
-    // the built-in config (which still has WINDOWSFONTDIR so fonts are found).
+
     const std::string fcConf = exeDir + "\\etc\\fonts\\fonts.conf";
     SetEnvironmentVariableA("FONTCONFIG_FILE", fcConf.c_str());
-    // The conf.avail dir sits next to fonts.conf
+
     const std::string fcPath = exeDir + "\\etc\\fonts";
     SetEnvironmentVariableA("FONTCONFIG_PATH", fcPath.c_str());
-    // Suppress the Linux-only mmap optimization (not reliable on Windows)
+
     SetEnvironmentVariableA("FONTCONFIG_USE_MMAP", "false");
 }
 #endif
@@ -89,7 +83,6 @@ int main(int argc, char *argv[])
         qputenv("QT_QPA_PLATFORM", "wayland");
 #endif
 
-    // Opt in to high-DPI scaling (default in Qt 6, but explicit for clarity)
     QApplication::setHighDpiScaleFactorRoundingPolicy(
         Qt::HighDpiScaleFactorRoundingPolicy::PassThrough);
 
@@ -100,7 +93,6 @@ int main(int argc, char *argv[])
     qapp.setOrganizationDomain(QStringLiteral("openpdf.io"));
     qapp.setApplicationVersion(QStringLiteral(APP_VERSION));
 
-    // ── Fusion style + theme (palette + QSS) ─────────────────────────────
     QApplication::setStyle(QStringLiteral("Fusion"));
     {
         const QString savedTheme = AppConfig::store().value(
@@ -108,7 +100,6 @@ int main(int argc, char *argv[])
         Theme::apply(savedTheme);
     }
 
-    // ── Application font ──────────────────────────────────────────────────
     {
         const QStringList candidates = { "Inter", "Noto Sans", "Segoe UI", "Helvetica Neue" };
         for (const QString &f : candidates) {
@@ -122,21 +113,17 @@ int main(int argc, char *argv[])
         }
     }
 
-    // ── Locale / translations ─────────────────────────────────────────────
-    // Use the locale-aware overload: tries openpdf_de_DE.qm → openpdf_de.qm → openpdf.qm
     QTranslator translator;
-    if (translator.load(QLocale::system(),
-                        QStringLiteral("openpdf"),
-                        QStringLiteral("_"),
-                        QStringLiteral(":/i18n"))) {
-        qapp.installTranslator(&translator);
+    {
+        const QString lang = AppConfig::store()
+                                 .value(QStringLiteral("appearance/language"),
+                                        AppSettings::systemDefaultLanguage())
+                                 .toString();
+        if (lang != QLatin1String("en")
+                && translator.load(QStringLiteral(":/i18n/openpdf_%1.qm").arg(lang)))
+            qapp.installTranslator(&translator);
     }
 
-    // ── App icon (blue rounded square + white "O") ────────────────────────
-    // Rendered from the same openpdf-studio.svg that produces the Linux PNG
-    // and the Windows .ico, so all three stay in sync.  This used to be drawn
-    // with QPainter using a bold "Inter" glyph, which silently fell back to a
-    // different font — and so a different logo — on any machine without Inter.
     {
         QIcon appIcon;
         for (const int sz : { 16, 24, 32, 48, 64, 128, 256 })
@@ -145,8 +132,6 @@ int main(int argc, char *argv[])
         qapp.setWindowIcon(appIcon);
     }
 
-    // Renders the export dialog to a PNG so its appearance can be checked
-    // without a display: OpenPDFStudio --shot-export-dialog out.png [word|image]
     if (qapp.arguments().size() >= 3
             && qapp.arguments().at(1) == QLatin1String("--shot-export-dialog")) {
         ExportDialog dlg(QStringLiteral("/tmp/demo.pdf"), 4, 0);
@@ -158,8 +143,6 @@ int main(int argc, char *argv[])
         return ok ? 0 : 3;
     }
 
-    // Same for the history dialog, with a made-up log so the timeline has
-    // something to show: OpenPDFStudio --shot-history-dialog out.png [dark]
     if (qapp.arguments().size() >= 3
             && qapp.arguments().at(1) == QLatin1String("--shot-history-dialog")) {
         using Kind = DocumentHistory::Kind;
@@ -180,16 +163,11 @@ int main(int argc, char *argv[])
         return ok ? 0 : 3;
     }
 
-    // The expiry notice as the user gets to see it, without waiting 30 days:
-    //   OPENPDF_USAGE=business OpenPDFStudio --shot-license-notice out.png [dark|light]
-    // Exit 3 means no notice was due — evaluation still running, personal use,
-    // or a key on record. The flag declares nothing of its own: it reports the
-    // state it finds, so it can be used to check that state.
     if (qapp.arguments().size() >= 3
             && qapp.arguments().at(1) == QLatin1String("--shot-license-notice")) {
         if (qapp.arguments().size() >= 4)
             Theme::apply(qapp.arguments().at(3));
-        QWidget host;   // parent only, never shown
+        QWidget host;
         LicenseNotice::showExpiryReminderIfDue(&host, {});
         qapp.processEvents();
         for (QWidget *w : qapp.topLevelWidgets())
@@ -198,10 +176,6 @@ int main(int argc, char *argv[])
         return 3;
     }
 
-    // Settings dialog on any of its pages, named by the English nav label:
-    //   OpenPDFStudio --shot-settings out.png ["License Key"] [dark|light]
-    // The License Key page exists only where the state says business use —
-    // OPENPDF_USAGE=business in front of it is how that is arranged for a shot.
     if (qapp.arguments().size() >= 3
             && qapp.arguments().at(1) == QLatin1String("--shot-settings")) {
         if (qapp.arguments().size() >= 5)
@@ -216,17 +190,12 @@ int main(int argc, char *argv[])
         return ok ? 0 : 3;
     }
 
-    // Runs the organizer's save path on an unchanged page list, so a refactor
-    // of it can be checked against the bytes it produced before:
-    //   OpenPDFStudio --organize-save in.pdf out.pdf
     if (qapp.arguments().size() >= 4
             && qapp.arguments().at(1) == QLatin1String("--organize-save")) {
         PdfOrganizerDialog dlg(qapp.arguments().at(2));
         return dlg.writeForTest(qapp.arguments().at(3)) ? 0 : 3;
     }
 
-    // Renders the page organizer with a document loaded:
-    //   OpenPDFStudio --shot-organizer out.png in.pdf [dark]
     if (qapp.arguments().size() >= 4
             && qapp.arguments().at(1) == QLatin1String("--shot-organizer")) {
         if (qapp.arguments().size() >= 5)
@@ -241,10 +210,6 @@ int main(int argc, char *argv[])
         return ok ? 0 : 3;
     }
 
-    // Headless regression/export entry point for the PDF target, exercising the
-    // same option path as the dialog:
-    //   OpenPDFStudio --export-pdf in.pdf out.pdf [pages=1,3-4] [nocomments]
-    //                 [noforms] [nofonts] [nocompress] [q=60] [pw=secret]
     const QStringList args = qapp.arguments();
     if (args.size() >= 4 && args.at(1) == QLatin1String("--export-pdf")) {
         PdfExportOptions opt;
@@ -272,9 +237,6 @@ int main(int argc, char *argv[])
         return exportPdf(args.at(2), args.at(3), opt) ? 0 : 3;
     }
 
-    // Headless regression/export entry point. It uses the same content path as
-    // the UI: OpenPDFStudio --export-docx input.pdf output.docx
-    // An optional trailing pages=1,3-4 selects a subset, as the dialog does.
     if (args.size() >= 4 && args.at(1) == QLatin1String("--export-docx")) {
         QList<int> pages;
         DocxExportOptions docxOpt;
@@ -301,12 +263,6 @@ int main(int argc, char *argv[])
         return ok ? 0 : 3;
     }
 
-    // One PNG per page, straight off the renderer — no window, no toolbar, no
-    // theme. That is what makes it comparable across platforms and across PDF
-    // backends, which --shot-window is not: that one grabs the whole UI.
-    //   OpenPDFStudio --export-images in.pdf out.png [pages=1,3-4] [q=85] [srcpw=secret]
-    // With more than one page the name gains a _page_N suffix, exactly as the
-    // export dialog writes it.
     if (args.size() >= 4 && args.at(1) == QLatin1String("--export-images")) {
         QList<int> pages;
         int quality = 85;
@@ -330,13 +286,6 @@ int main(int argc, char *argv[])
         return view.exportPagesToImages(args.at(3), quality, pages) ? 0 : 3;
     }
 
-    // Text selection, straight off the backend and printed as text. Selection
-    // is the one core feature the export entry points cannot reach, and it is
-    // also the one whose logic differs most between backends — Qt has an API
-    // for it, Poppler has to rebuild the reading order from a word list. This
-    // is where the two get compared.
-    //   OpenPDFStudio --select-text in.pdf [page=1] [from=x,y] [to=x,y] [srcpw=secret]
-    // Without from/to the whole page is selected.
     if (args.size() >= 3 && args.at(1) == QLatin1String("--select-text")) {
 #ifdef HAVE_PDF_RENDERING
         int page = 1;
@@ -374,20 +323,6 @@ int main(int argc, char *argv[])
 #endif
     }
 
-    // Renders the whole window, with a document open, to a PNG. Everything the
-    // dialog shots cannot reach — toolbar, format bar, sidebars, the pages
-    // themselves — is only checkable this way without a display:
-    //   OpenPDFStudio --shot-window out.png in.pdf [dark]
-    //
-    // The wait is not decoration: pages are rendered by a timer after the
-    // scroll area has laid them out, so grabbing immediately yields blanks.
-    // Replaces the text line at a point and saves — the whole edit-and-save
-    // path without a window. Saving is the one thing the other entry points
-    // never touch, and the piece that differs most between backends.
-    //   OpenPDFStudio --apply-edit in.pdf out.pdf at=x,y text=Ersetzung [page=1] [srcpw=…]
-    //   OpenPDFStudio --apply-edit in.pdf out.pdf field=Feldname text=Wert
-    // The coordinates are PDF points with the origin top-left, the same as
-    // --select-text reports.
     if (args.size() >= 4 && args.at(1) == QLatin1String("--apply-edit")) {
 #ifdef HAVE_PDF_RENDERING
         int     page = 1;
@@ -414,7 +349,6 @@ int main(int argc, char *argv[])
         QTextStream out(stdout);
         out << "backend=" << backend->name() << "\n";
 
-        // Formularfeld: kein Textobjekt, sondern der Wert eines Widgets.
         if (!fieldName.isEmpty()) {
             EditSession fieldSession;
             EditSession::Edit fieldEdit;
@@ -425,8 +359,6 @@ int main(int argc, char *argv[])
             return backend->saveWithEdits(args.at(3), fieldSession) ? 0 : 3;
         }
 
-        // The path the inline editor takes: find the line at the point, take
-        // its glyph boxes as erase areas, record the replacement text.
         const TextBlock block = backend->textAt(page - 1, at);
         if (!block.isValid()) {
             QTextStream(stdout) << "kein Text an dieser Stelle\n";
@@ -470,11 +402,6 @@ int main(int argc, char *argv[])
 #endif
     }
 
-    // Presentation mode as a PNG. It opens the document a second time, through
-    // its own backend, and nothing else in the app reaches that code — which is
-    // why it could stay broken on the Poppler build for so long without anyone
-    // noticing (it rendered a black screen).
-    //   OpenPDFStudio --shot-presentation out.png in.pdf [page=N]
     if (args.size() >= 4 && args.at(1) == QLatin1String("--shot-presentation")) {
         int page = 1;
         for (int a = 4; a < args.size(); ++a)
@@ -503,30 +430,27 @@ int main(int argc, char *argv[])
         QTimer::singleShot(2500, &settle, &QEventLoop::quit);
         settle.exec();
 
-        // Optional: enter edit mode and click a page position, so the editor
-        // frame and the format bar — neither of which exists otherwise — end
-        // up in the shot. The click is posted at the viewport so it travels
-        // the real event filter instead of calling the handler directly:
-        // that is the whole path an edit opens through.
-        //   OpenPDFStudio --shot-window out.png in.pdf edit=<x>,<y>
         for (int a = 4; a < args.size(); ++a) {
             if (!args.at(a).startsWith(QLatin1String("edit="))) continue;
             const QStringList xy = args.at(a).mid(5).split(u',');
             if (xy.size() != 2) break;
             DocumentView *dv = win->findChild<DocumentView *>();
             if (!dv) break;
-            // Through the sidebar signal, not DocumentView::setEditMode():
-            // the window owns the edit state and it is what shows the format
-            // bar and switches the sidebar. Setting it on the view alone puts
-            // the two out of step — which is exactly what this shot is for.
+
             Q_EMIT win->rightSidebar()->modeSelected(QStringLiteral("edit"));
             QApplication::processEvents();
-            // Order matters: the tool handler puts up a modal "enable edit
-            // mode?" box when edit mode is still off, and nothing would ever
-            // answer it here. With the mode already on it goes straight
-            // through — and only then does the format bar appear.
+
             Q_EMIT win->leftSidebar()->toolSelected(QStringLiteral("text"));
             QApplication::processEvents();
+            for (int z = 4; z < args.size(); ++z) {
+                if (!args.at(z).startsWith(QLatin1String("preseite="))) continue;
+                dv->goToPage(args.at(z).mid(9).toInt() - 1);
+                QApplication::processEvents();
+                QEventLoop ps;
+                QTimer::singleShot(900, &ps, &QEventLoop::quit);
+                ps.exec();
+                break;
+            }
             for (int z = 4; z < args.size(); ++z) {
                 if (!args.at(z).startsWith(QLatin1String("prezoom="))) continue;
                 dv->setZoom(args.at(z).mid(8).toInt());
@@ -548,11 +472,9 @@ int main(int argc, char *argv[])
             QTimer::singleShot(1500, &editSettle, &QEventLoop::quit);
             editSettle.exec();
 
-
-            // resize=<dx>,<dy> drags a handle, the way a user resizes the box.
             for (int r = 4; r < args.size(); ++r) {
                 if (!args.at(r).startsWith(QLatin1String("resize="))) continue;
-                // resize=[<handle>:]<dx>,<dy> with handle se (default), e, s, sw, ne.
+
                 QString spec = args.at(r).mid(7);
                 QString griff = QStringLiteral("se");
                 if (const int dp = spec.indexOf(u':'); dp > 0) {
@@ -564,8 +486,7 @@ int main(int argc, char *argv[])
                 auto *ed = dv->findChild<QTextEdit *>(QStringLiteral("InlineEditor"));
                 QWidget *frame = ed ? ed->parentWidget() : nullptr;
                 if (!frame) break;
-                // The visible line sits on the box edge, kPad in from the
-                // widget edge, which is where a user grabs.
+
                 const int W = frame->width(), H = frame->height();
                 const int L = 14, R = W - 15, T = 14, B = H - 15;
                 QPoint grab(R, B);
@@ -587,8 +508,7 @@ int main(int argc, char *argv[])
                     QApplication::sendEvent(frame, &me);
                     QApplication::processEvents();
                 };
-                // Which widget is really there: if the mouse never reaches the
-                // frame, no hitTest result can make the box resizable.
+
                 {
                     QTextStream out(stdout);
                     out << "rahmen im fenster="
@@ -609,8 +529,7 @@ int main(int argc, char *argv[])
                             << "\n";
                     }
                 }
-                // Deliver through Qt, not straight to the frame: only that
-                // path is the one a user takes.
+
                 if (args.contains(QStringLiteral("echt"))) {
                     QWidget *ziel = QApplication::widgetAt(g0);
                     {
@@ -701,6 +620,25 @@ int main(int argc, char *argv[])
                 }
                 break;
             }
+
+            for (int r = 4; r < args.size(); ++r) {
+                const QString o = args.at(r);
+                if (o.startsWith(QLatin1String("color="))) {
+                    dv->setEditorTextColor(QColor(o.mid(6)));
+                } else if (o.startsWith(QLatin1String("size="))) {
+                    dv->setEditorFontSize(o.mid(5).toInt());
+                } else if (o.startsWith(QLatin1String("font="))) {
+                    const QStringList teile = o.mid(5).split(u',');
+                    dv->setEditorFontFamily(teile.at(0));
+                    dv->setEditorBold(teile.contains(QLatin1String("bold")));
+                    dv->setEditorItalic(teile.contains(QLatin1String("italic")));
+                    dv->setEditorUnderline(teile.contains(QLatin1String("underline")));
+                } else {
+                    continue;
+                }
+                QApplication::processEvents();
+            }
+
             const auto zeigeBounds = [&](const char *wann) {
                 const QRectF b = dv->editBounds();
                 const QRectF f = dv->editFrameRect();
@@ -716,6 +654,14 @@ int main(int argc, char *argv[])
             };
             if (args.contains(QStringLiteral("bounds"))) zeigeBounds("danach");
 
+            if (args.contains(QStringLiteral("selectall"))) {
+                if (auto *ed = dv->findChild<QTextEdit *>(
+                        QStringLiteral("InlineEditor"))) {
+                    ed->selectAll();
+                    QApplication::processEvents();
+                }
+            }
+
             if (args.contains(QStringLiteral("nocaret"))
                     || args.contains(QStringLiteral("caret"))) {
                 if (auto *ed = dv->findChild<InlineEditor *>())
@@ -728,6 +674,19 @@ int main(int argc, char *argv[])
                 if (QWidget *fr = ed->parentWidget(); fr && fr->isVisible())
                     boxCenter = dv->viewport()->mapFromGlobal(
                         fr->mapToGlobal(fr->rect().center()));
+            }
+
+            if (args.contains(QStringLiteral("escape"))) {
+                QTextStream(stdout) << "seite vorher=" << dv->currentPage() << "\n";
+                if (auto *ed = dv->findChild<QTextEdit *>(
+                        QStringLiteral("InlineEditor"))) {
+                    QKeyEvent key(QEvent::KeyPress, Qt::Key_Escape, Qt::NoModifier);
+                    QApplication::sendEvent(ed, &key);
+                }
+                QEventLoop zu;
+                QTimer::singleShot(800, &zu, &QEventLoop::quit);
+                zu.exec();
+                QTextStream(stdout) << "seite nachher=" << dv->currentPage() << "\n";
             }
 
             if (args.contains(QStringLiteral("commit"))) {
@@ -835,10 +794,6 @@ int main(int argc, char *argv[])
             break;
         }
 
-        // Optional: pick a tool by its catalogue id, edit mode included where
-        // the tool needs it — otherwise the handler puts up a modal question
-        // that nothing here would answer.
-        //   OpenPDFStudio --shot-window out.png in.pdf tool=video
         for (int a = 4; a < args.size(); ++a) {
             if (!args.at(a).startsWith(QLatin1String("tool="))) continue;
             const QString toolId = args.at(a).mid(5);
@@ -852,9 +807,6 @@ int main(int argc, char *argv[])
             break;
         }
 
-        // Optional: drag a rectangle on the page canvas, the way a tool that
-        // frames an area is actually used. Coordinates are canvas pixels.
-        //   OpenPDFStudio --shot-window out.png in.pdf tool=video drag=100,80,400,250
         for (int a = 4; a < args.size(); ++a) {
             if (!args.at(a).startsWith(QLatin1String("drag="))) continue;
             const QStringList xy = args.at(a).mid(5).split(u',');
@@ -886,10 +838,6 @@ int main(int argc, char *argv[])
             break;
         }
 
-        // Optional: fill a named text field and press a named button, so a
-        // flow that runs through a panel can be exercised without a display.
-        // Both by objectName, so this works for any panel.
-        //   OpenPDFStudio --shot-window out.png in.pdf set=Feld=Wert press=Knopf
         for (int a = 4; a < args.size(); ++a) {
             if (args.at(a).startsWith(QLatin1String("set="))) {
                 const QString assignment = args.at(a).mid(4);
@@ -917,10 +865,6 @@ int main(int argc, char *argv[])
             settleStep.exec();
         }
 
-        // Optional: answer modal questions by themselves, so a run without a
-        // person at the keyboard does not stop at the first one.
-        //   OpenPDFStudio --shot-window out.png in.pdf autoconfirm=Play once
-        // Without a text the default button is pressed.
         for (int a = 4; a < args.size(); ++a) {
             if (!args.at(a).startsWith(QLatin1String("autoconfirm"))) continue;
             const QString wanted = args.at(a).section(u'=', 1);
@@ -935,8 +879,7 @@ int main(int argc, char *argv[])
                 const QList<QAbstractButton *> buttons = box->buttons();
                 for (QAbstractButton *button : buttons)
                     if (button->text().remove(u'&') == wanted) { button->click(); return; }
-                // No button by that name: this is a different question, so
-                // answer it with its default and keep the run going.
+
                 if (QPushButton *fallback = box->defaultButton()) fallback->click();
                 else if (!buttons.isEmpty())                      buttons.first()->click();
             });
@@ -944,10 +887,6 @@ int main(int argc, char *argv[])
             break;
         }
 
-        // Optional: click at a canvas position, and send a key to whatever has
-        // the focus afterwards. Unlike drag=, the click is delivered to the
-        // widget actually under that point — an overlay child, if one is there.
-        //   OpenPDFStudio --shot-window out.png in.pdf click=320,480 key=Delete
         for (int a = 4; a < args.size(); ++a) {
             if (args.at(a).startsWith(QLatin1String("click="))) {
                 const QStringList xy = args.at(a).mid(6).split(u',');
@@ -966,7 +905,7 @@ int main(int argc, char *argv[])
                     QApplication::sendEvent(target, &me);
                 }
             } else if (args.at(a).startsWith(QLatin1String("drop="))) {
-                // Drag a file onto the view without a pointing device.
+
                 DocumentView *dv = win->findChild<DocumentView *>();
                 if (!dv) continue;
                 QMimeData mime;
@@ -975,12 +914,7 @@ int main(int argc, char *argv[])
                                  dv->viewport()->height() / 2.0);
                 QDragEnterEvent enter(at.toPoint(), Qt::CopyAction, &mime,
                                       Qt::LeftButton, Qt::NoModifier);
-                // Through QObject: QScrollArea makes event() protected while
-                // QObject::event is public and virtual.
-                // To the VIEWPORT, not the view: a QAbstractScrollArea passes
-                // its acceptDrops on to the viewport, and from there the events
-                // reach the view's handlers through its filter. Sent to the
-                // view directly, the class swallows them.
+
                 QWidget *vp = dv->viewport();
                 QApplication::sendEvent(vp, &enter);
                 if (!enter.isAccepted()) {
@@ -1033,8 +967,6 @@ int main(int argc, char *argv[])
             inputSettle.exec();
         }
 
-        // Optional: save the document, the same call the Save button makes.
-        //   OpenPDFStudio --shot-window out.png in.pdf save=/tmp/ergebnis.pdf
         for (int a = 4; a < args.size(); ++a) {
             if (!args.at(a).startsWith(QLatin1String("save="))) continue;
             DocumentView *dv = win->findChild<DocumentView *>();
@@ -1047,9 +979,6 @@ int main(int argc, char *argv[])
             break;
         }
 
-        // Optional: open the "Customize Tools" card, which only exists while
-        // its button is pressed and so never shows up in a plain shot.
-        //   OpenPDFStudio --shot-window out.png in.pdf tools
         if (args.contains(QLatin1String("tools"))) {
             win->leftSidebar()->openCustomizePopup();
             QEventLoop cardSettle;
@@ -1061,11 +990,9 @@ int main(int argc, char *argv[])
         return ok ? 0 : 3;
     }
 
-    // ── Application controller ────────────────────────────────────────────
     App app;
     app.startup();
 
-    // Open a PDF passed on the command line (file association / debugging).
     if (args.size() > 1 && QFileInfo::exists(args.at(1)))
         app.mainWindow()->openPath(args.at(1));
 

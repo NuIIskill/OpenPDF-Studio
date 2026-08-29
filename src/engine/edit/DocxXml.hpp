@@ -8,17 +8,14 @@
 #include <QList>
 #include <QString>
 
-// One PNG inside word/media, already paired with the relationship id the
-// document body refers to.
+/// Stores one Word media image and its relationship ID.
 struct MediaPart {
-    QString    name;     // file name inside word/media
+    QString    name;
     QString    relId;
     QByteArray png;
 };
 
-// WordprocessingML primitives: unit conversion, escaping, image encoding, and
-// the fragments a DocxBlock turns into. Assembling whole documents from them
-// is DocxExporter's job.
+/// Provides WordprocessingML serialization helpers.
 namespace DocxXml {
 
 QString emu(double pt);
@@ -41,4 +38,4 @@ QString encodePicture(const QImage &image, const DocxExportOptions &opt, QByteAr
 QString semanticParagraph(const ContentItem &item, int beforeTwips, int leftTwips = 0);
 QString paragraphXml(const DocxBlock &block, double spaceBeforePt, bool insideCell);
 
-}   // namespace DocxXml
+}

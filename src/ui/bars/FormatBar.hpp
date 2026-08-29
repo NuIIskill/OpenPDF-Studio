@@ -22,10 +22,12 @@ public:
     void retranslateUi();
     void setFontSize(int ptSize);
     void setTextColor(const QColor &c);
-    // Programmatic sync from the active editor — no signals re-emitted.
+
     void setFontFamily(const QString &family);
     void setBoldChecked(bool on);
     void setItalicChecked(bool on);
+    void setUnderlineChecked(bool on);
+    void setAdvancedChecked(bool on);
     void refreshTheme();
     void setAlignment(TextBoxProperties::HorizontalAlign alignment);
     void setLineSpacing(double multiplier);
@@ -41,6 +43,7 @@ Q_SIGNALS:
     void listStyleChanged(TextBoxProperties::ListStyle style);
     void indentChanged(int delta);
     void lineSpacingChanged(double multiplier);
+    void advancedToggled(bool on);
 
 protected:
     void changeEvent(QEvent *e) override;
@@ -61,9 +64,9 @@ private:
     QComboBox     *m_spacing    { nullptr };
     QPushButton   *m_list       { nullptr };
     QPushButton   *m_indent     { nullptr };
+    QPushButton   *m_advanced   { nullptr };
     QList<QPushButton *> m_alignButtons;
 
-    // Group labels — updated on LanguageChange via retranslateUi()
     QLabel *m_lblFont    { nullptr };
     QLabel *m_lblSize    { nullptr };
     QLabel *m_lblColor   { nullptr };

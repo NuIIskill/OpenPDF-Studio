@@ -21,7 +21,7 @@ namespace {
 
 constexpr int kRowHeight  = 39;
 constexpr int kListWidth  = 244;
-constexpr int kMaxRows    = 12;      // beyond this the list scrolls
+constexpr int kMaxRows    = 12;
 constexpr int kGripX      = 6;
 constexpr int kIconX      = 30;
 constexpr int kTextX      = 58;
@@ -39,11 +39,6 @@ QRect checkRect(const QRect &row)
                  kCheckSize, kCheckSize);
 }
 
-// ── Row painting ──────────────────────────────────────────────────────────
-//
-// Grip, tool icon, name, checkbox - all drawn, so the row keeps its look
-// through a drag (an item widget would not survive one: QListWidget's
-// internal move destroys the item and builds a new one from its data).
 class ToolRowDelegate : public QStyledItemDelegate
 {
 public:
@@ -137,7 +132,6 @@ private:
     mutable QHash<QString, QPixmap> m_cache;
 };
 
-// ── The list ──────────────────────────────────────────────────────────────
 class ToolListWidget : public QListWidget
 {
     Q_OBJECT
@@ -151,11 +145,7 @@ public:
         setFrameShape(QFrame::NoFrame);
         setMouseTracking(true);
         setUniformItemSizes(true);
-        // Not NoSelection, however little the card shows one: a view arms a
-        // drag only while selectedDraggableIndexes() is non-empty, so with
-        // nothing ever selected it never enters DraggingState and rows cannot
-        // be moved at all. The delegate ignores State_Selected, so the
-        // selection stays invisible either way.
+
         setSelectionMode(QAbstractItemView::SingleSelection);
         setVerticalScrollMode(QAbstractItemView::ScrollPerPixel);
         setHorizontalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
@@ -165,18 +155,12 @@ public:
         setDropIndicatorShown(true);
         viewport()->setCursor(Qt::OpenHandCursor);
 
-        // An internal move inserts the copy first and removes the original
-        // second, and both happen inside the drag's own event loop - so a
-        // queued "done" would still fire while the list holds a duplicate.
-        // The row count is what tells the two apart: the card lists every
-        // tool there is, so it is only ever off mid-move.
         connect(model(), &QAbstractItemModel::rowsRemoved,
                 this, &ToolListWidget::reportIfSettled);
         connect(model(), &QAbstractItemModel::rowsMoved,
                 this, &ToolListWidget::reportIfSettled);
     }
 
-    /// Call once the rows are in - that count is what "settled" means.
     void seal() { m_rows = count(); }
 
 Q_SIGNALS:
@@ -184,8 +168,7 @@ Q_SIGNALS:
     void checkToggled();
 
 protected:
-    // A press on the checkbox toggles and stops there - it must not also
-    // arm a drag, or ticking a box while the hand shakes reorders the list.
+
     void mousePressEvent(QMouseEvent *event) override
     {
         const QModelIndex idx = indexAt(event->pos());
@@ -211,9 +194,7 @@ private:
     int m_rows { 0 };
 };
 
-} // namespace
-
-// ── ToolCustomizePopup ────────────────────────────────────────────────────
+}
 
 ToolCustomizePopup::ToolCustomizePopup(const QStringList &order,
                                        const QStringList &hidden,
@@ -297,8 +278,7 @@ void ToolCustomizePopup::fill(const QStringList &order, const QStringList &hidde
         if (!def)
             continue;
         auto *item = new QListWidgetItem(m_list);
-        // LeftSidebar::tr, not tr: the names are translated in the sidebar's
-        // context, which is where lupdate collected them from.
+
         item->setData(Qt::DisplayRole, LeftSidebar::tr(def->tip.toUtf8().constData()));
         item->setData(kIdRole, def->id);
         item->setData(kIconRole, def->icon);
@@ -334,12 +314,10 @@ void ToolCustomizePopup::popupAt(QWidget *anchor)
     adjustSize();
     const QSize card = sizeHint();
 
-    // Clear of the whole bar, not just the button - the button sits inside a
-    // margin, so anchoring to it would leave the card lapping over the bar.
     QWidget *bar = anchor->parentWidget() ? anchor->parentWidget() : anchor;
     QPoint pos(host->mapFromGlobal(bar->mapToGlobal(QPoint(bar->width(), 0))).x() + 10,
                host->mapFromGlobal(anchor->mapToGlobal(QPoint(0, 0))).y());
-    // Bottom-aligned with the button it came out of, then pulled back inside.
+
     pos.ry() += anchor->height() - card.height();
     pos.setY(qBound(8, pos.y(), qMax(8, host->height() - card.height() - 8)));
     pos.setX(qBound(8, pos.x(), qMax(8, host->width() - card.width() - 8)));

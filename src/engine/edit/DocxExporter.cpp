@@ -11,7 +11,6 @@
 #include <cmath>
 #include <utility>
 
-// The fragments below are assembled from these.
 using namespace DocxXml;
 
 static QByteArray buildDocument(const QList<QString> &pageTexts, const QString &title)
@@ -32,8 +31,6 @@ static QByteArray buildDocument(const QList<QString> &pageTexts, const QString &
         if (pg > 0)
             x += QStringLiteral("<w:p><w:r><w:br w:type=\"page\"/></w:r></w:p>");
 
-        // Group consecutive non-blank lines into paragraphs;
-        // blank lines act as paragraph separators (like in a word processor).
         QString para;
         const auto emit = [&]() {
             if (para.isEmpty()) return;
@@ -46,13 +43,13 @@ static QByteArray buildDocument(const QList<QString> &pageTexts, const QString &
         for (const QString &line : pageTexts[pg].split(QLatin1Char('\n'))) {
             const QString trimmed = line.trimmed();
             if (trimmed.isEmpty()) {
-                emit();                          // flush accumulated paragraph
+                emit();
             } else {
                 if (!para.isEmpty()) para += QLatin1Char(' ');
                 para += trimmed;
             }
         }
-        emit(); // flush last paragraph
+        emit();
     }
 
     x += QStringLiteral("<w:sectPr/></w:body></w:document>");
@@ -70,8 +67,7 @@ static bool prefersSemanticLayout(const QList<DocxPage> &pages)
                 return false;
             if (!item.isTextual()) continue;
             ++textual;
-            // Coloured PDF fills usually indicate a designed/graphic document
-            // whose exact appearance is better served by positioned layout.
+
             if (item.bgColor.isValid() && item.bgColor != QColor(Qt::white)
                     && item.bgColor.lightness() < 245)
                 ++coloured;
@@ -118,9 +114,7 @@ static QByteArray buildSemanticDocument(const QList<DocxPage> &pages)
             });
 
             const double rowTop = row.first().bounds.top();
-            // Word adds its own line/table height. Applying the full PDF gap on
-            // top double-counts vertical space and pushes signatures/footer to
-            // an extra page. 75% preserves section spacing without overflow.
+
             const int before = qRound(qMax(0.0, rowTop - previousBottom) * 15.0);
             const bool tableRow = row.size() > 1
                 && std::any_of(row.cbegin(), row.cend(), [](const ContentItem &item) {
@@ -175,15 +169,6 @@ static QByteArray buildSemanticDocument(const QList<DocxPage> &pages)
     return x.toUtf8();
 }
 
-// ── structured export ─────────────────────────────────────────────────────────
-// Real WordprocessingML: flowing paragraphs, real tables with cell shading, and
-// pictures only for content a word processor cannot express. This is what makes
-// the result editable rather than a picture of a document.
-
-// Joins the lines of one paragraph back into flowing text. A hyphen at a line
-// end followed by a lower-case letter is a hyphenation break and disappears;
-// before an upper-case letter it is a real compound hyphen ("Hardware-
-// Lifecycle") and must survive.
 static QByteArray buildStructuredDocument(const QList<DocxPage> &pages,
                                           QList<MediaPart> *media,
                                           const DocxExportOptions &opt)
@@ -200,11 +185,6 @@ static QByteArray buildStructuredDocument(const QList<DocxPage> &pages,
         "xmlns:o=\"urn:schemas-microsoft-com:office:office\">"
         "<w:body>");
 
-    // One section, so one set of margins for the whole document — but each page
-    // measured its own. Taking the narrowest keeps every page's content inside
-    // the text area; the difference is handed back to that page's blocks as
-    // extra indent, so nothing moves. Using page 1's margins verbatim shifted
-    // every later page's tables left by the difference.
     QMarginsF section = pages.isEmpty() ? QMarginsF(56, 45, 56, 45)
                                         : pages.first().marginsPt;
     for (const DocxPage &page : pages) {
@@ -220,11 +200,8 @@ static QByteArray buildStructuredDocument(const QList<DocxPage> &pages,
         const DocxPage &page = pages[pg];
         const double indentShift = page.marginsPt.left() - section.left();
 
-        // Every picture of this page is anchored from one leading paragraph.
-        // Its own height must be negligible or it would push the flow down.
         QString anchors;
-        // A mixed document must not flatten every good page merely because one
-        // page is a scan. Only that structureless page gets a raster fallback.
+
         if (page.blocks.isEmpty() && !page.background.isNull()) {
             DocxBlock scan;
             scan.kind    = DocxBlock::Kind::Picture;
@@ -275,10 +252,6 @@ static QByteArray buildStructuredDocument(const QList<DocxPage> &pages,
                                    "<w:rPr><w:sz w:val=\"2\"/></w:rPr></w:pPr>")
                   + anchors + QStringLiteral("</w:p>");
 
-        // The cursor follows what Word will actually lay out, not the PDF's ink
-        // extent. A 24 pt heading occupies a ~28 pt line box while its glyphs
-        // measure 22 pt; charging the difference to the next gap keeps every
-        // later block on the y it had in the PDF instead of drifting downwards.
         double cursor = section.top();
         for (const DocxBlock &block : page.blocks) {
             if (block.kind == DocxBlock::Kind::Picture
@@ -293,8 +266,7 @@ static QByteArray buildStructuredDocument(const QList<DocxPage> &pages,
                 rendered = block.lines.size() * linePitchTwips(block) / 20.0;
             }
             if (block.kind == DocxBlock::Kind::Table) {
-                // A table cannot carry space-before; an empty spacer paragraph
-                // reproduces the gap the PDF had above it.
+
                 if (gap > 1.0)
                     body += QStringLiteral("<w:p><w:pPr><w:spacing w:before=\"0\" "
                                            "w:after=\"0\" w:line=\"")
@@ -309,8 +281,7 @@ static QByteArray buildStructuredDocument(const QList<DocxPage> &pages,
                 shifted.indentPt += indentShift;
                 body += paragraphXml(shifted, qMax(0.0, gap), false);
             }
-            // A negative gap means the flow had already passed this block's
-            // original top; it then starts wherever the cursor stands.
+
             cursor = qMax(block.bounds.top(), cursor) + rendered;
         }
         x += body;
@@ -350,15 +321,10 @@ static QByteArray buildPositionedDocument(const QList<DocxPage> &pages,
         if (pg > 0)
             x += QStringLiteral("<w:p><w:r><w:br w:type=\"page\"/></w:r></w:p>");
 
-        // VML text boxes retain PDF coordinates while their contents remain
-        // normal, editable WordprocessingML text.
         x += QStringLiteral("<w:p><w:pPr><w:spacing w:before=\"0\" w:after=\"0\"/>"
                             "</w:pPr>");
         QByteArray backgroundPng;
-        // The scanned-page fallback carries the heaviest images in the whole
-        // exporter, so it honours the quality setting just like the structured
-        // path — leaving it on lossless PNG made the option look dead on
-        // exactly the documents where it matters most.
+
         const QString bgExt = pages[pg].background.isNull()
             ? QString{} : encodePicture(pages[pg].background, opt, &backgroundPng);
         if (!bgExt.isEmpty()) {
@@ -386,10 +352,7 @@ static QByteArray buildPositionedDocument(const QList<DocxPage> &pages,
                 return a.bounds.top() < b.bounds.top();
             return a.bounds.left() < b.bounds.left();
         });
-        // Absolute positioning controls the appearance, while XML order
-        // controls selection/copying and assistive reading. Providers put form
-        // fields first for hit-testing priority, so restore visual reading
-        // order here before serialising the editable boxes.
+
         for (const ContentItem &item : textItems) {
             if (!item.isTextual() || item.text.trimmed().isEmpty()) continue;
             const QRectF r = item.bounds.normalized();
@@ -397,9 +360,7 @@ static QByteArray buildPositionedDocument(const QList<DocxPage> &pages,
             const double fontPt = item.fontSizePt > 0.0 ? item.fontSizePt : 10.0;
             const double pageW = pages[pg].pageSizePt.width() > 0.0
                                      ? pages[pg].pageSizePt.width() : 595.0;
-            // Word's substitute-font metrics are commonly a few percent wider
-            // than the embedded PDF font. A small right-side allowance avoids
-            // clipped last letters without moving the original left edge.
+
             const double width = qMin(pageW - r.left(),
                                       r.width() + qMax(3.0, fontPt * 0.45));
             const double height = qMax(r.height() + qMax(3.0, fontPt * 0.30),
@@ -420,9 +381,7 @@ static QByteArray buildPositionedDocument(const QList<DocxPage> &pages,
                 x += QStringLiteral(" filled=\"t\" fillcolor=\"#") + colorHex(item.bgColor) + u'"';
             else
                 x += QStringLiteral(" filled=\"f\"");
-            // stroked="f" alone is not honoured by LibreOffice's VML import —
-            // it drew a hairline frame around every single text box. The
-            // explicit <v:stroke on="f"/> child is.
+
             x += QStringLiteral("><v:stroke on=\"f\"/>"
                                 "<v:textbox inset=\"0,0,0,0\"><w:txbxContent>"
                                 "<w:p><w:pPr><w:spacing w:before=\"0\" w:after=\"0\" "
@@ -444,8 +403,6 @@ static QByteArray buildPositionedDocument(const QList<DocxPage> &pages,
                           "</w:sectPr></w:body></w:document>");
     return x.toUtf8();
 }
-
-// ── public API ────────────────────────────────────────────────────────────────
 
 static bool writeDocx(const QString &outputPath, const QByteArray &documentXml,
                       const QList<MediaPart> &media)
@@ -471,7 +428,6 @@ static bool writeDocx(const QString &outputPath, const QByteArray &documentXml,
         " Target=\"word/document.xml\"/>"
         "</Relationships>";
 
-    // References styles.xml so Word/LibreOffice find the style definitions
     QByteArray docRels = QByteArray(
         "<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"yes\"?>"
         "<Relationships xmlns=\"http://schemas.openxmlformats.org/package/2006/relationships\">"
@@ -485,8 +441,6 @@ static bool writeDocx(const QString &outputPath, const QByteArray &documentXml,
             "Target=\"media/%2\"/>").arg(part.relId, part.name).toUtf8();
     docRels += "</Relationships>";
 
-    // docDefaults zeroes Word's own paragraph spacing — without it every
-    // paragraph gains ~10 pt that the PDF never had and the page overflows.
     static const char kStyles[] =
         "<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"yes\"?>"
         "<w:styles xmlns:w=\"http://schemas.openxmlformats.org/wordprocessingml/2006/main\">"
@@ -541,8 +495,6 @@ bool DocxExporter::exportToDocx(const QString &outputPath,
     Q_UNUSED(title);
     QList<MediaPart> media;
 
-    // Native paragraphs/tables/shapes are the primary path. A page-sized
-    // picture is reserved for scans or synthetic callers with no structure.
     const bool structured = std::any_of(pages.cbegin(), pages.cend(),
                                         [](const DocxPage &page) {
         return !page.blocks.isEmpty();

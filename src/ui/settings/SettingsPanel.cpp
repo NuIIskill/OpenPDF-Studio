@@ -35,14 +35,6 @@
 #include <QPainterPath>
 #include <QSpinBox>
 
-
-
-
-
-
-
-// ── SettingsPanel ─────────────────────────────────────────────────────────────
-
 SettingsPanel::SettingsPanel(AppSettings *settings, QWidget *parent)
     : QDialog(parent)
     , m_settings(settings)
@@ -65,8 +57,6 @@ SettingsPanel::SettingsPanel(AppSettings *settings, QWidget *parent)
     });
 }
 
-// ── UI skeleton ───────────────────────────────────────────────────────────────
-
 void SettingsPanel::buildUi()
 {
     auto *root = new QVBoxLayout(this);
@@ -77,7 +67,6 @@ void SettingsPanel::buildUi()
     contentRow->setContentsMargins(0, 0, 0, 0);
     contentRow->setSpacing(0);
 
-    // ── Sidebar ───────────────────────────────────────────────────────────
     auto *sidebar = new QWidget(this);
     sidebar->setObjectName(QStringLiteral("SettingsSidebar"));
     sidebar->setFixedWidth(190);
@@ -87,30 +76,26 @@ void SettingsPanel::buildUi()
     buildNav(sidebar, sideLayout);
     contentRow->addWidget(sidebar);
 
-    // ── Pages ─────────────────────────────────────────────────────────────
     m_pages = new QStackedWidget(this);
     m_pages->setObjectName(QStringLiteral("SettingsPages"));
-    m_pages->addWidget(buildAppearancePage());  // 0
-    m_pages->addWidget(buildLanguagePage());    // 1
-    m_pages->addWidget(buildMediaPage());       // 2
-    m_pages->addWidget(buildShortcutsPage());   // 3
-    m_pages->addWidget(buildZoomPage());        // 4
-    m_pages->addWidget(buildAdvancedPage());    // 5
-    // License: business installations only — see buildNav().
+    m_pages->addWidget(buildAppearancePage());
+    m_pages->addWidget(buildLanguagePage());
+    m_pages->addWidget(buildMediaPage());
+    m_pages->addWidget(buildShortcutsPage());
+    m_pages->addWidget(buildZoomPage());
+    m_pages->addWidget(buildAdvancedPage());
+
     if (License::isBusinessInstall()) {
         m_licensePage = new LicensePage(this);
         m_pages->addWidget(m_licensePage);
     }
-    m_pages->addWidget(buildAboutPage());       // last
+    m_pages->addWidget(buildAboutPage());
 
-    // Nav entry i shows page i — including the optional license entry, which is
-    // why both lists are built from the same condition.
     Q_ASSERT(m_pages->count() == m_navItems.size());
 
     contentRow->addWidget(m_pages, 1);
     root->addLayout(contentRow, 1);
 
-    // ── Bottom bar ────────────────────────────────────────────────────────
     auto *sep = new QFrame(this);
     sep->setObjectName(QStringLiteral("SettingsSeparator"));
     sep->setFrameShape(QFrame::HLine);
@@ -138,8 +123,6 @@ void SettingsPanel::buildUi()
     selectPage(0);
 }
 
-// ── Nav ───────────────────────────────────────────────────────────────────────
-
 void SettingsPanel::buildNav(QWidget *, QVBoxLayout *layout)
 {
     struct Item { const char *icon; const char *label; };
@@ -151,8 +134,7 @@ void SettingsPanel::buildNav(QWidget *, QVBoxLayout *layout)
         { "zoom-in",     QT_TR_NOOP("Zoom")           },
         { "sliders",     QT_TR_NOOP("Advanced")       },
     };
-    // A personal installation has nothing to do with license keys and does not
-    // get the page — the entry only exists where a key can actually be needed.
+
     if (License::isBusinessInstall())
         items.append(Item{ "key", QT_TR_NOOP("License Key") });
 
@@ -186,7 +168,6 @@ void SettingsPanel::buildNav(QWidget *, QVBoxLayout *layout)
 
     layout->addStretch(1);
 
-    // About — pinned to bottom
     auto *aboutBtn = new QPushButton(this);
     aboutBtn->setFixedHeight(38);
     aboutBtn->setFlat(true);
@@ -274,8 +255,6 @@ void SettingsPanel::refreshThemeColors()
     if (m_licensePage) m_licensePage->applyTheme();
 }
 
-// ── Page builders ─────────────────────────────────────────────────────────────
-
 QVBoxLayout *SettingsPanel::buildScrollPage(QWidget *&page, const QString &title,
                                             const QString &desc)
 {
@@ -297,8 +276,7 @@ QVBoxLayout *SettingsPanel::buildScrollPage(QWidget *&page, const QString &title
     auto *vl = new QVBoxLayout(content);
     vl->setContentsMargins(32, 28, 32, 32);
     vl->setSpacing(12);
-    // Handed over before it is filled — the scroll area follows the layout as
-    // rows are added, so the caller does not have to close the loop itself.
+
     scroll->setWidget(content);
 
     auto *titleLabel = new QLabel(title, content);
@@ -381,7 +359,6 @@ QWidget *SettingsPanel::buildLanguagePage()
     vbox->addWidget(titleWrap);
     vbox->addSpacing(16);
 
-    // ── Scrollable language list ──────────────────────────────────────────
     auto *scroll = new QScrollArea(page);
     scroll->setObjectName(QStringLiteral("SettingsScroll"));
     scroll->setFrameShape(QFrame::NoFrame);
@@ -395,11 +372,11 @@ QWidget *SettingsPanel::buildLanguagePage()
     listLayout->setContentsMargins(0, 0, 0, 0);
     listLayout->setSpacing(0);
 
-    // English first, then separator, then alphabetical by display name
+    /// Defines one selectable interface language.
     struct L { const char *code; const char *display; };
     const L langs[] = {
         { "en", "English"    },
-        { nullptr, nullptr   },  // separator
+        { nullptr, nullptr   },
         { "de", "Deutsch"    },
         { "fr", "Français"   },
         { "es", "Español"    },
@@ -415,7 +392,7 @@ QWidget *SettingsPanel::buildLanguagePage()
 
     for (const auto &l : langs) {
         if (!l.code) {
-            // Separator between English and other languages
+
             auto *sep = new QFrame(listWidget);
             sep->setObjectName(QStringLiteral("SettingsSeparator"));
             sep->setFrameShape(QFrame::HLine);
@@ -474,8 +451,7 @@ QWidget *SettingsPanel::buildMediaPage()
     vbox->addLayout(row);
 
 #ifndef HAVE_QT_MULTIMEDIA
-    // This build has no built-in player and falls back to the system one;
-    // say so rather than offer a card that does nothing.
+
     vbox->addSpacing(12);
     auto *noPlayer = new QLabel(
         tr("This build has no built-in player. "
@@ -485,7 +461,6 @@ QWidget *SettingsPanel::buildMediaPage()
     vbox->addWidget(noPlayer);
 #endif
 
-    // ── Custom command ───────────────────────────────────────────────────────
     vbox->addSpacing(20);
     m_customPlayerRow = new QWidget(page);
     auto *cmdLayout = new QHBoxLayout(m_customPlayerRow);
@@ -515,8 +490,6 @@ QWidget *SettingsPanel::buildMediaPage()
 
     vbox->addStretch(1);
 
-    // The stored choice wins on open; buildOptionCard would otherwise mark
-    // "default", which no longer exists here.
     selectCardGroup(m_pendingMedia, m_mediaCards, m_mediaIds);
     return page;
 }
@@ -529,7 +502,6 @@ QWidget *SettingsPanel::buildShortcutsPage()
     outer->setContentsMargins(0, 0, 0, 0);
     outer->setSpacing(0);
 
-    // Header
     {
         auto *hdr = new QWidget(page);
         hdr->setObjectName(QStringLiteral("SettingsScrollContent"));
@@ -545,7 +517,6 @@ QWidget *SettingsPanel::buildShortcutsPage()
         outer->addWidget(hdr);
     }
 
-    // Search row
     {
         auto *row = new QWidget(page);
         row->setObjectName(QStringLiteral("SettingsScrollContent"));
@@ -562,14 +533,12 @@ QWidget *SettingsPanel::buildShortcutsPage()
         hl->addWidget(globalChk);
         outer->addWidget(row);
 
-        // Search filter wired after m_shortcutRows is populated below
         connect(searchEdit, &QLineEdit::textChanged, this, [this](const QString &text) {
             for (ShortcutRow *r : m_shortcutRows)
                 r->setVisible(r->matchesFilter(text));
         });
     }
 
-    // Column headers
     {
         auto *hdr = new QWidget(page);
         hdr->setObjectName(QStringLiteral("ShortcutTableHeader"));
@@ -587,7 +556,6 @@ QWidget *SettingsPanel::buildShortcutsPage()
         outer->addWidget(hdr);
     }
 
-    // Separator
     {
         auto *sep = new QFrame(page);
         sep->setObjectName(QStringLiteral("SettingsSeparator"));
@@ -595,7 +563,6 @@ QWidget *SettingsPanel::buildShortcutsPage()
         outer->addWidget(sep);
     }
 
-    // Scrollable list
     {
         auto *scroll = new QScrollArea(page);
         scroll->setObjectName(QStringLiteral("SettingsScroll"));
@@ -659,7 +626,6 @@ QWidget *SettingsPanel::buildShortcutsPage()
         outer->addWidget(scroll, 1);
     }
 
-    // Info bar
     {
         auto *bar = new QFrame(page);
         bar->setObjectName(QStringLiteral("ShortcutInfoBar"));
@@ -685,7 +651,6 @@ QWidget *SettingsPanel::buildZoomPage()
     QWidget *page = nullptr;
     QVBoxLayout *vl = buildScrollPage(page, tr("Zoom"), tr("Configure how zoom works with the mouse wheel."));
 
-    // Helper: single-row card with a toggle switch
     const auto makeToggleCard = [&](const QString &label, bool checked,
                                      QAbstractButton **out) -> QFrame * {
         auto *card = new QFrame(vl->parentWidget());
@@ -704,7 +669,6 @@ QWidget *SettingsPanel::buildZoomPage()
         return card;
     };
 
-    // ── Card 1: Mouse wheel zoom step ────────────────────────────────────────
     {
         auto *card = new QFrame(vl->parentWidget());
         card->setObjectName(QStringLiteral("ZoomCard"));
@@ -752,19 +716,16 @@ QWidget *SettingsPanel::buildZoomPage()
         vl->addWidget(card);
     }
 
-    // ── Card 2: Ctrl+Wheel toggle ─────────────────────────────────────────────
     vl->addWidget(makeToggleCard(
         tr("Zoom with Ctrl + Mouse Wheel"),
         m_settings->ctrlWheelZoom(),
         &m_ctrlWheelToggle));
 
-    // ── Card 3: Zoom to pointer toggle ────────────────────────────────────────
     vl->addWidget(makeToggleCard(
         tr("Zoom to Mouse Pointer"),
         m_settings->zoomToPointer(),
         &m_zoomPtrToggle));
 
-    // ── Card 4: Wheel action combo ────────────────────────────────────────────
     {
         auto *card = new QFrame(vl->parentWidget());
         card->setObjectName(QStringLiteral("ZoomCard"));
@@ -792,7 +753,6 @@ QWidget *SettingsPanel::buildZoomPage()
 
     finishScrollPage(vl);
 
-    // Update example label whenever the step changes
     const auto updateExample = [this]() {
         m_zoomExampleLabel->setText(
             tr("Example: 100 % → %1 %").arg(100 + m_zoomStepSpin->value()));
@@ -878,14 +838,10 @@ void SettingsPanel::buildAdvancedUpdates(QVBoxLayout *vl)
     m_updateIntervalCombo->addItem(tr("Monthly"),        QStringLiteral("monthly"));
     selectComboData(m_updateIntervalCombo, m_settings->updateInterval());
 
-    // An interval means nothing while the check is off.
     m_updateIntervalCombo->setEnabled(m_autoUpdateCheck->isChecked());
     connect(m_autoUpdateCheck, &QAbstractButton::toggled,
             m_updateIntervalCombo, &QWidget::setEnabled);
 
-    // The switch above only decides when the program asks by itself. This row
-    // asks now, and says what came back - without it the whole card is a
-    // setting with nothing behind it.
     QWidget *card = cl->parentWidget();
     auto *row = new QHBoxLayout;
     row->setContentsMargins(SettingCheckBox::kBox + SettingCheckBox::kSpacing,
@@ -939,10 +895,7 @@ void SettingsPanel::showUpdateResult(const UpdateCheckResult &result)
         m_updateStatus->setText(tr("Version %1 is up to date.").arg(result.current));
         return;
     }
-    // The program does not install anything, so the sentence links to the
-    // download page - the tag only said that there is something newer. The link
-    // colour is set here because a stylesheet does not reach into rich text;
-    // the primary blue is too dark to read on the dark card.
+
     m_updateStatus->setTextFormat(Qt::RichText);
     m_updateStatus->setText(
         tr("Version %1 is available. <a href=\"%2\" style=\"color:%3;\">Download</a>")
@@ -1007,13 +960,12 @@ void SettingsPanel::buildAdvancedReset(QVBoxLayout *vl)
             "QPushButton { background:#FEF2F2; color:#DC2626; border:1px solid #FCA5A5;"
             " border-radius:6px; font-size:13px; padding:8px 16px; }"
             "QPushButton:hover { background:#FEE2E2; }"));
-    // Every control the dialog owns goes back to its default here; nothing is
-    // written yet, so Cancel still leaves the stored settings untouched.
+
     connect(resetAllBtn, &QPushButton::clicked, this, [this]() {
         m_pendingTheme = QStringLiteral("system");
         selectCardGroup(m_pendingTheme, m_themeCards, m_themeIds);
         Q_EMIT themeChangeRequested(m_pendingTheme);
-        m_pendingLang = QStringLiteral("en");
+        m_pendingLang = AppSettings::systemDefaultLanguage();
         selectLangCode(m_pendingLang);
         if (m_autoUpdateCheck)     m_autoUpdateCheck->setChecked(true);
         if (m_updateIntervalCombo) selectComboData(m_updateIntervalCombo,
@@ -1032,7 +984,6 @@ QWidget *SettingsPanel::buildAdvancedPage()
 {
     QWidget *page = nullptr;
     QVBoxLayout *vl = buildScrollPage(page, tr("Advanced"), tr("Advanced settings for OpenPDF Studio."));
-
 
     buildAdvancedUpdates(vl);
     buildAdvancedInterface(vl);
@@ -1079,8 +1030,6 @@ QWidget *SettingsPanel::buildAboutPage()
     vbox->addWidget(tagline, 0, Qt::AlignHCenter);
     vbox->addSpacing(16);
 
-    // Wo die Einstellungen liegen, ist eine Support-Frage — hier steht die
-    // Antwort, markierbar, statt in einer Anleitung, die niemand liest.
     auto *cfg = new QLabel(AppConfig::isPortable()
         ? tr("Configuration (portable): %1").arg(AppConfig::path())
         : tr("Configuration: %1").arg(AppConfig::path()), page);
@@ -1091,8 +1040,6 @@ QWidget *SettingsPanel::buildAboutPage()
     vbox->addWidget(cfg, 0, Qt::AlignHCenter);
     return page;
 }
-
-// ── Option cards ──────────────────────────────────────────────────────────────
 
 QWidget *SettingsPanel::buildOptionCard(const QString &icon, const QString &title,
                                          const QString &desc,  const QString &id,
@@ -1130,8 +1077,6 @@ void SettingsPanel::selectCardGroup(const QString &id,
         qobject_cast<OptionCard *>(cards[i])->setSelected(ids[i] == id);
 }
 
-// ── Language rows ─────────────────────────────────────────────────────────────
-
 void SettingsPanel::addLangRow(QWidget *parent, QVBoxLayout *layout,
                                 const QString &code, const QString &display)
 {
@@ -1153,8 +1098,6 @@ void SettingsPanel::selectLangCode(const QString &code)
         qobject_cast<LangRow *>(m_langRows[i])->setSelected(m_langCodes[i] == code);
 }
 
-// ── Misc ──────────────────────────────────────────────────────────────────────
-
 void SettingsPanel::applyAndClose()
 {
     m_settings->setTheme(m_pendingTheme);
@@ -1164,14 +1107,11 @@ void SettingsPanel::applyAndClose()
     if (m_customPlayerEdit)
         m_settings->setCustomPlayerCommand(m_customPlayerEdit->text().trimmed());
 
-    // Flush any open shortcut edit before saving
     for (ShortcutRow *r : m_shortcutRows) r->cancelIfEditing();
 
-    // Persist all shortcuts and apply them immediately
     for (int i = 0; i < m_shortcutRows.size() && i < m_shortcutKeys.size(); ++i)
         m_settings->setShortcut(m_shortcutKeys[i], m_shortcutRows[i]->currentSequence());
 
-    // Save zoom settings
     if (m_zoomStepSpin) {
         m_settings->setZoomStep(m_zoomStepSpin->value());
         m_settings->setCtrlWheelZoom(m_ctrlWheelToggle && m_ctrlWheelToggle->isChecked());
@@ -1180,7 +1120,6 @@ void SettingsPanel::applyAndClose()
             m_settings->setWheelAction(m_wheelActionCombo->currentData().toString());
     }
 
-    // Panel layout
     bool panelLayoutChanged = false;
     if (m_preserveLayoutCheck) {
         const bool preserve = m_preserveLayoutCheck->isChecked();
@@ -1188,7 +1127,6 @@ void SettingsPanel::applyAndClose()
         m_settings->setPreservePanelLayout(preserve);
     }
 
-    // Advanced
     if (m_autoUpdateCheck)
         m_settings->setAutoUpdateCheck(m_autoUpdateCheck->isChecked());
     if (m_updateIntervalCombo)
@@ -1207,10 +1145,9 @@ void SettingsPanel::applyAndClose()
     if (m_pendingLang != m_originalLang)
         Q_EMIT languageChangeRequested(m_pendingLang);
 
-    Q_EMIT shortcutsChanged();      // always reload shortcuts in MainWindow
-    Q_EMIT zoomSettingsChanged();   // always reload zoom settings in MainWindow
-    // Switching the option on captures the layout that is on screen right now,
-    // so the very next start already restores what the user is looking at.
+    Q_EMIT shortcutsChanged();
+    Q_EMIT zoomSettingsChanged();
+
     if (panelLayoutChanged)
         Q_EMIT panelLayoutSettingChanged();
 

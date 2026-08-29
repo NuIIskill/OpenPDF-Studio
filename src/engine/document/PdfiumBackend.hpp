@@ -48,6 +48,10 @@ public:
     QString embeddedFontFamily(int page, const QPointF &pdfPt) const override;
     double  textWidthPt(int page, const QPointF &pdfPt,
                         const QString &text, double sizePt) const override;
+    double  standardTextWidthPt(const QString &family, bool bold, bool italic,
+                                const QString &text, double sizePt) const override;
+    bool    canEmbedFont(const QString &family, bool bold,
+                         bool italic) const override;
     bool    hasSelectableText(int page) const override;
 
     QList<TextMatch> findText(const QString &text) const override;
@@ -63,14 +67,6 @@ private:
     QImage renderPageInternal(int page, qreal scale,
                               const EditSession *session) const;
 
-    /// Die sichtbaren Zeilen einer Seite — die gemeinsame Grundlage aller vier
-    /// Textabfragen. Zeichen, deren Mitte in `exclude` liegt, fehlen: das sind
-    /// die von der Sitzung überschriebenen Stellen, deren Text als nicht
-    /// vorhanden gilt. `from`/`to` beschneiden den Bereich auf zwei Anker;
-    /// ohne sie gilt die ganze Seite.
-    ///
-    /// Macht alles in einem Zug, weil der Zeilentext nur zu haben ist, solange
-    /// PDFiums Textseite offen ist.
     std::vector<PdfiumLine> linesOfPage(int page, const QList<QRectF> &exclude,
                                         const std::optional<QPointF> &from,
                                         const std::optional<QPointF> &to,

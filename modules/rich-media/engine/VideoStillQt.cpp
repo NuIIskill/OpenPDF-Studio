@@ -1,6 +1,4 @@
 // SPDX-License-Identifier: LicenseRef-OpenPDF-Business
-//
-// Grabbing a still with Qt Multimedia. Used everywhere except Windows.
 
 #include "rich-media/engine/VideoStill.hpp"
 
@@ -17,8 +15,6 @@
 
 namespace {
 
-/// How black a frame may be before it is skipped. Videos very often open on a
-/// black frame, and a black poster reads as a failure.
 bool tooDark(const QImage &image)
 {
     if (image.isNull()) return true;
@@ -31,7 +27,7 @@ bool tooDark(const QImage &image)
     return int(sum / qMax(1, small.width() * small.height())) < 12;
 }
 
-} // namespace
+}
 
 QImage VideoStill::grab(const QString &filePath, int maxWidth)
 {
@@ -66,8 +62,6 @@ QImage VideoStill::grab(const QString &filePath, int maxWidth)
             || status == QMediaPlayer::InvalidMedia) loop.quit();
     });
 
-    // A still takes a fraction of a second. Longer than this and something is
-    // wrong; the caller draws a placeholder instead of waiting.
     QTimer::singleShot(6000, &loop, &QEventLoop::quit);
 
     player.setSource(QUrl::fromLocalFile(filePath));
@@ -81,4 +75,4 @@ QImage VideoStill::grab(const QString &filePath, int maxWidth)
     return best;
 }
 
-#endif // !Q_OS_WIN
+#endif

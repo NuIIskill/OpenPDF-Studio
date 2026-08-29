@@ -29,8 +29,6 @@ bool commit(const QString &stagingPath, const QString &target)
     if (!QFile::exists(target))
         return QFile::rename(stagingPath, target);
 
-    // QFile::rename does not replace an existing file, so the old document is
-    // moved aside first and kept until the new one is safely in place.
     const QString backup = target + QStringLiteral(".opdf-old");
     QFile::remove(backup);
     if (!QFile::rename(target, backup)) {
@@ -54,4 +52,4 @@ void discard(const QString &stagingPath)
     if (!stagingPath.isEmpty()) QFile::remove(stagingPath);
 }
 
-} // namespace SafeWrite
+}

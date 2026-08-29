@@ -27,17 +27,14 @@ void TextSelectionController::setSource(PdfRenderer *renderer, const DocumentSou
 }
 #endif
 
-// ── Mouse handling ────────────────────────────────────────────────────────────
-
 void TextSelectionController::handlePress(const QPoint &canvasPos)
 {
-    // The anchor lives in canvas coords so scrolling during the drag does not
-    // shift the selection start.
+
     clear();
     m_dragStart = canvasPos;
     m_tracking  = true;
     m_dragging  = false;
-    Q_EMIT focusRequested();   // enables Ctrl+C on the view
+    Q_EMIT focusRequested();
 }
 
 bool TextSelectionController::handleMove(const QPoint &canvasPos)
@@ -54,13 +51,11 @@ bool TextSelectionController::handleRelease()
 {
     if (!m_tracking) return false;
     m_tracking = false;
-    // A plain click (no drag) just clears the previous marking.
+
     if (!m_dragging) return false;
     m_dragging = false;
     return true;
 }
-
-// ── Selection geometry ────────────────────────────────────────────────────────
 
 bool TextSelectionController::anchorAt(const QPoint &canvasPos, int *page,
                                        QPointF *pdfPt) const
@@ -69,8 +64,6 @@ bool TextSelectionController::anchorAt(const QPoint &canvasPos, int *page,
     const int labels = m_canvas->pageLabelCount();
     if (!m_renderer || labels == 0) return false;
 
-    // Exact hit first, otherwise the vertically nearest page — dragging into a
-    // margin or past the last page must still extend the selection.
     int    best     = -1;
     int    bestDist = std::numeric_limits<int>::max();
     for (int i = 0; i < labels; ++i) {
@@ -96,8 +89,6 @@ bool TextSelectionController::anchorAt(const QPoint &canvasPos, int *page,
 #endif
 }
 
-
-
 void TextSelectionController::updateSelection(const QPoint &canvasFrom,
                                               const QPoint &canvasTo)
 {
@@ -111,7 +102,6 @@ void TextSelectionController::updateSelection(const QPoint &canvasFrom,
         return;
     }
 
-    // Normalise so the selection always runs forward through the document.
     if (pageB < pageA || (pageA == pageB
             && (ptB.y() < ptA.y() - 2.0
                 || (std::abs(ptB.y() - ptA.y()) <= 2.0 && ptB.x() < ptA.x())))) {
@@ -124,8 +114,7 @@ void TextSelectionController::updateSelection(const QPoint &canvasFrom,
     if (!backend) { updateOverlays(); return; }
 
     for (int page = pageA; page <= pageB && page < pageCount; ++page) {
-        // Die Randseiten werden an den Mausankern beschnitten, alles dazwischen
-        // wird ganz genommen — ausgedrückt durch einen nicht gesetzten Anker.
+
         const PdfBackend::Selection sel = backend->selectPage(
             page,
             page == pageA ? std::optional<QPointF>(ptA) : std::nullopt,
@@ -148,10 +137,7 @@ void TextSelectionController::updateSelection(const QPoint &canvasFrom,
 void TextSelectionController::updateOverlays()
 {
 #ifdef HAVE_PDF_RENDERING
-    // Highlights are plain child widgets of the canvas, transparent for mouse
-    // events so a follow-up drag starts a new selection instead of hitting them.
-    // A selection dragged across a whole document can produce thousands of line
-    // rects; the copied text stays complete, only the highlight is capped.
+
     constexpr int kMaxOverlays = 600;
     int used = 0;
     const qreal scale = m_canvas->screenScale();

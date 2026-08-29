@@ -17,13 +17,9 @@ void DocumentHistory::record(const Change &c, int undoIndex,
                              const QList<ImageState> &images,
                              const QString &snapshotSource, Snapshot mode)
 {
-    // A file is about to take over from the one the deferred snapshot is
-    // waiting on, so that file has to be secured first — after this record it
-    // is no longer what the view reads from, and nothing keeps it alive.
+
     if (!snapshotSource.isEmpty()) materializeSnapshot();
 
-    // A new change makes the states that were undone unreachable: they were
-    // built on a document that no longer follows from this one.
     while (m_entries.size() > m_current + 1) {
         if (m_pendingEntry == m_entries.size() - 1) {
             m_pendingEntry = -1;
@@ -44,10 +40,7 @@ void DocumentHistory::record(const Change &c, int undoIndex,
     e.images    = images;
     e.base      = m_entries.isEmpty() ? m_baseCounter : m_entries.last().base;
     if (!snapshotSource.isEmpty()) {
-        // A different document file — and with it a different undo stack, so
-        // this is where one base ends and the next begins. The base changes
-        // even when the copy failed: the states before it are simply no longer
-        // reachable, and pretending otherwise would restore the wrong file.
+
         if (mode == Snapshot::Copy) e.snapshot = takeSnapshot(snapshotSource);
         e.base = ++m_baseCounter;
     }
@@ -85,8 +78,6 @@ int DocumentHistory::indexForUndoIndex(int undoIndex) const
 {
     if (m_entries.isEmpty()) return -1;
 
-    // Only states in the document file on screen can be meant — an undo index
-    // says nothing about the states recorded against an earlier file.
     const int base = m_entries[qBound(0, m_current, count() - 1)].base;
     int fallback = -1;
     for (int i = count() - 1; i >= 0; --i) {
@@ -110,8 +101,7 @@ QString DocumentHistory::baseFileFor(int index) const
 bool DocumentHistory::restoringDropsEdits(int index) const
 {
     if (index < 0 || index >= m_entries.size() || m_current < 0) return false;
-    // The file has to be swapped back. Everything the session holds — text
-    // edits above all — belongs to the file on screen and cannot follow.
+
     return m_entries[index].base != m_entries[m_current].base;
 }
 
@@ -121,10 +111,6 @@ bool DocumentHistory::canRestore(int index) const
     if (m_entries[index].base == m_entries[m_current].base) return true;
     if (baseFileFor(index).isEmpty()) return false;
 
-    // Restoring across files means loading that file again, and a file holds
-    // exactly the state it was written in. Text edits recorded on top of it
-    // were never written anywhere, so those states cannot be gone back to —
-    // images can, because the entry carries them itself.
     return m_entries[index].undoIndex == anchorUndoIndex(index);
 }
 
@@ -142,16 +128,12 @@ void DocumentHistory::clear()
 {
     if (m_entries.isEmpty()) return;
 
-    // The kept state may be living in an earlier entry's snapshot, so it takes
-    // that file over — dropping the entry that happened to own it must not
-    // delete the document the state is made of.
     Entry keep = m_entries.value(qMax(m_current, 0));
     keep.snapshot = baseFileFor(qMax(m_current, 0));
 
     for (const Entry &e : std::as_const(m_entries))
         if (e.snapshot != keep.snapshot) SessionStore::discardSnapshot(e.snapshot);
 
-    // A deferred snapshot survives only when it is the kept entry's own.
     if (m_pendingEntry == qMax(m_current, 0)) {
         m_pendingEntry = 0;
     } else {

@@ -484,6 +484,14 @@ Use page numbers like 1-3, 5, 8-10.</source>
         <source>Line Spacing</source>
         <translation>Zeilenabstand</translation>
     </message>
+    <message>
+        <source>Advanced</source>
+        <translation>Erweitert</translation>
+    </message>
+    <message>
+        <source>All text box options</source>
+        <translation>Alle Textfeld-Optionen</translation>
+    </message>
 </context>
 <context>
     <name>HistoryDialog</name>
@@ -1772,6 +1780,10 @@ Enter the password to open it:</source>
         <location filename="../../src/ui/panels/TextPropertiesPanel.cpp" line="179"/>
         <source>Save as Default</source>
         <translation>Als Standard speichern</translation>
+    </message>
+    <message>
+        <source>Position &amp; Size</source>
+        <translation>Position &amp; Größe</translation>
     </message>
 </context>
 <context>

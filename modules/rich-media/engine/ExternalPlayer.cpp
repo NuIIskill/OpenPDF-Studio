@@ -13,9 +13,6 @@ namespace {
 
 QString g_lastPlayer;
 
-/// An environment without this process's Qt variables. VLC is a Qt program
-/// itself: inheriting QT_PLUGIN_PATH and LD_LIBRARY_PATH makes it load our
-/// plugins and die on start. An AppImage's AppRun sets exactly those.
 QProcessEnvironment cleanEnvironment()
 {
     const QProcessEnvironment inherited = QProcessEnvironment::systemEnvironment();
@@ -34,9 +31,6 @@ QProcessEnvironment cleanEnvironment()
     return clean;
 }
 
-// PATH first, then the places Windows installers actually use: neither VLC nor
-// mpv puts itself on PATH there, so without this every candidate fails and
-// playback drops straight to the system association.
 QString locate(const QString &program)
 {
     const QString onPath = QStandardPaths::findExecutable(program);
@@ -68,14 +62,12 @@ bool start(const QString &program, const QStringList &arguments)
     return true;
 }
 
-/// Splits a command line the user typed. QProcess::splitCommand handles
-/// quotes, which covers paths with spaces.
 QStringList splitCommand(const QString &command)
 {
     return QProcess::splitCommand(command);
 }
 
-} // namespace
+}
 
 QString ExternalPlayer::lastPlayerName()
 {
@@ -86,7 +78,6 @@ bool ExternalPlayer::play(const QString &filePath, const QString &command)
 {
     if (filePath.isEmpty() || !QFileInfo::exists(filePath)) return false;
 
-    // 1. A custom command wins.
     if (!command.trimmed().isEmpty()) {
         QStringList parts = splitCommand(command.trimmed());
         if (!parts.isEmpty()) {
@@ -103,7 +94,6 @@ bool ExternalPlayer::play(const QString &filePath, const QString &command)
         }
     }
 
-    // 2. The usual suspects.
     struct Candidate { const char *program; QStringList args; };
     const Candidate candidates[] = {
         { "vlc",     { QStringLiteral("--play-and-exit"), filePath } },
@@ -113,8 +103,6 @@ bool ExternalPlayer::play(const QString &filePath, const QString &command)
     for (const Candidate &c : candidates)
         if (start(QLatin1String(c.program), c.args)) return true;
 
-    // 3. Whatever the system opens videos with. On Windows this is the only
-    //    route that works without installing anything.
     if (QDesktopServices::openUrl(QUrl::fromLocalFile(filePath))) {
         g_lastPlayer = QStringLiteral("system");
         return true;

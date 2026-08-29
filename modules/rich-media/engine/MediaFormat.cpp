@@ -6,20 +6,13 @@
 
 namespace {
 
-// ── ISO base media file format (MP4, MOV, 3GP) ───────────────────────────────
-//
-// The file is a tree of boxes, each "size (4) + type (4)" followed by its
-// payload. Everything needed here sits on one path: moov → trak → mdia → minf
-// → stbl → stsd, whose first sample entry names the codec by four characters.
-// mvhd gives the duration, tkhd the display size.
-
+/// Represents one ISO base media file box.
 struct Box { QByteArray type; qint64 payloadStart { 0 }; qint64 payloadEnd { 0 }; };
 
 quint32 beU32(const uchar *p) { return (quint32(p[0]) << 24) | (quint32(p[1]) << 16)
                                      | (quint32(p[2]) << 8)  |  quint32(p[3]); }
 quint64 beU64(const uchar *p) { return (quint64(beU32(p)) << 32) | beU32(p + 4); }
 
-/// Reads the box header at `at`. Invalid type means "stop here".
 Box readBox(QFile &file, qint64 at, qint64 limit)
 {
     Box box;
@@ -32,12 +25,12 @@ Box readBox(QFile &file, qint64 at, qint64 limit)
     box.type = header.mid(4, 4);
     qint64 headerSize = 8;
 
-    if (size == 1) {                    // 64-bit size follows the type
+    if (size == 1) {
         QByteArray large = file.read(8);
         if (large.size() != 8) return {};
         size = qint64(beU64(reinterpret_cast<const uchar *>(large.constData())));
         headerSize = 16;
-    } else if (size == 0) {             // extends to the end of the file
+    } else if (size == 0) {
         size = limit - at;
     }
     if (size < headerSize || at + size > limit) return {};
@@ -47,7 +40,6 @@ Box readBox(QFile &file, qint64 at, qint64 limit)
     return box;
 }
 
-/// First direct child of `type` between `from` and `to`.
 Box findBox(QFile &file, const char *type, qint64 from, qint64 to)
 {
     qint64 at = from;
@@ -73,15 +65,13 @@ QString codecFromSampleEntry(const QByteArray &fourcc)
     return QString::fromLatin1(fourcc).trimmed();
 }
 
-/// Walks one trak and reports its codec and display size when it is video.
 bool readVideoTrack(QFile &file, const Box &trak, MediaFormat::Info *info)
 {
     const Box mdia = findBox(file, "mdia", trak.payloadStart, trak.payloadEnd);
     if (mdia.type.isEmpty()) return false;
     const Box minf = findBox(file, "minf", mdia.payloadStart, mdia.payloadEnd);
     if (minf.type.isEmpty()) return false;
-    // vmhd only exists in a video track's media information; its absence is
-    // the cheapest way to skip audio and subtitle tracks.
+
     if (findBox(file, "vmhd", minf.payloadStart, minf.payloadEnd).type.isEmpty())
         return false;
     const Box stbl = findBox(file, "stbl", minf.payloadStart, minf.payloadEnd);
@@ -89,13 +79,11 @@ bool readVideoTrack(QFile &file, const Box &trak, MediaFormat::Info *info)
     const Box stsd = findBox(file, "stsd", stbl.payloadStart, stbl.payloadEnd);
     if (stsd.type.isEmpty()) return false;
 
-    // stsd: version+flags (4), entry count (4), then the sample entries.
     if (!file.seek(stsd.payloadStart + 8)) return false;
     const QByteArray entry = file.read(16);
     if (entry.size() < 16) return false;
     info->videoCodec = codecFromSampleEntry(entry.mid(4, 4));
 
-    // tkhd holds the display size as 16.16 fixed point in its last 8 bytes.
     const Box tkhd = findBox(file, "tkhd", trak.payloadStart, trak.payloadEnd);
     if (!tkhd.type.isEmpty() && file.seek(tkhd.payloadEnd - 8)) {
         const QByteArray wh = file.read(8);
@@ -118,8 +106,6 @@ void readMp4(QFile &file, MediaFormat::Info *info)
     const Box moov = findBox(file, "moov", 0, end);
     if (moov.type.isEmpty()) return;
 
-    // mvhd: version (1) + flags (3), then times. Timescale and duration sit at
-    // 12/16 for version 0 and 20/24 for version 1.
     const Box mvhd = findBox(file, "mvhd", moov.payloadStart, moov.payloadEnd);
     if (!mvhd.type.isEmpty() && file.seek(mvhd.payloadStart)) {
         const QByteArray head = file.read(32);
@@ -140,11 +126,6 @@ void readMp4(QFile &file, MediaFormat::Info *info)
     }
 }
 
-// ── The other containers ─────────────────────────────────────────────────────
-//
-// Only identified, not walked: none of them is the answer we are looking for,
-// so the codec inside does not change what happens next.
-
 QString containerFromSignature(const QByteArray &head)
 {
     if (head.size() >= 12 && head.mid(4, 4) == "ftyp") return QStringLiteral("mp4");
@@ -158,7 +139,7 @@ QString containerFromSignature(const QByteArray &head)
     return QString();
 }
 
-} // namespace
+}
 
 bool MediaFormat::Info::videoIsH264() const
 {

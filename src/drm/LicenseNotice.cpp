@@ -10,8 +10,6 @@ void LicenseNotice::askUsageIfUnknown(QWidget *parent)
     if (!License::usage().isEmpty())
         return;
 
-    // Eine Frage, einmal, und "privat" ist die Antwort, die nichts kostet —
-    // also Vorgabe, und der Dialog darf einfach geschlossen werden.
     auto *box = new QMessageBox(parent);
     box->setAttribute(Qt::WA_DeleteOnClose);
     box->setIcon(QMessageBox::Question);
@@ -29,7 +27,7 @@ void LicenseNotice::askUsageIfUnknown(QWidget *parent)
             License::setUsage(QStringLiteral("business"));
         else if (box->clickedButton() == personalBtn)
             License::setUsage(QStringLiteral("personal"));
-        // Ohne Antwort geschlossen: beim nächsten Start erneut fragen, statt zu raten.
+
     });
     box->open();
 }
@@ -37,14 +35,10 @@ void LicenseNotice::askUsageIfUnknown(QWidget *parent)
 void LicenseNotice::showExpiryReminderIfDue(QWidget *parent,
                                            std::function<void()> onEnterKey)
 {
-    // Bei jedem Start, solange die Frist um ist und kein Schlüssel vorliegt.
-    // Der Hinweis erinnert, er sperrt nichts — geprüft wird bis heute nur das
-    // Datum, und kein Programmteil fragt das Ergebnis ab.
+
     if (!License::isEvaluationOver())
         return;
 
-    // open() statt exec(): ein Hinweis beim Start darf das Fenster nicht
-    // blockieren, vor dem er steht.
     auto *box = new QMessageBox(parent);
     box->setAttribute(Qt::WA_DeleteOnClose);
     box->setIcon(QMessageBox::Information);

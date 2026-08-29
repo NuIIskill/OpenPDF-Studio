@@ -8,8 +8,7 @@ namespace BookmarkWriter {
 
 bool available();
 
-/// Replaces the outline tree in `path` without touching page content.
 bool write(const QString &path, const QList<PdfBookmark> &bookmarks,
            const QString &password = {});
 
-} // namespace BookmarkWriter
+}

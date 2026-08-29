@@ -38,8 +38,6 @@ bool RichMediaWriter::available()
 
 namespace {
 
-// ── Page box ─────────────────────────────────────────────────────────────────
-
 struct PageBox { double left { 0 }, top { 0 }; bool valid { false }; };
 
 PageBox pageBox(QPDFPageObjectHelper &page)
@@ -59,8 +57,6 @@ PageBox pageBox(QPDFPageObjectHelper &page)
     return box;
 }
 
-/// Back to PDF coordinates: Y up, origin at the page box corner. The other
-/// direction of MediaScanner::toTopLeft.
 QPDFObjectHandle toPdfRect(const QRectF &bounds, const PageBox &box)
 {
     const double x0 = box.left + bounds.left();
@@ -73,10 +69,6 @@ QPDFObjectHandle toPdfRect(const QRectF &bounds, const PageBox &box)
     });
 }
 
-// ── Poster as an appearance stream ───────────────────────────────────────────
-
-/// Image XObject from a QImage, as JPEG with /DCTDecode. PDF has no PNG, and
-/// raw RGB with Flate would cost hundreds of kilobytes instead of tens.
 QPDFObjectHandle imageXObject(QPDF &pdf, const QImage &image)
 {
     QImage rgb = image.convertToFormat(QImage::Format_RGB888);
@@ -104,7 +96,6 @@ QPDFObjectHandle imageXObject(QPDF &pdf, const QImage &image)
     return pdf.makeIndirectObject(stream);
 }
 
-/// Form XObject that lays the image over the annotation's full area.
 QPDFObjectHandle appearanceStream(QPDF &pdf, const QImage &poster,
                                   double width, double height)
 {
@@ -131,23 +122,17 @@ QPDFObjectHandle appearanceStream(QPDF &pdf, const QImage &poster,
         QPDFObjectHandle::newInteger(0), QPDFObjectHandle::newInteger(1),
         QPDFObjectHandle::newInteger(0), QPDFObjectHandle::newInteger(0) }));
 
-    // The image is drawn in the unit square and the matrix scales it into
-    // place. Aspect ratio is kept and the rest filled dark; a stretched still
-    // looks like a mistake.
     double drawW = width, drawH = height;
     if (poster.width() > 0 && poster.height() > 0) {
         const double imageAspect = double(poster.width()) / double(poster.height());
         const double boxAspect   = width / height;
-        if (imageAspect > boxAspect) drawH = width / imageAspect;
-        else                         drawW = height * imageAspect;
+        if (imageAspect > boxAspect) drawW = height * imageAspect;
+        else                         drawH = width / imageAspect;
     }
     const double offsetX = (width  - drawW) / 2.0;
     const double offsetY = (height - drawH) / 2.0;
 
     const std::string content =
-        "q 0.118 0.133 0.169 rg 0 0 "
-        + QUtil::double_to_string(width, 4) + " "
-        + QUtil::double_to_string(height, 4) + " re f Q\n"
         "q " + QUtil::double_to_string(drawW, 4) + " 0 0 "
              + QUtil::double_to_string(drawH, 4) + " "
              + QUtil::double_to_string(offsetX, 4) + " "
@@ -160,8 +145,6 @@ QPDFObjectHandle appearanceStream(QPDF &pdf, const QImage &poster,
     return pdf.makeIndirectObject(stream);
 }
 
-// ── The annotation ───────────────────────────────────────────────────────────
-
 const char *configSubtype(MediaSpec::Type type)
 {
     switch (type) {
@@ -173,8 +156,6 @@ const char *configSubtype(MediaSpec::Type type)
     return "/Video";
 }
 
-/// Percent-encoding for the /FlashVars value. Only what separates or breaks
-/// there is escaped.
 std::string urlEncoded(const QString &text)
 {
     QByteArray out;
@@ -189,9 +170,6 @@ std::string urlEncoded(const QString &text)
     return std::string(out.constData(), static_cast<size_t>(out.size()));
 }
 
-/// The instance's /Params. Acrobat also writes a skin file (SkinOverAll….swf)
-/// it resolves from its own installation and does not embed; that is not
-/// copied here. What remains is which asset to play.
 QPDFObjectHandle instanceParams(QPDF &pdf, const MediaSpec &spec)
 {
     const std::string flashVars =
@@ -208,8 +186,7 @@ QPDFObjectHandle instanceParams(QPDF &pdf, const MediaSpec &spec)
 QPDFObjectHandle richMediaSettings(QPDF &pdf, const MediaSpec &spec,
                                    QPDFObjectHandle configuration)
 {
-    // As in Acrobat's files: the activation names its configuration and
-    // carries a presentation. Without /Configuration a viewer has to guess.
+
     QPDFObjectHandle presentation = QPDFObjectHandle::newDictionary();
     presentation.replaceKey("/Type",  QPDFObjectHandle::newName("/RichMediaPresentation"));
     presentation.replaceKey("/Style",
@@ -237,7 +214,7 @@ QPDFObjectHandle richMediaSettings(QPDF &pdf, const MediaSpec &spec,
 
     QPDFObjectHandle activation = QPDFObjectHandle::newDictionary();
     activation.replaceKey("/Type", QPDFObjectHandle::newName("/RichMediaActivation"));
-    // /XA = on click. /PO = as soon as the page becomes visible.
+
     activation.replaceKey("/Condition",
         QPDFObjectHandle::newName(spec.activateOnPageOpen ? "/PO" : "/XA"));
     activation.replaceKey("/Configuration", configuration);
@@ -253,8 +230,6 @@ QPDFObjectHandle richMediaSettings(QPDF &pdf, const MediaSpec &spec,
     return settings;
 }
 
-/// /RichMediaContent plus its configuration. `configuration` receives the one
-/// created, because the activation needs it again.
 QPDFObjectHandle richMediaContent(QPDF &pdf, const MediaSpec &spec,
                                   QPDFObjectHandle filespec,
                                   QPDFObjectHandle *configuration)
@@ -271,8 +246,6 @@ QPDFObjectHandle richMediaContent(QPDF &pdf, const MediaSpec &spec,
     config.replaceKey("/Instances", instances);
     *configuration = pdf.makeIndirectObject(config);
 
-    // The name goes into the name tree as a Unicode string, which survives
-    // umlauts and brackets better than a plain one.
     QPDFObjectHandle assets = pdf.makeIndirectObject(QPDFObjectHandle::newDictionary());
     assets.replaceKey("/Names", QPDFObjectHandle::newArray({
         QPDFObjectHandle::newUnicodeString(spec.displayName.toStdString()),
@@ -281,15 +254,12 @@ QPDFObjectHandle richMediaContent(QPDF &pdf, const MediaSpec &spec,
     QPDFObjectHandle configurations = pdf.makeIndirectObject(
         QPDFObjectHandle::newArray({ *configuration }));
 
-    // No /Type: that is how Acrobat's own files have it.
     QPDFObjectHandle content = QPDFObjectHandle::newDictionary();
     content.replaceKey("/Assets",         assets);
     content.replaceKey("/Configurations", configurations);
     return pdf.makeIndirectObject(content);
 }
 
-/// The one given, else one from the video, else the drawn placeholder. There
-/// is always one.
 QImage posterFor(const MediaSpec &spec, const QSize &pixelSize)
 {
     if (!spec.poster.isNull()) return spec.poster;
@@ -300,8 +270,6 @@ QImage posterFor(const MediaSpec &spec, const QSize &pixelSize)
     return PosterFrame::placeholder(pixelSize);
 }
 
-/// Next free number for /NM. Two annotations with the same name are an error
-/// per spec, and a document collects several over time.
 int nextAnnotNumber(std::vector<QPDFPageObjectHelper> &pages)
 {
     int highest = 0;
@@ -323,8 +291,6 @@ int nextAnnotNumber(std::vector<QPDFPageObjectHelper> &pages)
     return highest + 1;
 }
 
-/// Adds a blank page of the given size after `after`, the way Acrobat does
-/// when a video is dragged in: the page is the video and nothing else.
 QPDFPageObjectHelper addBlankPage(QPDF &pdf, std::vector<QPDFPageObjectHelper> &pages,
                                   int after, const QSizeF &sizePt)
 {
@@ -335,20 +301,17 @@ QPDFPageObjectHelper addBlankPage(QPDF &pdf, std::vector<QPDFPageObjectHelper> &
         QPDFObjectHandle::newReal(sizePt.width(),  4),
         QPDFObjectHandle::newReal(sizePt.height(), 4) }));
     page.replaceKey("/Resources", QPDFObjectHandle::newDictionary());
-    // An empty content stream: a page without /Contents is legal but not
-    // every viewer likes it.
+
     page.replaceKey("/Contents", pdf.makeIndirectObject(
         QPDFObjectHandle::newStream(&pdf, std::string())));
 
     QPDFPageObjectHelper helper(pdf.makeIndirectObject(page));
     QPDFPageDocumentHelper document(pdf);
     if (after >= 0 && after < static_cast<int>(pages.size()))
-        document.addPageAt(helper, /*before=*/false, pages[static_cast<size_t>(after)]);
+        document.addPageAt(helper,  false, pages[static_cast<size_t>(after)]);
     else
-        document.addPage(helper, /*first=*/false);
+        document.addPage(helper,  false);
 
-    // The page list is stale now; refetch it or every following entry points
-    // at the wrong page.
     pages = document.getAllPages();
     return helper;
 }
@@ -376,8 +339,6 @@ bool insertOne(QPDF &pdf, std::vector<QPDFPageObjectHelper> &pages,
     const PageBox box = pageBox(page);
     if (!box.valid) return false;
 
-    // The stream is served from the file, not a buffer: qpdf calls the
-    // provider while writing, so a 300 MB video never passes through memory.
     QPDFEFStreamObjectHelper ef = QPDFEFStreamObjectHelper::createEFStream(
         pdf, QUtil::file_provider(spec.source.toLocal8Bit().constData()));
     if (!spec.mimeType.isEmpty()) ef.setSubtype(spec.mimeType.toStdString());
@@ -386,16 +347,13 @@ bool insertOne(QPDF &pdf, std::vector<QPDFPageObjectHelper> &pages,
 
     QPDFFileSpecObjectHelper filespec = QPDFFileSpecObjectHelper::createFileSpec(
         pdf, spec.displayName.toStdString(), ef);
-    // createFileSpec hooks the stream up under both /F and /UF. Acrobat sets
-    // only /F, and two references to one stream are legal but pointless.
+
     QPDFObjectHandle efDict = filespec.getObjectHandle().getKey("/EF");
     if (efDict.isDictionary()) efDict.removeKey("/UF");
 
     const double width  = placement.bounds.width();
     const double height = placement.bounds.height();
 
-    // Poster at roughly its size on the page with room for zoom, but capped,
-    // or the still image starts driving the file size.
     const QSize posterPixels(qBound(160, qRound(width  * 2.0), 1600),
                              qBound(90,  qRound(height * 2.0), 1600));
     QPDFObjectHandle appearance =
@@ -409,15 +367,13 @@ bool insertOne(QPDF &pdf, std::vector<QPDFPageObjectHelper> &pages,
     annot.replaceKey("/Type",    QPDFObjectHandle::newName("/Annot"));
     annot.replaceKey("/Subtype", QPDFObjectHandle::newName("/RichMedia"));
     annot.replaceKey("/Rect",    toPdfRect(placement.bounds, box));
-    // 68 = 4 (Print) + 64 (ReadOnly), exactly what Acrobat writes.
+
     annot.replaceKey("/F",       QPDFObjectHandle::newInteger(68));
-    // /NM is an annotation's unique name; Acrobat numbers RM1, RM2, … . /T
-    // would be a comment's title and is out of place here.
+
     annot.replaceKey("/NM", QPDFObjectHandle::newString(
         ("RM" + std::to_string(nextAnnotNumber(pages))).c_str()));
     annot.replaceKey("/P",       page.getObjectHandle());
-    // No border: without these two some viewers draw a thin line around the
-    // annotation.
+
     QPDFObjectHandle border = QPDFObjectHandle::newDictionary();
     border.replaceKey("/Type", QPDFObjectHandle::newName("/Border"));
     border.replaceKey("/S",    QPDFObjectHandle::newName("/S"));
@@ -457,19 +413,17 @@ void removeOne(std::vector<QPDFPageObjectHelper> &pages, const MediaAsset &asset
         if (og.getObj() == asset.annotObject && og.getGen() == asset.annotGeneration)
             annots.eraseItem(i);
     }
-    // The file stream is left orphaned and not written: QPDFWriter writes
-    // what is reachable from the trailer.
+
 }
 
-} // namespace
+}
 
 bool RichMediaWriter::apply(const QString &pdfPath, const MediaSession &session,
                             const QString &password)
 {
-    if (session.isEmpty()) return true;      // nothing to do is not a failure
+    if (session.isEmpty()) return true;
     if (!QFileInfo::exists(pdfPath)) return false;
 
-    // qpdf cannot write the file it is reading.
     const QString outPath = pdfPath + QStringLiteral(".media");
     QFile::remove(outPath);
 
@@ -492,8 +446,7 @@ bool RichMediaWriter::apply(const QString &pdfPath, const MediaSession &session,
             }
 
         QPDFWriter writer(pdf, outPath.toLocal8Bit().constData());
-        // Existing streams stay as they are. Recompressing a document with an
-        // embedded video costs a lot of time and saves nothing.
+
         writer.setStreamDataMode(qpdf_s_preserve);
         writer.setObjectStreamMode(qpdf_o_preserve);
         writer.write();
@@ -503,8 +456,6 @@ bool RichMediaWriter::apply(const QString &pdfPath, const MediaSession &session,
         return false;
     }
 
-    // Only a complete new file takes the old one's place. An abort halfway
-    // leaves the staging file untouched.
     if (!QFile::remove(pdfPath) || !QFile::rename(outPath, pdfPath)) {
         qWarning() << "[rich-media] could not move" << outPath << "into place of"
                    << pdfPath;
@@ -514,7 +465,7 @@ bool RichMediaWriter::apply(const QString &pdfPath, const MediaSession &session,
     return true;
 }
 
-#else   // !HAVE_QPDF
+#else
 
 bool RichMediaWriter::apply(const QString &, const MediaSession &, const QString &)
 {

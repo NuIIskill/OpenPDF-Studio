@@ -5,7 +5,6 @@
 #include "engine/document/OrganizerWriter.hpp"
 #include "ui/organizer/PageCard.hpp"
 
-
 #include <QVBoxLayout>
 #include <QHBoxLayout>
 #include <QScrollArea>
@@ -39,8 +38,6 @@
 #include "app/SafeWrite.hpp"
 #include "app/SessionStore.hpp"
 
-// QPdfWriter lives in QtGui, not in Qt6Pdf — writing works with either
-// rendering backend.
 #include <QPdfWriter>
 
 #ifdef HAVE_PDF_RENDERING
@@ -59,11 +56,6 @@
 #include <map>
 #include <memory>
 #endif
-
-
-// ─────────────────────────────────────────────────────────────────────────────
-// PdfOrganizerDialog
-// ─────────────────────────────────────────────────────────────────────────────
 
 PdfOrganizerDialog::PdfOrganizerDialog(const QString &initialPath, QWidget *parent)
     : QDialog(parent)
@@ -88,8 +80,6 @@ PdfOrganizerDialog::~PdfOrganizerDialog()
 #endif
 }
 
-// ── UI construction ───────────────────────────────────────────────────────────
-
 void PdfOrganizerDialog::buildUi()
 {
     auto *root = new QVBoxLayout(this);
@@ -99,7 +89,6 @@ void PdfOrganizerDialog::buildUi()
     root->addWidget(buildToolbar());
     root->addWidget(buildInfoBar());
 
-    // Grid scroll area
     m_scroll = new QScrollArea(this);
     m_scroll->setFrameShape(QFrame::NoFrame);
     m_scroll->setHorizontalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
@@ -114,8 +103,6 @@ void PdfOrganizerDialog::buildUi()
 
     root->addWidget(buildFooter());
 
-    // Stylesheet — light and dark are kept as two complete sheets so each
-    // theme can be read (and tweaked) as one coherent block.
     setStyleSheet(Theme::DarkMode ? QStringLiteral(R"(
 QDialog { background: #2B2B2B; }
 QWidget#OrganizerGrid  { background: #2B2B2B; }
@@ -237,7 +224,6 @@ QWidget *PdfOrganizerDialog::buildToolbar()
 
     const QSize iconSz(16, 16);
 
-    // Add PDF (menu button)
     m_addPdfBtn = new QToolButton(bar);
     m_addPdfBtn->setObjectName(QStringLiteral("OrgAddBtn"));
     m_addPdfBtn->setText(tr("Add PDF"));
@@ -259,7 +245,6 @@ QWidget *PdfOrganizerDialog::buildToolbar()
     });
     h->addWidget(m_addPdfBtn);
 
-    // Add blank page
     m_addBlankBtn = new QPushButton(tr("Blank Page"), bar);
     m_addBlankBtn->setObjectName(QStringLiteral("OrgBtn"));
     m_addBlankBtn->setIcon(QIcon::fromTheme(QStringLiteral("document-new")));
@@ -267,7 +252,6 @@ QWidget *PdfOrganizerDialog::buildToolbar()
     connect(m_addBlankBtn, &QPushButton::clicked, this, &PdfOrganizerDialog::addBlankPage);
     h->addWidget(m_addBlankBtn);
 
-    // Separator
     auto makeSep = [&]() {
         h->addSpacing(2);
         auto *s = new QWidget(bar);
@@ -279,7 +263,6 @@ QWidget *PdfOrganizerDialog::buildToolbar()
     };
     makeSep();
 
-    // Move left / right
     auto makeBtn = [&](const QString &label, const QString &tip, const QString &iconName) {
         auto *b = new QPushButton(label, bar);
         b->setObjectName(QStringLiteral("OrgBtn"));
@@ -308,7 +291,6 @@ QWidget *PdfOrganizerDialog::buildToolbar()
 
     h->addStretch(1);
 
-    // Help button
     auto *helpBtn = new QPushButton(bar);
     helpBtn->setObjectName(QStringLiteral("OrgBtn"));
     helpBtn->setIcon(QIcon::fromTheme(QStringLiteral("help-browser"),
@@ -397,22 +379,17 @@ QWidget *PdfOrganizerDialog::buildFooter()
     return footer;
 }
 
-// ── Page operations ───────────────────────────────────────────────────────────
-
 void PdfOrganizerDialog::addPdfPages(const QString &path)
 {
 #ifdef HAVE_PDF_RENDERING
     if (!m_docs.contains(path)) {
-        // The document the organizer was opened on has usually been unlocked
-        // already, so the stored password is tried before anyone is asked. Only
-        // a genuinely locked file gets a prompt; a damaged one goes straight to
-        // the error, which is why load() reports the two cases apart.
+
         bool needsPassword = false;
         OrganizerDoc *doc = OrganizerDoc::load(path, PdfPwStore::get(path),
                                                &needsPassword);
         for (int attempt = 0; !doc && needsPassword; ++attempt) {
             PasswordDialog prompt(QFileInfo(path).fileName(), attempt > 0, this);
-            if (prompt.exec() != QDialog::Accepted) return;   // cancelled
+            if (prompt.exec() != QDialog::Accepted) return;
             doc = OrganizerDoc::load(path, prompt.password(), &needsPassword);
             if (doc) PdfPwStore::set(path, prompt.password());
         }
@@ -471,7 +448,7 @@ void PdfOrganizerDialog::removeSelected()
 
 void PdfOrganizerDialog::moveSelected(int delta)
 {
-    // Collect selected indices in order
+
     QList<int> sel;
     for (int i = 0; i < m_pages.size(); ++i)
         if (m_pages[i].selected) sel.append(i);
@@ -511,8 +488,6 @@ void PdfOrganizerDialog::selectAll(bool on)
     updateSelectionButtons();
 }
 
-// ── Card management ───────────────────────────────────────────────────────────
-
 PageCard *PdfOrganizerDialog::makeCard(int index)
 {
     auto *card = new PageCard(index, m_gridContainer);
@@ -545,10 +520,6 @@ void PdfOrganizerDialog::rebuildCards()
     updateSelectionButtons();
 }
 
-// Reorder path: the cards themselves are interchangeable, so re-point the
-// existing ones at their new entries instead of destroying and recreating
-// them. Rebuilding mid-drag would delete the card whose mouse handler is still
-// on the stack and leave the freed cards painted over the new grid.
 void PdfOrganizerDialog::syncCards()
 {
     if (m_cards.size() != m_pages.size()) {
@@ -567,10 +538,7 @@ void PdfOrganizerDialog::syncCards()
 
 int PdfOrganizerDialog::columnCount() const
 {
-    // viewport()->width() returns 0 before the dialog is shown (the constructor
-    // asks before Qt has applied the layout to children). Fall back to the
-    // dialog's own width minus a scrollbar allowance so the initial grid is
-    // already correct when the window appears.
+
     int availW = m_scroll->viewport()->width();
     if (availW < OrgConst::CARD_W + OrgConst::GRID_PAD * 2) {
         const int sbW = style()->pixelMetric(QStyle::PM_ScrollBarExtent);
@@ -671,20 +639,12 @@ void PdfOrganizerDialog::moveCardTo(int from, int to)
     const PageEntry e = m_pages.takeAt(from);
     m_pages.insert(to, e);
 
-    // Keep the moved page selected and make it the shift-selection anchor —
-    // otherwise the anchor still points at whatever page now sits at `from`.
     m_pages[to].selected = true;
     m_lastClickedIndex   = to;
 
     syncCards();
 }
 
-// ── Drag-and-drop ─────────────────────────────────────────────────────────────
-
-// Maps a drop point (in grid-container coordinates, so already scroll-aware)
-// onto the grid slot it falls in. Hit-testing the card rectangles instead would
-// leave the gaps and the padding unmatched, and every drop that landed a few
-// pixels beside a card silently sent the page to the end of the document.
 int PdfOrganizerDialog::dropIndexAt(const QPoint &pos) const
 {
     if (m_cards.isEmpty()) return 0;
@@ -709,7 +669,6 @@ void PdfOrganizerDialog::startDrag(int fromIndex)
     auto *drag = new QDrag(this);
     drag->setMimeData(mime);
 
-    // Thumbnail as drag pixmap
     QPixmap px = m_cards[fromIndex]->grab().scaled(
         OrgConst::CARD_W / 2, OrgConst::CARD_H / 2, Qt::KeepAspectRatio, Qt::SmoothTransformation);
     drag->setPixmap(px);
@@ -748,8 +707,6 @@ bool PdfOrganizerDialog::eventFilter(QObject *obj, QEvent *e)
     return QDialog::eventFilter(obj, e);
 }
 
-// ── Rendering ─────────────────────────────────────────────────────────────────
-
 QPixmap PdfOrganizerDialog::renderThumb(const PageEntry &e)
 {
     QPixmap thumb(OrgConst::THUMB_W, OrgConst::THUMB_H);
@@ -769,7 +726,6 @@ QPixmap PdfOrganizerDialog::renderThumb(const PageEntry &e)
         const qreal   scale = OrgConst::RENDER_DPI / 72.0;
         QImage img = doc->render(e.pageIndex, scale);
 
-        // Apply rotation
         if (e.rotation != 0) {
             QTransform t;
             t.rotate(e.rotation);
@@ -788,21 +744,9 @@ QPixmap PdfOrganizerDialog::renderThumb(const PageEntry &e)
     return thumb;
 }
 
-// ── Save ──────────────────────────────────────────────────────────────────────
-
 #ifdef HAVE_QPDF
-// Assembles the output from the source page objects themselves: text, fonts,
-// vector graphics, links and annotations are carried over unchanged, so the
-// saved file stays selectable, searchable and small. Rotation becomes a
-// /Rotate entry rather than rotated pixels.
-//
-// Returns false on any qpdf failure (encrypted or damaged source, unwritable
-// target); writePdf() then falls back to the raster path.
-#endif // HAVE_QPDF
 
-// Opens what was just written and checks it is a PDF with the expected number
-// of pages. A file the reader cannot open would otherwise reach the document
-// view as a blank document with no indication of what went wrong.
+#endif
 
 bool PdfOrganizerDialog::writePdf(const QString &outPath)
 {
@@ -844,12 +788,6 @@ bool PdfOrganizerDialog::writeForTest(const QString &path)
     return writePdf(path);
 }
 
-
-// "Save" takes the page changes into the session, it does not touch the file
-// the user opened: the result goes to a session working file that the document
-// view then shows. The target PDF is written when the user saves the document
-// itself — until then the change is undoable by closing without saving, and the
-// working file is what crash recovery will pick up.
 void PdfOrganizerDialog::save()
 {
     if (m_pages.isEmpty()) {
@@ -858,9 +796,6 @@ void PdfOrganizerDialog::save()
         return;
     }
 
-    // An untitled document has no target path yet, but still belongs in the
-    // session. SessionStore gives that working copy an "untitled" name; the
-    // document view keeps it unsaved until the user chooses a real target.
     const QString workPath = SessionStore::newWorkingFile(m_targetPath);
     if (workPath.isEmpty()) {
         saveAs();
@@ -874,7 +809,6 @@ void PdfOrganizerDialog::save()
     }
 }
 
-// "Save as" is an explicit destination, so it writes the file for real.
 void PdfOrganizerDialog::saveAs()
 {
     if (m_pages.isEmpty()) {
@@ -895,8 +829,6 @@ void PdfOrganizerDialog::saveAs()
     }
 }
 
-// ── What was done ─────────────────────────────────────────────────────────────
-
 DocumentHistory::Change PdfOrganizerDialog::appliedChange() const
 {
     using Kind = DocumentHistory::Kind;
@@ -905,9 +837,6 @@ DocumentHistory::Change PdfOrganizerDialog::appliedChange() const
     c.kind  = Kind::PagesOrganized;
     c.count = static_cast<int>(m_pages.size());
 
-    // Which of the pages the document came with are still here, and in which
-    // order. A page of the source file added a second time is a new page, not
-    // a survivor — hence the seen-set.
     QList<int> survivors;
     QSet<int>  seen;
     int rotated = 0, added = 0;
@@ -936,8 +865,6 @@ DocumentHistory::Change PdfOrganizerDialog::appliedChange() const
     }
     const bool reordered = !std::is_sorted(survivors.cbegin(), survivors.cend());
 
-    // A run that did exactly one kind of thing gets named after it; anything
-    // else stays "organized", which is the honest summary of a mixed run.
     const int kinds = (deleted > 0) + (added > 0) + (rotated > 0) + (reordered ? 1 : 0);
     if (kinds != 1) return c;
 
@@ -945,8 +872,7 @@ DocumentHistory::Change PdfOrganizerDialog::appliedChange() const
         c.kind  = Kind::PageRotated;
         c.count = rotated;
         c.page  = firstRotatedPos;
-        // 270° clockwise is what a quarter turn the other way looks like once
-        // it is stored, and that is how the user made it.
+
         c.value = rotation == 270 ? -90 : rotation;
     } else if (deleted > 0) {
         c.kind  = Kind::PageDeleted;
@@ -962,14 +888,11 @@ DocumentHistory::Change PdfOrganizerDialog::appliedChange() const
     return c;
 }
 
-// ── Qt event overrides ────────────────────────────────────────────────────────
-
 void PdfOrganizerDialog::resizeEvent(QResizeEvent *e)
 {
     QDialog::resizeEvent(e);
     relayout();
-    // Queue a second pass: the scroll viewport finalizes its size (accounting
-    // for scrollbar visibility) only after the current resize event returns.
+
     QMetaObject::invokeMethod(this, [this]() { relayout(); }, Qt::QueuedConnection);
 }
 

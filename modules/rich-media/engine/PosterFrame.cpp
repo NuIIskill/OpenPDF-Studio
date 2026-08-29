@@ -7,7 +7,6 @@
 #include <QPainter>
 #include <QPainterPath>
 
-
 bool PosterFrame::available()
 {
     return true;
@@ -29,9 +28,6 @@ QImage PosterFrame::placeholder(const QSize &size, const QColor &tint)
     QPainter painter(&image);
     painter.setRenderHint(QPainter::Antialiasing);
 
-    // Circle with a triangle, a sixth of the shorter edge. Deliberately plain:
-    // this ends up in the document as an appearance stream and is what viewers
-    // that cannot play the video will show.
     const qreal radius = qMax(18.0, qMin(target.width(), target.height()) / 6.0);
     const QPointF centre(target.width() / 2.0, target.height() / 2.0);
 

@@ -15,9 +15,7 @@ QT_END_NAMESPACE
 
 class HistoryRow;
 
-// The change log of the open document, as a timeline the user can step back
-// into. Reads a DocumentHistory and asks the DocumentView (through signals) to
-// carry out what the buttons stand for — the dialog itself changes nothing.
+/// The change log of the open document, as a timeline the user can step back into.
 class HistoryDialog : public QDialog
 {
     Q_OBJECT
@@ -28,20 +26,17 @@ public:
 
     void retranslateUi();
 
-    /// Enables/disables the two stack buttons. The document view owns that
-    /// knowledge, so it pushes it in rather than the dialog guessing.
     void setUndoRedoAvailable(bool canUndo, bool canRedo);
 
-    /// Headline and detail line for one entry — also used by the tooltips.
     static QString titleFor(const DocumentHistory::Entry &e);
     static QString detailFor(const DocumentHistory::Entry &e);
 
 Q_SIGNALS:
-    /// Go back to the state entry `index` describes.
+
     void restoreRequested(int index);
     void undoRequested();
     void redoRequested();
-    /// Forget everything but the current state.
+
     void clearRequested();
 
 protected:
@@ -53,7 +48,7 @@ private:
     void updateButtons();
     void selectRow(int index);
     void applyStyle();
-    // Confirms first when going back means dropping edits that are in no file.
+
     void requestRestore(int index);
 
     static QString iconFor(DocumentHistory::Kind kind);

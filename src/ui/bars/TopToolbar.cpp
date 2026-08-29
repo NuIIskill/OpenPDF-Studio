@@ -66,8 +66,6 @@ void TopToolbar::retranslateUi()
     syncTabBarWidth();
 }
 
-// ── Tab management ────────────────────────────────────────────────────────────
-
 int TopToolbar::addTab(const QString &label)
 {
     const int idx    = m_tabBtns.size();
@@ -123,7 +121,6 @@ int TopToolbar::addTab(const QString &label)
     m_tabLabels.append(lbl);
     m_tabEmpty.append(empty);
 
-    // Insert BEFORE "+" — keeps "+" to the right of all tabs
     m_tabLayout->insertWidget(m_tabBtns.size() - 1, btn);
 
     syncTabBarWidth();
@@ -172,14 +169,12 @@ void TopToolbar::setCurrentTab(int index)
         m_tabBtns[i]->setChecked(i == index);
 }
 
-// ── Private helpers ───────────────────────────────────────────────────────────
-
 void TopToolbar::syncTabBarWidth()
 {
     int total = 2;
     for (auto *btn : m_tabBtns)
         total += btn->width() + m_tabLayout->spacing();
-    total += 32 + 4; // "+" button + margin
+    total += 32 + 4;
     m_tabBar->setFixedWidth(qMax(total, 2));
 }
 
@@ -196,15 +191,12 @@ void TopToolbar::scrollToTab(int index)
         hbar->setValue(btnX + btnW - vpW);
 }
 
-// ── Layout ────────────────────────────────────────────────────────────────────
-
 void TopToolbar::buildLayout()
 {
     auto *layout = new QHBoxLayout(this);
     layout->setContentsMargins(12, 0, 12, 0);
     layout->setSpacing(2);
 
-    // Logo
     auto *logo = new QLabel(QStringLiteral("O"), this);
     logo->setObjectName(QStringLiteral("AppLogo"));
     logo->setFixedSize(32, 32);
@@ -220,7 +212,6 @@ void TopToolbar::buildLayout()
     layout->addWidget(makeSeparator());
     layout->addSpacing(8);
 
-    // ── Scrollable tab area ────────────────────────────────────────────────
     m_tabScroll = new QScrollArea(this);
     m_tabScroll->setHorizontalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
     m_tabScroll->setVerticalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
@@ -238,7 +229,6 @@ void TopToolbar::buildLayout()
     m_tabLayout->setContentsMargins(0, 4, 0, 4);
     m_tabLayout->setSpacing(2);
 
-    // "+" button – stays as the first/only item initially; tabs insert before it
     m_newTabBtn = new IconButton(m_tabBar);
     m_newTabBtn->setObjectName(QStringLiteral("NewTabBtn"));
     m_newTabBtn->setIconName(QStringLiteral("plus"), QColor("#9CA3AF"));
@@ -258,7 +248,6 @@ void TopToolbar::buildLayout()
     layout->addWidget(makeSeparator());
     layout->addSpacing(4);
 
-    // Save / Print
     m_saveBtn = new IconButton(this);
     m_saveBtn->setIconName(QStringLiteral("save"));
     m_saveBtn->setToolTip(tr("Save"));
@@ -275,7 +264,6 @@ void TopToolbar::buildLayout()
     layout->addWidget(makeSeparator());
     layout->addSpacing(2);
 
-    // Undo / Redo
     m_undoBtn = new IconButton(this);
     m_undoBtn->setIconName(QStringLiteral("undo-2"));
     m_undoBtn->setToolTip(tr("Undo"));
@@ -292,7 +280,6 @@ void TopToolbar::buildLayout()
     layout->addWidget(makeSeparator());
     layout->addSpacing(2);
 
-    // Zoom
     m_zoomOutBtn = new IconButton(this);
     m_zoomOutBtn->setIconName(QStringLiteral("zoom-out"));
     m_zoomOutBtn->setToolTip(tr("Zoom Out"));
@@ -315,7 +302,6 @@ void TopToolbar::buildLayout()
     layout->addWidget(makeSeparator());
     layout->addSpacing(2);
 
-    // View toggles — radio pair
     m_viewSingleBtn = new IconButton(this);
     m_viewSingleBtn->setIconName(QStringLiteral("square"));
     m_viewSingleBtn->setToolTip(tr("Single Page"));
@@ -339,7 +325,6 @@ void TopToolbar::buildLayout()
     });
     layout->addWidget(m_viewGridBtn);
 
-    // Tabs are added by MainWindow after construction
 }
 
 QWidget *TopToolbar::makeSeparator()

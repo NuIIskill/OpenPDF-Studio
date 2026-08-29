@@ -17,12 +17,12 @@ public:
 
     void setEditActive(bool on);
     void setOriginalPixmap(const QPixmap &px);
-    // Restrict drag/resize to stay within this rect (canvas coords, parent-relative).
+
     void setPageRect(const QRect &r) { m_pageRect = r; }
 
 Q_SIGNALS:
     void deleteRequested();
-    void geometryChanged(const QRect &newGeometry);  // emitted after move or resize
+    void geometryChanged(const QRect &newGeometry);
     void contextMenuRequested(const QPoint &globalPos);
 
 protected:
@@ -55,5 +55,5 @@ private:
     QPoint m_posBeforeDrag;
     QPoint m_resizeOrigin;
     QSize  m_sizeAtResize;
-    QRect  m_pageRect;   // allowed region in parent coords; empty = unconstrained
+    QRect  m_pageRect;
 };

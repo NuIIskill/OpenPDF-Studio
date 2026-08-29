@@ -4,6 +4,7 @@
 
 #include "fpdfview.h"
 
+#include <QByteArray>
 #include <QString>
 
 /// Makes embedded PDF fonts available to Qt.
@@ -11,6 +12,10 @@ namespace PdfiumFonts {
 
 QString registerWithQt(FPDF_FONT font);
 
-} // namespace PdfiumFonts
+QByteArray standardFontFor(const QString &family, bool bold, bool italic);
+
+QByteArray fontData(const QString &family, bool bold, bool italic);
+
+}
 
 #endif

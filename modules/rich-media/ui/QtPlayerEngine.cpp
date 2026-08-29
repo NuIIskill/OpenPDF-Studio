@@ -1,6 +1,4 @@
 // SPDX-License-Identifier: LicenseRef-OpenPDF-Business
-//
-// The Qt Multimedia engine. Used everywhere except Windows.
 
 #include "rich-media/ui/PlayerEngine.hpp"
 
@@ -28,9 +26,6 @@ public:
         m_player->setAudioOutput(m_audio);
         m_player->setVideoSink(m_sink);
 
-        // Converted here, once per frame, and not while painting: paints
-        // happen more often than frames, and a hardware-backed frame is
-        // mapped and read back on every one of them.
         connect(m_sink, &QVideoSink::videoFrameChanged, this,
                 [this](const QVideoFrame &frame) {
             if (!frame.isValid()) return;
@@ -53,8 +48,7 @@ public:
 
     ~QtPlayerEngine() override
     {
-        // No more frames, then stop, then let go of source and sink: a decoder
-        // still running while its target falls apart takes the process along.
+
         disconnect(m_sink, nullptr, this, nullptr);
         m_player->stop();
         m_player->setSource(QUrl());
@@ -89,9 +83,7 @@ public:
 
     QString report() const override
     {
-        // A backend that refuses the file and one that never loaded look the
-        // same from outside, so both the choice and what is next to the
-        // program go in.
+
         const QDir plugins(QCoreApplication::applicationDirPath()
                            + QStringLiteral("/multimedia"));
         return QStringLiteral("engine: Qt Multimedia, %1 of %2 ms\n"
@@ -111,7 +103,7 @@ private:
     QImage        m_image;
 };
 
-} // namespace
+}
 
 PlayerEngine *PlayerEngine::create(QWidget *surface, QObject *parent)
 {
@@ -119,4 +111,4 @@ PlayerEngine *PlayerEngine::create(QWidget *surface, QObject *parent)
     return new QtPlayerEngine(parent);
 }
 
-#endif // !Q_OS_WIN
+#endif

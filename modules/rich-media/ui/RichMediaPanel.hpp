@@ -7,20 +7,13 @@
 
 QT_BEGIN_NAMESPACE
 class QCheckBox;
-class QTimer;
-class QDoubleSpinBox;
 class QLabel;
 class QLineEdit;
 class QPushButton;
 class QRadioButton;
 QT_END_NAMESPACE
 
-/// The insert panel on the right, visible while the media tool is chosen.
-/// Registered through ToolPanels, in the same slot and under the same rule as
-/// the text tool's panel.
-///
-/// It only collects; inserting happens through insertRequested(). MediaLayer
-/// reports what happens on the page back through setPlacement().
+/// The panel for editing selected media or adding a new media source.
 class RichMediaPanel : public QFrame
 {
     Q_OBJECT
@@ -30,21 +23,19 @@ public:
 
     explicit RichMediaPanel(QWidget *parent = nullptr);
 
-    /// The area currently dragged out on the page. Without one the insert
-    /// button stays disabled.
     void setPlacement(int page, const QRectF &pdfBounds);
     void clearPlacement();
+    void editMedia(const MediaSpec &spec);
+    void resetForInsert();
 
-    /// The panel's state as one insert.
     MediaSpec spec() const;
 
     void retranslateUi();
 
 Q_SIGNALS:
-    void insertRequested(const MediaSpec &spec);
-    /// X, Y, width or height were typed in by hand.
-    void placementEdited(const QRectF &pdfBounds);
-    /// A source was chosen, so the page can show a preview.
+    void applyRequested(const MediaSpec &spec);
+    void closeRequested();
+
     void previewChanged(const QImage &poster);
 
 protected:
@@ -57,27 +48,23 @@ private:
     void choosePoster();
     void refreshPoster();
     void updateInsertEnabled();
-    void pushGeometry();
-    void setType(MediaSpec::Type type);
+    void setSource(const QString &path, const QString &displayName = QString());
 
-    /// The preview in the small box, and what goes into the document.
     QImage  m_poster;
     bool    m_posterFromUser { false };
-    QTimer *m_posterDelay    { nullptr };
+    QString m_sourcePath;
+    QString m_sourceDisplayName;
 
     int    m_page { -1 };
     QRectF m_bounds;
-    bool   m_syncing { false };
-    /// setStyleSheet() raises a StyleChange itself. Without this guard
-    /// changeEvent() calls applyStyle() calls setStyleSheet(), forever.
-    bool   m_stylingNow { false };
-    double m_aspect  { 0.0 };   // kept while the lock is closed
+    bool   m_editing { false };
 
+    bool   m_stylingNow { false };
     MediaSpec::Type m_type { MediaSpec::Type::Video };
 
     QLabel       *m_title        { nullptr };
-    QLabel       *m_typeLabel    { nullptr };
-    QList<QPushButton *> m_typeButtons;
+    QLabel       *m_subtitle     { nullptr };
+    QPushButton  *m_close        { nullptr };
     QLabel       *m_sourceLabel  { nullptr };
     QLineEdit    *m_source       { nullptr };
     QPushButton  *m_browse       { nullptr };
@@ -90,15 +77,16 @@ private:
     QRadioButton *m_onPageOpen   { nullptr };
     QLabel       *m_playbackLabel{ nullptr };
     QCheckBox    *m_autoPlay     { nullptr };
+    QLabel       *m_autoPlayText { nullptr };
     QCheckBox    *m_muted        { nullptr };
+    QLabel       *m_mutedText    { nullptr };
     QCheckBox    *m_loop         { nullptr };
+    QLabel       *m_loopText     { nullptr };
     QCheckBox    *m_controls     { nullptr };
+    QLabel       *m_controlsText { nullptr };
     QLabel       *m_placementLabel { nullptr };
     QRadioButton *m_inline       { nullptr };
     QRadioButton *m_floating     { nullptr };
-    QLabel       *m_geometryLabel{ nullptr };
-    QDoubleSpinBox *m_x { nullptr }, *m_y { nullptr }, *m_w { nullptr }, *m_h { nullptr };
-    QPushButton  *m_lock         { nullptr };
     QPushButton  *m_insert       { nullptr };
     QLabel       *m_hint         { nullptr };
 };

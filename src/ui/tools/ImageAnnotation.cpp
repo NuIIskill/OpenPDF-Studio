@@ -82,7 +82,6 @@ void ImageAnnotation::paintEvent(QPaintEvent *)
         p.setBrush(Qt::NoBrush);
         p.drawRect(rect().adjusted(1, 1, -2, -2));
 
-        // Resize handle — bottom-right corner
         const QRect rh(width() - RESIZE_SZ - 2, height() - RESIZE_SZ - 2,
                        RESIZE_SZ, RESIZE_SZ);
         p.setPen(Qt::NoPen);

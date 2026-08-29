@@ -7,7 +7,6 @@
 
 namespace DocxXml {
 
-// English Metric Units — the unit every DrawingML length is expressed in.
 constexpr double kEmuPerPt = 12700.0;
 
 QString emu(double pt)
@@ -27,16 +26,11 @@ bool encodePng(const QImage &image, QByteArray *out)
     return !image.isNull() && image.save(&buffer, "PNG");
 }
 
-// Pictures are cropped from a 2x raster so the layout analysis always has the
-// detail it needs. What the quality setting changes is what actually lands in
-// the file: how far the picture is scaled back down, and whether it is stored
-// lossless or as JPEG. Returns the file extension used.
 QString encodePicture(const QImage &image, const DocxExportOptions &opt,
                              QByteArray *out)
 {
     if (image.isNull()) return {};
 
-    // 85 keeps the source resolution; below that the picture shrinks with it.
     const double factor = opt.imageQuality >= 95 ? 1.25
                         : opt.imageQuality >= 80 ? 1.0
                         : opt.imageQuality >= 55 ? 0.75 : 0.5;
@@ -54,8 +48,7 @@ QString encodePicture(const QImage &image, const DocxExportOptions &opt,
     if (!scaled.save(&pngBuffer, "PNG")) return {};
 
     if (opt.compressImages) {
-        // JPEG has no alpha; the pictures are opaque page crops, but compose
-        // over white so a stray alpha channel cannot turn into black.
+
         QImage opaque(scaled.size(), QImage::Format_RGB32);
         opaque.fill(Qt::white);
         QPainter p(&opaque);
@@ -70,9 +63,7 @@ QString encodePicture(const QImage &image, const DocxExportOptions &opt,
             return QStringLiteral("jpeg");
         }
     }
-    // Flat PDF graphics (rules, fills and charts) are commonly both smaller
-    // and sharper as PNG. "Compress images" therefore permits JPEG but does
-    // not force a visibly degraded encoding when lossless is the better fit.
+
     *out = std::move(png);
     return QStringLiteral("png");
 }
@@ -87,9 +78,9 @@ QString xmlEsc(const QString &s)
         else if (u == '<')  r += QLatin1String("&lt;");
         else if (u == '>')  r += QLatin1String("&gt;");
         else if (u == '"')  r += QLatin1String("&quot;");
-        else if (u < 32 && u != '\n' && u != '\r' && u != '\t') { /* skip */ }
-        else if (u >= 0xD800 && u <= 0xDFFF) { /* surrogates: invalid in XML 1.0 */ }
-        else if (u == 0xFFFE || u == 0xFFFF)  { /* non-characters: invalid in XML 1.0 */ }
+        else if (u < 32 && u != '\n' && u != '\r' && u != '\t') {   }
+        else if (u >= 0xD800 && u <= 0xDFFF) {   }
+        else if (u == 0xFFFE || u == 0xFFFF)  {   }
         else                r += c;
     }
     return r;
@@ -134,9 +125,7 @@ QString textRuns(const ContentItem &item)
 QString semanticTextRuns(const ContentItem &item)
 {
     ContentItem adjusted = item;
-    // Positioned boxes needed conservative metrics to avoid clipping. Native
-    // Word paragraphs can reflow, so use the actual PDF glyph height and avoid
-    // the undersized text visible in the semantic export.
+
     const double minimumPt = item.type == ContentItem::Type::TableCell ? 7.5 : 9.5;
     adjusted.fontSizePt = std::max({item.fontSizePt * 1.25,
                                     item.bounds.height() * 1.12,
@@ -200,9 +189,6 @@ QString alignValue(Qt::Alignment align)
     return QStringLiteral("left");
 }
 
-// Line height is pinned to the pitch measured in the PDF. Left on "auto", Word
-// applies the substituted font's own leading and every block drifts a little
-// further down the page than the original.
 int linePitchTwips(const DocxBlock &block)
 {
     const ContentItem &first = block.lines.first();
@@ -234,7 +220,7 @@ QString paragraphXml(const DocxBlock &block, double spaceBeforePt,
            + QStringLiteral("\"/>");
     x += QStringLiteral("<w:jc w:val=\"") + alignValue(block.align)
        + QStringLiteral("\"/>");
-    // Shading carries the panel fill the layout pass found behind this text.
+
     if (style.bgColor.isValid() && style.bgColor != QColor(Qt::white))
         x += QStringLiteral("<w:shd w:val=\"clear\" w:color=\"auto\" w:fill=\"")
            + colorHex(style.bgColor) + QStringLiteral("\"/>");
@@ -259,9 +245,7 @@ QString tableXml(const DocxBlock &block)
     if (t.indentPt > 1.0)
         x += QStringLiteral("<w:tblInd w:w=\"") + twips(t.indentPt)
            + QStringLiteral("\" w:type=\"dxa\"/>");
-    // Cell margins are set on the table itself, not left to the default style:
-    // LibreOffice applies its own ~5 pt top/bottom otherwise, every row grows
-    // past the height asked for, and the whole page below the table shifts.
+
     x += QStringLiteral("<w:tblLayout w:type=\"fixed\"/>"
                         "<w:tblCellMar>"
                         "<w:top w:w=\"0\" w:type=\"dxa\"/>"
@@ -329,8 +313,6 @@ QString tableXml(const DocxBlock &block)
     return x;
 }
 
-// Floating, page-anchored picture. Artwork keeps the exact spot it had in the
-// PDF while the text around it stays in the normal flow.
 QString pictureXml(const DocxBlock &block, const QString &relId, int id)
 {
     const QString name = QStringLiteral("Grafik%1").arg(id);
@@ -358,10 +340,6 @@ QString pictureXml(const DocxBlock &block, const QString &relId, int id)
              QString::number(id), name, relId);
 }
 
-// Flat fills and rules do not need a bitmap. VML is intentionally used for
-// these simple rectangles: both Word and LibreOffice import it as an editable
-// drawing object, and page-relative placement is considerably more reliable
-// across their DOCX implementations than a DrawingML canvas.
 QString shapeXml(const DocxBlock &block, int id)
 {
     const QColor fill = block.fillColor.isValid() ? block.fillColor : QColor(Qt::transparent);
@@ -423,4 +401,4 @@ QString textBoxXml(const DocxBlock &block, int id)
         .arg(alignValue(block.align), textRuns(item));
 }
 
-}   // namespace DocxXml
+}

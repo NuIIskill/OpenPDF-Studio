@@ -29,11 +29,6 @@ int colorDistance(const QColor &a, const QColor &b)
          + qAbs(a.blue() - b.blue());
 }
 
-// Pick the surface immediately around one glyph. Content classification may
-// assign a broad or stale bgColor (chart labels are a common example), while
-// the rendered pixels know whether the glyph sits on white, a table header or
-// a coloured panel. Sampling per glyph also avoids painting a white strip
-// across graphics that happen to share a text line.
 QColor sampledBackground(const QImage &image, const QRectF &pdfRect, qreal scale,
                          const QColor &textColor, const QColor &fallback)
 {
@@ -56,7 +51,7 @@ QColor sampledBackground(const QImage &image, const QRectF &pdfRect, qreal scale
         const int x = qBound(0, probe.x(), image.width() - 1);
         const int y = qBound(0, probe.y(), image.height() - 1);
         const QColor sample = image.pixelColor(x, y);
-        // Adjacent glyph ink is not a background candidate.
+
         if (textColor.isValid() && colorDistance(sample, textColor) < 80)
             continue;
         int nearest = -1;
@@ -85,10 +80,6 @@ QColor sampledBackground(const QImage &image, const QRectF &pdfRect, qreal scale
     return best->color;
 }
 
-// Style donor for a decoded text rect: a detected item that actually covers
-// it. The previous nearest-centre match had no distance limit and no overlap
-// test, so a table header cell several lines away could hand a body paragraph
-// its brown fill colour and its font size.
 const ContentItem *styleDonor(const QList<ContentItem> &detected,
                               const QRectF &rect)
 {
@@ -98,9 +89,7 @@ const ContentItem *styleDonor(const QList<ContentItem> &detected,
         if (!candidate.isTextual()) continue;
         const QRectF hit = candidate.bounds.intersected(rect);
         if (hit.isEmpty()) continue;
-        // Vertical agreement weighs more than horizontal: one detected line
-        // may be split across several decoded runs and vice versa, but a run
-        // and its donor always share the same baseline band.
+
         const double vShare = hit.height() / qMax(1e-6, rect.height());
         const double hShare = hit.width()  / qMax(1e-6, rect.width());
         const double score  = vShare * 0.65 + hShare * 0.35;
@@ -109,18 +98,10 @@ const ContentItem *styleDonor(const QList<ContentItem> &detected,
             best = &candidate;
         }
     }
-    // Must be genuinely covered, not merely adjacent.
+
     return bestScore >= 0.5 ? best : nullptr;
 }
 
-// Qt reports one selection polygon per visual line for most PDFs, but one per
-// GLYPH for others (Writer output among them). A single glyph cannot be
-// selected reliably — getSelection runs from the character under the start
-// point to the one under the end point, and for a 6 pt box the end point
-// already sits in the next glyph's cell, so every query returns two characters
-// and the line arrives as "DDiieesseer AAbbssaattz". Merging the glyph boxes
-// back into the line runs the rest of the pipeline expects avoids the problem
-// instead of trying to out-guess it.
 QList<QRectF> mergeGlyphBoxes(QList<QRectF> boxes)
 {
     std::sort(boxes.begin(), boxes.end(), [](const QRectF &a, const QRectF &b) {
@@ -129,10 +110,6 @@ QList<QRectF> mergeGlyphBoxes(QList<QRectF> boxes)
         return a.left() < b.left();
     });
 
-    // Merge only up to a typical glyph advance, which yields word-sized runs.
-    // Merging whole lines instead swallowed the gap between two narrow table
-    // columns, and the classifier — which splits lines into cells itself — no
-    // longer had anything to split.
     QList<double> widths;
     for (const QRectF &r : boxes) widths.append(r.width());
     std::sort(widths.begin(), widths.end());
@@ -155,9 +132,8 @@ QList<QRectF> mergeGlyphBoxes(QList<QRectF> boxes)
     return runs;
 }
 
-} // namespace
+}
 #endif
-
 
 #ifdef HAVE_PDF_RENDERING
 
@@ -194,16 +170,14 @@ QImage DocumentExporter::eraseTextRuns(const QImage &original,
             const int y = qBound(0, qRound(probePt.y()),
                                  erased.height() - 1);
             itemBg = erased.pixelColor(x, y);
-            // A dark probe is almost certainly the preceding glyph or
-            // a cell rule, not the page/cell background.
+
             if (itemBg.lightness() < 45 && (!item.textColor.isValid()
                                             || item.textColor.lightness() < 180))
                 itemBg = Qt::white;
         }
 
         for (const QRectF &rect : eraseRects) {
-            // Qt's polygons hug the visible glyphs. Half a point covers
-            // antialiasing fringes without crossing table borders.
+
             const QRectF clean = rect.adjusted(-0.55, -0.45, 0.55, 0.45);
             const QColor localBg = sampledBackground(original, rect, scale,
                                                      item.textColor, itemBg);
@@ -232,8 +206,7 @@ QList<DocxPage> DocumentExporter::allPageContent(const QList<int> &pages) const
         page.pageSizePt = m_src.renderer->pageSizePts(i);
         if (m_src.provider)
             page.items = m_src.provider->pageItemsForExport(i);
-        // The text-erased render is analysis input for fills, rules and genuine
-        // graphics. Structured DOCX export does not place it behind the page.
+
         constexpr qreal exportScale = 2.0;
         const QImage originalRaster = m_src.renderer->renderPage(i, exportScale);
         page.background = eraseTextRuns(originalRaster, page.items, i, exportScale);
@@ -296,9 +269,6 @@ bool DocumentExporter::printPages(QPrinter *printer, const QList<int> &pages) co
         for (int p = 0; p < m_src.pageCount; ++p) wanted.append(p);
     if (wanted.isEmpty()) return false;
 
-    // Rasterising at the printer's own resolution is what makes the print
-    // sharp, but 600 dpi on A4 is a ~140 MB image per page and nothing of it
-    // is visible on paper. Cap at 300 dpi and let QPainter do the last step.
     const qreal dpi   = qBound(72.0, qreal(printer->resolution()), 300.0);
     const qreal scale = dpi / PdfRenderer::kPtsPerInch;
 
@@ -308,27 +278,19 @@ bool DocumentExporter::printPages(QPrinter *printer, const QList<int> &pages) co
 
     bool firstPage = true;
     for (int i : wanted) {
-        // newPage() goes *between* sheets — calling it up front ejects a blank
-        // one. A page that fails to render still gets its sheet so that what
-        // comes out matches the page numbers the user asked for.
+
         if (!firstPage && !printer->newPage()) {
             painter.end();
             return false;
         }
         firstPage = false;
 
-        // Same source of truth as the image export: the session holds edits
-        // that are not in the rendered file yet, and printing must show them.
         QImage image = m_src.renderer->renderPage(i, scale, m_src.session);
         if (image.isNull()) continue;
 
         const QRectF target = painter.viewport();
         if (target.isEmpty()) continue;
 
-        // Auto-rotate like every other PDF printer does: a landscape page on a
-        // portrait sheet otherwise prints at ~70 % with two empty bands, and
-        // orientation is per document in the print dialog while a PDF may mix
-        // both. Only rotate when it genuinely buys size.
         const QSizeF pageSz(image.size());
         const auto fitScale = [&target](const QSizeF &s) {
             return qMin(target.width() / s.width(), target.height() / s.height());
@@ -345,8 +307,7 @@ bool DocumentExporter::printPages(QPrinter *printer, const QList<int> &pages) co
             painter.save();
             painter.translate(dest.center());
             painter.rotate(90);
-            // Under a 90° rotation the local rect's width becomes the drawn
-            // height and vice versa, so it lands exactly on dest.
+
             painter.drawImage(QRectF(-dest.height() / 2.0, -dest.width() / 2.0,
                                      dest.height(), dest.width()), image);
             painter.restore();

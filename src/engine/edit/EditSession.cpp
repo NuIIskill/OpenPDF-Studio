@@ -6,8 +6,6 @@
 #include <QDebug>
 #include <climits>
 
-// ── Mutation ──────────────────────────────────────────────────────────────────
-
 void EditSession::addEdit(int page, const QRectF &pdfBounds, const QString &newText,
                           double fontSizePt, const QColor &color, const QRectF &sourceRect,
                           const QColor &bgColor)
@@ -41,16 +39,6 @@ void EditSession::suspendEditsAt(int page, const QRectF &pdfBounds)
 {
     m_suspendedEdits.clear();
 
-    // Suspend ONLY edits whose pdfBounds exactly matches the clicked area.
-    //
-    // Previous companion-based logic (suspend everything linked via sourceRect)
-    // caused "text jumping back": when text was moved P1→P2 (overlapping), clicking
-    // on text(P2) also suspended blank(P1) via sourceRect, removing it from m_edits
-    // and letting P1's original PDF content bleed through.
-    //
-    // The blank(P1) must persist in m_edits for as long as P1 is meant to be erased.
-    // It is only suspended when the user directly clicks on P1's area — which isBlankAt
-    // already prevents for move-source areas that have no companion text.
     QList<Edit> remaining;
     for (const Edit &e : m_edits) {
         if (e.page == page && e.pdfBounds == pdfBounds)
@@ -63,17 +51,12 @@ void EditSession::suspendEditsAt(int page, const QRectF &pdfBounds)
 
 bool EditSession::isBlankAt(int page, const QPointF &pdfPt) const
 {
-    // Point containment instead of exact rect equality: after a move, a fresh
-    // click at the source position re-detects the native text with bounds that
-    // never exactly match the stored blank (region-model expansion, clamping).
-    // Clicks on neighbouring text stay unaffected — their click point lies
-    // outside the blank.
+
     for (const auto &blank : m_edits) {
         if (blank.page != page || !blank.newText.isNull()
                 || !blank.pdfBounds.contains(pdfPt))
             continue;
-        // In-place edits pair blank+text at the same pdfBounds — that spot has
-        // content and must open an editor, not be silently swallowed.
+
         bool hasCompanion = false;
         for (const auto &t : m_edits)
             if (t.page == page && !t.newText.isEmpty()
@@ -102,10 +85,7 @@ bool EditSession::isBlankCovering(int page, const QRectF &bounds) const
                 break;
             }
         if (hasCompanion) continue;
-        // Base the ratio on the SMALLER of the two areas: a text lookup that
-        // merged the erased content into a larger block (neighbouring cell,
-        // fuzzy snap) still counts as "covering" when the blank itself is
-        // mostly inside the block.
+
         const double blankArea = blank.pdfBounds.width() * blank.pdfBounds.height();
         const double base      = qMax(1.0, qMin(blockArea, blankArea));
         if (inter.width() * inter.height() >= base * 0.5)
@@ -116,9 +96,7 @@ bool EditSession::isBlankCovering(int page, const QRectF &bounds) const
 
 QList<QRectF> EditSession::blankRegions(int page) const
 {
-    // Companion-less blanks = intentionally emptied areas. Text lookup must
-    // treat them as if the text were gone — otherwise a click near them can
-    // resurrect the invisible original.
+
     QList<QRectF> out;
     for (const auto &blank : m_edits) {
         if (blank.page != page || !blank.newText.isNull()) continue;
@@ -141,8 +119,7 @@ void EditSession::clearSuspended()
 
 void EditSession::restoreSuspended()
 {
-    // Re-insert suspended edits at the front so their original relative order
-    // (blank before text) is preserved in applyToImage.
+
     m_edits = m_suspendedEdits + m_edits;
     m_suspendedEdits.clear();
 }
@@ -155,8 +132,6 @@ void EditSession::clear()
     m_linkEdits.clear();
     m_noteEdits.clear();
 }
-
-// ── Image-edit CRUD ───────────────────────────────────────────────────────────
 
 void EditSession::addImageEdit(int page, const QRectF &pdfBounds, const QImage &image)
 {
@@ -225,8 +200,6 @@ bool EditSession::hasNoteEditsOnPage(int page) const
     return false;
 }
 
-// ── Queries ───────────────────────────────────────────────────────────────────
-
 bool EditSession::hasEditsOnPage(int page) const
 {
     for (const auto &e : m_edits)
@@ -236,16 +209,13 @@ bool EditSession::hasEditsOnPage(int page) const
 
 QString EditSession::editTextAt(int page, const QRectF &pdfBounds) const
 {
-    // Iterate in reverse so the most-recently-added (topmost) text edit wins.
-    // Skip blank edits (null newText) — they don't carry display text and would
-    // make in-place edits (blank+text at same pdfBounds) show native text instead
-    // of the session text.
+
     for (int i = m_edits.size() - 1; i >= 0; --i) {
         const auto &e = m_edits[i];
         if (e.page == page && !e.newText.isNull() && e.pdfBounds.intersects(pdfBounds))
             return e.newText;
     }
-    return QString(); // null = no existing edit
+    return QString();
 }
 
 QColor EditSession::editColorAt(int page, const QRectF &pdfBounds) const
@@ -255,14 +225,12 @@ QColor EditSession::editColorAt(int page, const QRectF &pdfBounds) const
         if (e.page == page && !e.newText.isNull() && e.pdfBounds.intersects(pdfBounds))
             return e.textColor;
     }
-    return QColor(); // invalid = no stored color
+    return QColor();
 }
 
 bool EditSession::findEditAt(int page, const QPointF &pdfPt, Edit *out) const
 {
-    // Iterate in reverse so the topmost (most recently drawn) session edit wins
-    // when multiple overlapping edits contain the click point.
-    // Skip blank edits — they are erase-only and should not open an editor.
+
     for (int i = m_edits.size() - 1; i >= 0; --i) {
         const auto &e = m_edits[i];
         if (e.page == page && !e.newText.isNull() && e.pdfBounds.contains(pdfPt)) {
@@ -272,8 +240,6 @@ bool EditSession::findEditAt(int page, const QPointF &pdfPt, Edit *out) const
     }
     return false;
 }
-
-// ── Live-view raster rendering (QImage overlay) ───────────────────────────────
 
 void EditSession::applyToImage(int page, QImage &img, qreal scale, Paint what) const
 {
@@ -291,8 +257,7 @@ void EditSession::applyToImage(int page, QImage &img, qreal scale, Paint what) c
 
     QPainter p(&img);
     if (hasText) {
-        // Two-pass: all blanks before all text draws. Blanks reconstruct the
-        // background from the freshly rendered page pixels around them.
+
         for (const auto &e : m_edits)
             if (e.page == page && e.newText.isNull() && wanted(e))
                 paintBlankEdit(p, img, e, scale);
@@ -330,9 +295,6 @@ void EditSession::applyToImage(int page, QImage &img, qreal scale, Paint what) c
     }
 }
 
-// Qt PDF renders pages onto a TRANSPARENT background — the "paper" is
-// rgba(0,0,0,0), which reads as pitch black if alpha is ignored. Every
-// sampled pixel must be composited over white (the paper color) first.
 static inline QRgb overWhite(QRgb c)
 {
     const int a = qAlpha(c);
@@ -370,11 +332,6 @@ void EditSession::paintBackgroundPatch(QPainter &p, const QImage &img,
              + qAbs(qBlue(a) - qBlue(b)) < 36;
     };
 
-    // BAND color: text often sits in a colored stripe exactly as tall as the
-    // block (table header rows!). Above/below sampling then sees only the
-    // page outside the stripe and paints the wrong color into it. Sample
-    // LEFT and RIGHT of the whole block at its mid height — if both sides
-    // agree, that is the true background behind the text.
     QRgb bandColor = 0;
     bool hasBand   = false;
     if (bTop <= bBot) {
@@ -393,10 +350,7 @@ void EditSession::paintBackgroundPatch(QPainter &p, const QImage &img,
     }
 
     for (int x = left; x <= right; ++x) {
-        // Column span across the WHOLE block: topmost..bottommost covering
-        // rect. Sampling between tightly stacked lines would read the
-        // neighbouring line's glyphs and smear them into the fill, so the
-        // samples sit strictly outside the block for this column.
+
         int top = INT_MAX, bot = INT_MIN;
         for (const QRect &r : rectsPx)
             if (x >= r.left() && x <= r.right()) {
@@ -419,9 +373,6 @@ void EditSession::paintBackgroundPatch(QPainter &p, const QImage &img,
 
         const int spanH = bot - top + 1;
 
-        // Colored band behind the text → the band color wins; the vertical
-        // neighbours are outside the stripe and would punch wrong-colored
-        // holes into it.
         if (hasBand) {
             p.fillRect(x, top, 1, spanH, QColor::fromRgb(bandColor));
             continue;
@@ -446,12 +397,10 @@ void EditSession::paintBackgroundPatch(QPainter &p, const QImage &img,
         }
 
         if (bestScore >= 2 || n == 1) {
-            // Clear majority (or only one sample) — solid column fill.
+
             p.fillRect(x, top, 1, spanH, QColor::fromRgb(best));
         } else {
-            // Above and below disagree — the span probably crosses a
-            // horizontal background boundary. Blend vertically instead of
-            // hard-guessing.
+
             const QRgb ct = nA > 0 ? above[0] : best;
             const QRgb cb = nB > 0 ? below[0] : best;
             QLinearGradient g(QPointF(x, top), QPointF(x, bot + 1));
@@ -465,16 +414,11 @@ void EditSession::paintBackgroundPatch(QPainter &p, const QImage &img,
 void EditSession::paintBlankEdit(QPainter &p, const QImage &img, const Edit &e,
                                  qreal scale)
 {
-    // Erase per glyph line rect when available — a whole-bounds erase would
-    // wipe graphics (chart bars, images) sharing the area with the text.
-    // All rects are passed as ONE block so the reconstruction samples outside
-    // the block instead of between its lines.
+
     const QList<QRectF> areas = e.eraseRects.isEmpty()
                                     ? QList<QRectF>{ e.pdfBounds }
                                     : e.eraseRects;
-    // Pad in PDF points, scaled to pixels: glyph antialiasing bleeds ~1-2 pt
-    // beyond the word boxes. A fixed 1 px pad left visible text traces at
-    // higher render scales (300 dpi save!).
+
     const qreal pad = qMax(1.0, 2.5 * scale);
     QList<QRect> rects;
     rects.reserve(areas.size());
@@ -516,13 +460,7 @@ void EditSession::paintTextEdit(QPainter &p, const Edit &e, qreal scale)
         p.drawRoundedRect(px.adjusted(border.widthF()/2, border.widthF()/2,
                                      -border.widthF()/2, -border.widthF()/2), radius, radius);
     }
-    // No white fill here — the companion blank edit handles erasure.
-    // Text edits are drawn as overlays so that a text box placed near (or on top
-    // of) existing content does not silently destroy it.
 
-    // renderSizePt is fitted to the ink of the text being replaced; fontSizePt
-    // is the file's own number, which in a substituted family draws too big or
-    // too small. Prefer the fitted one whenever it exists.
     const double sizePt = e.renderSizePt > 0.0 ? e.renderSizePt : e.fontSizePt;
     int pixelSize;
     if (sizePt > 0.0) {
@@ -531,22 +469,18 @@ void EditSession::paintTextEdit(QPainter &p, const Edit &e, qreal scale)
         const int lineCount = qMax(1, e.newText.count(u'\n') + 1);
         pixelSize = qMax(8, qRound(px.height() / lineCount / 0.72));
     }
-    // Use the edit's stored family/style so the live view matches what the
-    // save path writes (original font kept, or user-chosen family).
+
     QFont f(e.fontFamily.isEmpty() ? QStringLiteral("Helvetica") : e.fontFamily);
     f.setStyleHint(QFont::SansSerif);
     f.setPixelSize(pixelSize);
     f.setBold(e.bold);
     f.setItalic(e.italic);
+    f.setUnderline(e.underline);
     if (!qFuzzyIsNull(e.box.characterSpacingPt))
         f.setLetterSpacing(QFont::AbsoluteSpacing, e.box.characterSpacingPt * scale);
     p.setFont(f);
     p.setPen(e.textColor.isValid() ? e.textColor : QColor(0x11, 0x11, 0x11));
 
-    // Anchor on the original text's own starting point instead of the box:
-    // laid out from the box top, the first baseline lands wherever the
-    // substituted face happens to put it — several points off the line it
-    // replaces.
     const QFontMetricsF fm(f);
     int kFlags = Qt::AlignLeft | Qt::AlignTop | Qt::TextWordWrap;
     if (e.box.horizontalAlign == TextBoxProperties::HorizontalAlign::Center)
@@ -564,10 +498,7 @@ void EditSession::paintTextEdit(QPainter &p, const Edit &e, qreal scale)
         target.translate(origin.x() - px.left(),
                          origin.y() - (px.top() + fm.ascent()));
     }
-    // drawText clips to its rectangle, and the box is only ever as tall as the
-    // ORIGINAL line — so descenders (and any line the anchor shifted upward)
-    // get their bottoms sliced off. Wrapping must stay put, so only the height
-    // grows; the width, which decides where lines break, does not.
+
     const auto laidOutHeight = [&](const QString &s) {
         return fm.boundingRect(QRectF(0, 0, target.width(), 1e6), kFlags, s).height();
     };
@@ -592,10 +523,7 @@ void EditSession::paintTextEdit(QPainter &p, const Edit &e, qreal scale)
         p.restore();
         return;
     }
-    // Multi-line block with a known spacing: place each line on the baseline it
-    // had in the document instead of letting the font's tighter default stack
-    // them. A line that grew long enough to wrap takes the room it needs, and
-    // the ones below move down with it rather than being written over.
+
     const qreal step = stepPt > 0.0 ? stepPt * scale
                                     : fm.lineSpacing() * qMax(1.0, e.box.lineSpacingMultiplier);
     const qreal paragraph = qMax(0.0, e.box.paragraphSpacingPt * scale);

@@ -1,6 +1,4 @@
-// Part of DocumentView — see DocumentView.hpp. Split across translation
-// units purely for readability; one 2500-line file was not reviewable.
-// Inline text editing: opening an edit, committing it, the editor's font state.
+
 
 #include "ui/DocumentView.hpp"
 
@@ -31,7 +29,6 @@
 #  include <qpdf/QPDFObjectHandle.hh>
 #  include <cstring>
 #endif
-
 
 #include <QVBoxLayout>
 #include <QHBoxLayout>
@@ -65,7 +62,6 @@
 #include <algorithm>
 #include <limits>
 
-
 DocumentView::DocumentView(QWidget *parent)
     : QScrollArea(parent)
     , m_src(std::make_unique<DocumentSource>())
@@ -93,7 +89,7 @@ DocumentView::DocumentView(QWidget *parent)
 
     setWidget(m_canvas);
 
-    m_gridCanvas = new QWidget();   // no parent — we control it via setWidget()
+    m_gridCanvas = new QWidget();
     m_gridCanvas->setObjectName(QStringLiteral("GridCanvas"));
 
     connect(verticalScrollBar(), &QScrollBar::valueChanged,
@@ -102,7 +98,7 @@ DocumentView::DocumentView(QWidget *parent)
             this, [this]() { syncVisibleRect(); });
 
     viewport()->installEventFilter(this);
-    m_canvas->installEventFilter(this);     // also catch events on the canvas itself
+    m_canvas->installEventFilter(this);
     m_rubberBand = new QRubberBand(QRubberBand::Rectangle, viewport());
     retranslateUi();
 
@@ -163,8 +159,6 @@ DocumentView::DocumentView(QWidget *parent)
         m_journal.recordChange({ DocumentHistory::Kind::DrawingRemoved, page });
     });
 
-    // Undo and redo move the document between states the history already
-    // knows, so the history follows the stack instead of recording anything.
     connect(m_undoStack, &QUndoStack::indexChanged, this, [this](int index) {
         if (m_journal.restoring || m_edit.pushingEdit || m_journal.history()->isEmpty()) return;
         m_journal.history()->setCurrentIndex(m_journal.history()->indexForUndoIndex(index));
@@ -182,12 +176,8 @@ DocumentView::DocumentView(QWidget *parent)
 
     m_hover = new HoverHighlight(this, this);
 
-    // Layers from optional parts of the program. Without a registered factory
-    // the list stays empty.
     m_overlays = PageOverlays::createAll(this, this);
 
-    // One place to keep every page-anchored overlay in sync with a relayout —
-    // previously each relayout site had to remember both of these by hand.
     connect(m_layoutEngine, &PageLayoutEngine::layoutChanged,
             this, &DocumentView::repositionPageOverlays);
     connect(m_layoutEngine, &PageLayoutEngine::pageActivated, this, [this](int page) {
@@ -203,28 +193,22 @@ DocumentView::DocumentView(QWidget *parent)
     m_editorFrame = new TextBoxFrame(m_canvas);
     connect(m_editorFrame, &TextBoxFrame::committed, this, &DocumentView::commitCurrentEdit);
     connect(m_editorFrame, &TextBoxFrame::cancelled,  this, &DocumentView::cancelCurrentEdit);
-    connect(m_editorFrame, &TextBoxFrame::changed, this, [this](const QString &text) {
-        m_edit.refreshLivePreview(text);
+    connect(m_editorFrame, &TextBoxFrame::changed, this, [this]() {
+        m_edit.refreshLivePreview();
     });
     connect(&m_edit, &EditController::livePreviewChanged, this,
             [this](int page, const QList<EditSession::Edit> &edits) {
         m_layoutEngine->setPreviewEdits(page, edits);
     });
-    // While the editor is open, its widget IS the live view of the text —
-    // nothing is painted onto the page underneath (painting the same text
-    // there produced visible doubling on drag/zoom). The page only shows the
-    // blank that hides the original text; the session edit is created on commit.
+
     connect(m_editorFrame, &TextBoxFrame::dragEnded, this, [this]() {
-        // Keep the ORIGINAL bounds blanked so the underlying text stays hidden
-        // after the box was dragged away from it. The blank always lives on
-        // the SOURCE page — the box itself may rest on a different page now.
+
         if (m_edit.activeEditSourcePage >= 0 && m_edit.activeEditNeedsBlank)
             rerenderPageWithBlank(m_edit.activeEditSourcePage, m_edit.activeEditOriginalBounds);
     });
     connect(m_editorFrame, &TextBoxFrame::boundsChanged, this, [this](const QRectF &inner) {
         if (m_edit.activeEditPage < 0) return;
-        // The box is freely draggable across pages: the page under its center
-        // owns it. Between pages (margins/gaps) keep the last owner.
+
         auto [pg, lbl] = pageAtCanvasPos(inner.center().toPoint());
         if (pg < 0 || !lbl) {
             pg  = m_edit.activeEditPage;
@@ -233,7 +217,7 @@ DocumentView::DocumentView(QWidget *parent)
         }
         if (pg != m_edit.activeEditPage) {
             m_edit.activeEditPage = pg;
-            // Growth and resize clamps must use the page the box is on now.
+
             m_editorFrame->setPageRect(lbl->geometry());
         }
         const qreal scale = PdfRenderer::screenScale(m_zoomCtl->zoom());
@@ -244,14 +228,10 @@ DocumentView::DocumentView(QWidget *parent)
         m_edit.activeEditBounds = newBounds;
         m_edit.currentBox.bounds = newBounds;
         m_edit.notifyBoundsChanged();
-        m_edit.refreshLivePreview(m_editorFrame->currentText());
+        m_edit.refreshLivePreview();
     });
     m_hover->setEditorFrame(m_editorFrame);
 
-    // Einmal für immer: Renderer und Quelle überleben jeden Dateiwechsel, weil
-    // das Backend dahinter tauscht. Vorher musste der Poppler-Pfad beides nach
-    // jedem Öffnen neu verteilen — und tat es an einer Stelle, die es nicht
-    // mehr gibt.
     m_selection->setSource(m_src->renderer(), m_src.get());
     m_layoutEngine->setSource(m_src->renderer(), m_session);
     m_linkLayer->setSource(m_src->backend(), m_session, m_undoStack);
@@ -261,18 +241,13 @@ DocumentView::DocumentView(QWidget *parent)
 
     m_ocrEngine = new OcrEngine();
 #ifdef HAVE_PDF_RENDERING
-    // After m_ocrEngine exists. On the Poppler path m_src->renderer() is still null
-    // here — openFile() hands the real one over per document.
+
     m_imageLayer->setSource(m_src->renderer(), m_session, m_ocrEngine, m_src->contentPath());
 #endif
 
-    // Last, so every collaborator it is handed already exists — m_ocrEngine in
-    // particular is built further up this constructor.
     m_edit.attach(this, m_src.get(), m_editorFrame, m_zoomCtl, m_hover,
                   m_ocrEngine, m_undoStack);
 
-    // The journal records image state with every change, but the images live
-    // in a widget layer it cannot see — so it asks for them.
     m_journal.attach(m_src.get(), m_undoStack, [this] { return imageStates(); });
 #ifdef HAVE_PDF_RENDERING
     m_journal.setSession(m_session);
@@ -292,32 +267,23 @@ DocumentView::DocumentView(QWidget *parent)
             this, &DocumentView::rerenderPage);
     connect(&m_edit, &EditController::pageNeedsBlank,
             this, &DocumentView::rerenderPageWithBlank);
-    // recordChange takes an optional snapshot source the controller has no
-    // business knowing about; the default is what a text edit wants.
+
     connect(&m_edit, &EditController::changeRecorded, this,
             [this](const DocumentHistory::Change &c) { m_journal.recordChange(c); });
 }
 
 DocumentView::~DocumentView()
 {
-    // A view can go away without clearDocument() — closing a tab deletes it,
-    // and quitting takes every view down with the window. Its session working
-    // copy has to go with it either way, or one file is left behind per saved
-    // document. discard() only touches files inside the session directory, so
-    // handing it a user's own document does nothing. A view that dies without
-    // running this (a crash) leaves the copy for recovery, which is the point.
+
     m_undoStack->disconnect(this);
 
     SessionStore::discard(m_src->contentPath());
     delete m_ocrEngine;
 #ifdef HAVE_PDF_RENDERING
-    // The provider references the backend document (raw pointer on Poppler) —
-    // destroy it before the document regardless of member declaration order.
+
     delete m_session;
 #endif
 }
-
-// ── File ──────────────────────────────────────────────────────────────────────
 
 void DocumentView::setEditMode(bool on)
 {
@@ -327,7 +293,7 @@ void DocumentView::setEditMode(bool on)
 #endif
     m_hover->hide();
     m_editMode = on;
-    if (!on) setTool(m_tool); // restore tool cursor when leaving edit mode
+    if (!on) setTool(m_tool);
 }
 
 QRectF DocumentView::editBounds() const
@@ -372,8 +338,6 @@ void DocumentView::rerenderPageWithBlank(int page, const QRectF &pdfBoundsPts)
 #endif
 }
 
-// ── Grid view ─────────────────────────────────────────────────────────────────
-
 void DocumentView::handleEditClick(const QPoint &canvasPos)
 {
 #ifdef HAVE_PDF_RENDERING
@@ -388,9 +352,7 @@ void DocumentView::discardEditHistory()
 {
     m_session->clearSuspended();
     m_session->clear();
-    // The placed images ARE the session's image edits, drawn as widgets. Left
-    // behind they would hang over a document that no longer contains them —
-    // and the next save would paint them into it a second time.
+
     m_imageLayer->clear();
     m_noteLayer->clear();
     m_drawingLayer->clear();
@@ -400,10 +362,43 @@ void DocumentView::discardEditHistory()
 
 #endif
 
+void DocumentView::undo()
+{
+    closeEditorBeforeUndo();
+    m_undoStack->undo();
+}
+
+void DocumentView::redo()
+{
+    closeEditorBeforeUndo();
+    m_undoStack->redo();
+}
+
+void DocumentView::closeEditorBeforeUndo()
+{
+#ifdef HAVE_PDF_RENDERING
+    commitCurrentEdit(m_editorFrame->currentText());
+#endif
+}
+
+void DocumentView::keepScroll(const std::function<void()> &schliessen)
+{
+    const int x = horizontalScrollBar()->value();
+    const int y = verticalScrollBar()->value();
+    schliessen();
+    horizontalScrollBar()->setValue(x);
+    verticalScrollBar()->setValue(y);
+
+    QTimer::singleShot(0, this, [this, x, y]() {
+        horizontalScrollBar()->setValue(x);
+        verticalScrollBar()->setValue(y);
+    });
+}
+
 void DocumentView::commitCurrentEdit(const QString &newText)
 {
 #ifdef HAVE_PDF_RENDERING
-    m_edit.commit(newText);
+    keepScroll([this, &newText] { m_edit.commit(newText); });
 #else
     Q_UNUSED(newText)
 #endif
@@ -412,7 +407,7 @@ void DocumentView::commitCurrentEdit(const QString &newText)
 void DocumentView::cancelCurrentEdit()
 {
 #ifdef HAVE_PDF_RENDERING
-    m_edit.cancel();
+    keepScroll([this] { m_edit.cancel(); });
 #endif
 }
 
@@ -425,12 +420,11 @@ void DocumentView::createTextFrame(const QRect &viewportDragRect)
 #endif
 }
 
-// ── FormatBar → editor (delegated to EditController) ─────────────────────────
-
 void DocumentView::refreshEditorFontLive()                     { m_edit.refreshFontLive(); }
 void DocumentView::setEditorFontFamily(const QString &family)  { m_edit.setFontFamily(family); }
 void DocumentView::setEditorBold(bool on)                      { m_edit.setBold(on); }
 void DocumentView::setEditorItalic(bool on)                    { m_edit.setItalic(on); }
+void DocumentView::setEditorUnderline(bool on)                 { m_edit.setUnderline(on); }
 void DocumentView::setEditorFontSize(int ptSize)               { m_edit.setFontSize(ptSize); }
 void DocumentView::setEditorTextColor(const QColor &color)     { m_edit.setTextColor(color); }
 void DocumentView::setTextBoxProperties(const TextBoxProperties &p) { m_edit.setTextBoxProperties(p); }

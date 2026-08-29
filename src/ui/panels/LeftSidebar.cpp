@@ -9,9 +9,6 @@
 
 namespace {
 
-// A function-local static and not a namespace variable: registerTool() is
-// called from static initializers, whose order is not fixed. This way the
-// built-in tools are there before the first one is added.
 QVector<ToolDef> &catalog()
 {
     static QVector<ToolDef> tools = {
@@ -27,7 +24,7 @@ QVector<ToolDef> &catalog()
     return tools;
 }
 
-} // namespace
+}
 
 const QVector<ToolDef> &LeftSidebar::toolCatalog()
 {
@@ -39,7 +36,7 @@ void LeftSidebar::registerTool(const ToolDef &tool)
     if (tool.id.isEmpty()) return;
     for (const ToolDef &t : catalog())
         if (t.id == tool.id) return;
-    catalog().append(tool);
+    catalog().insert(qMin(6, static_cast<int>(catalog().size())), tool);
 }
 
 LeftSidebar::LeftSidebar(AppSettings *settings, QWidget *parent)
@@ -60,9 +57,6 @@ void LeftSidebar::buildLayout()
     layout->setContentsMargins(8, 12, 8, 12);
     layout->setSpacing(2);
 
-    // One button per catalogue entry, built once. Hiding and reordering only
-    // ever moves these around - no button is created or destroyed later, so
-    // the connections below stay valid for the life of the sidebar.
     m_toolLayout = new QVBoxLayout;
     m_toolLayout->setContentsMargins(0, 0, 0, 0);
     m_toolLayout->setSpacing(2);
@@ -106,8 +100,6 @@ QStringList LeftSidebar::effectiveOrder() const
         if (m_toolButtons.contains(id) && !order.contains(id))
             order << id;
 
-    // Tools the saved order predates go back to where they ship - at the end
-    // of the list, visible, rather than lost because the file is older.
     for (const ToolDef &t : toolCatalog())
         if (!order.contains(t.id))
             order << t.id;
@@ -121,7 +113,7 @@ void LeftSidebar::applyToolLayout()
     const QStringList hidden = m_settings ? m_settings->hiddenTools() : QStringList{};
 
     while (QLayoutItem *item = m_toolLayout->takeAt(0))
-        delete item;          // the item, not the button - that one we reuse
+        delete item;
 
     m_visibleIds.clear();
     for (const QString &id : order) {
@@ -136,10 +128,6 @@ void LeftSidebar::applyToolLayout()
         }
     }
 
-    // The active tool may have just been switched off - fall back to Select,
-    // or to whatever is left, instead of leaving nothing selected. Queued so
-    // the switch lands after this rebuild, and after the constructor has
-    // returned on the very first call - MainWindow connects only then.
     bool anyChecked = false;
     for (const QString &id : std::as_const(m_visibleIds))
         anyChecked = anyChecked || m_toolButtons.value(id)->isChecked();
@@ -156,7 +144,7 @@ void LeftSidebar::applyToolLayout()
 
 void LeftSidebar::openCustomizePopup()
 {
-    if (m_popup) {           // the + toggles the card shut again
+    if (m_popup) {
         m_popup->close();
         return;
     }
@@ -211,5 +199,5 @@ void LeftSidebar::setActiveTool(const QString &tool)
 
 void LeftSidebar::setEditMode(bool)
 {
-    // Tools are always enabled regardless of mode.
+
 }

@@ -10,7 +10,7 @@ struct PdfBookmark
     int                page { -1 };
     bool               expanded { true };
     QList<PdfBookmark> children;
-    /// False when the entry performs an action the editor cannot preserve.
+
     bool               supported { true };
 
     bool operator==(const PdfBookmark &other) const

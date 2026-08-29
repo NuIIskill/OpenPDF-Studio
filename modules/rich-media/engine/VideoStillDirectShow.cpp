@@ -1,11 +1,4 @@
 // SPDX-License-Identifier: LicenseRef-OpenPDF-Business
-//
-// Grabbing a still on Windows, through the same DirectShow graph that plays.
-//
-// Qt Multimedia is not used here for the reason it is not used for playback:
-// the backend packaged for MinGW refuses files this machine decodes without
-// trouble, and a poster that falls back to a drawn placeholder for a video
-// that plays perfectly well is the same fault in a smaller place.
 
 #include "rich-media/engine/VideoStill.hpp"
 
@@ -21,8 +14,6 @@ namespace {
 
 template <class T> void releaseCom(T *&p) { if (p) { p->Release(); p = nullptr; } }
 
-/// GetCurrentImage hands back a packed DIB: a BITMAPINFOHEADER followed by
-/// bottom-up BGR rows padded to four bytes.
 QImage fromPackedDib(const QByteArray &dib)
 {
     if (dib.size() < int(sizeof(BITMAPINFOHEADER))) return {};
@@ -39,7 +30,7 @@ QImage fromPackedDib(const QByteArray &dib)
 
     QImage image(width, height, QImage::Format_RGB888);
     for (int y = 0; y < height; ++y) {
-        // Bottom-up unless the height is negative, and BGR either way.
+
         const uchar *row = bits + qint64(header->biHeight > 0 ? height - 1 - y : y)
                                   * stride;
         uchar *out = image.scanLine(y);
@@ -52,7 +43,7 @@ QImage fromPackedDib(const QByteArray &dib)
     return image;
 }
 
-} // namespace
+}
 
 QImage VideoStill::grab(const QString &filePath, int maxWidth)
 {
@@ -76,14 +67,12 @@ QImage VideoStill::grab(const QString &filePath, int maxWidth)
         graph->QueryInterface(IID_IVideoWindow,  reinterpret_cast<void **>(&window));
         graph->QueryInterface(IID_IBasicVideo,   reinterpret_cast<void **>(&video));
 
-        // Nothing may appear on screen for a poster.
         if (window) window->put_AutoShow(OAFALSE);
 
         const QString native = QDir::toNativeSeparators(filePath);
         if (SUCCEEDED(graph->RenderFile(
                 reinterpret_cast<LPCWSTR>(native.utf16()), nullptr))) {
-            // One second in, not at zero: the very first frame is black in a
-            // great many videos, and a black poster reads as a failure.
+
             if (seeking) {
                 LONGLONG length = 0;
                 seeking->GetDuration(&length);
@@ -91,8 +80,7 @@ QImage VideoStill::grab(const QString &filePath, int maxWidth)
                 seeking->SetPositions(&at, AM_SEEKING_AbsolutePositioning,
                                       nullptr, AM_SEEKING_NoPositioning);
             }
-            // Pause renders one frame and stops there, which is exactly the
-            // state GetCurrentImage wants.
+
             if (control && SUCCEEDED(control->Pause())) {
                 OAFilterState state = State_Paused;
                 control->GetState(3000, &state);
@@ -122,4 +110,4 @@ QImage VideoStill::grab(const QString &filePath, int maxWidth)
     return result;
 }
 
-#endif // Q_OS_WIN
+#endif

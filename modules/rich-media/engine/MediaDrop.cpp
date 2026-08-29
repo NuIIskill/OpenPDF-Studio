@@ -13,17 +13,15 @@
 #include <QDebug>
 #include <QFile>
 #include <QFileInfo>
+#include <QMimeDatabase>
 #include <QStringList>
 
 namespace {
 
-// The band a video page may land in. The upper bound is measured: the page
-// Acrobat wrote in Binder1.pdf is 418 pt wide, well under A4. Without it a
-// 1920-wide video would open a page of 922 pt.
-constexpr double kMinLongestSidePt = 288.0;   // 4 inch
-constexpr double kMaxLongestSidePt = 420.0;   // just under 6 inch
+constexpr double kMinLongestSidePt = 288.0;
+constexpr double kMaxLongestSidePt = 420.0;
 
-} // namespace
+}
 
 bool MediaDrop::isVideoFile(const QString &path)
 {
@@ -40,7 +38,6 @@ QSizeF MediaDrop::pageSizeFor(int videoWidth, int videoHeight)
 {
     if (videoWidth <= 0 || videoHeight <= 0) return QSizeF(640.0, 360.0);
 
-    // 150 dpi, the same arithmetic Acrobat does.
     QSizeF size(videoWidth * 72.0 / 150.0, videoHeight * 72.0 / 150.0);
     const double longest = qMax(size.width(), size.height());
     if (longest < kMinLongestSidePt)      size *= kMinLongestSidePt / longest;
@@ -48,12 +45,50 @@ QSizeF MediaDrop::pageSizeFor(int videoWidth, int videoHeight)
     return size;
 }
 
+QRectF MediaDrop::placementBoundsFor(const QSizeF &pageSize,
+                                     const QSize &videoPixels,
+                                     const QPointF &dropPoint)
+{
+    if (pageSize.isEmpty()) return {};
+
+    const qreal aspect = videoPixels.width() > 0 && videoPixels.height() > 0
+        ? qreal(videoPixels.width()) / qreal(videoPixels.height())
+        : 16.0 / 9.0;
+    QSizeF size(pageSize.width() * 0.42, pageSize.width() * 0.42 / aspect);
+    const qreal maxHeight = pageSize.height() * 0.35;
+    if (size.height() > maxHeight)
+        size = QSizeF(maxHeight * aspect, maxHeight);
+    size.setWidth(qMin(size.width(), pageSize.width()));
+    size.setHeight(qMin(size.height(), pageSize.height()));
+
+    QPointF topLeft = dropPoint - QPointF(size.width() / 2.0,
+                                          size.height() / 2.0);
+    topLeft.setX(qBound(0.0, topLeft.x(), pageSize.width() - size.width()));
+    topLeft.setY(qBound(0.0, topLeft.y(), pageSize.height() - size.height()));
+    return QRectF(topLeft, size);
+}
+
+QString MediaDrop::mimeTypeFor(const QString &path)
+{
+    static QMimeDatabase database;
+    const QString mime = database.mimeTypeForFile(path).name();
+    if (!mime.isEmpty() && mime != QLatin1String("application/octet-stream"))
+        return mime;
+
+    const QString suffix = QFileInfo(path).suffix().toLower();
+    if (suffix == QLatin1String("mp4") || suffix == QLatin1String("m4v"))
+        return QStringLiteral("video/mp4");
+    if (suffix == QLatin1String("webm")) return QStringLiteral("video/webm");
+    if (suffix == QLatin1String("mov")) return QStringLiteral("video/quicktime");
+    if (suffix == QLatin1String("mp3")) return QStringLiteral("audio/mpeg");
+    return QStringLiteral("application/octet-stream");
+}
+
 QString MediaDrop::displayNameFor(const QString &original, const QString &actual)
 {
     const QFileInfo source(original.isEmpty() ? actual : original);
     if (original.isEmpty() || original == actual) return source.fileName();
-    // Converted: keep the original stem, take the extension from what is
-    // really inside.
+
     return source.completeBaseName() + QLatin1Char('.')
          + QFileInfo(actual).suffix().toLower();
 }
@@ -67,8 +102,6 @@ QString MediaDrop::addAsOwnPage(const QString &pdfPath, const QString &source,
 
     const MediaFormat::Info info = MediaFormat::inspect(source);
 
-    // The still is needed anyway, and for containers this reads only by
-    // signature it is also the only place the real dimensions come from.
     const QImage poster = PosterFrame::grab(source, 1280);
     const QSize  pixels = info.size.isValid() ? info.size : poster.size();
     const QSizeF pageSize = pageSizeFor(pixels.width(), pixels.height());
@@ -93,7 +126,7 @@ QString MediaDrop::addAsOwnPage(const QString &pdfPath, const QString &source,
         qWarning() << "[rich-media] cannot create working copy:" << work;
         return {};
     }
-    // The copy inherits the original's encryption, hence its password.
+
     PdfPwStore::set(work, PdfPwStore::get(pdfPath));
 
     MediaSession once;

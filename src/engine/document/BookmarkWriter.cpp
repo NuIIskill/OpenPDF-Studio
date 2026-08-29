@@ -85,7 +85,7 @@ int totalCount(const QList<PdfBookmark> &bookmarks)
     return count;
 }
 
-} // namespace
+}
 #endif
 
 bool BookmarkWriter::write(const QString &path,

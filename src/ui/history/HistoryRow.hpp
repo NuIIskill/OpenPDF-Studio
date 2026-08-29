@@ -14,18 +14,13 @@
 #include <QVBoxLayout>
 #include <QWidget>
 
-// Row geometry of the history timeline.
+/// Row geometry of the history timeline.
 namespace HistoryConst {
-    constexpr int kRowHeight  = 74;   // one timeline step
-    constexpr int kMarkerCol  = 56;   // width of the number/connector column
+    constexpr int kRowHeight  = 74;
+    constexpr int kMarkerCol  = 56;
     constexpr int kMarkerSize = 30;
 }
 
-// ── One timeline row ──────────────────────────────────────────────────────────
-//
-// The connector line between the numbered markers is painted, not laid out: a
-// widget per gap would have to be kept in step with every row that appears or
-// disappears, and the line has to run BEHIND the markers anyway.
 class HistoryRow : public QFrame
 {
     Q_OBJECT
@@ -144,7 +139,7 @@ protected:
 
     void paintEvent(QPaintEvent *e) override
     {
-        QFrame::paintEvent(e);   // stylesheet background first
+        QFrame::paintEvent(e);
 
         QPainter p(this);
         p.setRenderHint(QPainter::Antialiasing, false);
@@ -170,4 +165,3 @@ private:
     QLabel  *m_kindIcon { nullptr };
     QToolButton *m_menuBtn { nullptr };
 };
-

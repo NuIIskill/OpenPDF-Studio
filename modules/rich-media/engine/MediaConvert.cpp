@@ -13,9 +13,6 @@
 
 namespace {
 
-// Where to look for ffmpeg/ffprobe. PATH first, then next to the application:
-// on Windows nobody has ffmpeg on PATH, so a copy shipped beside the exe (or
-// in an ffmpeg/ or ffmpeg/bin/ folder there) is the realistic case.
 QString locate(const char *name)
 {
     const QString tool = QLatin1String(name);
@@ -34,7 +31,7 @@ QString locate(const char *name)
     if (!found.isEmpty()) return found;
 
 #ifdef Q_OS_WIN
-    // The places the common Windows installers use.
+
     static const QStringList kInstalled {
         QStringLiteral("C:/Program Files/ffmpeg/bin"),
         QStringLiteral("C:/ffmpeg/bin"),
@@ -46,7 +43,7 @@ QString locate(const char *name)
 #endif
 }
 
-} // namespace
+}
 
 QString MediaConvert::toolPath()
 {
@@ -74,8 +71,7 @@ bool MediaConvert::run(const QString &in, const QString &out,
     };
     const bool scaling = maxHeight > 0 && info.size.height() > maxHeight;
     if (info.videoIsH264() && !scaling) {
-        // Already H.264: repackage only. Re-encoding would cost time and
-        // picture quality for nothing.
+
         arguments << QStringLiteral("-c:v") << QStringLiteral("copy");
     } else {
         arguments << QStringLiteral("-c:v")       << QStringLiteral("libx264")
@@ -83,20 +79,17 @@ bool MediaConvert::run(const QString &in, const QString &out,
                   << QStringLiteral("-crf")       << QStringLiteral("22")
                   << QStringLiteral("-profile:v") << QStringLiteral("high")
                   << QStringLiteral("-level")     << QStringLiteral("4.1")
-                  // yuv420p: anything else is still H.264 but shown by very
-                  // few players.
+
                   << QStringLiteral("-pix_fmt")   << QStringLiteral("yuv420p");
         if (scaling) {
-            // -2 keeps the aspect ratio and lands on an even width, which
-            // H.264 requires.
+
             arguments << QStringLiteral("-vf")
                       << QStringLiteral("scale=-2:%1").arg(maxHeight);
         }
     }
     arguments << QStringLiteral("-c:a") << QStringLiteral("aac")
               << QStringLiteral("-b:a") << QStringLiteral("160k")
-              // faststart moves the header to the front, so a player need not
-              // seek to the end before it can start.
+
               << QStringLiteral("-movflags") << QStringLiteral("+faststart")
               << QStringLiteral("-progress")  << QStringLiteral("pipe:1")
               << QStringLiteral("-nostats")

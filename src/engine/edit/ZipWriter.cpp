@@ -26,7 +26,7 @@ static void u32le(QByteArray &b, uint32_t v)
     b += char((v >> 24) & 0xFF);
 }
 
-}   // namespace
+}
 
 QByteArray ZipWriter::archive() const
 {
@@ -54,10 +54,6 @@ QByteArray ZipWriter::archive() const
     return zip;
 }
 
-// qCompress emits a zlib stream prefixed with the uncompressed size:
-//   [4 bytes size][2 bytes zlib header][deflate data][4 bytes adler32]
-// ZIP method 8 wants the bare deflate data, so strip the 6-byte head and the
-// 4-byte tail. Falls back to storing whenever that would not be a win.
 void ZipWriter::deflateEntry(ZipWriter::Entry &e)
 {
     e.method = 0;

@@ -60,19 +60,17 @@ void TextAnnotation::paintEvent(QPaintEvent *)
     QPainter p(this);
     p.setRenderHint(QPainter::Antialiasing);
 
-    // White background
     p.setPen(Qt::NoPen);
     p.setBrush(QColor(255, 255, 255, 240));
     p.drawRoundedRect(rect(), 3, 3);
 
     if (m_editActive) {
-        // Border: blue when focused/hovered, light gray otherwise
+
         const bool focused = m_edit->hasFocus() || m_hovered;
         p.setPen(QPen(focused ? QColor("#3B82F6") : QColor("#CBD5E1"), 1));
         p.setBrush(Qt::NoBrush);
         p.drawRoundedRect(rect().adjusted(0, 0, -1, -1), 3, 3);
 
-        // Resize handle at bottom-right
         const QRect rh(width() - RESIZE_SZ - 2, height() - RESIZE_SZ - 2, RESIZE_SZ, RESIZE_SZ);
         p.setPen(Qt::NoPen);
         p.setBrush(QColor("#3B82F6"));
@@ -117,7 +115,7 @@ void TextAnnotation::mousePressEvent(QMouseEvent *e)
             e->accept();
             return;
         }
-        // Only drag from outside the text edit area
+
         if (!m_edit->geometry().contains(e->pos())) {
             m_dragging     = true;
             m_posBeforeDrag = pos();
@@ -144,7 +142,7 @@ void TextAnnotation::mouseMoveEvent(QMouseEvent *e)
         e->accept();
         return;
     }
-    // Cursor hint
+
     if (m_editActive && isInResizeHandle(e->pos()))
         setCursor(Qt::SizeFDiagCursor);
     else if (!m_edit->geometry().contains(e->pos()))

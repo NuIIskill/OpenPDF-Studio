@@ -28,7 +28,6 @@
 #  include <cstring>
 #endif
 
-
 #include <QVBoxLayout>
 #include <QHBoxLayout>
 #include <QLabel>
@@ -77,12 +76,9 @@ void DocumentView::wheelEvent(QWheelEvent *e)
     if (!m_zoomCtl->handleWheel(e)) QScrollArea::wheelEvent(e);
 }
 
-// Everything anchored to a page has to follow a zoom: the selection highlights
-// and, while an edit is open, the editor frame.
 void DocumentView::repositionForZoom()
 {
-    // Page labels can be re-laid out once more after this, so the highlights
-    // are repositioned again when that layout has settled.
+
     m_selection->relayout();
     m_linkLayer->relayout();
     m_noteLayer->relayout();
@@ -94,31 +90,26 @@ void DocumentView::repositionForZoom()
 void DocumentView::repositionEditorFrame()
 {
 #ifdef HAVE_PDF_RENDERING
-    // The blank that hides the original text sticks to its page inside the
-    // layout engine, so a re-render at the new zoom keeps it — only the editor
-    // frame has to follow.
+
     if (m_edit.activeEditPage < 0 || !m_editorFrame->isVisible()) return;
-    // Reposition the editor frame for the new zoom.  A 0 ms timer defers the
-    // reposition until after the layout has settled — the frame may still be
-    // growing to the text it holds.
+
     const int activePage = m_edit.activeEditPage;
     QTimer::singleShot(0, this, [this, activePage]() {
         if (m_edit.activeEditPage != activePage || !m_editorFrame->isVisible()) return;
-        // Force the canvas layout NOW — label positions are stale until the
-        // deferred relayout has run, and the 0 ms timer can fire first.
+
         if (m_layout) m_layout->activate();
         const QLabel *lbl = pageLabel(activePage);
         if (!lbl) return;
-        // Read the CURRENT zoom, not a captured one: rapid wheel zooming
-        // queues several of these lambdas and each must position for the
-        // zoom the page is actually rendered at.
+
         const qreal scale = PdfRenderer::screenScale(m_zoomCtl->zoom());
-        m_editorFrame->setPageRect(lbl->geometry());  // page rect changes with zoom
+        m_editorFrame->setPageRect(lbl->geometry());
         const QRectF cb(m_edit.activeEditBounds.topLeft() * scale + QPointF(lbl->pos()),
                         m_edit.activeEditBounds.size() * scale);
         m_editorFrame->repositionForZoom(
             cb, qMax(1.0, m_edit.currentEditorRenderSizePt * scale),
             m_edit.currentBox, scale);
+
+        m_edit.refreshLivePreview();
     });
 #endif
 }
@@ -128,7 +119,6 @@ void DocumentView::setTool(Tool tool)
     if (tool != Tool::Select) m_selection->clear();
     m_tool = tool;
 
-    // Image annotations are interactive only while the image tool is active.
     m_imageLayer->setToolActive(tool == Tool::Image);
     m_linkLayer->setToolActive(tool == Tool::Attach);
     m_noteLayer->setToolActive(tool == Tool::Comment);
@@ -137,7 +127,7 @@ void DocumentView::setTool(Tool tool)
     switch (tool) {
     case Tool::Pan:    viewport()->setCursor(Qt::OpenHandCursor);    break;
     case Tool::Text:   viewport()->setCursor(Qt::IBeamCursor);       break;
-    case Tool::Select: viewport()->setCursor(Qt::IBeamCursor);       break;   // marks text
+    case Tool::Select: viewport()->setCursor(Qt::IBeamCursor);       break;
     case Tool::Image:
         viewport()->setCursor(Qt::CrossCursor);
         m_imageLayer->scanVisiblePage(firstVisiblePage());
@@ -221,15 +211,10 @@ void DocumentView::setNotePinned(const QString &id, bool pinned)
     if (m_noteLayer) m_noteLayer->setPinned(id, pinned);
 }
 
-// ── Editor font state (FormatBar sync) ────────────────────────────────────────
-
 int DocumentView::currentPage() const
 {
     if (pageLabelCount() == 0) return 0;
 
-    // The page covering most of the viewport is the one the user is reading.
-    // Taking the first partially visible page instead would keep the indicator
-    // one page behind for as long as a sliver of it hangs in at the top.
     const int top    = verticalScrollBar()->value();
     const int bottom = top + viewport()->height();
 
@@ -267,24 +252,17 @@ void DocumentView::scrollToPage(int page, bool allowRetry)
     if (pageLabelCount() == 0) return;
     page = qBound(0, page, pageLabelCount() - 1);
 
-    // The page widgets live on m_canvas, which is not the widget on screen in
-    // grid mode — jumping to a page there means returning to the page view.
     if (m_viewMode == ViewMode::Grid)
         setViewMode(ViewMode::Single);
 
-    // Right after open/zoom the layout can still be pending, in which case
-    // every page would report pos().y() == 0 and the jump would go nowhere.
     if (m_layout) m_layout->activate();
 
-    constexpr int kTopGap = 20;   // leave a little air above the page
+    constexpr int kTopGap = 20;
     const int target = qMax(0, pageLabel(page)->pos().y() - kTopGap);
     verticalScrollBar()->setValue(target);
 
     if (allowRetry && verticalScrollBar()->value() != target) {
-        // The scroll area sizes its canvas — and with it the scrollbar range —
-        // only once it has processed the new page widgets. Until then the jump
-        // is clamped to 0, which is what made the very first click on the page
-        // arrows after opening a document do nothing. Retry once, after that.
+
         QTimer::singleShot(0, this, [this, page]() { scrollToPage(page, false); });
         return;
     }
@@ -327,8 +305,7 @@ void DocumentView::changeEvent(QEvent *e)
 
 void DocumentView::keyPressEvent(QKeyEvent *e)
 {
-    // Copy marked page text. Editors are QTextEdit children and consume their
-    // own Ctrl+C before it ever reaches the view, so both paths coexist.
+
     if (e->matches(QKeySequence::Copy) && m_selection->hasSelection()) {
         copySelectedText();
         e->accept();
@@ -351,10 +328,7 @@ void DocumentView::resizeEvent(QResizeEvent *e)
         return;
     }
     syncVisibleRect();
-    // The canvas is CENTRED in the viewport: when the view narrows, because a
-    // panel opens on the right, every page slides sideways without any layout
-    // signal firing. Anything stuck to a page position has to follow here.
-    // Deferred, because the child widgets are still in their old places.
+
     QTimer::singleShot(0, this, &DocumentView::repositionPageOverlays);
 }
 
@@ -391,10 +365,7 @@ void DocumentView::scrollToSearchMatch(int page, const QRectF &bounds)
 
 QRect DocumentView::visibleCanvasRect() const
 {
-    // The canvas is a child of the viewport and scrolling moves it, so its
-    // negated position is the viewport origin in canvas coordinates. Reading
-    // it from the widget instead of the scrollbars also covers the case where
-    // the canvas is smaller than the viewport and gets centred.
+
     return QRect(-m_canvas->pos(), viewport()->size());
 }
 
@@ -403,8 +374,6 @@ void DocumentView::syncVisibleRect()
     if (m_viewMode != ViewMode::Single) return;
     m_layoutEngine->setVisibleRect(visibleCanvasRect());
 }
-
-// ── Page rendering (delegated to PageLayoutEngine) ────────────────────────────
 
 QLabel *DocumentView::pageLabel(int page) const
 {
@@ -424,7 +393,7 @@ void DocumentView::rerenderPage(int page)
 void DocumentView::setViewMode(ViewMode mode)
 {
     if (m_viewMode == mode) return;
-    m_selection->clear();   // grid view has no page-text geometry to anchor to
+    m_selection->clear();
     m_viewMode = mode;
 
     if (mode == ViewMode::Grid) {
@@ -434,8 +403,7 @@ void DocumentView::setViewMode(ViewMode mode)
         takeWidget();
         setWidget(m_gridCanvas);
         m_gridCanvas->show();
-        // Defer: viewport()->width() is reliable after the scroll area processes
-        // the new widget.
+
         QMetaObject::invokeMethod(this, [this]() {
             m_layoutEngine->relayoutGrid(viewport()->width());
         }, Qt::QueuedConnection);
@@ -446,23 +414,19 @@ void DocumentView::setViewMode(ViewMode mode)
         takeWidget();
         setWidget(m_canvas);
         m_canvas->show();
-        // Same as above: the canvas position is only meaningful after the
-        // scroll area has taken the widget back.
+
         QMetaObject::invokeMethod(this, [this]() { syncVisibleRect(); },
                                   Qt::QueuedConnection);
     }
     Q_EMIT viewModeChanged(mode);
 }
 
-// ── Context menu (editor / page selection) ────────────────────────────────────
-
 void DocumentView::showGeneralContextMenu(const QPoint &globalPos)
 {
     auto *focusEdit    = qobject_cast<QTextEdit *>(QApplication::focusWidget());
     const bool hasEdit = focusEdit && m_editorFrame && m_editorFrame->isVisible();
     const bool hasSel  = hasEdit && focusEdit->textCursor().hasSelection();
-    // Text marked on the page with the select tool — copy only, the page text
-    // itself is not modified from here.
+
     const bool hasPageSel = !hasEdit && !selectedText().isEmpty();
 
     QMenu menu(this);
@@ -476,8 +440,6 @@ void DocumentView::showGeneralContextMenu(const QPoint &globalPos)
     if (hasPageSel)      copySelectedText();
     else if (focusEdit)  focusEdit->copy();
 }
-
-// ── Edit mode ─────────────────────────────────────────────────────────────────
 
 qreal DocumentView::screenScale() const
 {
@@ -498,14 +460,12 @@ std::pair<int, QLabel *> DocumentView::pageAtCanvasPos(const QPoint &canvasPos) 
 
 bool DocumentView::eventFilter(QObject *obj, QEvent *e)
 {
-    // Page labels have WA_TransparentForMouseEvents so all clicks fall through to
-    // m_canvas (their parent). We also handle viewport() for clicks in the margins.
+
     const bool fromCanvas   = (obj == m_canvas);
     const bool fromViewport = (obj == viewport());
     if (!fromCanvas && !fromViewport)
         return QScrollArea::eventFilter(obj, e);
 
-    // Helpers: m_canvas coords are the canonical space; rubber band lives in viewport.
     const QPoint scroll(horizontalScrollBar()->value(), verticalScrollBar()->value());
     auto toCanvas   = [&](const QPoint &p) { return fromCanvas ? p : p + scroll; };
     auto toViewport = [&](const QPoint &p) { return fromCanvas ? p - scroll : p; };
@@ -518,25 +478,22 @@ bool DocumentView::eventFilter(QObject *obj, QEvent *e)
 
             if (m_editMode && m_tool == Tool::Text) {
 #ifdef HAVE_PDF_RENDERING
-                // Let TextBoxFrame/InlineEditor handle clicks inside the active frame.
+
                 if (m_editorFrame->isVisible() && m_editorFrame->geometry().contains(cvsPos))
                     return QScrollArea::eventFilter(obj, e);
-                // Commit the active edit before starting a new one.
-                // cancelCurrentEdit must NOT be used here — the user's typed
-                // text must be kept, not discarded.
+
                 commitCurrentEdit(m_editorFrame->currentText());
 #endif
-                m_textDragStart = cvsPos;   // stored in canvas coords
+                m_textDragStart = cvsPos;
                 m_textTracking  = true;
                 m_textDragging  = false;
                 return true;
             }
 
             if (m_tool == Tool::Image) {
-                // Click on a detected image frame extracts and places it;
-                // otherwise start the rubber band, but only on a page.
+
                 if (m_imageLayer->takeDetectedRegionAt(cvsPos)) return true;
-                m_imageLayer->handlePress(cvsPos);   // false → outside page, swallowed
+                m_imageLayer->handlePress(cvsPos);
                 return true;
             }
 
@@ -570,7 +527,7 @@ bool DocumentView::eventFilter(QObject *obj, QEvent *e)
             m_drawingLayer->handleMove(toCanvas(me->pos()));
             return true;
         }
-        // Hover feedback over detected content regions (Acrobat-style).
+
         if (m_editMode && m_tool == Tool::Text && !m_textTracking)
             m_hover->showAt(toCanvas(me->pos()));
         else
@@ -597,8 +554,7 @@ bool DocumentView::eventFilter(QObject *obj, QEvent *e)
             }
             return true;
         }
-        // Select/Pan are navigation tools — they work in edit mode as well,
-        // matching the press handler above which is not gated on m_editMode.
+
         {
             const QPoint vpPos = toViewport(me->pos());
             switch (m_tool) {
@@ -630,18 +586,18 @@ bool DocumentView::eventFilter(QObject *obj, QEvent *e)
                 m_textTracking = false;
                 if (m_textDragging) {
                     m_textDragging = false;
-                    const QRect band = m_rubberBand->geometry();   // viewport coords
+                    const QRect band = m_rubberBand->geometry();
                     m_rubberBand->hide();
                     if (band.width() > 30 && band.height() > 15)
-                        createTextFrame(band);                       // expects viewport rect ✓
+                        createTextFrame(band);
                 } else {
-                    handleEditClick(m_textDragStart);                // canvas coords ✓
+                    handleEditClick(m_textDragStart);
                 }
                 return true;
             }
             if (m_tool == Tool::Image && m_imageLayer->isDragTracking()) {
                 if (m_imageLayer->handleRelease()) {
-                    const QRect band = m_rubberBand->geometry();  // viewport coords
+                    const QRect band = m_rubberBand->geometry();
                     m_rubberBand->hide();
                     if (band.width() > 20 && band.height() > 20) {
                         const QString path = QFileDialog::getOpenFileName(this,
@@ -674,11 +630,7 @@ bool DocumentView::eventFilter(QObject *obj, QEvent *e)
                 m_selection->clear();
             return true;
         }
-        // Show the general context menu whenever edit mode is active or a
-        // content-editing tool is selected.  For the image tool, ImageAnnotation
-        // accepts its own context-menu event so it never reaches the canvas — the
-        // general menu appears only when clicking on empty canvas area.
-        // Marked page text offers "Kopieren" regardless of the mode.
+
         if (m_editMode || m_tool == Tool::Text || m_tool == Tool::Image
                 || m_selection->hasSelection()) {
             auto *ce = static_cast<QContextMenuEvent *>(e);
@@ -689,8 +641,6 @@ bool DocumentView::eventFilter(QObject *obj, QEvent *e)
 
     return QScrollArea::eventFilter(obj, e);
 }
-
-// ── Drag & Drop ───────────────────────────────────────────────────────────────
 
 static bool isImagePath(const QString &p)
 {
@@ -712,9 +662,7 @@ void DocumentView::dragEnterEvent(QDragEnterEvent *e)
             e->acceptProposedAction();
             return;
         }
-        // Ask the overlays here too and not only on drop: what is turned away
-        // now never arrives, the cursor shows a no-entry sign and dropEvent()
-        // is never called.
+
         for (const PageOverlay *overlay : std::as_const(m_overlays)) {
             if (!overlay->acceptsDroppedFile(path)) continue;
             e->acceptProposedAction();
@@ -731,21 +679,24 @@ void DocumentView::dropEvent(QDropEvent *e)
     for (const QUrl &url : e->mimeData()->urls()) {
         const QString path = url.toLocalFile();
         if (path.endsWith(QLatin1String(".pdf"), Qt::CaseInsensitive)) {
-            // Opening a document is not the view's call — it decides which tab
-            // it lands in and has to be recorded as the last opened file.
+
             Q_EMIT pdfDropped(path);
             e->acceptProposedAction();
             return;
         }
-        // Overlays first: they know file kinds the Core does not. One that
-        // says yes has taken the file.
+
         if (!m_overlays.isEmpty()) {
             const QPoint scroll(horizontalScrollBar()->value(), verticalScrollBar()->value());
-            const auto [page, label] = pageAtCanvasPos(e->position().toPoint() + scroll);
+            const QPoint canvasPosition = e->position().toPoint() + scroll;
+            const auto [page, label] = pageAtCanvasPos(canvasPosition);
             bool taken = false;
             QString replacement;
             for (PageOverlay *overlay : std::as_const(m_overlays))
-                if (overlay->handleDroppedFile(path, page, &replacement)) { taken = true; break; }
+                if (overlay->handleDroppedFile(path, page, canvasPosition,
+                                               &replacement)) {
+                    taken = true;
+                    break;
+                }
             if (taken) {
                 e->acceptProposedAction();
                 if (!replacement.isEmpty())

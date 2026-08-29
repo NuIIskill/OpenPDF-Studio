@@ -10,11 +10,7 @@
 
 std::unique_ptr<PdfBackend> PdfBackend::create()
 {
-    // Es gibt genau ein Backend. Qt6::Pdf und Poppler standen bis Schritt 10
-    // daneben, damit sich beide gegen PDFium messen ließen; sie haben dabei
-    // keine Aufgabe erfüllt, die PDFium nicht besser erfüllt, und sind
-    // deshalb draußen. Die Laufzeitwahl über OPENPDF_BACKEND entfällt mit
-    // ihnen — es gibt nichts mehr zu wählen.
+
 #ifdef HAVE_PDFIUM
     return std::make_unique<PdfiumBackend>();
 #else
@@ -39,4 +35,15 @@ double PdfBackend::textWidthPt(int, const QPointF &, const QString &, double) co
     return -1.0;
 }
 
-#endif // HAVE_PDF_RENDERING
+double PdfBackend::standardTextWidthPt(const QString &, bool, bool,
+                                       const QString &, double) const
+{
+    return -1.0;
+}
+
+bool PdfBackend::canEmbedFont(const QString &, bool, bool) const
+{
+    return false;
+}
+
+#endif

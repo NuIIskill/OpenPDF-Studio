@@ -33,8 +33,7 @@ PresentationWindow::PresentationWindow(const QString &filePath, int startPage, Q
     connect(m_fadeTimer, &QTimer::timeout, m_pageNum, &QLabel::hide);
 
 #ifdef HAVE_PDF_RENDERING
-    // Vorher hing das hier direkt an QPdfDocument — im Windows-Build, der gegen
-    // Poppler gebaut wird, blieb die Präsentation deshalb schwarz.
+
     m_backend = PdfBackend::create();
     if (m_backend && m_backend->open(filePath, nullptr))
         m_pageCount = m_backend->pageCount();
@@ -52,8 +51,7 @@ void PresentationWindow::renderCurrentPage()
     const QSizeF pagePts = m_backend->pageSizePts(m_currentPage);
     if (pagePts.isEmpty()) return;
     const QSize  winSz   = size().isEmpty() ? QSize(1920, 1080) : size();
-    // Der Maßstab ist Ausgabepixel pro PDF-Punkt; die Seite wird in das Fenster
-    // eingepasst, ohne ihr Seitenverhältnis zu verändern.
+
     const qreal  scale   = qMin(winSz.width()  / pagePts.width(),
                                 winSz.height() / pagePts.height());
 

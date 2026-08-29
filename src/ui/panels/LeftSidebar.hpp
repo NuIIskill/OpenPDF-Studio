@@ -16,16 +16,12 @@ class IconButton;
 class ToolCustomizePopup;
 
 /// One entry of the sidebar's tool catalog.
-///
-/// `tip` is the untranslated source string - it is kept around so
-/// retranslateUi() can run tr() over it again after a language change.
 struct ToolDef
 {
     QString id;
     QString icon;
     QString tip;
-    /// true = the tool edits the document, so MainWindow offers edit mode when
-    /// it is chosen.
+
     bool    needsEditMode { false };
 };
 
@@ -36,13 +32,8 @@ class LeftSidebar : public QWidget
 public:
     explicit LeftSidebar(AppSettings *settings, QWidget *parent = nullptr);
 
-    /// Every tool the sidebar can show, in the order it ships with, followed
-    /// by what optional parts of the program added.
     static const QVector<ToolDef> &toolCatalog();
 
-    /// Adds a tool that is not part of the Core. Only meaningful before the
-    /// sidebar is built, so from a static initializer. An id already taken is
-    /// ignored.
     static void registerTool(const ToolDef &tool);
 
     void setActiveTool(const QString &tool);
@@ -51,7 +42,7 @@ public:
     void retranslateUi();
 
 public Q_SLOTS:
-    /// Open (or close again) the "Customize Tools" card at the + button.
+
     void openCustomizePopup();
 
 Q_SIGNALS:
@@ -62,8 +53,6 @@ private:
     void buildLayout();
     void applyToolLayout();
 
-    /// The saved order, filtered to ids that still exist and topped up with
-    /// tools added since it was written.
     [[nodiscard]] QStringList effectiveOrder() const;
 
     AppSettings                 *m_settings   { nullptr };

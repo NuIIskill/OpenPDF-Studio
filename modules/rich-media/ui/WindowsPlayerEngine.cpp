@@ -1,19 +1,4 @@
 // SPDX-License-Identifier: LicenseRef-OpenPDF-Business
-//
-// The Windows engine. Two roads, both part of Windows itself:
-//
-//   DirectShow  the older graph, asked first. It plays AVI, WMV and whatever
-//               filter is installed, and declines everything else at once.
-//   MFPlay      Media Foundation's playback interface, started only when
-//               DirectShow declined. It is what opens MP4 and H.264, for
-//               which Windows ships no DirectShow splitter at all.
-//
-// Qt Multimedia is not among them. The backend packaged for MinGW builds a
-// Media Foundation session with its own EVR presenter and gives up with
-// "Media session serious error" on files both roads below play.
-//
-// Both draw into a child window of their own inside the player frame. Windows
-// clips a child window to its parent, so scrolling behaves.
 
 #include "rich-media/ui/PlayerEngine.hpp"
 
@@ -32,10 +17,7 @@
 
 namespace {
 
-// Media Foundation is reached through GetProcAddress and not through its
-// import library. Windows N without the Media Feature Pack has no mfplay.dll,
-// and an import of it there stops the program from starting at all, media or
-// no media.
+/// Loads Media Foundation entry points dynamically.
 struct MediaFoundation
 {
     HRESULT (WINAPI *startup)(ULONG, DWORD)  { nullptr };
@@ -44,8 +26,6 @@ struct MediaFoundation
                                    IMFPMediaPlayerCallback *, HWND,
                                    IMFPMediaPlayer **) { nullptr };
 
-    /// Loads the two libraries once. False where Windows has no Media
-    /// Foundation, which is a fact about the system and not an error.
     bool load()
     {
         if (createPlayer) return true;
@@ -71,13 +51,8 @@ MediaFoundation &mediaFoundation()
     return loaded;
 }
 
-/// 100-nanosecond units, which is what both roads count in.
 constexpr qint64 kUnitsPerMs = 10000;
 
-/// Milliseconds out of a PROPVARIANT. MFPlay answers a 100-nanosecond question
-/// with VT_I8, so reading only VT_UI8 left every position and every duration at
-/// zero, and a player whose clock never moves looks like one that decoded
-/// nothing at all.
 qint64 millisecondsFrom(const PROPVARIANT &value)
 {
     if (value.vt == VT_I8)  return qint64(value.hVal.QuadPart)  / kUnitsPerMs;
@@ -87,8 +62,6 @@ qint64 millisecondsFrom(const PROPVARIANT &value)
 
 template <class T> void releaseCom(T *&p) { if (p) { p->Release(); p = nullptr; } }
 
-// mfplay.h declares this one but the import libraries do not carry it, so it
-// is spelled out here. Same value as DEFINE_GUID in the header.
 const GUID kMfpCallbackIid =
     { 0x766c8ffb, 0x5fdb, 0x4fea, { 0xa2, 0x8d, 0xb9, 0x12, 0x99, 0x6f, 0x51, 0xbd } };
 
@@ -113,8 +86,7 @@ QString describe(HRESULT hr)
 
 class WindowsPlayerEngine;
 
-/// MFPlay reports from a worker thread. Everything is handed to the engine
-/// through the event loop, so no engine state is touched off the GUI thread.
+/// Forwards MFPlay events to WindowsPlayerEngine.
 class PlayerCallback : public IMFPMediaPlayerCallback
 {
 public:
@@ -140,7 +112,6 @@ public:
     }
     STDMETHODIMP_(void) OnMediaPlayerEvent(MFP_EVENT_HEADER *header) override;
 
-    /// The engine is going away; later events must find nothing to touch.
     void detach() { m_engine = nullptr; }
 
 private:
@@ -156,10 +127,7 @@ public:
         : PlayerEngine(parent)
     {
         m_surface = surface;
-        // MFPlay fills whatever window it is given, so it gets one of its own,
-        // sized to the picture area. DirectShow can place its picture inside a
-        // larger window and therefore uses the frame's own, which is what it
-        // did when it first worked; a second native child broke it.
+
         m_video = new QWidget(surface);
         m_video->setAttribute(Qt::WA_NativeWindow);
         m_video->setAttribute(Qt::WA_OpaquePaintEvent);
@@ -190,15 +158,9 @@ public:
         m_muted = muted;
         m_file = QDir::toNativeSeparators(filePath);
 
-        // Size before start: a renderer handed a window of zero size gets a
-        // picture format with zero width and falls over before it begins.
         if (m_video && m_video->size().isEmpty() && m_surface)
             m_video->setGeometry(m_surface->rect());
-        // DirectShow is asked first, not because it is the better engine but
-        // because it is the cheaper question: it answers in milliseconds for
-        // anything it cannot open, and it leaves Media Foundation untouched.
-        // MP4 is what it declines on Windows, which is exactly when MFPlay is
-        // started and takes over.
+
         if (startDirectShow()) return;
         if (startMediaFoundation()) return;
 
@@ -272,7 +234,7 @@ public:
     {
         m_muted = muted;
         if (m_mfPlayer) m_mfPlayer->SetMute(muted ? TRUE : FALSE);
-        // IBasicAudio speaks in hundredths of a decibel: 0 is full, -10000 off.
+
         else if (m_audio) m_audio->put_Volume(muted ? -10000 : 0);
     }
     bool isMuted() const override { return m_muted; }
@@ -311,12 +273,10 @@ public:
         return line;
     }
 
-    // ── Called back from PlayerCallback, already on the GUI thread ───────────
     void mediaItemSet()
     {
         if (!m_mfPlayer) return;
-        // The native size belongs here and not to the item: MFPlay knows it
-        // once the item is its own.
+
         SIZE size {}, aspect {};
         if (SUCCEEDED(m_mfPlayer->GetNativeVideoSize(&size, &aspect))
             && size.cx > 0 && size.cy > 0)
@@ -338,15 +298,11 @@ public:
     void reportError(HRESULT hr) { Q_EMIT failed(describe(hr)); }
 
 private:
-    /// MFPlay: the road that opens MP4 and H.264.
+
     bool startMediaFoundation()
     {
         if (!m_video) return false;
-        // Started here and not in the constructor. Media Foundation loads a
-        // decoding stack on startup, and where that stack is broken it takes
-        // the process with it before a file has even been named. Asking for it
-        // only once the first road has failed keeps that out of every run that
-        // never needs it.
+
         if (!m_mfStarted) {
             if (!mediaFoundation().load()) return false;
             m_mfStarted =
@@ -362,8 +318,6 @@ private:
                                           &m_mfPlayer);
         if (FAILED(hr)) { m_lastError = hr; teardownMediaFoundation(); m_video->hide(); return false; }
 
-        // Created synchronously on purpose: a file MFPlay cannot open says so
-        // here, which is what lets DirectShow have its turn.
         IMFPMediaItem *item = nullptr;
         hr = m_mfPlayer->CreateMediaItemFromURL(
             reinterpret_cast<LPCWSTR>(m_file.utf16()), TRUE, 0, &item);
@@ -385,11 +339,10 @@ private:
         hr = m_mfPlayer->SetMediaItem(item);
         item->Release();
         if (FAILED(hr)) { m_lastError = hr; teardownMediaFoundation(); m_video->hide(); return false; }
-        // Playback starts once MFPlay reports the item set; see mediaItemSet().
+
         return true;
     }
 
-    /// DirectShow: what MFPlay will not take.
     bool startDirectShow()
     {
         HRESULT hr = CoCreateInstance(CLSID_FilterGraph, nullptr, CLSCTX_INPROC_SERVER,
@@ -405,9 +358,7 @@ private:
         m_graph->QueryInterface(IID_IBasicVideo,   reinterpret_cast<void **>(&m_video9));
 
         hr = m_graph->RenderFile(reinterpret_cast<LPCWSTR>(m_file.utf16()), nullptr);
-        // A graph built for only part of the file counts as no graph. Sound
-        // without a picture is the worse answer here, because it looks like
-        // playback and hides the road that would have shown the video.
+
         if (FAILED(hr) || hr == VFW_S_PARTIAL_RENDER
             || hr == VFW_S_VIDEO_NOT_RENDERED) {
             m_lastError = hr;
@@ -533,7 +484,6 @@ STDMETHODIMP_(void) PlayerCallback::OnMediaPlayerEvent(MFP_EVENT_HEADER *header)
     const MFP_EVENT_TYPE type = header->eEventType;
     const HRESULT status = header->hrEvent;
 
-    // Off the worker thread and into the event loop before anything is read.
     QMetaObject::invokeMethod(engine, [engine, type, status]() {
         switch (type) {
         case MFP_EVENT_TYPE_MEDIAITEM_SET:   engine->mediaItemSet();   break;
@@ -544,11 +494,11 @@ STDMETHODIMP_(void) PlayerCallback::OnMediaPlayerEvent(MFP_EVENT_HEADER *header)
     }, Qt::QueuedConnection);
 }
 
-} // namespace
+}
 
 PlayerEngine *PlayerEngine::create(QWidget *surface, QObject *parent)
 {
     return new WindowsPlayerEngine(surface, parent);
 }
 
-#endif // Q_OS_WIN
+#endif

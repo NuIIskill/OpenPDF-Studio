@@ -3,10 +3,7 @@
 #include <QColor>
 #include <QRectF>
 
-// Complete, serialisable appearance/layout state of an editable text box.
-// Coordinates and lengths are PDF points; the UI converts them to the units
-// shown to the user. Keeping this widget-free lets the renderer and writer use
-// exactly the same values as the properties panel.
+/// Stores the serializable appearance and layout of an editable text box.
 struct TextBoxProperties
 {
     enum class VerticalAlign { Top, Center, Bottom };

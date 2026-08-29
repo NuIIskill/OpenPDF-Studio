@@ -10,14 +10,11 @@
 #include <cmath>
 #include <limits>
 
-// ── Construction / destruction ────────────────────────────────────────────────
-
 OcrEngine::OcrEngine()
 {
 #ifdef HAVE_TESSERACT
     auto *api = new tesseract::TessBaseAPI();
 
-    // Try German + English first; fall back to English-only when deu data is absent.
     if (api->Init(nullptr, "deu+eng") == 0) {
         qDebug() << "[OCR] Tesseract ready (deu+eng)";
         m_api   = api;
@@ -44,8 +41,6 @@ OcrEngine::~OcrEngine()
 #endif
 }
 
-// ── Page recognition ──────────────────────────────────────────────────────────
-
 QList<OcrEngine::Block> OcrEngine::recognizePage(const QImage &pageImage,
                                                    const QSizeF  &pageSizePts,
                                                    qreal          renderScale) const
@@ -57,10 +52,8 @@ QList<OcrEngine::Block> OcrEngine::recognizePage(const QImage &pageImage,
 
     auto *api = static_cast<tesseract::TessBaseAPI *>(m_api);
 
-    // Tesseract requires a packed RGB image; convert once.
     const QImage img = pageImage.convertToFormat(QImage::Format_RGB888);
 
-    // bytes-per-pixel, bytes-per-line
     const int bpp  = img.depth() / 8;
     const int bpl  = static_cast<int>(img.bytesPerLine());
 
@@ -76,8 +69,6 @@ QList<OcrEngine::Block> OcrEngine::recognizePage(const QImage &pageImage,
     tesseract::ResultIterator *ri = api->GetIterator();
     if (!ri) { api->Clear(); return result; }
 
-    // Iterate at line level — gives tighter bounding boxes than paragraph level,
-    // so hit-testing against a click point is much more accurate.
     const tesseract::PageIteratorLevel level = tesseract::RIL_TEXTLINE;
     const QRectF pageRect(QPointF(0, 0), pageSizePts);
 
@@ -91,7 +82,6 @@ QList<OcrEngine::Block> OcrEngine::recognizePage(const QImage &pageImage,
         int x1 = 0, y1 = 0, x2 = 0, y2 = 0;
         if (!ri->BoundingBox(level, &x1, &y1, &x2, &y2)) continue;
 
-        // Pixel coordinates (top-left origin) → PDF points (top-left origin)
         const QRectF bounds(x1 / renderScale, y1 / renderScale,
                              (x2 - x1) / renderScale, (y2 - y1) / renderScale);
 
@@ -113,8 +103,6 @@ QList<OcrEngine::Block> OcrEngine::recognizePage(const QImage &pageImage,
 
     return result;
 }
-
-// ── Table recognition ─────────────────────────────────────────────────────────
 
 QString OcrEngine::Table::toPlainText() const
 {
@@ -151,7 +139,7 @@ QList<OcrEngine::Table> OcrEngine::recognizeTables(const QImage &pageImage,
 
     const QRectF pageRect(QPointF(0, 0), pageSizePts);
 
-    // Collect table block bounds in a first pass.
+    /// Stores a detected table region in image coordinates.
     struct TableRegion { int x1, y1, x2, y2; };
     QList<TableRegion> tableRegions;
     {
@@ -173,21 +161,19 @@ QList<OcrEngine::Table> OcrEngine::recognizeTables(const QImage &pageImage,
         return result;
     }
 
-    // For each table region, collect all words and cluster into rows/cells.
     for (const TableRegion &tr : tableRegions) {
         tesseract::ResultIterator *ri = api->GetIterator();
         if (!ri) continue;
 
-        // Collect words inside this block.
+        /// Stores an OCR word and its image bounds.
         struct Word { int x1, y1, x2, y2; QString text; };
         QList<Word> words;
 
         do {
             int bx1 = 0, by1 = 0, bx2 = 0, by2 = 0;
             if (!ri->BoundingBox(tesseract::RIL_BLOCK, &bx1, &by1, &bx2, &by2)) continue;
-            if (bx1 != tr.x1 || by1 != tr.y1) continue;  // different block
+            if (bx1 != tr.x1 || by1 != tr.y1) continue;
 
-            // Iterate words in this block.
             do {
                 const char *raw = ri->GetUTF8Text(tesseract::RIL_WORD);
                 if (!raw) { if (ri->IsAtFinalElement(tesseract::RIL_BLOCK, tesseract::RIL_WORD)) break; continue; }
@@ -206,19 +192,16 @@ QList<OcrEngine::Table> OcrEngine::recognizeTables(const QImage &pageImage,
 
         if (words.isEmpty()) continue;
 
-        // Cluster words into rows by y-center (tolerance: half avg word height).
         const int rowTol = [&]() {
             int sumH = 0;
             for (const Word &w : words) sumH += (w.y2 - w.y1);
             return qMax(4, sumH / words.size() / 2);
         }();
 
-        // Sort by y then x.
         std::sort(words.begin(), words.end(), [](const Word &a, const Word &b) {
             return a.y1 < b.y1 || (a.y1 == b.y1 && a.x1 < b.x1);
         });
 
-        // Group into rows.
         QList<QList<Word>> rowGroups;
         for (const Word &w : words) {
             const int yc = (w.y1 + w.y2) / 2;
@@ -234,13 +217,11 @@ QList<OcrEngine::Table> OcrEngine::recognizeTables(const QImage &pageImage,
             if (!placed) rowGroups.append({ w });
         }
 
-        // Sort words within each row by x.
         for (auto &rg : rowGroups)
             std::sort(rg.begin(), rg.end(), [](const Word &a, const Word &b) {
                 return a.x1 < b.x1;
             });
 
-        // Build Table.
         Table table;
         table.pdfBounds = QRectF(tr.x1 / renderScale, tr.y1 / renderScale,
                                   (tr.x2 - tr.x1) / renderScale,
@@ -248,7 +229,7 @@ QList<OcrEngine::Table> OcrEngine::recognizeTables(const QImage &pageImage,
                           .intersected(pageRect);
 
         for (const auto &rg : rowGroups) {
-            // Merge adjacent words into cells (gap > 2× average word width = new cell).
+
             const int avgW = [&]() {
                 int sum = 0;
                 for (const Word &w : rg) sum += (w.x2 - w.x1);
@@ -295,8 +276,6 @@ QList<OcrEngine::Table> OcrEngine::recognizeTables(const QImage &pageImage,
     return result;
 }
 
-// ── Image recognition (OCR on arbitrary image) ───────────────────────────────
-
 QString OcrEngine::recognizeImage(const QImage &image) const
 {
 #ifdef HAVE_TESSERACT
@@ -322,8 +301,6 @@ QString OcrEngine::recognizeImage(const QImage &image) const
 #endif
 }
 
-// ── Image region detection ────────────────────────────────────────────────────
-
 QList<QRectF> OcrEngine::detectImageRegions(const QImage &pageImage,
                                               const QSizeF  &pageSizePts,
                                               qreal          renderScale) const
@@ -339,7 +316,6 @@ QList<QRectF> OcrEngine::detectImageRegions(const QImage &pageImage,
     api->SetImage(img.bits(), img.width(), img.height(),
                   img.depth() / 8, static_cast<int>(img.bytesPerLine()));
 
-    // AnalyseLayout() does layout segmentation without full OCR — much faster.
     tesseract::PageIterator *pi = api->AnalyseLayout();
     if (!pi) { api->Clear(); return result; }
 
@@ -372,8 +348,6 @@ QList<QRectF> OcrEngine::detectImageRegions(const QImage &pageImage,
     return result;
 }
 
-// ── Hit-testing ───────────────────────────────────────────────────────────────
-
 OcrEngine::Block OcrEngine::blockAt(const QList<Block> &blocks,
                                       const QPointF      &pdfPt,
                                       qreal               maxDistPts)
@@ -387,7 +361,6 @@ OcrEngine::Block OcrEngine::blockAt(const QList<Block> &blocks,
         if (b.pdfBounds.contains(pdfPt))
             return b;
 
-        // Distance from point to nearest edge of the rectangle
         const qreal dx = std::max({ 0.0, b.pdfBounds.left()   - pdfPt.x(),
                                          pdfPt.x() - b.pdfBounds.right()  });
         const qreal dy = std::max({ 0.0, b.pdfBounds.top()    - pdfPt.y(),

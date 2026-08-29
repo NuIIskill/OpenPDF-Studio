@@ -10,8 +10,6 @@
 #include <QtMath>
 #include <QFontMetricsF>
 
-// ── Construction ──────────────────────────────────────────────────────────────
-
 TextBoxFrame::TextBoxFrame(QWidget *parent) : QWidget(parent)
 {
     setFocusPolicy(Qt::NoFocus);
@@ -22,19 +20,20 @@ TextBoxFrame::TextBoxFrame(QWidget *parent) : QWidget(parent)
     hide();
 
     m_editor = new InlineEditor(this);
-    // The editor covers the frame; see eventFilter().
+
     m_editor->viewport()->installEventFilter(this);
     m_editor->setAutoFillBackground(false);
     m_editor->viewport()->setAutoFillBackground(false);
     m_editor->viewport()->setStyleSheet("background: transparent;");
     connect(m_editor, &InlineEditor::committed, this, &TextBoxFrame::committed);
     connect(m_editor, &InlineEditor::cancelled,  this, &TextBoxFrame::cancelled);
-    connect(m_editor, &InlineEditor::changed,    this, &TextBoxFrame::changed);
-    // Typing must never push text out of sight — grow the box with content.
+
     connect(m_editor, &InlineEditor::changed, this, [this]() {
-        if (!isVisible()) return;
-        growToFitText();
-        layoutEditor();
+        if (isVisible()) {
+            growToFitText();
+            layoutEditor();
+        }
+        Q_EMIT changed(currentText());
     });
 }
 
@@ -50,6 +49,11 @@ QRectF TextBoxFrame::innerCanvasRect() const
 
 void TextBoxFrame::setDecorations(bool on) { m_decorations = on; }
 void TextBoxFrame::setGlyphsVisible(bool on) { m_editor->setGlyphsVisible(on); }
+void TextBoxFrame::setStandardFace(bool on)
+{
+    m_editor->setStandardFace(on);
+    if (isVisible()) { growToFitText(); layoutEditor(); }
+}
 void TextBoxFrame::setAdvanceMeasure(std::function<double(const QString &)> measure)
 {
     m_editor->setAdvanceMeasure(std::move(measure));
@@ -61,9 +65,13 @@ void TextBoxFrame::setLineSpacingPt(qreal pt)
     if (isVisible()) { growToFitText(); layoutEditor(); }
 }
 void TextBoxFrame::setTextColor(const QColor &c) { m_editor->setColor(c); }
-void TextBoxFrame::setTextFont(const QString &family, bool bold, bool italic)
+void TextBoxFrame::setTextFont(const QString &family, bool bold, bool italic,
+                               bool underline)
 {
-    m_editor->setTextFont(family, bold, italic);
+    m_editor->setTextFont(family, bold, italic, underline);
+
+    growToFitText();
+    layoutEditor();
 }
 
 void TextBoxFrame::setFontSize(qreal px)
@@ -86,13 +94,13 @@ void TextBoxFrame::setBoxProperties(const TextBoxProperties &properties, qreal s
 void TextBoxFrame::setGrowHorizontal(bool on)
 {
     m_growHorizontal = on;
-    // A single-line edit must not wrap at any zoom; the frame widens instead.
+
     m_editor->setLineWrapMode(on ? QTextEdit::NoWrap : QTextEdit::WidgetWidth);
 }
 
 void TextBoxFrame::growToFitText()
 {
-    // While a handle is dragged the user sets the size, not the content.
+
     if (m_boxPt.isEmpty() || m_drag != Handle::None) return;
 
     const qreal fontPt = m_editor->fontPixelSizeF() / m_scale;
@@ -105,15 +113,26 @@ void TextBoxFrame::growToFitText()
     if (m_growHorizontal)
         brauchtW = qMax(m_editor->contentWidthPt(), m_minInnerW / m_scale);
 
+    if (const qreal frei = freieBreitePt(); frei > 0.0 && brauchtW > frei) {
+        brauchtW = frei;
+        if (m_growHorizontal) {
+            setGrowHorizontal(false);
+
+            m_editor->document()->setTextWidth(brauchtW * m_scale);
+        }
+    }
+
     if (m_autoHeight) {
-        brauchtH = m_growHorizontal
-            ? (lines - 1) * stepPt + fontPt * 1.25
+
+        const int gemalt = m_growHorizontal
+            ? lines : m_editor->engineLineCount(textBreitePt(brauchtW));
+        brauchtH = gemalt > 0
+            ? (gemalt - 1) * stepPt + fontPt * 1.25
             : m_editor->document()->size().height() / m_scale;
         brauchtH = qMax(brauchtH,
                         minInnerHeight(m_editor->fontPixelSizeF()) / m_scale);
     }
 
-    // A size the user dragged wins; content may still grow the box.
     if (m_userSized) {
         brauchtW = qMax(brauchtW, m_boxPt.width());
         brauchtH = qMax(brauchtH, m_boxPt.height());
@@ -124,6 +143,25 @@ void TextBoxFrame::growToFitText()
         return;
     m_boxPt = QSizeF(brauchtW, brauchtH);
     applyBoxSize();
+}
+
+qreal TextBoxFrame::textBreitePt(qreal boxBreitePt) const
+{
+    qreal breite = boxBreitePt;
+    if (m_hasAnchor && qFuzzyIsNull(m_box.paddingPt)
+            && m_box.verticalAlign == TextBoxProperties::VerticalAlign::Top)
+        breite -= m_anchorPt.x();
+    else
+        breite -= 2 * m_box.paddingPt + m_box.indentLevel * 18.0;
+    return qMax(1.0, breite);
+}
+
+qreal TextBoxFrame::freieBreitePt() const
+{
+    if (m_pageRect.isNull()) return 0.0;
+    const int innen = m_pageRect.right() - x() + 1
+                    - (m_decorations ? 2 * kPad : 0);
+    return innen > 0 ? innen / m_scale : 0.0;
 }
 
 void TextBoxFrame::applyBoxSize()
@@ -156,7 +194,6 @@ void TextBoxFrame::repositionForZoom(const QRectF &canvasBounds, qreal px,
     if (m_decorations)
         outer = outer.adjusted(-kPad, -kPad, kPad, kPad);
 
-    // A zoom only re-renders known bounds, so it must not emit boundsChanged.
     setGeometry(outer);
     layoutEditor();
     m_editor->setFontSizeF(px);
@@ -178,9 +215,11 @@ void TextBoxFrame::layoutEditor()
     QRect r = innerRect();
     if (m_hasAnchor && qFuzzyIsNull(m_box.paddingPt)
             && m_box.verticalAlign == TextBoxProperties::VerticalAlign::Top) {
-        r.translate(qRound(m_anchorPt.x() * m_scale),
-                    qRound(m_anchorPt.y() * m_scale
-                           - m_editor->firstBaselineOffset()));
+        const int dx = qRound(m_anchorPt.x() * m_scale);
+        r.translate(dx, qRound(m_anchorPt.y() * m_scale
+                               - m_editor->firstBaselineOffset()));
+
+        r.setWidth(qMax(1, r.width() - dx));
     }
     m_editor->setGeometry(r);
 }
@@ -192,9 +231,9 @@ QString TextBoxFrame::currentText() const  { return m_editor->laidOutText(); }
 
 void TextBoxFrame::present(const QString &text, const QRectF &canvasBounds, qreal fontSize,
                            const QColor &color, const QString &fontFamily,
-                           bool bold, bool italic)
+                           bool bold, bool italic, bool underline)
 {
-    // Empty boxes need room to type into; boxes over text keep its width.
+
     m_minInnerW = text.trimmed().isEmpty() ? 120 : 24;
 
     m_boxPt = canvasBounds.size() / m_scale;
@@ -205,18 +244,16 @@ void TextBoxFrame::present(const QString &text, const QRectF &canvasBounds, qrea
     if (m_decorations)
         outer = outer.adjusted(-kPad, -kPad, kPad, kPad);
 
-    // innerRect() would round the caller's exact block bounds; keep theirs.
     m_presenting = true;
     setGeometry(outer);
     layoutEditor();
-    m_editor->present(text, fontSize, color, fontFamily, bold, italic);
+    m_editor->present(text, fontSize, color, fontFamily, bold, italic, underline);
 
     raise();
     show();
     update();
     m_presenting = false;
 
-    // No text may open hidden, so grow past the detected bounds if needed.
     growToFitText();
     layoutEditor();
 
@@ -227,8 +264,6 @@ void TextBoxFrame::present(const QString &text, const QRectF &canvasBounds, qrea
             m_editor->setFocus();
     });
 }
-
-// ── Resize / move events ──────────────────────────────────────────────────────
 
 void TextBoxFrame::resizeEvent(QResizeEvent *)
 {
@@ -247,8 +282,6 @@ void TextBoxFrame::moveEvent(QMoveEvent *)
         Q_EMIT boundsChanged(QRectF(innerRect()).translated(pos()));
 }
 
-// ── Hit testing ───────────────────────────────────────────────────────────────
-
 int TextBoxFrame::handleSize() const
 {
     const QRect in = innerRect();
@@ -258,7 +291,7 @@ int TextBoxFrame::handleSize() const
 TextBoxFrame::Handle TextBoxFrame::hitTest(const QPoint &p) const
 {
     const QRect in = innerRect();
-    // The border line sits on this edge, so a strip inside it still grabs.
+
     constexpr int griff = 3;
     if (in.adjusted(griff, griff, -griff, -griff).contains(p))
         return Handle::None;
@@ -279,7 +312,6 @@ TextBoxFrame::Handle TextBoxFrame::hitTest(const QPoint &p) const
     if (hL && hMY) return Handle::W;
     if (hR && hMY) return Handle::E;
 
-    // Rest of border between handles — drag to move the box
     return Handle::Move;
 }
 
@@ -294,8 +326,6 @@ void TextBoxFrame::applyCursor(Handle h)
     default:                           unsetCursor();                   return;
     }
 }
-
-// ── Mouse events ─────────────────────────────────────────────────────────────
 
 void TextBoxFrame::mousePressEvent(QMouseEvent *e)
 {
@@ -332,24 +362,22 @@ void TextBoxFrame::mouseMoveEvent(QMouseEvent *e)
     if (m_drag == Handle::Move) {
         geo.translate(d);
     } else {
-        // Horizontal adjustments
+
         if (m_drag == Handle::W || m_drag == Handle::NW || m_drag == Handle::SW)
             geo.setLeft(qMin(geo.left() + d.x(), geo.right() - minW));
         if (m_drag == Handle::E || m_drag == Handle::NE || m_drag == Handle::SE)
             geo.setRight(qMax(geo.right() + d.x(), geo.left() + minW));
-        // Vertical adjustments
+
         if (m_drag == Handle::N || m_drag == Handle::NW || m_drag == Handle::NE)
             geo.setTop(qMin(geo.top() + d.y(), geo.bottom() - minH));
         if (m_drag == Handle::S || m_drag == Handle::SW || m_drag == Handle::SE)
             geo.setBottom(qMax(geo.bottom() + d.y(), geo.top() + minH));
     }
 
-    // Moving is free across the canvas, so the box can be dragged onto another
-    // page. Only resizing stays clamped to the current one.
     if (!m_pageRect.isNull() && m_drag != Handle::Move) {
         geo = geo.intersected(m_pageRect).normalized();
         if (geo.width() < minW || geo.height() < minH)
-            geo = m_dragStartGeo;  // refuse the resize if it would be too small
+            geo = m_dragStartGeo;
     }
 
     setGeometry(geo);
@@ -359,13 +387,12 @@ void TextBoxFrame::mouseMoveEvent(QMouseEvent *e)
 void TextBoxFrame::mouseReleaseEvent(QMouseEvent *e)
 {
     if (e->button() == Qt::LeftButton && m_drag != Handle::None) {
-        // Jitter while clicking the border must not displace the text.
+
         if (m_drag == Handle::Move
                 && (geometry().topLeft() - m_dragStartGeo.topLeft())
                        .manhattanLength() <= 2)
             setGeometry(m_dragStartGeo);
-        // A resized box keeps its width: the text reflows into it instead of
-        // the box following the longest line.
+
         else if (m_drag != Handle::Move && geometry() != m_dragStartGeo) {
             m_userSized = true;
             if (m_growHorizontal) {
@@ -391,8 +418,6 @@ void TextBoxFrame::mouseReleaseEvent(QMouseEvent *e)
     e->ignore();
 }
 
-// ── Paint ─────────────────────────────────────────────────────────────────────
-
 bool TextBoxFrame::eventFilter(QObject *watched, QEvent *event)
 {
     if (!m_decorations || watched != m_editor->viewport())
@@ -409,8 +434,7 @@ bool TextBoxFrame::eventFilter(QObject *watched, QEvent *event)
 
     auto *me = static_cast<QMouseEvent *>(event);
     const QPoint imRahmen = m_editor->viewport()->mapTo(this, me->pos());
-    // During a drag every event belongs to the frame: Qt keeps delivering to
-    // the editor, where the press landed.
+
     if (m_drag == Handle::None && hitTest(imRahmen) == Handle::None)
         return QWidget::eventFilter(watched, event);
 
@@ -463,7 +487,6 @@ void TextBoxFrame::paintEvent(QPaintEvent *)
     const bool mitten = qMin(in.width(), in.height()) >= 40;
     const QRect ring = in;
 
-    // Dashed blue border
     QPen pen(QColor(0x3B, 0x82, 0xF6), 1.0, Qt::CustomDashLine);
     pen.setDashPattern({4.0, 3.0});
     p.setPen(pen);

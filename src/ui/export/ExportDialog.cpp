@@ -19,8 +19,6 @@
 #include <QStyle>
 #include <QVBoxLayout>
 
-// ── ExportDialog ──────────────────────────────────────────────────────────────
-
 ExportDialog::ExportDialog(const QString &currentFile, int pageCount,
                            int currentPage, QWidget *parent)
     : QDialog(parent)
@@ -36,8 +34,6 @@ ExportDialog::ExportDialog(const QString &currentFile, int pageCount,
     updateOptionAvailability();
     updateEstimate();
 }
-
-// ── page selection ────────────────────────────────────────────────────────────
 
 QList<int> ExportDialog::parseRange(bool *ok) const
 {
@@ -102,16 +98,9 @@ ExportRequest ExportDialog::request() const
     return r;
 }
 
-// ── availability and estimate ─────────────────────────────────────────────────
-
-// Not every switch means something for every target. Greying the irrelevant
-// ones out is honest; leaving them clickable but inert is what made the whole
-// panel look broken.
 void ExportDialog::updateOptionAvailability()
 {
-    // Rewriting a PDF's annotations, forms, fonts or encryption is qpdf's job.
-    // Builds without it — the Windows package among them — cannot honour these
-    // at all, so they are switched off there rather than accepted and ignored.
+
     const bool pdf   = m_selectedFormat == QLatin1String("pdf")
                        && pdfExportAvailable();
     const bool image = m_selectedFormat == QLatin1String("image");
@@ -124,15 +113,10 @@ void ExportDialog::updateOptionAvailability()
         m_passwordChk->setChecked(false);
     updatePasswordFields();
 
-    // Quality and compression apply to every target: the render resolution for
-    // images, JPEG recompression inside a PDF, and the scale and encoding of
-    // the pictures a DOCX embeds.
     Q_UNUSED(image)
     if (m_qualityCombo) m_qualityCombo->setEnabled(true);
     if (m_compressChk)  m_compressChk->setEnabled(true);
 
-    // The options with no counterpart outside PDF are greyed out. The reason is
-    // in the tooltip; the labels stay untouched.
     const QString pdfOnly = !pdfExportAvailable()
         ? tr("Not available in this build — rewriting a PDF's annotations, "
              "forms, fonts or encryption needs qpdf.")
@@ -161,10 +145,7 @@ void ExportDialog::updateEstimate()
     const int pages = qMax(1, selectedPages().size());
     const int quality = selectedImageQuality();
     const double perPage = double(m_sourceBytes) / qMax(1, m_pageCount);
-    // How much of a page is picture rather than text. A scan runs to hundreds
-    // of kilobytes per page and is essentially all image; a generated report is
-    // a few kilobytes and almost none. The factors below were fitted against
-    // measured exports of both kinds rather than guessed.
+
     const double imageShare = qBound(0.0, (perPage - 20000.0) / 200000.0, 0.9);
     double bytes = 0.0;
 
@@ -172,31 +153,29 @@ void ExportDialog::updateEstimate()
         const double scale = quality >= 95 ? 3.0 : quality >= 80 ? 2.0
                            : quality >= 55 ? 1.5 : 1.0;
         const double pixels = 595.0 * 842.0 * scale * scale;
-        // Measured: ~0.10 B/px for a vector page, ~0.19 for a scanned one.
+
         bytes = pixels * (0.10 + qMin(0.15, perPage / 4.0e6)) * pages;
     } else if (m_selectedFormat == QLatin1String("word")) {
-        // Embedded pictures dominate a DOCX. Their weight at High quality was
-        // measured at ~21 KB per structured page and ~157 KB per scanned one;
-        // the factors below are that curve, again fitted rather than guessed.
+
         const double base = 20000.0 + perPage * 0.35;
         double factor = 1.0;
         if (m_compressChk && m_compressChk->isChecked())
             factor = quality >= 95 ? 3.7 : quality >= 80 ? 1.0
                    : quality >= 55 ? 0.47 : 0.28;
         else
-            factor = 1.2 + 1.9 * imageShare;    // lossless PNG
+            factor = 1.2 + 1.9 * imageShare;
         bytes = pages * base * factor;
     } else {
-        // qpdf rewrites every stream, which alone takes off roughly 15 %.
+
         double factor = 0.85;
         if (m_compressChk && m_compressChk->isChecked()) {
-            // Re-encoding at maximum quality is never smaller, so it is skipped.
+
             const double jpeg = quality >= 100 ? 1.0
                               : 0.45 + 0.30 * (quality - 40.0) / 60.0;
             factor *= (1.0 - imageShare) + imageShare * jpeg;
         }
         if (m_fontsChk && !m_fontsChk->isChecked())
-            factor *= 0.75 - 0.35 * (1.0 - imageShare);   // text-heavy gains most
+            factor *= 0.75 - 0.35 * (1.0 - imageShare);
         if (m_commentsChk && !m_commentsChk->isChecked()) factor *= 0.97;
         if (m_passwordChk && m_passwordChk->isChecked())  factor *= 1.02;
         bytes = perPage * pages * factor;
@@ -209,8 +188,7 @@ void ExportDialog::updateEstimate()
             return QStringLiteral("%1 KB").arg(v / 1024.0, 0, 'f', 0);
         return QStringLiteral("%1 B").arg(qRound(v));
     };
-    // Deliberately labelled as an approximation — the real size depends on the
-    // document's own content, which is not known until it has been written.
+
     m_sizeLabel->setText(tr("Estimated file size: ~%1  (%2 of %3 pages)")
                              .arg(human(qMax(1024.0, bytes)))
                              .arg(pages).arg(m_pageCount));
@@ -218,8 +196,7 @@ void ExportDialog::updateEstimate()
 
 void ExportDialog::selectFormatForTest(const QString &id)
 {
-    // Goes through the card itself rather than calling the handler directly, so
-    // a captured screenshot shows the same state a real click produces.
+
     if (!m_formatGroup) return;
     for (QAbstractButton *btn : m_formatGroup->buttons())
         if (btn->property("formatId").toString() == id && btn->isEnabled()) {
@@ -233,7 +210,7 @@ QString ExportDialog::selectedPath() const
     const QString dir  = m_locationEdit->text().trimmed();
     QString name = m_filenameEdit->text().trimmed();
     if (dir.isEmpty() || name.isEmpty()) return {};
-    // ensure correct extension for selected format
+
     if (m_selectedFormat == QLatin1String("word") && !name.endsWith(QLatin1String(".docx"), Qt::CaseInsensitive))
         name += QStringLiteral(".docx");
     else if (m_selectedFormat == QLatin1String("image")
@@ -247,8 +224,6 @@ int ExportDialog::selectedImageQuality() const
 {
     return m_qualityCombo ? m_qualityCombo->currentData().toInt() : 85;
 }
-
-// ── helpers ───────────────────────────────────────────────────────────────────
 
 QWidget *ExportDialog::makeSectionHeader(const QString &num, const QString &title)
 {
@@ -276,7 +251,6 @@ QPushButton *ExportDialog::makeFormatCard(const QString &iconChar, const QString
     btn->setFixedSize(152, 88);
     btn->setCursor(available ? Qt::PointingHandCursor : Qt::ArrowCursor);
 
-    // Build visual: icon on top, label below
     auto *inner = new QVBoxLayout(btn);
     inner->setContentsMargins(8, 10, 8, 8);
     inner->setSpacing(5);
@@ -287,9 +261,7 @@ QPushButton *ExportDialog::makeFormatCard(const QString &iconChar, const QString
                                      : QStringLiteral("XCardIconDim"));
     iconLbl->setAlignment(Qt::AlignCenter);
     iconLbl->setAttribute(Qt::WA_TransparentForMouseEvents);
-    // The original page/clipboard emoji are not present in every Qt font and
-    // then render as an empty label. Keep their familiar coloured appearance
-    // with bundled equivalents instead of depending on a system emoji font.
+
     const QString iconAsset = iconChar == QStringLiteral("📄")
         ? QStringLiteral("export-pdf")
         : iconChar == QStringLiteral("📋") ? QStringLiteral("export-pdfa") : QString{};
@@ -318,10 +290,10 @@ QPushButton *ExportDialog::makeFormatCard(const QString &iconChar, const QString
 void ExportDialog::onFormatSelected(const QString &id)
 {
     m_selectedFormat = id;
-    if (!m_filenameEdit) return; // called during buildUi before filename field exists
-    // Update filename extension
+    if (!m_filenameEdit) return;
+
     QString name = m_filenameEdit->text();
-    // strip old ext
+
     for (const QString &ext : {".pdf", ".docx", ".png"}) {
         if (name.endsWith(ext, Qt::CaseInsensitive)) { name.chop(ext.length()); break; }
     }
@@ -420,8 +392,6 @@ void ExportDialog::onExport()
 
     accept();
 }
-
-// ── buildUi ───────────────────────────────────────────────────────────────────
 
 void ExportDialog::applyDialogStyle()
 {
@@ -563,7 +533,7 @@ void ExportDialog::buildFormatSection(QVBoxLayout *bl)
         auto *pdfaBtn = makeFormatCard(QStringLiteral("📋"), QStringLiteral("PDF/A"), QStringLiteral("pdfa"),  true);
         auto *wordBtn = makeFormatCard(QStringLiteral("W"),  QStringLiteral("Word"),  QStringLiteral("word"),  true);
         auto *imgBtn  = makeFormatCard(QStringLiteral("🖼"), QStringLiteral("Image"), QStringLiteral("image"), true);
-        // Style the "W" as a blue badge
+
         wordBtn->findChild<QLabel *>(QStringLiteral("XCardIcon"))->setStyleSheet(
             QStringLiteral("font-size:16px;font-weight:bold;color:white;"
                            "background:#2B579A;border-radius:5px;"
@@ -620,7 +590,6 @@ void ExportDialog::buildRangeAndQualitySection(QVBoxLayout *bl)
     {
         auto *row = new QHBoxLayout; row->setSpacing(24);
 
-        // Left: page range
         auto *lv = new QVBoxLayout; lv->setSpacing(6);
         lv->addWidget(makeSectionHeader(tr("4."), tr("Page Range")));
         auto *pg = new QButtonGroup(this); pg->setExclusive(true);
@@ -646,7 +615,6 @@ void ExportDialog::buildRangeAndQualitySection(QVBoxLayout *bl)
         lv->addStretch();
         row->addLayout(lv, 1);
 
-        // Right: quality
         auto *rv = new QVBoxLayout; rv->setSpacing(6);
         rv->addWidget(makeSectionHeader(tr("5."), tr("Quality & Compression")));
         auto *qRow = new QHBoxLayout; qRow->setSpacing(8);

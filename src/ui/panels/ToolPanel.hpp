@@ -3,9 +3,6 @@
 #include <QWidget>
 
 /// The content widget inside the RightSidebar.
-///
-/// Shows collapsible-style section headers (static for now) for
-/// "Dokument", "Seite", and "Objekt" with placeholder content.
 class ToolPanel : public QWidget
 {
     Q_OBJECT

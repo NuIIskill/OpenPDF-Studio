@@ -76,7 +76,7 @@ bool strokeHit(const EditSession::DrawStroke &stroke, const QPointF &point,
     return false;
 }
 
-} // namespace
+}
 
 class DrawingUndoCommand : public QUndoCommand
 {

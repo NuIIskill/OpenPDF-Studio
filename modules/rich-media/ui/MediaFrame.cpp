@@ -14,7 +14,25 @@ namespace {
 const QColor kAccent      { 0x3B, 0x82, 0xF6 };
 const QColor kHandleFill  { 0xFF, 0xFF, 0xFF };
 
-} // namespace
+QRectF coverSourceRect(const QImage &image, const QRect &target)
+{
+    QRectF source(image.rect());
+    if (source.isEmpty() || target.isEmpty()) return source;
+    const qreal sourceAspect = source.width() / source.height();
+    const qreal targetAspect = qreal(target.width()) / qreal(target.height());
+    if (sourceAspect > targetAspect) {
+        const qreal width = source.height() * targetAspect;
+        source.setLeft(source.center().x() - width / 2.0);
+        source.setWidth(width);
+    } else if (sourceAspect < targetAspect) {
+        const qreal height = source.width() / targetAspect;
+        source.setTop(source.center().y() - height / 2.0);
+        source.setHeight(height);
+    }
+    return source;
+}
+
+}
 
 MediaFrame::MediaFrame(Mode mode, QWidget *parent)
     : QWidget(parent)
@@ -24,6 +42,8 @@ MediaFrame::MediaFrame(Mode mode, QWidget *parent)
     setFocusPolicy(mode == Mode::Placement ? Qt::StrongFocus : Qt::NoFocus);
     setCursor(mode == Mode::Placement ? Qt::SizeAllCursor : Qt::PointingHandCursor);
     setAttribute(Qt::WA_NoMousePropagation, true);
+    setAttribute(Qt::WA_OpaquePaintEvent, false);
+    setAutoFillBackground(false);
 }
 
 void MediaFrame::setPoster(const QImage &poster)
@@ -59,13 +79,6 @@ void MediaFrame::setSelected(bool selected)
     update();
 }
 
-void MediaFrame::setCoverColor(const QColor &color)
-{
-    if (!color.isValid()) return;
-    m_coverColor = color;
-    update();
-}
-
 void MediaFrame::setMode(Mode mode)
 {
     if (m_mode == mode) return;
@@ -74,8 +87,6 @@ void MediaFrame::setMode(Mode mode)
     setCursor(mode == Mode::Removed ? Qt::ArrowCursor : Qt::PointingHandCursor);
     update();
 }
-
-// ── Painting ─────────────────────────────────────────────────────────────────
 
 QRect MediaFrame::playButtonRect() const
 {
@@ -88,10 +99,9 @@ void MediaFrame::paintEvent(QPaintEvent *)
     QPainter painter(this);
     painter.setRenderHint(QPainter::Antialiasing);
 
-    // Marked for removal: the spot is covered because the poster only leaves
-    // the document on save. Same approach the Core takes for deleted text.
     if (m_mode == Mode::Removed) {
-        painter.fillRect(rect(), m_coverColor);
+        if (!m_poster.isNull())
+            painter.drawImage(rect(), m_poster, m_poster.rect());
         QPen removedPen(QColor(0x94, 0xA3, 0xB8), 1, Qt::DashLine);
         painter.setPen(removedPen);
         painter.setBrush(Qt::NoBrush);
@@ -103,26 +113,17 @@ void MediaFrame::paintEvent(QPaintEvent *)
                                         -kHandle / 2, -kHandle / 2);
     const QRect body  = m_mode == Mode::Placement ? inner : rect();
 
-    // The frame draws the poster only while it is not in the document yet.
-    // For a medium already in the file the page draws its appearance stream,
-    // and a second image on top of that only flickers.
     if (!m_poster.isNull())
-        painter.drawImage(body, m_poster, m_poster.rect());
+        painter.drawImage(QRectF(body), m_poster, coverSourceRect(m_poster, body));
     else if (m_mode == Mode::Placement)
         painter.fillRect(body, QColor(0x0F, 0x17, 0x2A, 30));
 
-    if (m_mode == Mode::Existing && m_hovered)
-        painter.fillRect(body, QColor(0, 0, 0, 46));
-
-    // Rahmen
     QPen pen(kAccent, m_mode == Mode::Placement || m_selected ? 1.0 : 2.0);
     if (m_mode == Mode::Placement || m_selected) pen.setStyle(Qt::DashLine);
     painter.setPen(pen);
     painter.setBrush(Qt::NoBrush);
     painter.drawRect(body.adjusted(0, 0, -1, -1));
 
-    // Play mark: always for an existing medium, while placing only when
-    // there is no poster, or it would sit on top of itself.
     const bool drawPlay = m_mode == Mode::Existing || m_poster.isNull();
     if (drawPlay) {
         const QRect button = playButtonRect();
@@ -141,8 +142,6 @@ void MediaFrame::paintEvent(QPaintEvent *)
         painter.drawPath(triangle);
     }
 
-    // Handles: always while placing, for an existing medium only once it is
-    // selected.
     if (m_mode == Mode::Placement || m_selected) {
         painter.setPen(QPen(kAccent, 1));
         painter.setBrush(kHandleFill);
@@ -151,8 +150,6 @@ void MediaFrame::paintEvent(QPaintEvent *)
             painter.drawRect(handleRect(static_cast<Handle>(h)));
     }
 }
-
-// ── Handles ──────────────────────────────────────────────────────────────────
 
 QRect MediaFrame::handleRect(Handle handle) const
 {
@@ -173,11 +170,12 @@ QRect MediaFrame::handleRect(Handle handle) const
 
 MediaFrame::Handle MediaFrame::handleAt(const QPoint &pos) const
 {
-    if (m_mode != Mode::Placement) return rect().contains(pos) ? Handle::Body : Handle::None;
-    for (int h = static_cast<int>(Handle::TopLeft);
-         h <= static_cast<int>(Handle::Left); ++h) {
-        const auto handle = static_cast<Handle>(h);
-        if (handleRect(handle).adjusted(-2, -2, 2, 2).contains(pos)) return handle;
+    if (m_mode == Mode::Placement || (m_mode == Mode::Existing && m_interactive)) {
+        for (int h = static_cast<int>(Handle::TopLeft);
+             h <= static_cast<int>(Handle::Left); ++h) {
+            const auto handle = static_cast<Handle>(h);
+            if (handleRect(handle).adjusted(-2, -2, 2, 2).contains(pos)) return handle;
+        }
     }
     return rect().contains(pos) ? Handle::Body : Handle::None;
 }
@@ -198,8 +196,6 @@ void MediaFrame::applyCursor(Handle handle)
     }
 }
 
-// ── Mouse ────────────────────────────────────────────────────────────────────
-
 void MediaFrame::mousePressEvent(QMouseEvent *event)
 {
     if (event->button() != Qt::LeftButton) { event->ignore(); return; }
@@ -207,13 +203,16 @@ void MediaFrame::mousePressEvent(QMouseEvent *event)
     if (m_mode == Mode::Removed) { event->accept(); return; }
 
     if (m_mode == Mode::Existing) {
-        // The play badge always plays, even with the tool active. Anywhere
-        // else selects while the tool is active, so a medium can be removed
-        // without starting it first.
-        if (m_interactive && !playButtonRect().contains(event->pos()))
+
+        if (m_interactive && !playButtonRect().contains(event->pos())) {
             setSelected(true);
-        else
+            Q_EMIT selected();
+            m_active          = handleAt(event->pos());
+            m_pressPos        = event->globalPosition().toPoint();
+            m_geometryAtPress = geometry();
+        } else {
             Q_EMIT activated();
+        }
         event->accept();
         return;
     }
@@ -227,7 +226,9 @@ void MediaFrame::mousePressEvent(QMouseEvent *event)
 
 void MediaFrame::mouseMoveEvent(QMouseEvent *event)
 {
-    if (m_mode != Mode::Placement) return;
+    const bool editable = m_mode == Mode::Placement
+                       || (m_mode == Mode::Existing && m_interactive);
+    if (!editable) return;
 
     if (m_active == Handle::None) {
         applyCursor(handleAt(event->pos()));
@@ -254,8 +255,6 @@ void MediaFrame::mouseMoveEvent(QMouseEvent *event)
     if (target.width()  < kMinSize) target.setWidth(kMinSize);
     if (target.height() < kMinSize) target.setHeight(kMinSize);
 
-    // Stay on the page: a medium half beside the paper is an annotation no
-    // viewer shows sensibly.
     if (!m_pageRect.isNull()) {
         if (target.width()  > m_pageRect.width())  target.setWidth(m_pageRect.width());
         if (target.height() > m_pageRect.height()) target.setHeight(m_pageRect.height());
@@ -286,6 +285,8 @@ void MediaFrame::contextMenuEvent(QContextMenuEvent *event)
 void MediaFrame::mouseReleaseEvent(QMouseEvent *event)
 {
     Q_UNUSED(event)
+    if (m_active != Handle::None && geometry() != m_geometryAtPress)
+        Q_EMIT geometryEditFinished(geometry());
     m_active = Handle::None;
 }
 

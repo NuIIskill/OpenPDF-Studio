@@ -31,7 +31,7 @@ QPushButton *barButton(const QString &icon, QWidget *parent)
     return button;
 }
 
-} // namespace
+}
 
 MediaPlayerFrame::MediaPlayerFrame(QWidget *parent)
     : QWidget(parent)
@@ -49,8 +49,7 @@ MediaPlayerFrame::~MediaPlayerFrame()
 
 void MediaPlayerFrame::buildUi()
 {
-    // The bar is a child widget without a layout: the picture fills the whole
-    // area and the bar sits on top of it.
+
     m_bar = new QWidget(this);
     m_bar->setStyleSheet(QStringLiteral("background: rgba(15,23,42,225);"));
 
@@ -82,17 +81,14 @@ void MediaPlayerFrame::buildUi()
         m_position->setRange(0, static_cast<int>(duration));
     });
     connect(m_engine, &PlayerEngine::positionChanged, this, [this](qint64 position) {
-        // A running clock alone is not proof of a picture. For an engine that
-        // hands frames over only a frame counts; one that draws itself has no
-        // other signal to offer.
+
         if (position > 0 && m_engine->drawsItself()) noteProgress();
         if (!m_seeking) m_position->setValue(static_cast<int>(position));
         m_time->setText(QStringLiteral("%1 / %2")
             .arg(formatTime(position), formatTime(m_engine->duration())));
     });
     connect(m_engine, &PlayerEngine::playingChanged, this, [this]() {
-        // The six seconds run from the start of playback, not from the click:
-        // opening a large file takes a moment, and that moment is not silence.
+
         if (m_engine->isPlaying() && m_watchdog && m_watchdog->isActive())
             m_watchdog->start();
         updatePlayIcon();
@@ -128,8 +124,6 @@ void MediaPlayerFrame::buildUi()
     });
 }
 
-// -- Painting ----------------------------------------------------------------
-
 void MediaPlayerFrame::setPoster(const QImage &poster)
 {
     m_poster = poster;
@@ -157,9 +151,7 @@ void MediaPlayerFrame::rescale()
     m_scaledStale = false;
     const QRect target = videoRect().toRect();
     if (m_source.isNull() || target.isEmpty()) { m_scaled = QPixmap(); return; }
-    // Fast and not smooth: this runs once per picture, and motion hides the
-    // difference. Smooth scaling of a 1080p frame into a page-sized box is
-    // exactly the per-frame work that makes playback jerk.
+
     m_scaled = QPixmap::fromImage(
         m_source.scaled(target.size(), Qt::IgnoreAspectRatio,
                         Qt::FastTransformation));
@@ -172,16 +164,13 @@ void MediaPlayerFrame::paintEvent(QPaintEvent *)
     QPainter painter(this);
     painter.fillRect(rect(), Qt::black);
 
-    // An engine drawing into its own window needs nothing painted under it,
-    // and painting there would only flicker.
     if (m_engine && m_engine->drawsItself() && m_started) return;
 
     const QRectF target = videoRect();
     if (!m_scaled.isNull()) {
         painter.drawPixmap(target.topLeft().toPoint(), m_scaled);
     } else if (!m_poster.isNull()) {
-        // The still stands until playback starts. That is the difference
-        // between "starts" and "black rectangle".
+
         painter.setRenderHint(QPainter::SmoothPixmapTransform);
         painter.drawImage(target, m_poster, m_poster.rect());
     }
@@ -202,7 +191,6 @@ void MediaPlayerFrame::layOutBar()
     };
     place(m_playPause, m_playPause->width());
 
-    // The time label takes what it needs; the rest is slider.
     const int timeWidth = qMax(64, m_time->fontMetrics()
                                    .horizontalAdvance(QStringLiteral("00:00 / 00:00")) + 4);
     const int tail = timeWidth + gap + m_mute->width() + gap + m_close->width() + pad;
@@ -215,8 +203,6 @@ void MediaPlayerFrame::layOutBar()
     place(m_close, m_close->width());
 }
 
-/// The area the picture window may use: everything above the transport bar,
-/// or the controls would sit behind the video.
 static QRect pictureArea(const QRectF &video, const QWidget *bar)
 {
     QRect area = video.toRect();
@@ -239,8 +225,6 @@ void MediaPlayerFrame::mouseDoubleClickEvent(QMouseEvent *event)
     Q_UNUSED(event)
     if (m_engine) m_engine->togglePause();
 }
-
-// -- Controls ----------------------------------------------------------------
 
 void MediaPlayerFrame::noteProgress()
 {
@@ -273,9 +257,7 @@ void MediaPlayerFrame::play(const QString &filePath, bool showControls,
     m_bar->setVisible(showControls);
     layOutBar();
     m_started = true;
-    // The area before the start, not after: an engine that draws into a window
-    // of its own must have that window at its size before the first frame, or
-    // it renders into nothing.
+
     if (m_engine->drawsItself())
         m_engine->setVideoRect(pictureArea(videoRect(), m_bar));
     m_engine->play(filePath, loop, muted);

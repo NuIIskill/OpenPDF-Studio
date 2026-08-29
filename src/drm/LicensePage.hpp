@@ -10,9 +10,7 @@ class QLineEdit;
 class QPushButton;
 QT_END_NAMESPACE
 
-// "License Key" page of the settings dialog. Only built for a business
-// installation — see License::isBusinessInstall(). Nothing here gates a
-// feature: the page reports the state and takes a key, no more.
+/// "License Key" page of the settings dialog.
 class LicensePage : public QWidget
 {
     Q_OBJECT
@@ -42,11 +40,11 @@ private:
     QLabel      *m_fieldLabel   { nullptr };
     QLineEdit   *m_keyInput     { nullptr };
     QAction     *m_keyIcon      { nullptr };
-    QPushButton *m_actionBtn    { nullptr };   // activate / remove
+    QPushButton *m_actionBtn    { nullptr };
     QLabel      *m_feedback     { nullptr };
     QLabel      *m_needGroup    { nullptr };
     QLabel      *m_needDesc     { nullptr };
     QPushButton *m_getBtn       { nullptr };
 
-    bool m_hasKey { false };   // drives what m_actionBtn does
+    bool m_hasKey { false };
 };

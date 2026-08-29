@@ -40,8 +40,6 @@ bool isWidget(QPDFObjectHandle annot)
     return sub.isName() && sub.getName() == "/Widget";
 }
 
-// Drops annotations the user chose not to carry over. Comments and form fields
-// are separate switches, so the two are filtered independently on every page.
 void filterAnnotations(QPDFPageObjectHelper &page, bool keepComments, bool keepForms)
 {
     if (keepComments && keepForms) return;
@@ -60,9 +58,6 @@ void filterAnnotations(QPDFPageObjectHelper &page, bool keepComments, bool keepF
     else                            dict.replaceKey("/Annots", kept);
 }
 
-// Removes embedded font programs. The glyphs then render with a substitute
-// font, which is exactly what "do not embed fonts" means — and it is usually
-// the single biggest saving available on a text-heavy document.
 void stripEmbeddedFonts(QPDF &pdf)
 {
     for (QPDFObjectHandle obj : pdf.getAllObjects()) {
@@ -75,11 +70,6 @@ void stripEmbeddedFonts(QPDF &pdf)
     }
 }
 
-// Re-encodes an image XObject as JPEG at the requested quality. Deliberately
-// conservative: anything with a mask, a custom decode array, an unusual bit
-// depth or an indexed/CMYK colour space is left alone, because rewriting those
-// correctly needs the full colour pipeline and getting it wrong corrupts the
-// page. The result is only kept when it is actually smaller.
 bool recompressImage(QPDF &pdf, QPDFObjectHandle image, int quality)
 {
     if (!image.isStream()) return false;
@@ -87,11 +77,7 @@ bool recompressImage(QPDF &pdf, QPDFObjectHandle image, int quality)
 
     QPDFObjectHandle subtype = dict.getKey("/Subtype");
     if (!subtype.isName() || subtype.getName() != "/Image") return false;
-    // An /SMask on the image itself is fine — it lives in its own stream and
-    // keeps pointing at it. Skipping those meant scanned pages, by far the
-    // commonest thing anyone compresses, were passed through untouched.
-    // A stencil /Mask or a custom /Decode still needs the full colour
-    // pipeline to rewrite safely, so those are left alone.
+
     if (dict.hasKey("/Mask") || dict.hasKey("/Decode")) return false;
     QPDFObjectHandle maskFlag = dict.getKey("/ImageMask");
     if (maskFlag.isBool() && maskFlag.getBoolValue()) return false;
@@ -117,7 +103,7 @@ bool recompressImage(QPDF &pdf, QPDFObjectHandle image, int quality)
     try {
         raw = image.getStreamData(qpdf_dl_all);
     } catch (const std::exception &) {
-        return false;                       // unsupported filter — leave as is
+        return false;
     }
     if (!raw) return false;
 
@@ -137,7 +123,6 @@ bool recompressImage(QPDF &pdf, QPDFObjectHandle image, int quality)
     if (!img.save(&buffer, "JPEG", qBound(10, quality, 100))) return false;
     buffer.close();
 
-    // Only worth it if it beats what the file already carries.
     if (jpeg.isEmpty() || jpeg.size() >= int(image.getRawStreamData()->getSize()))
         return false;
 
@@ -152,9 +137,7 @@ bool recompressImage(QPDF &pdf, QPDFObjectHandle image, int quality)
 
 void recompressImages(QPDF &pdf, int quality)
 {
-    // Soft masks carry alpha, not colour. Running them through a lossy encoder
-    // would fringe every edge they cut, so they are collected first and then
-    // left exactly as they are.
+
     std::set<QPDFObjGen> masks;
     for (QPDFObjectHandle obj : pdf.getAllObjects()) {
         if (!obj.isStream() && !obj.isDictionary()) continue;
@@ -175,8 +158,8 @@ void recompressImages(QPDF &pdf, int quality)
     }
 }
 
-} // namespace
-#endif // HAVE_QPDF
+}
+#endif
 
 bool exportPdf(const QString &sourcePath, const QString &outPath,
                const PdfExportOptions &options)
@@ -214,8 +197,7 @@ bool exportPdf(const QString &sourcePath, const QString &outPath,
             auto added = outPages.getAllPages();
             if (added.empty()) continue;
             QPDFPageObjectHelper page = added.back();
-            // Copies of a page otherwise share one annotation set, and form
-            // fields drop out for want of a page reference.
+
             outForms.fixCopiedAnnotations(page.getObjectHandle(),
                                           source[idx].getObjectHandle(), inForms);
             filterAnnotations(page, options.includeComments, options.keepForms);
@@ -229,8 +211,6 @@ bool exportPdf(const QString &sourcePath, const QString &outPath,
         if (options.compressImages)
             recompressImages(out, options.imageQuality);
 
-        // Staged: "export" onto the document currently open would truncate the
-        // very file the pages are still being copied from.
         const QString staging = SafeWrite::stagingPath(outPath);
         if (staging.isEmpty()) return false;
         {
@@ -239,14 +219,12 @@ bool exportPdf(const QString &sourcePath, const QString &outPath,
             writer.setObjectStreamMode(qpdf_o_generate);
             if (!options.userPassword.isEmpty()) {
                 const std::string pass = options.userPassword.toStdString();
-                // AES-256. The user password also serves as the owner password,
-                // so the document opens with the one password the dialog asked
-                // for; permissions stay fully granted once it is entered.
+
                 writer.setR6EncryptionParameters(
                     pass.c_str(), pass.c_str(),
-                    /*accessibility*/ true, /*extract*/ true, /*assemble*/ true,
-                    /*annotate_and_form*/ true, /*form_filling*/ true,
-                    /*modify_other*/ true, qpdf_r3p_full, /*encrypt_metadata*/ true);
+                      true,   true,   true,
+                      true,   true,
+                      true, qpdf_r3p_full,   true);
             }
             writer.write();
         }

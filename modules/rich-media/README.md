@@ -29,7 +29,7 @@ modules/rich-media/
     MediaSession.*         what is inserted or dropped but not yet saved
     MediaFormat.*          container and codec, read out of the file itself
     MediaConvert.*         ffmpeg: rewrite as H.264 in MP4
-    MediaDrop.*            a dropped video becomes a page of its own
+    MediaDrop.*            place a dropped video on a page or on its own page
     RichMediaWriter.*      qpdf: annotation, filespec, EF stream, /AP poster
     PosterFrame.*          still frame via VideoStill, drawn placeholder otherwise
     VideoStill*.cpp        one frame out of a video, per platform
@@ -39,7 +39,7 @@ modules/rich-media/
     MediaFrame.*           what sits over a medium on the page
     MediaPlayerFrame.*     the player on the page, above a PlayerEngine
     *PlayerEngine.cpp      what decodes: Qt Multimedia, or Windows' own
-    RichMediaPanel.*       the insert panel in the right-hand rail
+    RichMediaPanel.*       edit selected media or add a source in the right rail
 ```
 
 `HAVE_RICH_MEDIA` gates the whole directory and requires qpdf, plus Qt
@@ -112,14 +112,12 @@ Two rules the code keeps:
   written as `/XA` (on click) unless the user asks for `/PO`, and the reading
   side never auto-plays.
 
-**Dropping a video onto the document** gives it a page of its own, the way
-Acrobat does it: the page takes the video's dimensions at 150 dpi and the
-annotation covers it edge to edge. The longest side is held between 288 and
-420 pt. The upper bound is measured, not guessed — the page Acrobat wrote in
-`Binder1.pdf` is 418 pt wide, well under A4, and the same arithmetic on the
-same 870 x 654 pixels gives 417.6 x 313.9 pt here. Without that cap a
-1920-wide video would open a page of 922 pt, half again as wide as A4, sitting
-in the document like a foreign body.
+**Dropping a video onto an existing page** inserts a resizable medium centred
+at the drop position. Its native aspect ratio is kept and its initial size is
+limited to 42 percent of the page width and 35 percent of its height, leaving
+room to move and enlarge it. A drop between pages still gives the video a page
+of its own, using its dimensions at 150 dpi with the longest side held between
+288 and 420 pt.
 
 A page cannot be a session change, so this writes a working copy and hands it
 to the view — the same route the page organizer takes, and the user's file
@@ -193,13 +191,18 @@ switches to covering the spot in the page's own colour, sampled from the
 rendered page around it — the same approach the Core uses for text that has
 been deleted but not yet written out.
 
+The selected frame's eight handles resize it, and dragging its body moves it.
+While an existing medium is selected, its page appearance scales with the
+frame on a transparent editing layer. Moving or resizing therefore never
+covers the PDF page with a synthetic background. Posters fill their frame by
+cropping excess image area instead of adding dark bars.
+
 ### Not built yet
 
 - Presentation mode plays nothing; the poster is what the projector shows.
 - The export dialog has no "keep or drop media" option.
 - The insert panel offers *Web Embed* and *Button*, both disabled: they need
   structures other than an embedded file.
-- A medium already in the document can be removed but not moved or resized.
 - Nothing here is on the undo stack, and none of it shows up in the change
   history.
 - Removal is not on the undo stack and does not appear in the change history.

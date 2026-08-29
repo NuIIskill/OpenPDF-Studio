@@ -30,12 +30,8 @@ public:
 
     void retranslateUi();
 
-    // Jumps to the License Key page. Does nothing on a personal installation,
-    // where that page is not built at all.
     void showLicensePage();
 
-    // Selects a page by its English nav label ("Advanced", "License Key", …).
-    // For the --shot-settings harness in main.cpp.
     void selectPageForTest(const QString &navLabel);
 
 Q_SIGNALS:
@@ -56,7 +52,6 @@ private:
     void applyNavItemStyle(int i, bool selected);
     void refreshThemeColors();
 
-    // One widget per nav page
     QWidget *buildAppearancePage();
     QWidget *buildLanguagePage();
     QWidget *buildMediaPage();
@@ -64,27 +59,20 @@ private:
     QWidget *buildZoomPage();
     QWidget *buildAdvancedPage();
 
-    /// The shell a scrolling settings page sits in: page widget → scroll area
-    /// → content column, with the page's title and its one-line description
-    /// already placed. Returns the layout to append cards to; `page` receives
-    /// the widget the caller hands back. Close it with finishScrollPage().
     QVBoxLayout *buildScrollPage(QWidget *&page, const QString &title,
                                  const QString &desc);
-    /// Pushes the content to the top and hands it to the scroll area.
+
     void finishScrollPage(QVBoxLayout *contentLayout);
 
-    // Building blocks the settings cards are written from. A group is its
-    // title plus its rows and nothing else.
     QVBoxLayout *addSettingsCard(QVBoxLayout *into, const QString &cardTitle);
-    /// Check box plus its explanation, indented to line up under the label.
+
     static QAbstractButton *addSettingsCheck(QVBoxLayout *cl, const QString &label,
                                              const QString &explain, bool checked);
-    /// Label left, combo right - indented like the descriptions above it.
+
     static QComboBox *addSettingsCombo(QVBoxLayout *cl, const QString &label);
-    /// Picks the item carrying `value`; an unknown value leaves the first one.
+
     static void selectComboData(QComboBox *combo, const QString &value);
 
-    // The Advanced page, one method per bordered group.
     void buildAdvancedUpdates(QVBoxLayout *vl);
     void buildAdvancedInterface(QVBoxLayout *vl);
     void buildAdvancedPerformance(QVBoxLayout *vl);
@@ -92,7 +80,6 @@ private:
     void buildAdvancedReset(QVBoxLayout *vl);
     QWidget *buildAboutPage();
 
-    // Card helpers
     QWidget *buildOptionCard(const QString &icon, const QString &title,
                              const QString &desc,  const QString &id,
                              QList<QWidget*> &group, QList<QString> &ids,
@@ -100,7 +87,6 @@ private:
     void selectCardGroup(const QString &id,
                          QList<QWidget*> &cards, QList<QString> &ids);
 
-    // Language row helpers
     void addLangRow(QWidget *parent, QVBoxLayout *layout,
                     const QString &code, const QString &display);
     void selectLangCode(const QString &code);
@@ -115,12 +101,11 @@ private:
         QLabel      *iconLabel;
         QLabel      *textLabel;
         QString      iconName;
-        const char  *labelKey;   // untranslated source string, for retranslateUi()
+        const char  *labelKey;
     };
     QList<NavItem> m_navItems;
     int m_currentNav { 0 };
 
-    // Only built for a business installation — a personal one never sees it.
     LicensePage *m_licensePage { nullptr };
 
     QList<QWidget *> m_themeCards;
@@ -128,31 +113,27 @@ private:
 
     QList<QWidget *> m_mediaCards;
     QList<QString>   m_mediaIds;
-    QString          m_pendingMedia;      // "inapp" | "system" | "custom"
+    QString          m_pendingMedia;
     QLineEdit       *m_customPlayerEdit { nullptr };
     QWidget         *m_customPlayerRow  { nullptr };
 
-    QList<QWidget *>   m_langRows;   // LangRow* cast to QWidget*
+    QList<QWidget *>   m_langRows;
     QList<QString>     m_langCodes;
 
     QList<ShortcutRow*> m_shortcutRows;
-    QList<QString>      m_shortcutKeys;  // parallel to m_shortcutRows
+    QList<QString>      m_shortcutKeys;
 
-    // Updates card on the Advanced page. The checker is owned by the dialog:
-    // a check the user started is over when the dialog closes.
     UpdateChecker *m_updateChecker   { nullptr };
     QPushButton   *m_updateCheckBtn  { nullptr };
     QLabel        *m_updateStatus    { nullptr };
     void showUpdateResult(const UpdateCheckResult &result);
 
-    // Zoom page widgets
     QSpinBox        *m_zoomStepSpin     { nullptr };
     QAbstractButton *m_ctrlWheelToggle  { nullptr };
     QAbstractButton *m_zoomPtrToggle    { nullptr };
     QComboBox       *m_wheelActionCombo { nullptr };
     QLabel          *m_zoomExampleLabel { nullptr };
 
-    // Advanced page widgets
     QAbstractButton *m_autoUpdateCheck     { nullptr };
     QComboBox       *m_updateIntervalCombo { nullptr };
     QAbstractButton *m_preserveLayoutCheck { nullptr };

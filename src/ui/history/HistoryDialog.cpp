@@ -15,10 +15,6 @@
 #include <QScrollArea>
 #include <QVBoxLayout>
 
-// ─────────────────────────────────────────────────────────────────────────────
-// HistoryDialog
-// ─────────────────────────────────────────────────────────────────────────────
-
 HistoryDialog::HistoryDialog(DocumentHistory *history, const QString &documentName,
                              QWidget *parent)
     : QDialog(parent)
@@ -46,7 +42,6 @@ void HistoryDialog::buildUi()
     root->setContentsMargins(24, 20, 24, 18);
     root->setSpacing(0);
 
-    // ── Header ────────────────────────────────────────────────────────────────
     auto *headerRow = new QHBoxLayout;
     headerRow->setSpacing(10);
 
@@ -66,7 +61,6 @@ void HistoryDialog::buildUi()
     m_subtitle->setContentsMargins(0, 6, 0, 14);
     root->addWidget(m_subtitle);
 
-    // ── Timeline ──────────────────────────────────────────────────────────────
     m_scroll = new QScrollArea(this);
     m_scroll->setObjectName(QStringLiteral("HistoryScroll"));
     m_scroll->setFrameShape(QFrame::NoFrame);
@@ -88,7 +82,6 @@ void HistoryDialog::buildUi()
     m_empty->hide();
     root->addWidget(m_empty);
 
-    // ── State actions ─────────────────────────────────────────────────────────
     auto *actions = new QHBoxLayout;
     actions->setContentsMargins(0, 16, 0, 0);
     actions->setSpacing(10);
@@ -115,7 +108,6 @@ void HistoryDialog::buildUi()
 
     root->addLayout(actions);
 
-    // ── Footer ────────────────────────────────────────────────────────────────
     auto *footer = new QHBoxLayout;
     footer->setContentsMargins(0, 14, 0, 0);
     footer->setSpacing(10);
@@ -187,17 +179,10 @@ void HistoryDialog::changeEvent(QEvent *e)
     QDialog::changeEvent(e);
 }
 
-// ── Timeline ──────────────────────────────────────────────────────────────────
-
 void HistoryDialog::rebuildList()
 {
     if (!m_listLayout) return;
 
-    // Out of the layout and out of sight NOW, deleted once the call that got
-    // us here has returned: a rebuild can be triggered from a row's own signal
-    // handler, and deleting that row underneath it would take the dialog with
-    // it. deleteLater() alone would leave the old rows on screen next to the
-    // new ones until the event loop gets around to them.
     for (HistoryRow *row : std::as_const(m_rows)) {
         m_listLayout->removeWidget(row);
         row->hide();
@@ -211,14 +196,13 @@ void HistoryDialog::rebuildList()
     m_scroll->setVisible(!entries.isEmpty());
     m_empty->setVisible(entries.isEmpty());
 
-    // Newest at the top, as the eye expects a log to run.
     for (int i = static_cast<int>(entries.size()) - 1; i >= 0; --i) {
         const DocumentHistory::Entry &e = entries[i];
         auto *row = new HistoryRow(i, i + 1,
                                    e.time.toString(QStringLiteral("HH:mm")),
                                    titleFor(e), detailFor(e), iconFor(e.kind),
-                                   /*first=*/i == entries.size() - 1,
-                                   /*last=*/ i == 0, m_list);
+                                    i == entries.size() - 1,
+                                     i == 0, m_list);
         connect(row, &HistoryRow::clicked, this, &HistoryDialog::selectRow);
         connect(row, &HistoryRow::doubleClicked, this, &HistoryDialog::requestRestore);
         connect(row, &HistoryRow::menuRequested, this,
@@ -245,7 +229,6 @@ void HistoryDialog::rebuildList()
         m_rows.append(row);
     }
 
-    // Nothing picked yet (or the pick is gone): follow the document.
     const int current = m_history ? m_history->currentIndex() : -1;
     if (m_selected < 0 || m_selected >= entries.size()) m_selected = current;
     for (HistoryRow *row : std::as_const(m_rows))
@@ -296,8 +279,6 @@ void HistoryDialog::requestRestore(int index)
     }
     Q_EMIT restoreRequested(index);
 }
-
-// ── Wording ───────────────────────────────────────────────────────────────────
 
 QString HistoryDialog::titleFor(const DocumentHistory::Entry &e)
 {
@@ -400,12 +381,9 @@ QString HistoryDialog::iconFor(DocumentHistory::Kind kind)
     return QStringLiteral("file");
 }
 
-// ── Style ─────────────────────────────────────────────────────────────────────
-
 void HistoryDialog::applyStyle()
 {
-    // Light and dark are kept as two complete sheets so each theme reads as one
-    // block — same approach as the organizer.
+
     setStyleSheet(Theme::DarkMode ? QStringLiteral(R"(
 QDialog { background: #2B2B2B; }
 QLabel#HistoryHeadline { color: #EEEEEE; font-size: 17px; font-weight: 700; }

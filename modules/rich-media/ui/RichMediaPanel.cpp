@@ -1,12 +1,12 @@
 // SPDX-License-Identifier: LicenseRef-OpenPDF-Business
 #include "rich-media/ui/RichMediaPanel.hpp"
 
+#include "rich-media/engine/MediaDrop.hpp"
 #include "rich-media/engine/PosterFrame.hpp"
 #include "ui/theme/Theme.hpp"
 
 #include <QButtonGroup>
 #include <QCheckBox>
-#include <QDoubleSpinBox>
 #include <QEvent>
 #include <QFileDialog>
 #include <QFileInfo>
@@ -14,14 +14,42 @@
 #include <QHBoxLayout>
 #include <QLabel>
 #include <QLineEdit>
-#include <QMimeDatabase>
+#include <QPainter>
 #include <QPushButton>
 #include <QRadioButton>
 #include <QScrollArea>
-#include <QTimer>
 #include <QVBoxLayout>
 
 namespace {
+
+class Switch : public QCheckBox
+{
+public:
+    explicit Switch(QWidget *parent = nullptr) : QCheckBox(parent)
+    {
+        setFocusPolicy(Qt::StrongFocus);
+    }
+
+protected:
+    void paintEvent(QPaintEvent *) override
+    {
+        QPainter painter(this);
+        painter.setRenderHint(QPainter::Antialiasing);
+        const QRectF track = QRectF(rect()).adjusted(1, 2, -1, -2);
+        const QColor off = Theme::DarkMode ? QColor(QStringLiteral("#5A5A5A"))
+                                            : QColor(QStringLiteral("#CBD5E1"));
+        const QColor on(QStringLiteral("#2563EB"));
+        painter.setPen(Qt::NoPen);
+        painter.setBrush(isChecked() ? on : off);
+        painter.drawRoundedRect(track, track.height() / 2.0, track.height() / 2.0);
+
+        const qreal diameter = track.height() - 4.0;
+        const qreal x = isChecked() ? track.right() - diameter - 2.0
+                                    : track.left() + 2.0;
+        painter.setBrush(Qt::white);
+        painter.drawEllipse(QRectF(x, track.top() + 2.0, diameter, diameter));
+    }
+};
 
 QLabel *sectionLabel(const QString &text, QWidget *parent)
 {
@@ -38,37 +66,19 @@ QFrame *divider(QWidget *parent)
     return line;
 }
 
-QDoubleSpinBox *ptSpin(QWidget *parent)
+void addSwitchRow(QGridLayout *layout, int row, const QString &text,
+                  QWidget *parent, QLabel **label, QCheckBox **toggle)
 {
-    auto *box = new QDoubleSpinBox(parent);
-    box->setRange(0.0, 100000.0);
-    box->setDecimals(0);
-    box->setButtonSymbols(QAbstractSpinBox::NoButtons);
-    box->setFixedHeight(30);
-    box->setMinimumWidth(1);
-    box->setSizePolicy(QSizePolicy::Ignored, QSizePolicy::Fixed);
-    box->setAlignment(Qt::AlignLeft | Qt::AlignVCenter);
-    return box;
+    *label = new QLabel(text, parent);
+    *toggle = new Switch(parent);
+    (*toggle)->setObjectName(QStringLiteral("MediaPanelSwitch"));
+    (*toggle)->setFixedSize(32, 20);
+    (*toggle)->setCursor(Qt::PointingHandCursor);
+    layout->addWidget(*label, row, 0);
+    layout->addWidget(*toggle, row, 1, Qt::AlignRight | Qt::AlignVCenter);
 }
 
-/// The MIME type the document should claim. What the system knows first, the
-/// suffix otherwise; a viewer picks its decoder by this.
-QString mimeFor(const QString &path)
-{
-    static QMimeDatabase db;
-    const QString name = db.mimeTypeForFile(path).name();
-    if (!name.isEmpty() && name != QLatin1String("application/octet-stream"))
-        return name;
-    const QString suffix = QFileInfo(path).suffix().toLower();
-    if (suffix == QLatin1String("mp4") || suffix == QLatin1String("m4v"))
-        return QStringLiteral("video/mp4");
-    if (suffix == QLatin1String("webm")) return QStringLiteral("video/webm");
-    if (suffix == QLatin1String("mov"))  return QStringLiteral("video/quicktime");
-    if (suffix == QLatin1String("mp3"))  return QStringLiteral("audio/mpeg");
-    return QStringLiteral("application/octet-stream");
 }
-
-} // namespace
 
 RichMediaPanel::RichMediaPanel(QWidget *parent)
     : QFrame(parent)
@@ -81,8 +91,6 @@ RichMediaPanel::RichMediaPanel(QWidget *parent)
     applyStyle();
     updateInsertEnabled();
 }
-
-// ── Building ─────────────────────────────────────────────────────────────────
 
 void RichMediaPanel::buildUi()
 {
@@ -105,54 +113,28 @@ void RichMediaPanel::buildUi()
     root->setContentsMargins(16, 16, 16, 18);
     root->setSpacing(10);
 
+    auto *header = new QHBoxLayout;
+    header->setContentsMargins(0, 0, 0, 0);
+    header->setSpacing(8);
     m_title = new QLabel(tr("Rich Media"), content);
     m_title->setObjectName(QStringLiteral("MediaPanelTitle"));
-    root->addWidget(m_title);
-    root->addSpacing(4);
+    header->addWidget(m_title);
+    header->addStretch(1);
+    m_close = new QPushButton(content);
+    m_close->setObjectName(QStringLiteral("MediaPanelClose"));
+    m_close->setFixedSize(24, 24);
+    m_close->setCursor(Qt::PointingHandCursor);
+    m_close->setIcon(Theme::makeIcon(QStringLiteral("x"), Theme::IconMuted));
+    m_close->setToolTip(tr("Close"));
+    connect(m_close, &QPushButton::clicked, this,
+            [this]() { Q_EMIT closeRequested(); });
+    header->addWidget(m_close);
+    root->addLayout(header);
+    m_subtitle = new QLabel(tr("Edit media or add a new source"), content);
+    m_subtitle->setObjectName(QStringLiteral("MediaPanelSubtitle"));
+    root->addWidget(m_subtitle);
+    root->addSpacing(12);
 
-    // ── Kind ─────────────────────────────────────────────────────────────────
-    m_typeLabel = sectionLabel(tr("Insert type"), content);
-    root->addWidget(m_typeLabel);
-
-    auto *typeRow = new QHBoxLayout;
-    typeRow->setSpacing(0);
-    struct TypeDef { MediaSpec::Type type; const char *label; bool ready; };
-    const TypeDef types[] = {
-        { MediaSpec::Type::Video,    QT_TR_NOOP("Video"),     true  },
-        { MediaSpec::Type::Audio,    QT_TR_NOOP("Audio"),     true  },
-        { MediaSpec::Type::WebEmbed, QT_TR_NOOP("Web Embed"), false },
-        { MediaSpec::Type::Button,   QT_TR_NOOP("Button"),    false },
-    };
-    auto *group = new QButtonGroup(this);
-    group->setExclusive(true);
-    int index = 0;
-    for (const TypeDef &def : types) {
-        auto *button = new QPushButton(tr(def.label), content);
-        button->setCheckable(true);
-        button->setCursor(Qt::PointingHandCursor);
-        // Four labels in about 300 pixels: the buttons must be allowed below
-        // their preferred width, or the longest one pushes the row off.
-        button->setMinimumWidth(1);
-        button->setSizePolicy(QSizePolicy::Ignored, QSizePolicy::Fixed);
-        button->setProperty("seg", index == 0 ? "first"
-                                 : (index == 3 ? "last" : "mid"));
-        button->setChecked(def.type == MediaSpec::Type::Video);
-        // Web Embed and Button write structures other than an embedded file
-        // and are not built yet. Visible, but not pretending to work.
-        button->setEnabled(def.ready);
-        if (!def.ready)
-            button->setToolTip(tr("Not available yet. Embed a file instead."));
-        group->addButton(button);
-        typeRow->addWidget(button, 1);
-        m_typeButtons.append(button);
-        const MediaSpec::Type type = def.type;
-        connect(button, &QPushButton::clicked, this, [this, type]() { setType(type); });
-        ++index;
-    }
-    root->addLayout(typeRow);
-    root->addSpacing(6);
-
-    // ── Source ───────────────────────────────────────────────────────────────
     m_sourceLabel = sectionLabel(tr("Source"), content);
     root->addWidget(m_sourceLabel);
 
@@ -160,35 +142,23 @@ void RichMediaPanel::buildUi()
     sourceRow->setSpacing(8);
     m_source = new QLineEdit(content);
     m_source->setObjectName(QStringLiteral("MediaPanelSource"));
-    m_source->setPlaceholderText(tr("Choose a video file"));
+    m_source->setPlaceholderText(tr("Choose a media file"));
+    m_source->setReadOnly(true);
     m_source->setFixedHeight(32);
     m_source->setMinimumWidth(1);
-    connect(m_source, &QLineEdit::textChanged, this, [this]() {
-        updateInsertEnabled();
-        if (m_syncing) return;
-        m_posterFromUser = false;
-        // The still costs an ffmpeg run on this thread. Typing a path would
-        // be one run per keystroke, so wait until the typing stops.
-        m_posterDelay->start();
-    });
-
-    m_posterDelay = new QTimer(this);
-    m_posterDelay->setSingleShot(true);
-    m_posterDelay->setInterval(350);
-    connect(m_posterDelay, &QTimer::timeout, this, &RichMediaPanel::refreshPoster);
     sourceRow->addWidget(m_source, 1);
 
     m_browse = new QPushButton(tr("Browse"), content);
     m_browse->setObjectName(QStringLiteral("MediaPanelSecondary"));
     m_browse->setFixedHeight(32);
-    m_browse->setFixedWidth(74);
+    m_browse->setFixedWidth(88);
     m_browse->setCursor(Qt::PointingHandCursor);
+    m_browse->setIcon(Theme::makeIcon(QStringLiteral("folder-open"), Theme::IconMuted));
     connect(m_browse, &QPushButton::clicked, this, &RichMediaPanel::chooseSource);
     sourceRow->addWidget(m_browse);
     root->addLayout(sourceRow);
     root->addSpacing(6);
 
-    // ── Poster ───────────────────────────────────────────────────────────────
     m_posterLabel = sectionLabel(tr("Poster / Thumbnail"), content);
     root->addWidget(m_posterLabel);
 
@@ -196,38 +166,41 @@ void RichMediaPanel::buildUi()
     posterRow->setSpacing(10);
     m_posterView = new QLabel(content);
     m_posterView->setObjectName(QStringLiteral("MediaPanelPoster"));
-    m_posterView->setFixedSize(108, 60);
+    m_posterView->setFixedSize(174, 86);
     m_posterView->setAlignment(Qt::AlignCenter);
     m_posterView->setScaledContents(false);
     posterRow->addWidget(m_posterView);
 
+    auto *posterActions = new QVBoxLayout;
+    posterActions->setContentsMargins(0, 0, 0, 0);
+    posterActions->setSpacing(8);
+
     m_posterChange = new QPushButton(tr("Change"), content);
     m_posterChange->setObjectName(QStringLiteral("MediaPanelSecondary"));
-    m_posterChange->setFixedHeight(30);
-    m_posterChange->setFixedWidth(74);
+    m_posterChange->setFixedHeight(34);
     m_posterChange->setCursor(Qt::PointingHandCursor);
+    m_posterChange->setIcon(Theme::makeIcon(QStringLiteral("image"), Theme::IconMuted));
     connect(m_posterChange, &QPushButton::clicked, this, &RichMediaPanel::choosePoster);
-    posterRow->addWidget(m_posterChange);
+    posterActions->addWidget(m_posterChange);
 
     m_posterRemove = new QPushButton(tr("Remove"), content);
     m_posterRemove->setObjectName(QStringLiteral("MediaPanelSecondary"));
-    m_posterRemove->setFixedHeight(30);
-    m_posterRemove->setFixedWidth(74);
+    m_posterRemove->setFixedHeight(34);
     m_posterRemove->setCursor(Qt::PointingHandCursor);
+    m_posterRemove->setIcon(Theme::makeIcon(QStringLiteral("trash-2"), Theme::IconMuted));
     connect(m_posterRemove, &QPushButton::clicked, this, [this]() {
         m_posterFromUser = false;
         m_poster = QImage();
-        m_posterDelay->stop();
         refreshPoster();
     });
-    posterRow->addWidget(m_posterRemove);
-    posterRow->addStretch(1);
+    posterActions->addWidget(m_posterRemove);
+    posterActions->addStretch(1);
+    posterRow->addLayout(posterActions, 1);
     root->addLayout(posterRow);
 
     root->addSpacing(6);
     root->addWidget(divider(content));
 
-    // ── Trigger ──────────────────────────────────────────────────────────────
     m_triggerLabel = sectionLabel(tr("Trigger"), content);
     root->addWidget(m_triggerLabel);
 
@@ -235,8 +208,7 @@ void RichMediaPanel::buildUi()
     triggerRow->setSpacing(18);
     m_onClick    = new QRadioButton(tr("On click"), content);
     m_onPageOpen = new QRadioButton(tr("On page open"), content);
-    // One group per question: radios sharing a parent otherwise form a single
-    // exclusive set, and "Inline" would switch the trigger off.
+
     auto *triggerGroup = new QButtonGroup(this);
     triggerGroup->addButton(m_onClick);
     triggerGroup->addButton(m_onPageOpen);
@@ -248,29 +220,27 @@ void RichMediaPanel::buildUi()
 
     root->addWidget(divider(content));
 
-    // ── Playback ─────────────────────────────────────────────────────────────
     m_playbackLabel = sectionLabel(tr("Playback options"), content);
     root->addWidget(m_playbackLabel);
 
     auto *playbackGrid = new QGridLayout;
-    playbackGrid->setHorizontalSpacing(14);
+    playbackGrid->setContentsMargins(0, 0, 0, 0);
+    playbackGrid->setHorizontalSpacing(12);
     playbackGrid->setVerticalSpacing(8);
-    m_autoPlay = new QCheckBox(tr("Autoplay"), content);
-    m_muted    = new QCheckBox(tr("Muted"), content);
-    m_loop     = new QCheckBox(tr("Loop"), content);
-    m_controls = new QCheckBox(tr("Show controls"), content);
+    addSwitchRow(playbackGrid, 0, tr("Autoplay"), content,
+                 &m_autoPlayText, &m_autoPlay);
+    addSwitchRow(playbackGrid, 1, tr("Loop"), content,
+                 &m_loopText, &m_loop);
+    addSwitchRow(playbackGrid, 2, tr("Muted"), content,
+                 &m_mutedText, &m_muted);
+    addSwitchRow(playbackGrid, 3, tr("Show controls"), content,
+                 &m_controlsText, &m_controls);
     m_controls->setChecked(true);
-    playbackGrid->addWidget(m_autoPlay, 0, 0);
-    playbackGrid->addWidget(m_muted,    0, 1);
-    playbackGrid->addWidget(m_loop,     1, 0);
-    playbackGrid->addWidget(m_controls, 1, 1);
     playbackGrid->setColumnStretch(0, 1);
-    playbackGrid->setColumnStretch(1, 1);
     root->addLayout(playbackGrid);
 
     root->addWidget(divider(content));
 
-    // ── Placement ────────────────────────────────────────────────────────────
     m_placementLabel = sectionLabel(tr("Placement"), content);
     root->addWidget(m_placementLabel);
 
@@ -289,41 +259,6 @@ void RichMediaPanel::buildUi()
 
     root->addWidget(divider(content));
 
-    // ── Position and size ────────────────────────────────────────────────────
-    m_geometryLabel = sectionLabel(tr("Position & Size"), content);
-    root->addWidget(m_geometryLabel);
-
-    auto *geometry = new QGridLayout;
-    geometry->setHorizontalSpacing(6);
-    geometry->setVerticalSpacing(4);
-    const QStringList captions { QStringLiteral("X"), QStringLiteral("Y"),
-                                 QStringLiteral("W"), QStringLiteral("H") };
-    m_x = ptSpin(content); m_y = ptSpin(content);
-    m_w = ptSpin(content); m_h = ptSpin(content);
-    QDoubleSpinBox *boxes[] = { m_x, m_y, m_w, m_h };
-    for (int i = 0; i < 4; ++i) {
-        auto *caption = new QLabel(captions.at(i), content);
-        caption->setObjectName(QStringLiteral("MediaPanelFieldLabel"));
-        geometry->addWidget(caption, 0, i);
-        geometry->addWidget(boxes[i], 1, i);
-        geometry->setColumnStretch(i, 1);
-        connect(boxes[i], &QDoubleSpinBox::valueChanged,
-                this, &RichMediaPanel::pushGeometry);
-    }
-    m_w->setMinimum(8.0);
-    m_h->setMinimum(8.0);
-
-    m_lock = new QPushButton(content);
-    m_lock->setObjectName(QStringLiteral("MediaPanelLock"));
-    m_lock->setCheckable(true);
-    m_lock->setChecked(true);
-    m_lock->setFixedSize(28, 30);
-    m_lock->setCursor(Qt::PointingHandCursor);
-    m_lock->setToolTip(tr("Keep the aspect ratio"));
-    m_lock->setIcon(Theme::makeIcon(QStringLiteral("lock"), Theme::IconMuted));
-    geometry->addWidget(m_lock, 1, 4);
-    root->addLayout(geometry);
-
     root->addSpacing(10);
 
     m_hint = new QLabel(tr("Drag a frame on the page to place the media."), content);
@@ -331,13 +266,13 @@ void RichMediaPanel::buildUi()
     m_hint->setWordWrap(true);
     root->addWidget(m_hint);
 
-    m_insert = new QPushButton(tr("Insert Rich Media"), content);
+    m_insert = new QPushButton(tr("Apply"), content);
     m_insert->setObjectName(QStringLiteral("MediaPanelPrimary"));
     m_insert->setFixedHeight(38);
     m_insert->setCursor(Qt::PointingHandCursor);
     connect(m_insert, &QPushButton::clicked, this, [this]() {
         const MediaSpec current = spec();
-        if (current.isValid()) Q_EMIT insertRequested(current);
+        if (current.isValid()) Q_EMIT applyRequested(current);
     });
     root->addWidget(m_insert);
 
@@ -345,15 +280,11 @@ void RichMediaPanel::buildUi()
     refreshPoster();
 }
 
-// ── Look ─────────────────────────────────────────────────────────────────────
-
 void RichMediaPanel::applyStyle()
 {
     if (m_stylingNow) return;
     m_stylingNow = true;
 
-    // The module brings its own look rather than writing into the Core's
-    // stylesheet, which keeps the Core free of media concerns.
     const bool dark = Theme::DarkMode;
 
     struct Palette {
@@ -376,20 +307,21 @@ QFrame#MediaPanel, QWidget#MediaPanelContent, QScrollArea#MediaPanelScroll {
 }
 QFrame#MediaPanel { border-left: 1px solid %4; }
 QLabel#MediaPanelTitle { color: %2; font-size: 16px; font-weight: 700; }
+QLabel#MediaPanelSubtitle { color: %3; font-size: 12px; }
 QLabel#MediaPanelSection { color: %2; font-size: 12px; font-weight: 600; }
 QLabel#MediaPanelFieldLabel { color: %3; font-size: 11px; }
 QLabel#MediaPanelHint { color: %3; font-size: 11px; }
 QFrame#MediaPanelDivider { color: %4; background: %4; max-height: 1px;
     min-height: 1px; border: none; }
 QFrame#MediaPanel QLabel { color: %2; font-size: 12px; }
-QFrame#MediaPanel QLineEdit, QFrame#MediaPanel QDoubleSpinBox {
+QFrame#MediaPanel QLineEdit {
     background: %5; color: %2; border: 1px solid %6; border-radius: 6px;
     padding: 4px 8px; font-size: 12px;
 }
-QFrame#MediaPanel QLineEdit:focus, QFrame#MediaPanel QDoubleSpinBox:focus {
+QFrame#MediaPanel QLineEdit:focus {
     border: 1px solid %7;
 }
-QFrame#MediaPanel QCheckBox, QFrame#MediaPanel QRadioButton {
+QFrame#MediaPanel QRadioButton {
     color: %2; font-size: 12px; spacing: 7px;
 }
 QLabel#MediaPanelPoster {
@@ -407,33 +339,23 @@ QPushButton#MediaPanelPrimary {
 }
 QPushButton#MediaPanelPrimary:hover { background: %7; }
 QPushButton#MediaPanelPrimary:disabled { background: %4; color: %3; }
-QPushButton#MediaPanelLock {
-    background: %5; border: 1px solid %6; border-radius: 6px;
+QPushButton#MediaPanelClose {
+    background: transparent; border: none; border-radius: 5px; padding: 2px;
 }
-QPushButton#MediaPanelLock:checked { border-color: %7; background: %8; }
-QFrame#MediaPanel QPushButton[seg] {
-    background: %5; color: %3; border: 1px solid %6;
-    padding: 6px 2px; font-size: 11px; min-height: 20px;
-}
-QFrame#MediaPanel QPushButton[seg="first"] {
-    border-top-left-radius: 6px; border-bottom-left-radius: 6px;
-}
-QFrame#MediaPanel QPushButton[seg="last"] {
-    border-top-right-radius: 6px; border-bottom-right-radius: 6px;
-}
-QFrame#MediaPanel QPushButton[seg="mid"] { border-left: none; border-right: none; }
-QFrame#MediaPanel QPushButton[seg="last"] { border-left: none; }
-QFrame#MediaPanel QPushButton[seg]:checked {
-    background: %8; color: %7; border-color: %7; font-weight: 600;
-}
-QFrame#MediaPanel QPushButton[seg]:disabled { color: %4; }
+QPushButton#MediaPanelClose:hover { background: %8; }
 )").arg(QLatin1String(p.panel), QLatin1String(p.text), QLatin1String(p.muted),
         QLatin1String(p.line), QLatin1String(p.field), QLatin1String(p.fieldLine),
         QLatin1String(p.accent), QLatin1String(p.accentSoft),
         QLatin1String(p.primaryText), QLatin1String(p.sunken)));
 
-    if (m_lock)
-        m_lock->setIcon(Theme::makeIcon(QStringLiteral("lock"), Theme::IconMuted));
+    if (m_browse)
+        m_browse->setIcon(Theme::makeIcon(QStringLiteral("folder-open"), Theme::IconMuted));
+    if (m_posterChange)
+        m_posterChange->setIcon(Theme::makeIcon(QStringLiteral("image"), Theme::IconMuted));
+    if (m_posterRemove)
+        m_posterRemove->setIcon(Theme::makeIcon(QStringLiteral("trash-2"), Theme::IconMuted));
+    if (m_close)
+        m_close->setIcon(Theme::makeIcon(QStringLiteral("x"), Theme::IconMuted));
 
     m_stylingNow = false;
 }
@@ -447,32 +369,28 @@ void RichMediaPanel::changeEvent(QEvent *event)
     QFrame::changeEvent(event);
 }
 
-// ── State ────────────────────────────────────────────────────────────────────
-
-void RichMediaPanel::setType(MediaSpec::Type type)
+void RichMediaPanel::setSource(const QString &path, const QString &displayName)
 {
-    m_type = type;
-    const bool audio = (type == MediaSpec::Type::Audio);
-    m_source->setPlaceholderText(audio ? tr("Choose an audio file")
-                                       : tr("Choose a video file"));
-    // Audio has no still, but the box stays: the poster is what the page
-    // shows for audio too.
+    m_sourcePath = path;
+    m_sourceDisplayName = displayName.isEmpty() ? QFileInfo(path).fileName()
+                                                : displayName;
+    const QString mime = path.isEmpty() ? QString() : MediaDrop::mimeTypeFor(path);
+    m_type = mime.startsWith(QLatin1String("audio/")) ? MediaSpec::Type::Audio
+                                                      : MediaSpec::Type::Video;
+    if (m_source) m_source->setText(m_sourceDisplayName);
+    m_posterFromUser = false;
     refreshPoster();
     updateInsertEnabled();
 }
 
 void RichMediaPanel::chooseSource()
 {
-    const bool audio = (m_type == MediaSpec::Type::Audio);
-    // MP4 first and named as such: that is what plays everywhere. Anything
-    // else stays selectable but is checked before it is inserted.
-    const QString filter = audio
-        ? tr("MP3 and AAC (*.mp3 *.m4a);;All audio (*.mp3 *.m4a *.wav *.ogg *.opus *.flac);;All files (*)")
-        : tr("MP4 video, H.264 (*.mp4 *.m4v);;All video (*.mp4 *.m4v *.mov *.webm *.mkv *.avi);;All files (*)");
+    const QString filter =
+        tr("Media files (*.mp4 *.m4v *.mov *.webm *.mkv *.avi *.mp3 *.m4a *.wav *.ogg *.opus *.flac);;All files (*)");
     const QString path = QFileDialog::getOpenFileName(
-        this, audio ? tr("Choose audio") : tr("Choose video"), QString(), filter);
+        this, tr("Choose media"), QString(), filter);
     if (path.isEmpty()) return;
-    m_source->setText(path);
+    setSource(path);
 }
 
 void RichMediaPanel::choosePoster()
@@ -492,7 +410,7 @@ void RichMediaPanel::refreshPoster()
 {
     if (!m_posterFromUser) {
         m_poster = QImage();
-        const QString source = m_source ? m_source->text().trimmed() : QString();
+        const QString source = m_sourcePath;
         if (m_type == MediaSpec::Type::Video && !source.isEmpty()
             && QFileInfo::exists(source))
             m_poster = PosterFrame::grab(source, 640);
@@ -507,7 +425,7 @@ void RichMediaPanel::refreshPoster()
             Qt::KeepAspectRatio, Qt::SmoothTransformation));
     }
     if (m_posterRemove)
-        m_posterRemove->setEnabled(!m_poster.isNull());
+        m_posterRemove->setEnabled(m_posterFromUser);
     Q_EMIT previewChanged(shown);
 }
 
@@ -515,15 +433,6 @@ void RichMediaPanel::setPlacement(int page, const QRectF &pdfBounds)
 {
     m_page   = page;
     m_bounds = pdfBounds;
-    m_aspect = pdfBounds.height() > 0.0 ? pdfBounds.width() / pdfBounds.height() : 0.0;
-
-    m_syncing = true;
-    m_x->setValue(pdfBounds.x());
-    m_y->setValue(pdfBounds.y());
-    m_w->setValue(pdfBounds.width());
-    m_h->setValue(pdfBounds.height());
-    m_syncing = false;
-
     updateInsertEnabled();
 }
 
@@ -531,44 +440,53 @@ void RichMediaPanel::clearPlacement()
 {
     m_page = -1;
     m_bounds = QRectF();
-    m_syncing = true;
-    for (QDoubleSpinBox *box : { m_x, m_y, m_w, m_h }) box->setValue(0.0);
-    m_syncing = false;
     updateInsertEnabled();
 }
 
-void RichMediaPanel::pushGeometry()
+void RichMediaPanel::editMedia(const MediaSpec &media)
 {
-    if (m_syncing || m_page < 0) return;
+    m_editing = true;
+    m_type = media.type;
+    m_sourcePath = media.source;
+    m_sourceDisplayName = media.displayName.isEmpty()
+        ? QFileInfo(media.source).fileName() : media.displayName;
+    m_source->setText(m_sourceDisplayName);
+    m_poster = media.poster;
+    m_posterFromUser = !media.poster.isNull();
+    m_onPageOpen->setChecked(media.activateOnPageOpen);
+    m_onClick->setChecked(!media.activateOnPageOpen);
+    m_autoPlay->setChecked(media.autoPlay);
+    m_loop->setChecked(media.loop);
+    m_muted->setChecked(media.muted);
+    m_controls->setChecked(media.showControls);
+    m_floating->setChecked(media.floating);
+    m_inline->setChecked(!media.floating);
+    setPlacement(media.page, media.bounds);
+    refreshPoster();
+}
 
-    QRectF bounds(m_x->value(), m_y->value(), m_w->value(), m_h->value());
-
-    // Lock closed: the side the user did not touch follows. The sender says
-    // which one that was.
-    if (m_lock->isChecked() && m_aspect > 0.0) {
-        auto *sender = qobject_cast<QDoubleSpinBox *>(QObject::sender());
-        m_syncing = true;
-        if (sender == m_w) {
-            bounds.setHeight(bounds.width() / m_aspect);
-            m_h->setValue(bounds.height());
-        } else if (sender == m_h) {
-            bounds.setWidth(bounds.height() * m_aspect);
-            m_w->setValue(bounds.width());
-        }
-        m_syncing = false;
-    } else if (bounds.height() > 0.0) {
-        m_aspect = bounds.width() / bounds.height();
-    }
-
-    m_bounds = bounds;
-    updateInsertEnabled();
-    Q_EMIT placementEdited(bounds);
+void RichMediaPanel::resetForInsert()
+{
+    m_editing = false;
+    m_type = MediaSpec::Type::Video;
+    m_sourcePath.clear();
+    m_sourceDisplayName.clear();
+    m_source->clear();
+    m_poster = QImage();
+    m_posterFromUser = false;
+    m_onClick->setChecked(true);
+    m_autoPlay->setChecked(false);
+    m_loop->setChecked(false);
+    m_muted->setChecked(false);
+    m_controls->setChecked(true);
+    m_inline->setChecked(true);
+    clearPlacement();
+    refreshPoster();
 }
 
 void RichMediaPanel::updateInsertEnabled()
 {
-    const bool hasSource = m_source && !m_source->text().trimmed().isEmpty()
-                        && QFileInfo::exists(m_source->text().trimmed());
+    const bool hasSource = !m_sourcePath.isEmpty() && QFileInfo::exists(m_sourcePath);
     const bool hasPlace  = m_page >= 0 && !m_bounds.isEmpty();
     const bool supported = m_type == MediaSpec::Type::Video
                         || m_type == MediaSpec::Type::Audio;
@@ -579,6 +497,8 @@ void RichMediaPanel::updateInsertEnabled()
         m_hint->setText(tr("Drag a frame on the page to place the media."));
     else if (!hasSource)
         m_hint->setText(tr("Choose a file to embed."));
+    else if (m_editing)
+        m_hint->setText(tr("Drag the handles on the page to resize the media."));
     else
         m_hint->setText(tr("Page %1. The file is copied into the document.")
                             .arg(m_page + 1));
@@ -588,9 +508,11 @@ MediaSpec RichMediaPanel::spec() const
 {
     MediaSpec out;
     out.type   = m_type;
-    out.source = m_source ? m_source->text().trimmed() : QString();
-    out.displayName = QFileInfo(out.source).fileName();
-    out.mimeType    = out.source.isEmpty() ? QString() : mimeFor(out.source);
+    out.source = m_sourcePath;
+    out.displayName = m_sourceDisplayName.isEmpty()
+        ? QFileInfo(out.source).fileName() : m_sourceDisplayName;
+    out.mimeType = out.source.isEmpty() ? QString()
+                                         : MediaDrop::mimeTypeFor(out.source);
     out.poster      = m_poster;
     out.activateOnPageOpen = m_onPageOpen && m_onPageOpen->isChecked();
     out.autoPlay     = m_autoPlay && m_autoPlay->isChecked();
@@ -606,33 +528,26 @@ MediaSpec RichMediaPanel::spec() const
 void RichMediaPanel::retranslateUi()
 {
     m_title->setText(tr("Rich Media"));
-    m_typeLabel->setText(tr("Insert type"));
+    m_subtitle->setText(tr("Edit media or add a new source"));
     m_sourceLabel->setText(tr("Source"));
     m_posterLabel->setText(tr("Poster / Thumbnail"));
     m_triggerLabel->setText(tr("Trigger"));
     m_playbackLabel->setText(tr("Playback options"));
     m_placementLabel->setText(tr("Placement"));
-    m_geometryLabel->setText(tr("Position & Size"));
 
-    static const char *kTypeLabels[] = { QT_TR_NOOP("Video"), QT_TR_NOOP("Audio"),
-                                         QT_TR_NOOP("Web Embed"), QT_TR_NOOP("Button") };
-    for (int i = 0; i < m_typeButtons.size() && i < 4; ++i)
-        m_typeButtons.at(i)->setText(tr(kTypeLabels[i]));
-
-    m_source->setPlaceholderText(m_type == MediaSpec::Type::Audio
-                                 ? tr("Choose an audio file") : tr("Choose a video file"));
+    m_source->setPlaceholderText(tr("Choose a media file"));
     m_browse->setText(tr("Browse"));
     m_posterChange->setText(tr("Change"));
     m_posterRemove->setText(tr("Remove"));
     m_onClick->setText(tr("On click"));
     m_onPageOpen->setText(tr("On page open"));
-    m_autoPlay->setText(tr("Autoplay"));
-    m_muted->setText(tr("Muted"));
-    m_loop->setText(tr("Loop"));
-    m_controls->setText(tr("Show controls"));
+    m_autoPlayText->setText(tr("Autoplay"));
+    m_mutedText->setText(tr("Muted"));
+    m_loopText->setText(tr("Loop"));
+    m_controlsText->setText(tr("Show controls"));
     m_inline->setText(tr("Inline"));
     m_floating->setText(tr("Floating"));
-    m_insert->setText(tr("Insert Rich Media"));
-    m_lock->setToolTip(tr("Keep the aspect ratio"));
+    m_insert->setText(tr("Apply"));
+    m_close->setToolTip(tr("Close"));
     updateInsertEnabled();
 }

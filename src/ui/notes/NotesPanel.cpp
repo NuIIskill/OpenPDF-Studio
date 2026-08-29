@@ -91,7 +91,7 @@ private:
     std::function<void()> m_activated;
 };
 
-} // namespace
+}
 
 NotesPanel::NotesPanel(QWidget *parent)
     : QWidget(parent)

@@ -34,7 +34,7 @@ bool MediaSession::dropInsert(const MediaSpec &spec)
 
 void MediaSession::addRemoval(const MediaAsset &asset)
 {
-    // A medium that is not its own object in the document cannot be removed.
+
     if (asset.annotObject <= 0) return;
     for (const MediaAsset &existing : m_removals)
         if (existing.annotObject == asset.annotObject) return;

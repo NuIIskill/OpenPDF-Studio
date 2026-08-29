@@ -96,6 +96,14 @@ Please use a build that includes Qt6::Pdf support.
         <source>Justify</source>
         <translation type="unfinished"></translation>
     </message>
+    <message>
+        <source>Advanced</source>
+        <translation>高级</translation>
+    </message>
+    <message>
+        <source>All text box options</source>
+        <translation>文本框的全部选项</translation>
+    </message>
 </context>
 <context>
     <name>ImageAnnotation</name>
@@ -613,6 +621,10 @@ Please use a build that includes Qt6::Pdf support.
         <location filename="../../src/ui/TextPropertiesPanel.cpp" line="179"/>
         <source>Save as Default</source>
         <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Position &amp; Size</source>
+        <translation>位置与大小</translation>
     </message>
 </context>
 <context>

@@ -2,7 +2,9 @@
 
 #if defined(HAVE_PDF_RENDERING) && defined(HAVE_PDFIUM)
 
+#include "engine/document/PdfiumFonts.hpp"
 #include "engine/edit/EditSession.hpp"
+#include "engine/edit/TextWrap.hpp"
 
 #include "fpdf_annot.h"
 #include "fpdf_doc.h"
@@ -39,7 +41,6 @@ bool removesOriginal(const EditSession::Edit &edit)
 {
     return edit.newText.isNull();
 }
-
 
 struct Replaced {
     QRectF    area;
@@ -106,7 +107,6 @@ const Replaced *originOf(const QList<Replaced> &all, const EditSession::Edit &ed
     return best;
 }
 
-
 bool fontCanRender(FPDF_FONT font, const QString &text, const QString &original)
 {
     if (!font) return false;
@@ -125,33 +125,6 @@ bool fontCanRender(FPDF_FONT font, const QString &text, const QString &original)
     return true;
 }
 
-QByteArray standardFontFor(const QString &family, bool bold, bool italic)
-{
-    const QString f = family.toLower();
-    const bool mono  = f.contains(QLatin1String("mono"))
-                    || f.contains(QLatin1String("courier"))
-                    || f.contains(QLatin1String("consol"));
-    const bool serif = !mono
-                    && (f.contains(QLatin1String("serif"))
-                        || f.contains(QLatin1String("times"))
-                        || f.contains(QLatin1String("georgia"))
-                        || f.contains(QLatin1String("garamond"))
-                        || f.contains(QLatin1String("book"))
-                        || f.contains(QLatin1String("roman"))
-                        || f.contains(QLatin1String("minion"))
-                        || f.contains(QLatin1String("cambria")))
-                    && !f.contains(QLatin1String("sans"));
-
-    if (mono)
-        return bold ? (italic ? "Courier-BoldOblique" : "Courier-Bold")
-                    : (italic ? "Courier-Oblique"     : "Courier");
-    if (serif)
-        return bold ? (italic ? "Times-BoldItalic" : "Times-Bold")
-                    : (italic ? "Times-Italic"     : "Times-Roman");
-    return bold ? (italic ? "Helvetica-BoldOblique" : "Helvetica-Bold")
-                : (italic ? "Helvetica-Oblique"     : "Helvetica");
-}
-
 QByteArray standardFontLike(FPDF_FONT font, const EditSession::Edit &edit)
 {
     QString family = edit.fontFamily;
@@ -168,7 +141,7 @@ QByteArray standardFontLike(FPDF_FONT font, const EditSession::Edit &edit)
         int angle = 0;
         italic = italic || (FPDFFont_GetItalicAngle(font, &angle) && angle != 0);
     }
-    return standardFontFor(family, bold, italic);
+    return PdfiumFonts::standardFontFor(family, bold, italic);
 }
 
 double lineWidthPt(FPDF_FONT font, const QString &line, double size,
@@ -187,8 +160,8 @@ double lineWidthPt(FPDF_FONT font, const QString &line, double size,
     return width;
 }
 
-
-QPointF firstBaseline(const EditSession::Edit &edit, double fontSize, double pageHeight)
+QPointF firstBaseline(const EditSession::Edit &edit, double fontSize,
+                      double pageHeight, int lineCount)
 {
     const bool customInset = edit.box.paddingPt > 0.0
                           || edit.box.verticalAlign != TextBoxProperties::VerticalAlign::Top;
@@ -196,7 +169,7 @@ QPointF firstBaseline(const EditSession::Edit &edit, double fontSize, double pag
         const QPointF qt = edit.pdfBounds.topLeft() + edit.textOriginOffset;
         return QPointF(qt.x(), toPdfY(qt.y(), pageHeight));
     }
-    const int lines = qMax(1, edit.newText.count(u'\n') + 1);
+    const int lines = qMax(1, lineCount);
     const double step = edit.lineSpacingPt > 0.0 ? edit.lineSpacingPt : fontSize * 1.2;
     const double contentHeight = fontSize + (lines - 1)
                                * (step + edit.box.paragraphSpacingPt);
@@ -315,22 +288,47 @@ void insertReplacement(FPDF_DOCUMENT doc, FPDF_PAGE page,
                                                     : origin->text)) {
         font = origin->font;
     } else {
-        font = FPDFText_LoadStandardFont(
-            doc, standardFontLike(origin ? origin->font : nullptr, edit).constData());
+
+        if (edit.fontChanged) {
+            const QByteArray daten =
+                PdfiumFonts::fontData(edit.fontFamily, edit.bold, edit.italic);
+            if (!daten.isEmpty())
+                font = FPDFText_LoadFont(
+                    doc, reinterpret_cast<const uint8_t *>(daten.constData()),
+                    static_cast<uint32_t>(daten.size()), FPDF_FONT_TRUETYPE, 1);
+        }
+        if (!font)
+            font = FPDFText_LoadStandardFont(
+                doc, standardFontLike(origin ? origin->font : nullptr,
+                                      edit).constData());
         ownsFont = true;
     }
     if (!font) return;
 
     insertBoxDecoration(page, edit, pageHeight);
 
-    const QPointF start = firstBaseline(edit, size, pageHeight);
+    const double links = firstBaseline(edit, size, pageHeight, 1).x();
+    const double availableWidth = qMax(
+        0.0, edit.pdfBounds.right() - edit.box.paddingPt - links);
+    const auto glyphBreite = [font, size](QChar ch) {
+        float advance = 0.f;
+        if (ch.isLowSurrogate()
+                || !FPDFFont_GetGlyphWidth(font, ch.unicode(),
+                                           static_cast<float>(size), &advance))
+            return 0.0;
+        return double(advance);
+    };
+    QStringList umbrochen;
+    for (const QString &line : lines)
+        umbrochen.append(TextWrap::lines(line, availableWidth, glyphBreite,
+                                         edit.box.characterSpacingPt));
+
+    const QPointF start = firstBaseline(edit, size, pageHeight, umbrochen.size());
     const double  step  = (edit.lineSpacingPt > 0.0 ? edit.lineSpacingPt : size * 1.2)
                         + edit.box.paragraphSpacingPt;
-    const double availableWidth = qMax(0.0, edit.pdfBounds.width()
-        - 2 * edit.box.paddingPt - edit.box.indentLevel * 18.0);
 
-    for (int i = 0; i < lines.size(); ++i) {
-        const QString &line = lines.at(i);
+    for (int i = 0; i < umbrochen.size(); ++i) {
+        const QString &line = umbrochen.at(i);
         if (line.isEmpty()) continue;
         const QColor color = edit.textColor.isValid() ? edit.textColor : QColor(Qt::black);
         const auto insertObject = [&](const QString &text, double x) {
@@ -361,11 +359,24 @@ void insertReplacement(FPDF_DOCUMENT doc, FPDF_PAGE page,
                    + edit.box.characterSpacingPt;
             }
         }
+        if (!edit.underline) continue;
+
+        const double breite = lineWidthPt(font, line, size,
+                                          edit.box.characterSpacingPt);
+        const double dicke  = qMax(0.3, size * 0.06);
+        const double y      = start.y() - step * i - size * 0.12;
+        FPDF_PAGEOBJECT rule = FPDFPageObj_CreateNewRect(lineX, y, breite, dicke);
+        if (!rule) continue;
+        FPDFPageObj_SetFillColor(rule, color.red(), color.green(), color.blue(),
+                                 qRound(color.alpha()
+                                        * qBound(0.0, edit.box.opacity, 1.0)));
+        FPDFPath_SetDrawMode(rule, FPDF_FILLMODE_WINDING, false);
+        rotateObject(rule, edit, pageHeight);
+        FPDFPage_InsertObject(page, rule);
     }
 
     if (ownsFont) FPDFFont_Close(font);
 }
-
 
 void insertImage(FPDF_DOCUMENT doc, FPDF_PAGE page,
                  const EditSession::ImageEdit &edit, double pageHeight)
@@ -660,7 +671,7 @@ void applyLinkEdits(FPDF_DOCUMENT doc, FPDF_PAGE page, int pageIndex,
     }
 }
 
-} // namespace
+}
 
 void PdfiumEdits::applyToPage(FPDF_DOCUMENT doc, FPDF_PAGE page, int pageIndex,
                               const EditSession &session)
@@ -747,7 +758,7 @@ bool sameNoteBounds(const QRectF &a, const QRectF &b)
         && qAbs(a.height() - b.height()) < 0.5;
 }
 
-} // namespace
+}
 
 void PdfiumEdits::applyNoteEdits(FPDF_PAGE page, int pageIndex,
                                  const EditSession &session)

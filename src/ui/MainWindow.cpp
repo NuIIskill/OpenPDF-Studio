@@ -59,17 +59,9 @@ MainWindow::MainWindow(AppSettings *settings, QWidget *parent)
     connectSignals();
     applyPanelLayout();
 
-    // Apply persisted language on startup
-    const QString lang = settings->language();
-    if (lang != QLatin1String("en"))
-        applyLanguage(lang);
-
-    // After the window is on screen, not in front of it.
     QTimer::singleShot(0, this, &MainWindow::showLicenseNotices);
     QTimer::singleShot(0, this, &MainWindow::checkForUpdates);
 }
-
-// ── Settings and license ──────────────────────────────────────────────────────
 
 SettingsPanel *MainWindow::openSettings()
 {
@@ -98,10 +90,7 @@ void MainWindow::checkForUpdates()
         m_updateChecker = new UpdateChecker(m_appSettings, this);
         connect(m_updateChecker, &UpdateChecker::finished, this,
                 [this](const UpdateCheckResult &result) {
-            // Only a newer version is worth a window. A check that failed is
-            // not the user's problem, and "you are up to date" is a box
-            // nobody asked for - both are visible in Settings › Advanced,
-            // where the answer was actually requested.
+
             if (!result.ok || !result.updateAvailable)
                 return;
 
@@ -119,15 +108,12 @@ void MainWindow::checkForUpdates()
                 if (box->clickedButton() == openBtn)
                     QDesktopServices::openUrl(UpdateChecker::downloadPageUrl());
             });
-            // open(), not exec(): a notice at startup must not block the
-            // window it stands in front of.
+
             box->open();
         });
     }
     m_updateChecker->checkIfDue();
 }
-
-// ── UI construction ───────────────────────────────────────────────────────────
 
 void MainWindow::buildUi()
 {
@@ -149,9 +135,6 @@ void MainWindow::buildUi()
     m_drawBar->hide();
     root->addWidget(m_drawBar);
 
-    // The bookmark panel belongs beside the left tool strip, as in other PDF
-    // editors. It is a splitter child so the canvas immediately gives back
-    // the space when the panel is closed.
     m_splitter = new QSplitter(Qt::Horizontal, central);
     m_splitter->setHandleWidth(1);
     m_splitter->setChildrenCollapsible(false);
@@ -166,14 +149,11 @@ void MainWindow::buildUi()
     m_splitter->setStretchFactor(1, 0);
     m_splitter->setStretchFactor(2, 1);
 
-    // Panel and right strip live OUTSIDE the splitter in a plain QHBoxLayout.
-    // Toggling is done via setFixedWidth(0 / kWidth) — the QHBoxLayout engine
-    // immediately redistributes the freed/taken space to the splitter.
     m_textPanel    = new TextPropertiesPanel(central);
     m_notesPanel   = new NotesPanel(central);
     m_notesPanel->setDocumentAvailable(false);
     m_rightSidebar = new RightSidebar(central);
-    m_textPanel->setFixedWidth(0);   // collapsed by default
+    m_textPanel->setFixedWidth(0);
     m_textPanel->hide();
     m_notesPanel->setFixedWidth(0);
     m_notesPanel->hide();
@@ -186,8 +166,6 @@ void MainWindow::buildUi()
     row->addWidget(m_notesPanel,   0);
     m_toolPanels.insert(QStringLiteral("comment"), { m_notesPanel, 356 });
 
-    // Panels a tool brings with it (ToolPanels). Same slot as the text panel
-    // and the same rule: visible while their tool is chosen.
     for (const ToolPanels::Panel &def : ToolPanels::all()) {
         QWidget *panel = def.create(central);
         if (!panel) continue;
@@ -206,11 +184,9 @@ void MainWindow::buildUi()
     addDocView();
 }
 
-// ── Signal wiring ─────────────────────────────────────────────────────────────
-
 void MainWindow::connectSignals()
 {
-    // Toolbar
+
     connect(m_topToolbar, &TopToolbar::newTabRequested,       this, &MainWindow::onNewTab);
     connect(m_topToolbar, &TopToolbar::tabActivated,          this, &MainWindow::onTabActivated);
     connect(m_topToolbar, &TopToolbar::tabCloseRequested,     this, &MainWindow::onTabCloseRequested);
@@ -226,7 +202,6 @@ void MainWindow::connectSignals()
             dv->setViewMode(grid ? DocumentView::ViewMode::Grid : DocumentView::ViewMode::Single);
     });
 
-    // Left sidebar
     connect(m_leftSidebar, &LeftSidebar::toolSelected,        this, &MainWindow::onToolSelected);
     connect(m_leftSidebar, &LeftSidebar::settingsRequested, this, [this]() { openSettings(); });
     connect(m_bookmarkPanel, &BookmarkPanel::closeRequested, this, [this]() {
@@ -260,36 +235,24 @@ void MainWindow::connectSignals()
         if (DocumentView *dv = currentDocView()) dv->setNotePinned(id, pinned);
     });
 
-    // Right sidebar
     connect(m_rightSidebar, &RightSidebar::modeSelected, this, &MainWindow::onModeSelected);
 
-    // Text properties panel – X button just closes the panel
-    connect(m_textPanel, &TextPropertiesPanel::closeRequested, this, [this]() {
-        closeTextPanel();
-        m_rightSidebar->setMode(QString{});
-    });
     connect(m_textPanel, &TextPropertiesPanel::propertiesChanged, this,
             [this](const TextBoxProperties &properties) {
         if (DocumentView *dv = currentDocView())
             dv->setTextBoxProperties(properties);
     });
-    connect(m_textPanel, &TextPropertiesPanel::defaultsChanged, this,
-            [this](const TextBoxProperties &properties) {
-        for (DocumentView *dv : m_docViews)
-            dv->setTextBoxDefaults(properties);
-    });
 
-    // FormatBar font size → active editor live update
     connect(m_formatBar, &FormatBar::fontSizeChanged, this, [this](int pt) {
         if (DocumentView *dv = currentDocView())
             dv->setEditorFontSize(pt);
     });
-    // FormatBar color → active editor live update
+
     connect(m_formatBar, &FormatBar::textColorChanged, this, [this](const QColor &c) {
         if (DocumentView *dv = currentDocView())
             dv->setEditorTextColor(c);
     });
-    // FormatBar font family / bold / italic → active editor live update
+
     connect(m_formatBar, &FormatBar::fontFamilyChanged, this, [this](const QString &f) {
         if (DocumentView *dv = currentDocView())
             dv->setEditorFontFamily(f);
@@ -301,6 +264,10 @@ void MainWindow::connectSignals()
     connect(m_formatBar, &FormatBar::italicToggled, this, [this](bool on) {
         if (DocumentView *dv = currentDocView())
             dv->setEditorItalic(on);
+    });
+    connect(m_formatBar, &FormatBar::underlineToggled, this, [this](bool on) {
+        if (DocumentView *dv = currentDocView())
+            dv->setEditorUnderline(on);
     });
     connect(m_formatBar, &FormatBar::alignmentChanged, this, [this](Qt::Alignment a) {
         if (DocumentView *dv = currentDocView()) dv->setEditorAlignment(a);
@@ -315,6 +282,9 @@ void MainWindow::connectSignals()
     connect(m_formatBar, &FormatBar::lineSpacingChanged, this, [this](double multiplier) {
         if (DocumentView *dv = currentDocView()) dv->setEditorLineSpacing(multiplier);
     });
+    connect(m_formatBar, &FormatBar::advancedToggled, this, [this](bool on) {
+        if (on) openTextPanel(); else closeTextPanel();
+    });
 
     connect(m_drawBar, &DrawBar::toolChanged, this, [this](DrawTool tool) {
         if (DocumentView *dv = currentDocView()) dv->setDrawTool(tool);
@@ -325,7 +295,7 @@ void MainWindow::connectSignals()
     connect(m_drawBar, &DrawBar::colorChanged, this, [this](const QColor &color) {
         if (DocumentView *dv = currentDocView()) dv->setDrawColor(color);
     });
-    // All keyboard shortcuts — created once here, sequences updated by loadShortcuts()
+    /// Maps a shortcut key to a MainWindow action.
     struct Def { const char *key; void (MainWindow::*slot)(); };
     const Def defs[] = {
         { "save",   &MainWindow::onSave     },
@@ -342,7 +312,7 @@ void MainWindow::connectSignals()
         connect(sc, &QShortcut::activated, this, d.slot);
         m_shortcuts.insert(QLatin1String(d.key), sc);
     }
-    // Lambda-based shortcuts
+
     const auto addLambda = [&](const char *key, auto fn) {
         auto *sc = new QShortcut(QKeySequence{}, this);
         connect(sc, &QShortcut::activated, this, fn);
@@ -354,10 +324,9 @@ void MainWindow::connectSignals()
     addLambda("texttool",     [this]() { onToolSelected(QStringLiteral("text")); });
     addLambda("comment",      [this]() { onToolSelected(QStringLiteral("comment")); });
     addLambda("presentation", [this]() { onStartPresentation(); });
-    loadShortcuts();     // apply sequences from AppSettings (or defaults)
-    loadZoomSettings();  // apply zoom settings from AppSettings (or defaults)
+    loadShortcuts();
+    loadZoomSettings();
 
-    // Status bar
     connect(m_statusBar, &StatusBar::previousPageRequested, this, [this]() {
         if (DocumentView *dv = currentDocView())
             dv->goToPage(dv->currentPage() - 1);
@@ -368,17 +337,14 @@ void MainWindow::connectSignals()
     });
     connect(m_statusBar, &StatusBar::pageRequested, this, [this](int page) {
         if (DocumentView *dv = currentDocView())
-            dv->goToPage(page - 1);          // status bar counts from 1
+            dv->goToPage(page - 1);
     });
     connect(m_statusBar, &StatusBar::panelToggleRequested,  this, [this]() {
         setRightSidebarCollapsed(!m_rightSidebarCollapsed);
-        // Written straight away: the layout the user just chose should also
-        // survive a crash or a kill, not only an orderly close.
+
         savePanelLayout();
     });
 }
-
-// ── Tab management ────────────────────────────────────────────────────────────
 
 DocumentView *MainWindow::addDocView()
 {
@@ -391,8 +357,6 @@ DocumentView *MainWindow::addDocView()
 
     const int idx = m_topToolbar->addTab();
 
-    // A PDF dropped onto the view goes through the same path as File > Open,
-    // so it is recorded as the last opened file like any other open.
     connect(dv, &DocumentView::pdfDropped, this, &MainWindow::openPath);
 
     connect(dv, &DocumentView::fileOpened, this, [this, dv](const QString &path, int pages) {
@@ -406,7 +370,6 @@ DocumentView *MainWindow::addDocView()
         if (dv == currentDocView()) refreshBookmarkPanel();
     });
 
-    // Keep the page indicator in step with scrolling / jumps in the view
     connect(dv, &DocumentView::pageChanged, this, [this, dv](int current, int total) {
         if (dv == currentDocView()) {
             m_statusBar->setPageInfo(current, total);
@@ -414,23 +377,22 @@ DocumentView *MainWindow::addDocView()
         }
     });
 
-    // Keep view-mode buttons in sync (e.g. when user clicks a grid card to return to single)
     connect(dv, &DocumentView::viewModeChanged, this, [this, dv](DocumentView::ViewMode mode) {
         if (dv == currentDocView())
             m_topToolbar->setViewMode(mode == DocumentView::ViewMode::Grid);
     });
 
-    // Sync FormatBar font size ↔ active editor
     connect(dv, &DocumentView::editorFontSizeChanged,
             m_formatBar, &FormatBar::setFontSize);
-    // Sync FormatBar font family/style with the detected font of the block
-    // the user is editing (Acrobat-style: toolbar reflects the clicked text).
+
     connect(dv, &DocumentView::editorFontChanged, this,
-            [this, dv](const QString &family, bool bold, bool italic) {
+            [this, dv](const QString &family, bool bold, bool italic,
+                       bool underline) {
         if (dv != currentDocView()) return;
         m_formatBar->setFontFamily(family);
         m_formatBar->setBoldChecked(bold);
         m_formatBar->setItalicChecked(italic);
+        m_formatBar->setUnderlineChecked(underline);
     });
     connect(dv, &DocumentView::textBoxPropertiesChanged, this,
             [this, dv](const TextBoxProperties &properties) {
@@ -455,7 +417,6 @@ DocumentView *MainWindow::addDocView()
         if (dv == currentDocView()) m_notesPanel->setSelectedNote(id);
     });
 
-    // Sync zoom label when user zooms via mouse wheel
     connect(dv, &DocumentView::zoomChanged, this, [this, dv](int percent) {
         if (dv == currentDocView()) {
             m_zoom = percent;
@@ -490,7 +451,7 @@ void MainWindow::onTabActivated(int index)
     m_topToolbar->setCurrentTab(index);
 
     const DocumentView *dv = m_docViews[index];
-    // Show where this tab was left off, not page 1.
+
     m_statusBar->setPageInfo(dv->currentPage() + 1,
                              dv->pageCount() > 0 ? dv->pageCount() : 1);
     m_topToolbar->setZoom(m_zoom);
@@ -532,8 +493,6 @@ void MainWindow::onTabCloseRequested(int index)
         refreshBookmarkPanel();
     }
 }
-
-// ── File operations ───────────────────────────────────────────────────────────
 
 void MainWindow::onOpenFile()
 {
@@ -602,9 +561,7 @@ void MainWindow::onPrint()
 
     QPrinter printer(QPrinter::HighResolution);
     printer.setDocName(QFileInfo(dv->currentFile()).completeBaseName());
-    // Zero margins are clamped to the hardware minimum, which makes the
-    // printable area as large as the device allows; the page is then fitted
-    // into it, so nothing is ever cut off.
+
     printer.setPageMargins(QMarginsF(0, 0, 0, 0), QPageLayout::Millimeter);
     printer.setFromTo(1, pageCount);
 
@@ -614,15 +571,13 @@ void MainWindow::onPrint()
     dlg.setWindowTitle(tr("Print"));
     if (dlg.exec() != QDialog::Accepted) return;
 
-    // Zero-based page indices for the view; empty means the whole document.
     QList<int> pages;
     switch (printer.printRange()) {
     case QPrinter::CurrentPage:
         pages.append(dv->currentPage());
         break;
     case QPrinter::PageRange: {
-        // Qt fills pageRanges() for the "1,3,5-7" syntax the dialog accepts
-        // and leaves it empty when only a from/to range was given.
+
         const QPageRanges ranges = printer.pageRanges();
         if (!ranges.isEmpty()) {
             for (int p = ranges.firstPage(); p <= ranges.lastPage(); ++p)
@@ -634,12 +589,9 @@ void MainWindow::onPrint()
         break;
     }
     default:
-        break;   // AllPages / Selection → the whole document
+        break;
     }
 
-    // Native engines (CUPS, Windows) produce the copies in the driver; only
-    // when they don't do the sheets have to be repeated in the job itself,
-    // otherwise every copy would be printed twice.
     const int copies = printer.supportsMultipleCopies()
         ? 1 : qMax(1, printer.copyCount());
     if (copies > 1) {
@@ -668,20 +620,20 @@ void MainWindow::onPrint()
 void MainWindow::onUndo()
 {
     if (DocumentView *dv = currentDocView())
-        dv->undoStack()->undo();
+        dv->undo();
 }
 
 void MainWindow::onRedo()
 {
     if (DocumentView *dv = currentDocView())
-        dv->undoStack()->redo();
+        dv->redo();
 }
 
 void MainWindow::onStartPresentation()
 {
     DocumentView *dv = currentDocView();
     if (!dv || dv->contentFile().isEmpty()) return;
-    // Present what the user sees, including changes not written to their file yet.
+
     auto *pw = new PresentationWindow(dv->contentFile(), dv->currentPage());
     pw->show();
 }
@@ -735,8 +687,6 @@ void MainWindow::loadZoomSettings()
                             m_appSettings->zoomToPointer(), m_appSettings->wheelAction());
 }
 
-// ── Mode / Tool selection ─────────────────────────────────────────────────────
-
 void MainWindow::onModeSelected(const QString &mode)
 {
     if (mode == QLatin1String("edit")) {
@@ -746,6 +696,7 @@ void MainWindow::onModeSelected(const QString &mode)
         m_rightSidebar->setMode(m_editMode ? QStringLiteral("edit") : QString{});
         if (!m_editMode) {
             closeTextPanel();
+            m_formatBar->setAdvancedChecked(false);
             m_formatBar->hide();
             m_drawBar->hide();
             onToolSelected(QStringLiteral("select"));
@@ -759,8 +710,7 @@ void MainWindow::onModeSelected(const QString &mode)
             runExport(dv, dlg.request());
     } else if (mode == QLatin1String("organize")) {
         DocumentView *dv = currentDocView();
-        // Organize what is on screen (the working copy, if there is one), but
-        // keep the document's own file as the target the changes belong to.
+
         auto *dlg = new PdfOrganizerDialog(dv ? dv->contentFile() : QString{}, this);
         if (dv) dlg->setTargetPath(dv->currentFile());
         dlg->setAttribute(Qt::WA_DeleteOnClose);
@@ -778,8 +728,6 @@ void MainWindow::onModeSelected(const QString &mode)
         openHistoryDialog();
     }
 }
-
-// ── Change history ────────────────────────────────────────────────────────────
 
 void MainWindow::openHistoryDialog()
 {
@@ -822,8 +770,6 @@ void MainWindow::openHistoryDialog()
     dlg->open();
 }
 
-// ── Export ────────────────────────────────────────────────────────────────────
-
 void MainWindow::runExport(DocumentView *dv, const ExportRequest &req)
 {
     if (!dv || req.path.isEmpty()) return;
@@ -847,7 +793,7 @@ void MainWindow::runExport(DocumentView *dv, const ExportRequest &req)
                       .arg(QFileInfo(req.path).absolutePath());
 
     } else {
-        // The rendered file, not the save target — it carries uncommitted edits.
+
         const QString source = dv->contentFile();
         PdfExportOptions opt;
         opt.pages           = req.pages;
@@ -858,9 +804,6 @@ void MainWindow::runExport(DocumentView *dv, const ExportRequest &req)
         opt.imageQuality    = req.imageQuality;
         opt.userPassword    = req.password;
 
-        // The option-aware path needs qpdf. Without it — or when the source is
-        // damaged enough that qpdf refuses it — fall back to the plain save,
-        // but only when nothing was asked for that the fallback cannot honour.
         const bool plainRequest = req.pages.size() == dv->pageCount()
                                && req.includeComments && req.keepForms
                                && req.embedFonts && req.password.isEmpty();
@@ -869,9 +812,7 @@ void MainWindow::runExport(DocumentView *dv, const ExportRequest &req)
         failure = ok ? QString{}
                      : pdfExportAvailable()
                          ? tr("Could not write \"%1\".").arg(shownName)
-                         // Naming the missing piece beats a generic failure:
-                         // the Windows package ships without qpdf, so a page
-                         // range or password on a PDF cannot be produced there.
+
                          : tr("Could not write \"%1\".\n\n"
                               "Selecting pages or setting a password for a PDF "
                               "needs qpdf, which this build does not include. "
@@ -891,7 +832,7 @@ void MainWindow::runExport(DocumentView *dv, const ExportRequest &req)
             : tr("Document exported to \"%1\".").arg(shownName));
 
     if (req.openAfterExport) {
-        // A multi-page image export has no single result file; open the folder.
+
         const bool many = req.format == QLatin1String("image") && pages > 1;
         const QString target = many ? QFileInfo(req.path).absolutePath() : req.path;
         QDesktopServices::openUrl(QUrl::fromLocalFile(target));
@@ -900,8 +841,7 @@ void MainWindow::runExport(DocumentView *dv, const ExportRequest &req)
 
 void MainWindow::onToolSelected(const QString &tool)
 {
-    // Which tools need edit mode is in the catalogue itself. That list used to
-    // stand here a second time and had to be kept in step by hand.
+
     const auto needsEditMode = [](const QString &id) {
         for (const ToolDef &t : LeftSidebar::toolCatalog())
             if (t.id == id) return t.needsEditMode;
@@ -932,17 +872,13 @@ void MainWindow::onToolSelected(const QString &tool)
     }
 
     m_activeTool = tool;
-    // Also reached from the keyboard shortcuts, which never touch the sidebar
-    // buttons - so the highlight is set here rather than in the click handler,
-    // and every path into this slot ends with the toolbar showing the tool
-    // that is actually active. Setting it again on the click path is a no-op.
+
     m_leftSidebar->setActiveTool(tool);
 
     const bool showBookmarks = (tool == QLatin1String("bookmark"));
     m_bookmarkPanel->setVisible(showBookmarks);
     if (showBookmarks) refreshBookmarkPanel();
 
-    // Exactly the chosen tool's panel is open, every other one closed.
     for (auto it = m_toolPanels.cbegin(); it != m_toolPanels.cend(); ++it) {
         const bool wanted = (it.key() == tool);
         it.value().widget->setFixedWidth(wanted ? it.value().width : 0);
@@ -954,10 +890,10 @@ void MainWindow::onToolSelected(const QString &tool)
     m_formatBar->setVisible(m_editMode && isText);
     m_drawBar->setVisible(m_editMode && isDraw);
 
-    if (m_editMode && isText)
-        openTextPanel();
-    else
+    if (!(m_editMode && isText)) {
         closeTextPanel();
+        m_formatBar->setAdvancedChecked(false);
+    }
 
     DocumentView *dv = currentDocView();
     if (!dv) return;
@@ -985,12 +921,8 @@ void MainWindow::onToolSelected(const QString &tool)
     else
         dv->setTool(DocumentView::Tool::Select);
 
-    // The Tool enum does not know tools from outside the Core. The view passes
-    // the id on to its overlays, which decide whether they are meant.
     dv->setActiveToolId(tool);
 }
-
-// ── Theme / Language ──────────────────────────────────────────────────────────
 
 void MainWindow::applyTheme(const QString &mode)
 {
@@ -1064,8 +996,6 @@ void MainWindow::closeEvent(QCloseEvent *e)
     e->accept();
 }
 
-// ── Panel layout ──────────────────────────────────────────────────────────────
-
 void MainWindow::setRightSidebarCollapsed(bool collapsed)
 {
     m_rightSidebarCollapsed = collapsed;
@@ -1094,8 +1024,6 @@ void MainWindow::savePanelLayout()
 {
     if (!m_appSettings) return;
 
-    // Opting out means the stored layout stops being written as well — the
-    // next start then falls back to the defaults rather than to a stale state.
     if (!m_appSettings->preservePanelLayout())
         return;
 
@@ -1150,8 +1078,7 @@ bool MainWindow::confirmAndSave(DocumentView *dv)
     if (btn == QMessageBox::Cancel) return false;
 
     if (btn == QMessageBox::Save) {
-        // A failed save keeps the document open — closing it would throw the
-        // changes away, which is exactly what the user just declined.
+
         if (!dv->currentFile().isEmpty())
             return saveDocument(dv, dv->currentFile());
 
@@ -1161,5 +1088,5 @@ bool MainWindow::confirmAndSave(DocumentView *dv)
         return saveDocument(dv, path);
     }
 
-    return true; // Discard
+    return true;
 }

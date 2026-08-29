@@ -6,47 +6,33 @@
 #include <QRectF>
 #include <QString>
 
-// ── ContentItem ───────────────────────────────────────────────────────────────
-// One logical region detected on a PDF page. Backend-neutral: produced by the
-// qpdf content-stream scanner (ContentMap.cpp) or the Poppler word-box path
-// (ContentModel.cpp). New region types (video, vector art, …) extend the enum;
-// a provider that cannot detect a type simply never emits it.
+/// One logical region detected on a PDF page.
 struct ContentItem {
     enum class Type {
-        Text,        // single text line (or isolated segment)
-        Paragraph,   // multi-line text block — edited as one unit
-        TableCell,   // one cell of a detected table row
-        FormField,   // AcroForm widget (fillable area)
-        Image,       // raster image placement (XObject)
-        Media,       // video/sound annotation (Screen, RichMedia, Movie)
+        Text,
+        Paragraph,
+        TableCell,
+        FormField,
+        Image,
+        Media,
     };
 
     Type    type       { Type::Text };
-    QRectF  bounds;          // page-space PDF points, Y=0 at top
-    QString text;            // text content, lines joined with '\n'
+    QRectF  bounds;
+    QString text;
     double  fontSizePt { 0.0 };
-    // true  → fontSizePt is the size the PDF itself states (/Tf through the
-    //         text and transform matrices), so it can be written back as is.
-    // false → it was estimated from glyph boxes; consumers that care about the
-    //         RENDERED height must calibrate it (see DocumentView).
+
     bool    fontSizeExact { false };
-    QString fontFamily;      // resolved Qt font family ("" = unknown)
-    QString rawFontName;     // PDF BaseFont as written in the file
+    QString fontFamily;
+    QString rawFontName;
     bool    bold       { false };
     bool    italic     { false };
-    QColor  textColor;       // text fill color (invalid = unknown)
-    QColor  bgColor;         // background fill behind the text (invalid = none)
-    QString fieldName;       // AcroForm /T (FormField only)
-    // Pen origin of the first line: where the text actually starts, with y on
-    // the BASELINE (page space, Y=0 at top). bounds only says where the ink
-    // landed, which is a side bearing and a cap height away from that — too
-    // vague to put replacement text back on the same spot. Null = unknown
-    // (backends that cannot see the text matrix); consumers then measure.
+    QColor  textColor;
+    QColor  bgColor;
+    QString fieldName;
+
     QPointF textOrigin;
-    // Baseline-to-baseline distance of a multi-line block, in points. 0 for
-    // single lines and where it could not be determined; consumers then fall
-    // back to the font's own line spacing, which is usually tighter than the
-    // document's and pulls every following line upward.
+
     double  lineSpacingPt { 0.0 };
 
     bool isFormField() const { return type == Type::FormField; }
@@ -57,7 +43,6 @@ struct ContentItem {
     bool isValid()     const { return !bounds.isNull() && !bounds.isEmpty(); }
 };
 
-// Type bitmask for spatial lookups.
 constexpr unsigned contentTypeBit(ContentItem::Type t)
 {
     return 1u << static_cast<unsigned>(t);
@@ -69,52 +54,39 @@ constexpr unsigned kTextualContentTypes =
     | contentTypeBit(ContentItem::Type::FormField);
 constexpr unsigned kAllContentTypes = 0x3Fu;
 
-// Spatial lookup over classified items: exact containment (3 pt tolerance,
-// FormField > TableCell > Text/Paragraph priority, smaller area wins ties),
-// then nearest edge within maxDistance pt. Returns invalid item if none.
 ContentItem contentItemAt(const QList<ContentItem> &items, const QPointF &pdfPt,
                           unsigned typeMask = kTextualContentTypes,
                           double maxDistance = 40.0);
 
-// ── Shared geometry classifier ────────────────────────────────────────────────
-// Backend-neutral intermediate: one positioned text run (a word from Poppler
-// or one Tj/TJ show-op from the qpdf scanner).
+/// Stores one backend-neutral positioned text run.
 struct ContentCluster {
-    QRectF  bounds;          // page-space, Y=0 at top
+    QRectF  bounds;
     QString text;
     double  fontSizePt { 0.0 };
-    bool    fontSizeExact { false };   // see ContentItem::fontSizeExact
-    QString rawFontName;     // PDF BaseFont (may be empty)
+    bool    fontSizeExact { false };
+    QString rawFontName;
     QColor  textColor;
-    bool    exactWidth { false };  // true when bounds.width is glyph-exact
-    QPointF origin;          // pen position, y = baseline (see ContentItem)
+    bool    exactWidth { false };
+    QPointF origin;
 };
 
-// Groups runs into lines → segments, detects table rows via column alignment
-// across neighbouring rows, merges aligned consecutive lines into Paragraph
-// items (text joined with '\n'). Font/color metadata is carried through.
 QList<ContentItem> classifyContentClusters(QList<ContentCluster> clusters,
                                            bool mergeVertical = true);
 
-// ── Font resolution ───────────────────────────────────────────────────────────
 struct ResolvedFont {
-    QString family;          // Qt font family (alias-mapped, camel-case split)
+    QString family;
     bool    bold   { false };
     bool    italic { false };
 };
-// "ABCDEF+Helvetica-BoldOblique" → { "Helvetica", bold=true, italic=true }
+
 ResolvedFont resolvePdfFont(const QString &rawBaseFont);
 
-// ── qpdf content-stream scanner ───────────────────────────────────────────────
 #ifdef HAVE_QPDF
 
 #include <string>
 #include <qpdf/QPDFObjectHandle.hh>
 
-// Scans one page: text clusters (CTM-corrected, font + color resolved, one
-// level of Form-XObject recursion), background fills, image placements, and
-// AcroForm/media annotations. Returns the fully classified item list.
 QList<ContentItem> qpdfBuildPageItems(const std::string &cs, double pageH,
                                       QPDFObjectHandle pageObj);
 
-#endif // HAVE_QPDF
+#endif

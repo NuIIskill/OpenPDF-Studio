@@ -14,6 +14,9 @@
 
 #include "app/AppSettings.hpp"
 #include "app/PdfPwStore.hpp"
+#ifdef HAVE_PDF_RENDERING
+#  include "engine/document/PdfBackend.hpp"
+#endif
 #include "ui/view/PageCanvas.hpp"
 
 #include "rich-media/ui/MediaPlayerFrame.hpp"
@@ -35,22 +38,21 @@
 #include <QProgressDialog>
 #include <QScopeGuard>
 #include <QSysInfo>
+#include <QTemporaryFile>
 #include <QRubberBand>
 #include <QVariant>
 #include <QWidget>
 
+#include <optional>
+
 namespace {
 
-/// The tool id the module registers under.
 const QLatin1String kToolId { "video" };
 
-/// Smallest drag that counts as one, in canvas pixels.
 constexpr int kMinDrag = 12;
 
-} // namespace
+}
 
-// Built once by the window (ToolPanels) and driven by whichever layer is
-// active. Defined in MediaModule.cpp.
 RichMediaPanel *richMediaPanel();
 
 MediaLayer::MediaLayer(PageCanvas *canvas, QObject *parent)
@@ -58,8 +60,7 @@ MediaLayer::MediaLayer(PageCanvas *canvas, QObject *parent)
     , m_canvas(canvas)
 {
     if (QWidget *widget = m_canvas ? m_canvas->canvasWidget() : nullptr) {
-        // Installed after the view's own filter and therefore asked first:
-        // while the media tool is active the clicks are ours.
+
         widget->installEventFilter(this);
         m_band = new QRubberBand(QRubberBand::Rectangle, widget);
     }
@@ -67,8 +68,7 @@ MediaLayer::MediaLayer(PageCanvas *canvas, QObject *parent)
 
 MediaLayer::~MediaLayer()
 {
-    // Torn down synchronously, not through deleteLater: on shutdown there is
-    // no event loop left to run it, and the decoder threads would keep going.
+
     if (m_player) {
         m_player->stop();
         delete m_player.data();
@@ -79,12 +79,11 @@ MediaLayer::~MediaLayer()
         QFile::remove(temp);
 }
 
-// ── Document ─────────────────────────────────────────────────────────────────
-
 void MediaLayer::setDocument(const QString &path)
 {
     closePlayer();
     cancelPlacement();
+    clearSelection();
     clearFrames();
     m_session.clear();
 
@@ -92,10 +91,10 @@ void MediaLayer::setDocument(const QString &path)
         MediaExtractor::clearCache(m_documentPath);
 
     m_documentPath = path;
-    // Trust covers exactly one document; a new one starts at zero.
+
     m_playbackTrusted = false;
     if (path.isEmpty()) {
-        if (m_panel) m_panel->clearPlacement();
+        if (m_panel) m_panel->resetForInsert();
         return;
     }
 
@@ -124,11 +123,10 @@ void MediaLayer::setActiveTool(const QString &toolId)
         bindPanel();
     } else {
         cancelPlacement();
+        clearSelection();
         unbindPanel();
     }
 }
-
-// ── Removing ─────────────────────────────────────────────────────────────────
 
 void MediaLayer::showMenuFor(MediaFrame *frame, const QPoint &globalPos)
 {
@@ -140,6 +138,8 @@ void MediaLayer::showMenuFor(MediaFrame *frame, const QPoint &globalPos)
     if (placed.removed) return;
 
     QMenu menu;
+    QAction *edit = m_toolActive ? menu.addAction(tr("Edit properties")) : nullptr;
+    if (edit) menu.addSeparator();
     QAction *play = menu.addAction(tr("Play"));
     QAction *save = menu.addAction(tr("Save media as..."));
     menu.addSeparator();
@@ -151,7 +151,8 @@ void MediaLayer::showMenuFor(MediaFrame *frame, const QPoint &globalPos)
     save->setEnabled(playable);
 
     QAction *chosen = menu.exec(globalPos);
-    if (chosen == play)        playPlaced(placed);
+    if (edit && chosen == edit) selectFrame(frame);
+    else if (chosen == play)   playPlaced(placed);
     else if (chosen == save)   saveMediaAs(placed);
     else if (chosen == remove) removeFrame(frame);
 }
@@ -162,22 +163,44 @@ void MediaLayer::removeFrame(MediaFrame *frame)
         Placed &placed = m_placed[i];
         if (placed.frame != frame || placed.removed) continue;
 
+        if (placed.asset.annotObject > 0) {
+            QImage cleanBackground;
+            if (placed.backgroundPatch) {
+                const QPixmap patch = placed.backgroundPatch->pixmap();
+                if (!patch.isNull()) cleanBackground = patch.toImage();
+            }
+            if (cleanBackground.isNull())
+                cleanBackground = backgroundWithoutMedia(placed.asset);
+
+            if (placed.pending)
+                m_session.dropInsert(placed.spec);
+            m_session.addRemoval(placed.asset);
+
+            if (m_selected == frame) {
+                frame->setSelected(false);
+                m_selected = nullptr;
+                if (m_panel) m_panel->resetForInsert();
+            }
+            delete placed.backgroundPatch;
+            placed.backgroundPatch = nullptr;
+            placed.pending = false;
+            placed.removed = true;
+            placed.page = placed.asset.page;
+            placed.bounds = placed.asset.bounds;
+            frame->setInteractive(false);
+            frame->setPoster(cleanBackground);
+            frame->setMode(MediaFrame::Mode::Removed);
+            positionFrame(placed);
+            return;
+        }
+
         if (placed.pending) {
-            // Noch nichts im Dokument: Auftrag zurücknehmen, Rahmen weg, fertig.
             m_session.dropInsert(placed.spec);
+            if (m_selected == frame) clearSelection();
             frame->deleteLater();
             m_placed.removeAt(i);
             return;
         }
-
-        // Already in the document. It leaves on save; until then the frame
-        // covers the spot, because the page below still shows the poster.
-        m_session.addRemoval(placed.asset);
-        placed.removed = true;
-        frame->setInteractive(false);
-        frame->setCoverColor(pageColorAround(placed.page, placed.bounds));
-        frame->setMode(MediaFrame::Mode::Removed);
-        return;
     }
 }
 
@@ -199,49 +222,61 @@ QImage MediaLayer::pageExcerpt(int page, const QRectF &pdfBounds) const
     return pixmap.copy(clipped).toImage();
 }
 
-QColor MediaLayer::pageColorAround(int page, const QRectF &pdfBounds) const
+QImage MediaLayer::backgroundWithoutMedia(const MediaAsset &asset) const
 {
-    const QColor fallback(Qt::white);
-    if (!m_canvas) return fallback;
-    const QLabel *label = m_canvas->pageLabel(page);
-    if (!label) return fallback;
-    const QPixmap pixmap = label->pixmap();
-    if (pixmap.isNull()) return fallback;
+#ifdef HAVE_PDF_RENDERING
+    if (!m_canvas || m_documentPath.isEmpty() || asset.annotObject <= 0) return {};
+
+    QTemporaryFile cleanFile(QDir::tempPath()
+        + QStringLiteral("/openpdf-media-background-XXXXXX.pdf"));
+    if (!cleanFile.open()) return {};
+    const QString cleanPath = cleanFile.fileName();
+    cleanFile.close();
+    QFile::remove(cleanPath);
+    if (!QFile::copy(m_documentPath, cleanPath)) return {};
+
+    MediaSession removal;
+    removal.addRemoval(asset);
+    const QString password = PdfPwStore::get(m_documentPath);
+    if (!RichMediaWriter::apply(cleanPath, removal, password)) return {};
+
+    std::unique_ptr<PdfBackend> backend = PdfBackend::create();
+    if (!backend || !backend->open(cleanPath,
+            [password](const QString &, bool) -> std::optional<QString> {
+                return password;
+            }))
+        return {};
 
     const qreal scale = m_canvas->screenScale();
-    const QRect inPixels(qRound(pdfBounds.left()   * scale),
-                         qRound(pdfBounds.top()    * scale),
-                         qRound(pdfBounds.width()  * scale),
-                         qRound(pdfBounds.height() * scale));
+    const QImage page = backend->renderPage(asset.page, scale);
+    if (page.isNull()) return {};
+    const QRect pixels(qRound(asset.bounds.left() * scale),
+                       qRound(asset.bounds.top() * scale),
+                       qRound(asset.bounds.width() * scale),
+                       qRound(asset.bounds.height() * scale));
+    const QRect clipped = pixels.intersected(page.rect());
+    return clipped.isEmpty() ? QImage() : page.copy(clipped);
+#else
+    Q_UNUSED(asset)
+    return {};
+#endif
+}
 
-    // A ring just outside the area. Median, not mean, so a rule or a letter
-    // at the edge does not skew the result.
-    const QImage image = pixmap.toImage();
-    const int margin = 4;
-    QList<int> reds, greens, blues;
-    const QList<QPoint> probes {
-        { inPixels.center().x(),  inPixels.top()    - margin },
-        { inPixels.center().x(),  inPixels.bottom() + margin },
-        { inPixels.left()  - margin, inPixels.center().y() },
-        { inPixels.right() + margin, inPixels.center().y() },
-        { inPixels.left()  - margin, inPixels.top()    - margin },
-        { inPixels.right() + margin, inPixels.top()    - margin },
-        { inPixels.left()  - margin, inPixels.bottom() + margin },
-        { inPixels.right() + margin, inPixels.bottom() + margin },
-    };
-    for (const QPoint &probe : probes) {
-        if (!image.rect().contains(probe)) continue;
-        const QColor sample = image.pixelColor(probe);
-        reds   << sample.red();
-        greens << sample.green();
-        blues  << sample.blue();
-    }
-    if (reds.isEmpty()) return fallback;
-    const auto median = [](QList<int> values) {
-        std::sort(values.begin(), values.end());
-        return values.at(values.size() / 2);
-    };
-    return QColor(median(reds), median(greens), median(blues));
+void MediaLayer::ensureBackgroundPatch(Placed &placed)
+{
+    if (placed.pending || placed.asset.annotObject <= 0 || placed.backgroundPatch)
+        return;
+    const QImage cleanBackground = backgroundWithoutMedia(placed.asset);
+    if (cleanBackground.isNull()) return;
+
+    QWidget *canvasWidget = m_canvas ? m_canvas->canvasWidget() : nullptr;
+    if (!canvasWidget) return;
+    auto *patch = new QLabel(canvasWidget);
+    patch->setAttribute(Qt::WA_TransparentForMouseEvents, true);
+    patch->setScaledContents(true);
+    patch->setPixmap(QPixmap::fromImage(cleanBackground));
+    placed.backgroundPatch = patch;
+    positionFrame(placed);
 }
 
 void MediaLayer::saveMediaAs(const Placed &placed)
@@ -263,12 +298,13 @@ void MediaLayer::saveMediaAs(const Placed &placed)
                              tr("Could not write \"%1\".").arg(target));
 }
 
-// ── Frames ───────────────────────────────────────────────────────────────────
-
 void MediaLayer::clearFrames()
 {
-    for (Placed &placed : m_placed)
+    m_selected = nullptr;
+    for (Placed &placed : m_placed) {
+        delete placed.backgroundPatch;
         delete placed.frame;
+    }
     m_placed.clear();
 }
 
@@ -289,11 +325,39 @@ void MediaLayer::addFrame(Placed placed)
 
     frame->setInteractive(m_toolActive);
 
-    // Looked up by frame and not by index: indices shift once an entry goes,
-    // and then a click on one video plays another.
     connect(frame, &MediaFrame::activated, this, [this, frame]() {
         for (const Placed &placed : m_placed)
             if (placed.frame == frame) { playPlaced(placed); return; }
+    });
+    connect(frame, &MediaFrame::selected, this,
+            [this, frame]() { selectFrame(frame); });
+    connect(frame, &MediaFrame::geometryEdited, this,
+            [this, frame](const QRect &geometry) {
+        for (Placed &placed : m_placed) {
+            if (placed.frame != frame || placed.removed) continue;
+            placed.bounds = canvasToPdf(placed.page, geometry);
+            if (m_panel && m_selected == frame)
+                m_panel->setPlacement(placed.page, placed.bounds);
+            return;
+        }
+    });
+    connect(frame, &MediaFrame::geometryEditFinished, this,
+            [this, frame](const QRect &geometry) {
+        for (Placed &placed : m_placed) {
+            if (placed.frame != frame || placed.removed) continue;
+            placed.bounds = canvasToPdf(placed.page, geometry);
+            if (m_panel && m_selected == frame) {
+                m_panel->setPlacement(placed.page, placed.bounds);
+                const MediaSpec media = m_panel->spec();
+                if (media.isValid()) {
+                    applyPanel(media);
+                    return;
+                }
+            }
+            placed.bounds = placed.pending ? placed.spec.bounds : placed.asset.bounds;
+            positionFrame(placed);
+            return;
+        }
     });
     connect(frame, &MediaFrame::contextMenuRequested, this,
             [this, frame](const QPoint &globalPos) { showMenuFor(frame, globalPos); });
@@ -307,12 +371,24 @@ void MediaLayer::addFrame(Placed placed)
 void MediaLayer::positionFrame(const Placed &placed) const
 {
     if (!placed.frame || !m_canvas) return;
+    if (placed.backgroundPatch) {
+        const QRect patchRect = pdfToCanvas(placed.asset.page, placed.asset.bounds);
+        if (patchRect.isNull()) {
+            placed.backgroundPatch->hide();
+        } else {
+            placed.backgroundPatch->setGeometry(patchRect);
+            placed.backgroundPatch->show();
+            placed.backgroundPatch->raise();
+        }
+    }
     const QRect canvasRect = pdfToCanvas(placed.page, placed.bounds);
     if (canvasRect.isNull()) {
         placed.frame->hide();
         return;
     }
     placed.frame->setGeometry(canvasRect);
+    if (QLabel *label = m_canvas->pageLabel(placed.page))
+        placed.frame->setPageRect(label->geometry());
     placed.frame->show();
     placed.frame->raise();
 }
@@ -336,7 +412,6 @@ void MediaLayer::relayout()
         }
     }
 
-    // The player hangs where its frame does.
     if (m_player) {
         for (const Placed &placed : m_placed) {
             if (placed.frame != m_player->property("mediaFrame").value<QObject *>())
@@ -346,8 +421,6 @@ void MediaLayer::relayout()
         }
     }
 }
-
-// ── Coordinates ──────────────────────────────────────────────────────────────
 
 QRect MediaLayer::pdfToCanvas(int page, const QRectF &pdfBounds) const
 {
@@ -374,8 +447,6 @@ QRectF MediaLayer::canvasToPdf(int page, const QRect &canvasRect) const
                   canvasRect.height() / scale);
 }
 
-// ── Drag-to-frame ────────────────────────────────────────────────────────────
-
 bool MediaLayer::eventFilter(QObject *watched, QEvent *event)
 {
     QWidget *canvasWidget = m_canvas ? m_canvas->canvasWidget() : nullptr;
@@ -388,6 +459,7 @@ bool MediaLayer::eventFilter(QObject *watched, QEvent *event)
         const QPoint pos = mouse->pos();
         auto [page, label] = m_canvas->pageAtCanvasPos(pos);
         if (page < 0 || !label) return false;
+        if (m_selected) clearSelection();
         m_dragging  = true;
         m_dragStart = pos;
         m_dragPage  = page;
@@ -409,7 +481,6 @@ bool MediaLayer::eventFilter(QObject *watched, QEvent *event)
         const QRect dragged = QRect(m_dragStart, mouse->pos()).normalized();
         if (dragged.width() < kMinDrag || dragged.height() < kMinDrag) return true;
 
-        // Clamp to the page the drag started on.
         QRect clamped = dragged;
         if (const QLabel *label = m_canvas->pageLabel(m_dragPage))
             clamped = dragged.intersected(label->geometry());
@@ -462,33 +533,85 @@ void MediaLayer::cancelPlacement()
     if (m_panel) m_panel->clearPlacement();
 }
 
-// ── Panel ────────────────────────────────────────────────────────────────────
+void MediaLayer::clearSelection(bool resetPanel)
+{
+    if (m_selected) m_selected->setSelected(false);
+    for (Placed &placed : m_placed) {
+        if (placed.frame != m_selected || placed.pending || placed.removed) continue;
+        placed.frame->setPoster(QImage());
+        delete placed.backgroundPatch;
+        placed.backgroundPatch = nullptr;
+        placed.page = placed.asset.page;
+        placed.bounds = placed.asset.bounds;
+        positionFrame(placed);
+        break;
+    }
+    m_selected = nullptr;
+    if (resetPanel && m_panel) m_panel->resetForInsert();
+}
+
+void MediaLayer::selectFrame(MediaFrame *frame)
+{
+    if (!frame) return;
+    cancelPlacement();
+    for (const Placed &placed : std::as_const(m_placed))
+        if (placed.frame && placed.frame != frame) placed.frame->setSelected(false);
+
+    for (Placed &placed : m_placed) {
+        if (placed.frame != frame || placed.removed) continue;
+        m_selected = frame;
+        frame->setSelected(true);
+
+        MediaSpec media;
+        if (placed.pending) {
+            media = placed.spec;
+        } else {
+            ensureBackgroundPatch(placed);
+            media.type = placed.asset.mimeType.startsWith(QLatin1String("audio/"))
+                ? MediaSpec::Type::Audio : MediaSpec::Type::Video;
+            media.source = placed.asset.isEmbedded()
+                ? MediaExtractor::extract(m_documentPath, placed.asset) : QString();
+            media.displayName = placed.asset.name;
+            media.mimeType = placed.asset.mimeType;
+            if (media.type == MediaSpec::Type::Video && !media.source.isEmpty())
+                media.poster = PosterFrame::grab(media.source, 1280);
+            if (media.poster.isNull())
+                media.poster = pageExcerpt(placed.page, placed.bounds);
+            media.activateOnPageOpen = placed.asset.activateOnPageOpen;
+            media.muted = placed.asset.muted;
+            media.loop = placed.asset.loop;
+            media.showControls = placed.asset.showControls;
+            media.floating = placed.asset.floating;
+            media.page = placed.page;
+            media.bounds = placed.bounds;
+        }
+        if (!media.poster.isNull()) frame->setPoster(media.poster);
+        bindPanel();
+        if (m_panel) m_panel->editMedia(media);
+        return;
+    }
+}
 
 void MediaLayer::bindPanel()
 {
     RichMediaPanel *panel = richMediaPanel();
     if (!panel || m_panel == panel) return;
 
-    // One panel per window, one layer per tab. Whoever holds the tool binds
-    // to it, and the previous connection is cut, or the wrong document gets
-    // the video.
     unbindPanel();
     m_panel = panel;
-    connect(panel, &RichMediaPanel::insertRequested,
-            this, &MediaLayer::commitInsert, Qt::UniqueConnection);
-    connect(panel, &RichMediaPanel::placementEdited, this, [this](const QRectF &bounds) {
-        if (!m_placement || m_placementPage < 0) return;
-        m_placementBounds = bounds;
-        m_placement->setGeometry(pdfToCanvas(m_placementPage, bounds));
-    }, Qt::UniqueConnection);
+    connect(panel, &RichMediaPanel::applyRequested,
+            this, &MediaLayer::applyPanel, Qt::UniqueConnection);
     connect(panel, &RichMediaPanel::previewChanged, this, [this](const QImage &poster) {
         if (m_placement) m_placement->setPoster(poster);
     }, Qt::UniqueConnection);
 
-    if (m_placementPage >= 0)
+    if (m_selected) {
+        selectFrame(m_selected);
+    } else if (m_placementPage >= 0) {
         panel->setPlacement(m_placementPage, m_placementBounds);
-    else
-        panel->clearPlacement();
+    } else {
+        panel->resetForInsert();
+    }
 }
 
 void MediaLayer::unbindPanel()
@@ -497,10 +620,55 @@ void MediaLayer::unbindPanel()
     m_panel = nullptr;
 }
 
-// ── Inserting ────────────────────────────────────────────────────────────────
+void MediaLayer::applyPanel(const MediaSpec &requested)
+{
+    if (!m_selected) {
+        commitInsert(requested);
+        return;
+    }
 
-/// Makes sure the source is something that plays everywhere, or that the user
-/// knows it is not. Empty return means cancelled.
+    for (Placed &placed : m_placed) {
+        if (placed.frame != m_selected || placed.removed) continue;
+
+        MediaSpec media = requested;
+        const QString previousSource = placed.pending ? placed.spec.source
+            : (placed.asset.isEmbedded()
+                ? MediaExtractor::extract(m_documentPath, placed.asset) : QString());
+        const bool sourceChanged = media.source != previousSource;
+        if (media.type == MediaSpec::Type::Video && sourceChanged) {
+            const QString playable = ensurePlayableSource(media.source);
+            if (playable.isEmpty()) return;
+            if (playable != media.source) {
+                media.displayName = MediaDrop::displayNameFor(media.source, playable);
+                media.source = playable;
+                media.mimeType = QStringLiteral("video/mp4");
+            }
+        }
+        if (media.poster.isNull() && media.type == MediaSpec::Type::Video)
+            media.poster = PosterFrame::grab(media.source, 960);
+        if (media.poster.isNull())
+            media.poster = PosterFrame::placeholder(QSize(960, 540));
+
+        if (placed.pending) {
+            m_session.dropInsert(placed.spec);
+        } else {
+            m_session.addRemoval(placed.asset);
+        }
+        m_session.addInsert(media);
+
+        placed.pending = true;
+        placed.spec = media;
+        placed.page = media.page;
+        placed.bounds = media.bounds;
+        placed.frame->setCaption(media.displayName);
+        placed.frame->setPoster(media.poster);
+        placed.frame->setSelected(true);
+        positionFrame(placed);
+        if (m_panel) m_panel->editMedia(media);
+        return;
+    }
+}
+
 QString MediaLayer::ensurePlayableSource(const QString &source)
 {
     const MediaFormat::Info info = MediaFormat::inspect(source);
@@ -564,7 +732,7 @@ QString MediaLayer::ensurePlayableSource(const QString &source)
                                  tr("The file could not be converted."));
         return QString();
     }
-    // The converted file is ours now and goes with the session.
+
     m_tempFiles << target;
     return target;
 }
@@ -576,9 +744,6 @@ void MediaLayer::commitInsert(const MediaSpec &requested)
     spec.bounds = m_placementBounds;
     if (!spec.isValid()) return;
 
-    // Check before inserting: a document that shows only a still image at the
-    // recipient is the costliest failure here, because it surfaces after the
-    // file was sent.
     if (spec.type == MediaSpec::Type::Video) {
         const QString playable = ensurePlayableSource(spec.source);
         if (playable.isEmpty()) return;
@@ -589,8 +754,6 @@ void MediaLayer::commitInsert(const MediaSpec &requested)
         }
     }
 
-    // The poster is taken now and not at save time, or the image in the
-    // document would depend on the source file still being there.
     if (spec.poster.isNull() && spec.type == MediaSpec::Type::Video)
         spec.poster = PosterFrame::grab(spec.source, 960);
     if (spec.poster.isNull())
@@ -608,9 +771,6 @@ void MediaLayer::commitInsert(const MediaSpec &requested)
     cancelPlacement();
 }
 
-// ── Playing ──────────────────────────────────────────────────────────────────
-
-/// The facts a report needs to be worth reading.
 QString MediaLayer::playbackDiagnostics(const QString &filePath,
                                         const QString &message) const
 {
@@ -631,19 +791,10 @@ QString MediaLayer::playbackDiagnostics(const QString &filePath,
     return lines.join(QLatin1Char('\n'));
 }
 
-/// What to say when the built-in player gives up.
-///
-/// The facts about the file, because "could not be played" alone sends the
-/// user looking for a fault in their video. And two ways out that they choose:
-/// a smaller copy, which is what a decoder refusing 4K actually needs, and the
-/// player outside the program. The setting forbids handing media out behind
-/// the user's back, not offering it once the program has failed in front of
-/// them.
 void MediaLayer::reportPlaybackFailure(const QString &filePath,
                                        const QString &message)
 {
-    // One failure, one dialog. A player can report the same trouble more than
-    // once on its way down, and a box that keeps coming back looks broken.
+
     if (m_reportingFailure) return;
     m_reportingFailure = true;
     const auto done = qScopeGuard([this] { m_reportingFailure = false; });
@@ -651,8 +802,6 @@ void MediaLayer::reportPlaybackFailure(const QString &filePath,
     const MediaFormat::Info info = MediaFormat::inspect(filePath);
     const bool large = info.size.height() > 1080;
 
-    // Built as whole sentences and joined, so a missing piece cannot leave a
-    // stray full stop standing on its own.
     QStringList sentences;
     if (info.readable && !info.videoCodec.isEmpty()) {
         sentences << (info.size.isValid()
@@ -673,10 +822,7 @@ void MediaLayer::reportPlaybackFailure(const QString &filePath,
     box.setWindowTitle(tr("Rich Media"));
     box.setText(tr("This video could not be played here: %1").arg(message));
     box.setInformativeText(facts);
-    // Everything needed to tell the two possible causes apart, in a block the
-    // user can copy: a decoder that will not take this file, or a media
-    // backend that never loaded in the first place. Without it the same
-    // report comes back with no more information than the last one.
+
     box.setDetailedText(playbackDiagnostics(filePath, message));
 
     QAbstractButton *smaller = nullptr;
@@ -697,10 +843,6 @@ void MediaLayer::reportPlaybackFailure(const QString &filePath,
     if (smaller && box.clickedButton() == smaller) playSmallerCopy(filePath);
 }
 
-/// Makes a 1080p copy next to the extracted file and plays that.
-///
-/// Only the copy being played is smaller. What sits in the document is
-/// untouched, so the recipient still gets the video the author put there.
 void MediaLayer::playSmallerCopy(const QString &filePath)
 {
     QWidget *parent = QApplication::activeWindow();
@@ -720,7 +862,7 @@ void MediaLayer::playSmallerCopy(const QString &filePath)
             progress.setValue(percent);
             QApplication::processEvents();
             return !progress.wasCanceled();
-        }, /*maxHeight=*/1080);
+        },  1080);
         progress.close();
 
         if (!ok) {
@@ -732,7 +874,6 @@ void MediaLayer::playSmallerCopy(const QString &filePath)
         m_tempFiles << target;
     }
 
-    // Remembered under the original, so every later click goes straight to it.
     m_smallerCopies.insert(filePath, target);
 
     for (const Placed &placed : m_placed) {
@@ -744,7 +885,7 @@ void MediaLayer::playSmallerCopy(const QString &filePath)
 
 bool MediaLayer::confirmPlayback(const Placed &placed)
 {
-    // What the user just inserted needs no clearance; they picked the file.
+
     if (placed.pending || m_playbackTrusted) return true;
 
     QMessageBox question(QApplication::activeWindow());
@@ -759,8 +900,7 @@ bool MediaLayer::confirmPlayback(const Placed &placed)
     QAbstractButton *trust = question.addButton(tr("Always for this document"),
                                                 QMessageBox::AcceptRole);
     question.addButton(QMessageBox::Cancel);
-    // The careful answer is the preset one: dismissing the question allows
-    // nothing.
+
     question.setDefaultButton(QMessageBox::Cancel);
     question.exec();
 
@@ -776,7 +916,7 @@ void MediaLayer::playPlaced(const Placed &placed)
     if (!confirmPlayback(placed)) return;
 
     if (placed.pending) {
-        // Not saved yet, so the source file is still where it came from.
+
         playFile(placed.spec.source, placed);
         return;
     }
@@ -800,8 +940,7 @@ void MediaLayer::playPlaced(const Placed &placed)
 
 void MediaLayer::playFile(const QString &filePath, const Placed &placed)
 {
-    // A medium that needed a smaller copy once needs it every time. Without
-    // this the next click runs into the same failure and the same dialog.
+
     const QString playable = m_smallerCopies.value(filePath, filePath);
 
     AppSettings settings;
@@ -811,10 +950,6 @@ void MediaLayer::playFile(const QString &filePath, const Placed &placed)
     const QString command = mode == QLatin1String("custom")
                           ? settings.customPlayerCommand() : QString();
 
-    // "In OpenPDF Studio" means exactly that. It never hands the file to a
-    // player outside this program, not even when the built-in one fails: the
-    // user picked where their media may be opened, and quietly starting a
-    // foreign process against that choice is worse than not playing at all.
     if (wantsInApp) {
         closePlayer();
         QWidget *canvasWidget = m_canvas ? m_canvas->canvasWidget() : nullptr;
@@ -838,9 +973,7 @@ void MediaLayer::playFile(const QString &filePath, const Placed &placed)
             closePlayer();
             reportPlaybackFailure(playable, message);
         });
-        // The poster stands until the first frame arrives. For a medium
-        // already in the document that is exactly the piece of rendered page
-        // the player is about to cover.
+
         if (placed.pending && !placed.spec.poster.isNull())
             m_player->setPoster(placed.spec.poster);
         else
@@ -854,8 +987,6 @@ void MediaLayer::playFile(const QString &filePath, const Placed &placed)
         return;
     }
 
-    // The other two modes are the user asking for a player outside this
-    // program, so here it is allowed.
     if (ExternalPlayer::play(playable, command)) return;
 
     QMessageBox::warning(
@@ -872,8 +1003,6 @@ void MediaLayer::closePlayer()
     m_player = nullptr;
 }
 
-// ── Dropping ─────────────────────────────────────────────────────────────────
-
 bool MediaLayer::acceptsDroppedFile(const QString &path) const
 {
     return !m_documentPath.isEmpty() && RichMediaWriter::available()
@@ -881,14 +1010,53 @@ bool MediaLayer::acceptsDroppedFile(const QString &path) const
 }
 
 bool MediaLayer::handleDroppedFile(const QString &path, int page,
+                                   const QPoint &canvasPosition,
                                    QString *newDocument)
 {
     if (!acceptsDroppedFile(path)) return false;
+    if (newDocument) newDocument->clear();
 
-    // The file is ours from here on even if nothing comes of it, or the
-    // caller would go on to place a video as an image.
     const QString source = ensurePlayableSource(path);
     if (source.isEmpty()) return true;
+
+    if (page >= 0 && m_canvas) {
+        const QLabel *label = m_canvas->pageLabel(page);
+        const qreal scale = m_canvas->screenScale();
+        if (label && scale > 0.0) {
+            QImage poster = PosterFrame::grab(source, 1280);
+            const MediaFormat::Info mediaInfo = MediaFormat::inspect(source);
+            const QSize mediaPixels = mediaInfo.size.isValid() ? mediaInfo.size
+                                                               : poster.size();
+            if (poster.isNull())
+                poster = PosterFrame::placeholder(QSize(960, 540));
+
+            const QSizeF pageSize(label->width() / scale, label->height() / scale);
+            const QPointF dropPoint((canvasPosition.x() - label->x()) / scale,
+                                    (canvasPosition.y() - label->y()) / scale);
+
+            MediaSpec spec;
+            spec.type = MediaSpec::Type::Video;
+            spec.source = source;
+            spec.displayName = MediaDrop::displayNameFor(path, source);
+            spec.mimeType = MediaDrop::mimeTypeFor(source);
+            spec.poster = poster;
+            spec.page = page;
+            spec.bounds = MediaDrop::placementBoundsFor(pageSize, mediaPixels,
+                                                        dropPoint);
+            if (!spec.isValid()) return true;
+
+            m_session.addInsert(spec);
+            Placed placed;
+            placed.pending = true;
+            placed.spec = spec;
+            placed.page = page;
+            placed.bounds = spec.bounds;
+            addFrame(std::move(placed));
+            if (m_toolActive && !m_placed.isEmpty())
+                selectFrame(m_placed.constLast().frame);
+            return true;
+        }
+    }
 
     const QString work = MediaDrop::addAsOwnPage(
         m_documentPath, source, page >= 0 ? page : m_canvas->pageCount() - 1,
@@ -898,11 +1066,9 @@ bool MediaLayer::handleDroppedFile(const QString &path, int page,
                              tr("The video could not be added as a new page."));
         return true;
     }
-    *newDocument = work;
+    if (newDocument) *newDocument = work;
     return true;
 }
-
-// ── Saving ───────────────────────────────────────────────────────────────────
 
 bool MediaLayer::writeTo(const QString &stagingPath)
 {
@@ -911,8 +1077,7 @@ bool MediaLayer::writeTo(const QString &stagingPath)
         qWarning() << "[rich-media] nothing can be written without qpdf";
         return false;
     }
-    // The staging file inherits the document's encryption but sits under a
-    // path the password store knows nothing about.
+
     return RichMediaWriter::apply(stagingPath, m_session,
                                   PdfPwStore::get(m_documentPath));
 }

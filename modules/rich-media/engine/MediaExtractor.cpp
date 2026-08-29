@@ -23,8 +23,6 @@
 
 namespace {
 
-/// One folder per process run, so two instances do not clear each other's
-/// files.
 QString cacheRoot()
 {
     const QString base = QStandardPaths::writableLocation(QStandardPaths::TempLocation);
@@ -32,7 +30,6 @@ QString cacheRoot()
         QStringLiteral("openpdf-media-%1").arg(QCoreApplication::applicationPid()));
 }
 
-/// One subfolder per document. The path is no directory name, its hash is.
 QString cacheDir(const QString &pdfPath)
 {
     const QByteArray key = QCryptographicHash::hash(
@@ -40,9 +37,6 @@ QString cacheDir(const QString &pdfPath)
     return QDir(cacheRoot()).filePath(QString::fromLatin1(key.toHex().left(16)));
 }
 
-/// Cache file name: object number plus the name from the PDF, stripped of
-/// anything that could be a path. An asset called "../../.bashrc" in the
-/// document must not reach past itself.
 QString cacheName(const MediaAsset &asset)
 {
     QString safe = QFileInfo(asset.name).fileName();
@@ -52,7 +46,7 @@ QString cacheName(const MediaAsset &asset)
     return QStringLiteral("%1_%2").arg(asset.streamObject).arg(safe);
 }
 
-} // namespace
+}
 
 #ifdef HAVE_QPDF
 
@@ -66,10 +60,8 @@ QString MediaExtractor::extract(const QString &pdfPath, const MediaAsset &asset)
         return {};
     }
     const QString target = dir.filePath(cacheName(asset));
-    if (QFileInfo::exists(target)) return target;   // already fetched
+    if (QFileInfo::exists(target)) return target;
 
-    // Piped straight into the file: a 300 MB video should not pass through
-    // memory on its way to disk.
     const QString partial = target + QStringLiteral(".part");
     FILE *out = std::fopen(partial.toLocal8Bit().constData(), "wb");
     if (!out) {
@@ -89,8 +81,7 @@ QString MediaExtractor::extract(const QString &pdfPath, const MediaAsset &asset)
         if (stream.isStream()) {
             Pl_StdioFile pipe("rich-media asset", out);
             bool filtered = false;
-            // qpdf_dl_all: the attachment is compressed in the document and
-            // the original bytes are what should come out.
+
             ok = stream.pipeStreamData(&pipe, &filtered, 0, qpdf_dl_all);
         }
     } catch (const std::exception &e) {
@@ -103,8 +94,7 @@ QString MediaExtractor::extract(const QString &pdfPath, const MediaAsset &asset)
         QFile::remove(partial);
         return {};
     }
-    // Rename only once everything is in: otherwise an aborted extraction
-    // counts as a finished one on the next click.
+
     QFile::remove(target);
     if (!QFile::rename(partial, target)) {
         QFile::remove(partial);
@@ -113,7 +103,7 @@ QString MediaExtractor::extract(const QString &pdfPath, const MediaAsset &asset)
     return target;
 }
 
-#else   // !HAVE_QPDF
+#else
 
 QString MediaExtractor::extract(const QString &, const MediaAsset &)
 {

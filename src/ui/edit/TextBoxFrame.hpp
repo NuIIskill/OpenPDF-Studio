@@ -14,7 +14,7 @@ QT_END_NAMESPACE
 
 class InlineEditor;
 
-// Provides the movable and resizable frame around an InlineEditor.
+/// Provides the movable and resizable frame around an InlineEditor.
 class TextBoxFrame : public QWidget
 {
     Q_OBJECT
@@ -23,32 +23,31 @@ public:
 
     void setDecorations(bool on);
     void setGlyphsVisible(bool on);
+    void setStandardFace(bool on);
     void setLineSpacingPt(qreal pt);
     void setAdvanceMeasure(std::function<double(const QString &)> measure);
     void present(const QString &text, const QRectF &canvasBounds, qreal fontSize,
                  const QColor &color = QColor(0x11, 0x11, 0x11),
                  const QString &fontFamily = QString(),
-                 bool bold = false, bool italic = false);
+                 bool bold = false, bool italic = false,
+                 bool underline = false);
     void setFontSize(qreal pixelFontSize);
     void setTextColor(const QColor &color);
-    // Change font family/style live (size, color, content preserved).
-    void setTextFont(const QString &family, bool bold, bool italic);
-    // Reposition and resize for a new zoom level without disturbing the editor's
-    // current text or cursor selection.
+
+    void setTextFont(const QString &family, bool bold, bool italic,
+                     bool underline);
+
     void repositionForZoom(const QRectF &canvasBounds, qreal pixelFontSize,
                            const TextBoxProperties &box, qreal scale);
     void setTextAnchor(bool valid, const QPointF &penOffsetPt);
     void setForbiddenZones(const QList<QRect> &zones);
-    // Clamp drag/resize to this rect (canvas coords). Pass null rect to disable clamping.
+
     void setPageRect(const QRect &pageRect);
     void resetCommitGuard();
     QString currentText() const;
-    // Returns the inner editing rect in parent (canvas) coordinates.
+
     QRectF innerCanvasRect() const;
-    // Grow the frame until the whole document is visible. Height always
-    // grows; width grows too for single-line edits (setGrowHorizontal) so
-    // typing extends the line instead of wrapping it — a wrap the commit
-    // would paint into the document.
+
     void growToFitText();
     void setGrowHorizontal(bool on);
     void setBoxProperties(const TextBoxProperties &properties, qreal scale);
@@ -61,8 +60,7 @@ Q_SIGNALS:
     void boundsChanged(QRectF inner);
 
 protected:
-    // The editor covers the frame and sees every click first; presses on the
-    // border strip belong to the frame.
+
     bool eventFilter(QObject *watched, QEvent *event) override;
     void paintEvent(QPaintEvent *) override;
     void mousePressEvent(QMouseEvent *) override;
@@ -83,7 +81,11 @@ private:
     int    handleSize() const;
     void   layoutEditor();
     void   applyBoxSize();
-    // Minimum inner height for a given font pixel size (see the .cpp).
+
+    qreal  freieBreitePt() const;
+
+    qreal  textBreitePt(qreal boxBreitePt) const;
+
     static int minInnerHeight(qreal fontPixelSize);
 
     InlineEditor *m_editor      { nullptr };
@@ -91,21 +93,19 @@ private:
     QPoint        m_dragOrigin;
     QRect         m_dragStartGeo;
     bool          m_decorations { true };
-    bool          m_presenting  { false };  // suppress boundsChanged during present()
-    // Minimum INNER width. Only drag-created (empty) boxes get the large
-    // minimum — in-place edits must keep the width of the original text so
-    // the tracked edit bounds stay honest.
+    bool          m_presenting  { false };
+
     int           m_minInnerW   { 120 };
     bool          m_growHorizontal { false };
     bool          m_autoHeight { true };
     TextBoxProperties m_box;
     qreal         m_scale { 1.0 };
     QSizeF        m_boxPt;
-    // Set once the user drags a handle: typing may then only grow the box.
+
     bool          m_userSized { false };
     QPointF       m_anchorPt;
     bool          m_hasAnchor { false };
 
     QList<QRect>  m_forbidden;
-    QRect         m_pageRect;              // empty = no clamping
+    QRect         m_pageRect;
 };
