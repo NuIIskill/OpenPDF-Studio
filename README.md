@@ -5,7 +5,7 @@ edit the text that is already in it, reorder its pages, annotate it, play and
 embed media, and export it to PDF, Word or PNG. Word, OpenDocument and image
 files open as well, converted in process. One application, no web stack.
 
-Current version: **0.2.8**, early alpha. Work on copies of important documents
+Current version: **0.2.9**, early alpha. Work on copies of important documents
 and check exported files with a second PDF viewer.
 
 ## Licensing
@@ -134,21 +134,21 @@ so nothing in the dependency stack forces the GPL onto a distribution.
 Grab a package from the Releases page:
 
 ```bash
-sudo dnf install openpdf-studio-0.2.8-1.x86_64.rpm      # Fedora / RHEL / openSUSE
-sudo apt install ./openpdf-studio_0.2.8_amd64.deb       # Debian / Ubuntu
+sudo dnf install openpdf-studio-0.2.9-1.x86_64.rpm      # Fedora / RHEL / openSUSE
+sudo apt install ./openpdf-studio_0.2.9_amd64.deb       # Debian / Ubuntu
 ```
 
 Or use the AppImage, which needs nothing installed:
 
 ```bash
-chmod +x OpenPDF_Studio-0.2.8-x86_64.AppImage
-./OpenPDF_Studio-0.2.8-x86_64.AppImage
+chmod +x OpenPDF_Studio-0.2.9-x86_64.AppImage
+./OpenPDF_Studio-0.2.9-x86_64.AppImage
 ```
 
 ### Windows
 
-Run `OpenPDF-Studio-0.2.8-Setup.exe`, or unpack
-`OpenPDF-Studio-0.2.8-win64-portable.zip` and start `OpenPDFStudio.exe`.
+Run `OpenPDF-Studio-0.2.9-Setup.exe`, or unpack
+`OpenPDF-Studio-0.2.9-win64-portable.zip` and start `OpenPDFStudio.exe`.
 The Windows build carries PDFium and qpdf, so editing, export options and rich
 media all work. Tesseract is not in it, so scanned pages cannot be OCR'd.
 
