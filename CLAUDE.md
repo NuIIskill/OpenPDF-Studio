@@ -33,7 +33,10 @@ src/
   engine/         document logic, no widgets
     document/     PdfBackend + the PDFium implementation: opening, rendering,
                   text lookup, selection, the content model and saving
-    edit/         content model, ink metrics, exporters, session
+    edit/         content model, ink metrics, edit session
+    export/       the document into another format: PDF options, DOCX, images,
+                  printing
+    import/       another format into a PDF: docx, odt, images
     ocr/          Tesseract wrapper
     render/       PdfRenderer - zoom and point-to-pixel, asks the backend
   ui/             everything that is a widget

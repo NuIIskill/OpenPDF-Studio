@@ -1,6 +1,6 @@
 #pragma once
 
-#include "engine/edit/DocxExporter.hpp"
+#include "engine/export/DocxExporter.hpp"
 
 #include <QByteArray>
 #include <QColor>

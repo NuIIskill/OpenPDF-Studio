@@ -4,9 +4,9 @@
 #include "ui/export/ExportDialog.hpp"
 #include "ui/organizer/PdfOrganizerDialog.hpp"
 #include "ui/history/HistoryDialog.hpp"
-#include "engine/edit/DocxExporter.hpp"
+#include "engine/export/DocxExporter.hpp"
 #include "engine/import/DocumentImport.hpp"
-#include "engine/edit/PdfExporter.hpp"
+#include "engine/export/PdfExporter.hpp"
 #include "ui/PresentationWindow.hpp"
 #include <QTextStream>
 #include "app/PdfPwStore.hpp"

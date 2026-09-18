@@ -1,10 +1,10 @@
-#include "engine/edit/DocumentExporter.hpp"
+#include "engine/export/DocumentExporter.hpp"
 #include "engine/document/PdfBackend.hpp"
 
 #ifdef HAVE_PDF_RENDERING
 #  include "engine/edit/ContentMap.hpp"
 #  include "engine/edit/ContentModel.hpp"
-#  include "engine/edit/DocxLayout.hpp"
+#  include "engine/export/DocxLayout.hpp"
 #  include "engine/edit/EditSession.hpp"
 #  include "engine/ocr/OcrEngine.hpp"
 #  include "engine/render/PdfRenderer.hpp"

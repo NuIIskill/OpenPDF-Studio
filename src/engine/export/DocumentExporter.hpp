@@ -3,7 +3,7 @@
 #include <QList>
 #include <QString>
 
-#include "engine/edit/DocxExporter.hpp"
+#include "engine/export/DocxExporter.hpp"
 
 #ifdef HAVE_PDF_RENDERING
 class ContentProvider;

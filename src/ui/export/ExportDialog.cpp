@@ -1,6 +1,6 @@
 #include "ui/export/ExportDialog.hpp"
 #include "ui/theme/Theme.hpp"
-#include "engine/edit/PdfExporter.hpp"
+#include "engine/export/PdfExporter.hpp"
 
 #include <QButtonGroup>
 #include <QCheckBox>

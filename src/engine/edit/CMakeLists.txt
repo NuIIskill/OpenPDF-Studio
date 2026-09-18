@@ -3,26 +3,14 @@ target_sources(OpenPDFStudio PRIVATE
     ContentMap.hpp
     ContentModel.cpp
     ContentModel.hpp
-    DocumentExporter.cpp
-    DocumentExporter.hpp
-    DocxExporter.cpp
-    DocxExporter.hpp
-    DocxLayout.cpp
-    DocxLayout.hpp
-    DocxXml.cpp
-    DocxXml.hpp
     EditSession.cpp
     EditSession.hpp
     InkMetrics.cpp
     InkMetrics.hpp
-    PdfExporter.cpp
-    PdfExporter.hpp
     StandardFont.cpp
     StandardFont.hpp
     TextBlock.hpp
     TextBoxProperties.hpp
     TextWrap.cpp
     TextWrap.hpp
-    ZipWriter.cpp
-    ZipWriter.hpp
 )

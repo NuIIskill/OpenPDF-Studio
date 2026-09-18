@@ -1,6 +1,6 @@
-#include "engine/edit/DocxExporter.hpp"
-#include "engine/edit/DocxXml.hpp"
-#include "engine/edit/ZipWriter.hpp"
+#include "engine/export/DocxExporter.hpp"
+#include "engine/export/DocxXml.hpp"
+#include "engine/export/ZipWriter.hpp"
 
 #include <QByteArray>
 #include <QBuffer>

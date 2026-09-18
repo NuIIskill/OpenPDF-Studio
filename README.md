@@ -2,7 +2,8 @@
 
 A native Qt 6 PDF viewer and editor for Linux and Windows: read a document,
 edit the text that is already in it, reorder its pages, annotate it, play and
-embed media, and export it to PDF, Word or PNG. One application, no web stack.
+embed media, and export it to PDF, Word or PNG. Word, OpenDocument and image
+files open as well, converted in process. One application, no web stack.
 
 Current version: **0.2.8**, early alpha. Work on copies of important documents
 and check exported files with a second PDF viewer.
@@ -34,9 +35,28 @@ so nothing in the dependency stack forces the GPL onto a distribution.
 * Bookmark panel: the document's outline, searchable, click to jump
 * Zoom via toolbar or Ctrl + mouse wheel. Step size, zoom towards the pointer
   and the wheel action without a modifier are configurable
+* Text search with `Ctrl+F`: a bar over the page with a hit counter, Enter and
+  Shift+Enter step through the matches
 * Password-protected documents: the password is asked once and kept in memory
   for the renderer, editor and exporters; it is never written to disk
 * Printing (needs `Qt6::PrintSupport`)
+
+**Opening other formats**
+
+* Word `.docx`, OpenDocument `.odt` and images open like a PDF, by dropping
+  them onto the window or through Open
+* Converted in process, with no external converter and nothing sent anywhere:
+  the container and its XML are read directly, so the result is real vector
+  text that can be selected, searched and edited like any other document
+* Paragraph and character formatting, headings, lists, tables with their
+  shading and borders, embedded pictures, page size and margins, and the fixed
+  boxes and bands a document converted out of a PDF is made of
+* An image becomes a single page the size of the image, without a second round
+  of lossy encoding: a JPEG is passed into the PDF untouched, everything else
+  keeps every pixel
+* The converted document opens as an unnamed working copy in its own tab. The
+  file you opened is never written to, and saving asks for a name
+* `.docx` and `.odt` need zlib; images do not
 
 **Editing**
 
@@ -51,6 +71,9 @@ so nothing in the dependency stack forces the GPL onto a distribution.
   rectangle, and edits or removes the ones already there
 * Bookmarks: add one for the current page, rename, delete and reorder, written
   back into the document's outline (needs qpdf)
+* Drawing: pen, highlighter and eraser, with colour and width, written into the
+  page as vector paths
+* Notes: put a comment on the page and manage the lot in the notes panel
 * Text selection with the Select tool, hover highlighting of what is editable
 * Page organizer: reorder by drag & drop, rotate, delete, insert blank pages
   and merge further PDFs. Works on encrypted files as well
@@ -92,14 +115,14 @@ so nothing in the dependency stack forces the GPL onto a distribution.
 
 ## Not there yet
 
-* Text search. `Ctrl+F` has a shortcut and a settings entry, but no dialog
-  behind it yet
-* The *Draw*, *Table* and *Comment* tools are in the rail but do nothing; they
-  fall back to Select
 * Real PDF/A conformance. The PDF/A card in the export dialog currently
   produces an ordinary PDF
 * Form editing, redaction, digital signatures
-* Crash recovery from the session working files
+* Opening Word or OpenDocument files drops headers and footers, footnotes,
+  fields such as page numbers or a table of contents, multi-column layout and
+  tracked changes. A document whose text reflows differently than Word laid it
+  out can show its fixed boxes a few points off. Legacy `.doc`, `.rtf`, `.xlsx`
+  and `.pptx` are not read at all
 * On the media side: playback in presentation mode, moving or resizing a medium
   already in the document, an export option to keep or drop media, and undo and
   change history for any of it
@@ -155,6 +178,7 @@ behind each `HAVE_*` define still builds when the dependency is missing:
 | PDFium | the PDF engine: rendering, text, saving (`HAVE_PDFIUM`) | none, run `packaging/fetch-pdfium.sh` |
 | qpdf | PDF export options, organizer save, bookmarks, media (`HAVE_QPDF`) | `qpdf-devel` |
 | Qt Multimedia | media playback and posters, with qpdf (`HAVE_RICH_MEDIA`) | `qt6-qtmultimedia-devel` |
+| zlib | opening `.docx` and `.odt` (`HAVE_ZLIB`) | `zlib-devel` |
 | Tesseract | OCR on scanned pages (`HAVE_TESSERACT`) | `tesseract-devel`, `tesseract-langpack-deu` |
 | `Qt6::PrintSupport` | printing (`HAVE_QT_PRINT`) | part of `qt6-qtbase-devel` |
 | `Qt6::LinguistTools` | the `update_translations` target | `qt6-qttools-devel` |
@@ -187,6 +211,7 @@ OpenPDFStudio --export-pdf    in.pdf out.pdf [pages=1,3-4] [nocomments] [noforms
                                              [nofonts] [nocompress] [q=60] [pw=…] [srcpw=…]
 OpenPDFStudio --export-docx   in.pdf out.docx [pages=1,3-4] [q=60] [nocompress] [srcpw=…]
 OpenPDFStudio --export-images in.pdf out.png [pages=1,3-4] [q=85] [srcpw=…]
+OpenPDFStudio --import-pdf    in.docx out.pdf [dump=text.txt]
 OpenPDFStudio --select-text   in.pdf [page=1] [from=x,y] [to=x,y] [srcpw=…]
 OpenPDFStudio --apply-edit    in.pdf out.pdf at=x,y text=… [page=1] [preview=out.png] [srcpw=…]
 OpenPDFStudio --apply-edit    in.pdf out.pdf field=Name text=Value
@@ -200,6 +225,10 @@ OpenPDFStudio --shot-settings        out.png ["License Key"] [dark|light]
 OpenPDFStudio --shot-license-notice  out.png [dark|light]
 ```
 
+`--import-pdf` takes `.docx`, `.odt` or an image and writes the PDF it would
+open. `dump=` additionally writes the plain text of the parsed document before
+the PDF is laid out, which separates a reading fault from a layout one.
+
 Coordinates are PDF points with the origin top left, the same as
 `--select-text` reports. `OPENPDF_USAGE=business|personal` overrides the
 recorded usage for the two licence shots, which report the state they find
@@ -212,10 +241,11 @@ src/
   app/        infrastructure: config.ini, settings, safe writes, session,
               history, passwords
   drm/        business licence: state, settings page, the two notices
-  engine/     document logic, no widgets: document/, edit/, ocr/, render/
+  engine/     document logic, no widgets: document/, edit/, export/, import/,
+              ocr/, render/
   ui/         everything that is a widget: bars/, panels/, tools/, theme/,
-              view/, edit/, settings/, organizer/, history/, export/,
-              bookmarks/, widgets/
+              view/, edit/, draw/, notes/, settings/, organizer/, history/,
+              session/, export/, bookmarks/, widgets/
   3rdparty/   vendored (nanosvg)
 modules/
   rich-media/ source-available module, Business License
