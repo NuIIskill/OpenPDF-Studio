@@ -11,8 +11,6 @@
 #include <QPushButton>
 #include <QPainter>
 
-// ── KeyCaptureEdit ────────────────────────────────────────────────────────────
-
 class KeyCaptureEdit : public QLineEdit
 {
     Q_OBJECT
@@ -189,7 +187,7 @@ private:
         m_cancelBtn->show();
         m_actionLabel->setStyleSheet(QStringLiteral("font-size:13px;font-weight:700;"));
         m_captureEdit->setFocus();
-        m_captureEdit->grabKeyboard(); // grab all keys so the modal dialog can't intercept them
+        m_captureEdit->grabKeyboard();
         Q_EMIT editStarted();
     }
 

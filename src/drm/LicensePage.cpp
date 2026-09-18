@@ -27,8 +27,6 @@ LicensePage::LicensePage(QWidget *parent)
     applyTheme();
 }
 
-// ── UI ────────────────────────────────────────────────────────────────────────
-
 void LicensePage::buildUi()
 {
     auto *vbox = new QVBoxLayout(this);
@@ -46,7 +44,6 @@ void LicensePage::buildUi()
     vbox->addWidget(m_desc);
     vbox->addSpacing(24);
 
-    // ── Status ────────────────────────────────────────────────────────────
     m_statusGroup = new QLabel(this);
     m_statusGroup->setObjectName(QStringLiteral("SettingsGroupLabel"));
     vbox->addWidget(m_statusGroup);
@@ -78,7 +75,6 @@ void LicensePage::buildUi()
     vbox->addWidget(m_statusCard);
     vbox->addSpacing(24);
 
-    // ── Key field ─────────────────────────────────────────────────────────
     m_activateGroup = new QLabel(this);
     m_activateGroup->setObjectName(QStringLiteral("SettingsGroupLabel"));
     vbox->addWidget(m_activateGroup);
@@ -114,7 +110,6 @@ void LicensePage::buildUi()
     vbox->addWidget(m_feedback);
     vbox->addSpacing(20);
 
-    // ── Where to get one ──────────────────────────────────────────────────
     m_needGroup = new QLabel(this);
     m_needGroup->setObjectName(QStringLiteral("SettingsGroupLabel"));
     vbox->addWidget(m_needGroup);
@@ -139,8 +134,6 @@ void LicensePage::buildUi()
 
     retranslateUi();
 }
-
-// ── State ─────────────────────────────────────────────────────────────────────
 
 void LicensePage::refreshStatus()
 {
@@ -192,9 +185,6 @@ void LicensePage::onActivateClicked()
         return;
     }
 
-    // Platzhalter: der Schlüssel wird ungeprüft übernommen. Die Signaturprüfung
-    // kommt mit modules/rich-media/ — bis dahin ist eine Ablehnung hier nur
-    // eine Hürde ohne Aussage.
     const QString key = m_keyInput->text().trimmed();
     if (key.isEmpty())
         return;
@@ -205,14 +195,11 @@ void LicensePage::onActivateClicked()
     refreshStatus();
 }
 
-// ── Look ──────────────────────────────────────────────────────────────────────
-
 void LicensePage::applyTheme()
 {
     const bool dk = Theme::DarkMode;
     const bool warn = !m_hasKey && License::evaluationDaysLeft() == 0;
 
-    // Status card
     const QString cardBg  = warn ? (dk ? "#3A2A12" : "#FFFBEB")
                                  : (dk ? "#2E2E2E" : "#FFFFFF");
     const QString cardBdr = warn ? (dk ? "#78350F" : "#FDE68A")
@@ -236,7 +223,6 @@ void LicensePage::applyTheme()
     m_fieldLabel->setStyleSheet(QStringLiteral("font-size:13px; font-weight:600; color:%1;")
         .arg(dk ? "#E0E0E0" : "#111827"));
 
-    // Key field
     m_keyInput->setStyleSheet(QStringLiteral(
         "QLineEdit#LicenseKeyInput { background:%1; border:1px solid %2; border-radius:8px;"
         " padding:0 12px; font-size:13px; color:%3; }"
@@ -252,7 +238,6 @@ void LicensePage::applyTheme()
         if (!kpx.isNull()) m_keyIcon->setIcon(QIcon(kpx));
     }
 
-    // Action button — blue while it activates, red-tinted while it removes
     if (m_hasKey) {
         m_actionBtn->setStyleSheet(dk
             ? QStringLiteral(
@@ -289,7 +274,7 @@ void LicensePage::retranslateUi()
     m_needDesc->setText(tr("A Business License covers business use of OpenPDF Studio "
                            "and supports the development."));
     m_getBtn->setText(tr("Get License"));
-    refreshStatus();   // status texts and the button label
+    refreshStatus();
 }
 
 void LicensePage::changeEvent(QEvent *e)

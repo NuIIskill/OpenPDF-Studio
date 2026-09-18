@@ -64,27 +64,24 @@ QList<ImageAnnotationLayer::Placed> ImageAnnotationLayer::placedImages() const
     return out;
 }
 
-// ── Placing ───────────────────────────────────────────────────────────────────
-
 void ImageAnnotationLayer::place(const QImage &img, const QPoint &canvasPos)
 {
     if (img.isNull() || m_canvas->pageLabelCount() == 0) return;
 
     auto [pageIdx, lbl] = m_canvas->pageAtCanvasPos(canvasPos);
     if (pageIdx < 0 || !lbl) {
-        // If click landed in scroll margins, use the first visible page.
+
         pageIdx = 0;
         lbl = m_canvas->pageLabel(0);
         if (!lbl) return;
     }
 
     const qreal scale = m_canvas->screenScale();
-    // Position within the page in PDF points.
+
     const QPoint localPx = canvasPos - lbl->pos();
     const qreal ptX = localPx.x() / scale;
     const qreal ptY = localPx.y() / scale;
 
-    // Natural image size in PDF points: keep 1 image-pixel = 1 pt, capped at page width.
     qreal ptW = img.width()  / scale;
     qreal ptH = img.height() / scale;
 #ifdef HAVE_PDF_RENDERING
@@ -105,9 +102,6 @@ void ImageAnnotationLayer::place(const QImage &img, const QPoint &canvasPos)
 #endif
 }
 
-// Geometry comes from the PDF bounds unless the caller already has the exact
-// canvas rect it dragged (placeInRect) — rounding through the scale twice
-// would shift such an image by a pixel.
 void ImageAnnotationLayer::addEntry(int page, const QRectF &pdfBounds,
                                     const QImage &img, const QRect &canvasRect)
 {
@@ -155,8 +149,6 @@ void ImageAnnotationLayer::restoreImages(const QList<Placed> &images)
 #endif
     }
 
-    // Both the pages that lost an image and the ones that gained one have to be
-    // painted again — the overlay is baked into the rendered page.
     for (int page : std::as_const(touched))
         Q_EMIT pageNeedsRerender(page);
 }
@@ -234,9 +226,7 @@ void ImageAnnotationLayer::connectAnnotation(ImageAnnotation *ann)
 
 void ImageAnnotationLayer::showContextMenu(ImageAnnotation *ann, const QPoint &globalPos)
 {
-    // These strings were translated under the DocumentView context before the
-    // extraction. Naming the context explicitly keeps all 11 existing
-    // translations valid instead of orphaning them in every .ts file.
+
     const auto dvTr = [](const char *s) {
         return QCoreApplication::translate("DocumentView", s);
     };
@@ -263,16 +253,14 @@ void ImageAnnotationLayer::showContextMenu(ImageAnnotation *ann, const QPoint &g
     if (triggered == paste && !m_clipboard.isNull())
         placeInRect(m_clipboard, ann->geometry().translated(20, 20));
     if (triggered == cut || triggered == del)
-        ann->deleteRequested();  // signal → connected lambda removes + deleteLater
+        ann->deleteRequested();
 }
-
-// ── Drag to frame ─────────────────────────────────────────────────────────────
 
 bool ImageAnnotationLayer::handlePress(const QPoint &canvasPos)
 {
 #ifdef HAVE_PDF_RENDERING
     auto [pageIdx, lbl] = m_canvas->pageAtCanvasPos(canvasPos);
-    if (pageIdx < 0 || !lbl) return false;   // outside page
+    if (pageIdx < 0 || !lbl) return false;
     m_dragPageRect = lbl->geometry();
 #else
     m_dragPageRect = {};
@@ -305,8 +293,6 @@ bool ImageAnnotationLayer::handleRelease()
     m_dragging = false;
     return true;
 }
-
-// ── Overlay bookkeeping ───────────────────────────────────────────────────────
 
 void ImageAnnotationLayer::relayout()
 {
@@ -367,9 +353,6 @@ bool ImageAnnotationLayer::takeDetectedRegionAt(const QPoint &canvasPos)
     return false;
 }
 
-// ── qpdf-based PDF image region detector ─────────────────────────────────────
-// Recursively parses content streams (page + Form XObjects) tracking the CTM.
-// Returns bounding boxes in PDF points, top-left origin.
 #ifdef HAVE_QPDF
 
 namespace {
@@ -378,7 +361,6 @@ using M6 = std::array<double, 6>;
 
 static M6 identity() { return {1,0,0,1,0,0}; }
 
-// Apply m1 first, then m2.
 static M6 compose(const M6 &m1, const M6 &m2) {
     return {
         m1[0]*m2[0] + m1[1]*m2[2],   m1[0]*m2[1] + m1[1]*m2[3],
@@ -388,12 +370,10 @@ static M6 compose(const M6 &m1, const M6 &m2) {
     };
 }
 
-// (x,y) → (x',y') via [a b c d e f]: x'=ax+cy+e, y'=bx+dy+f
 static std::pair<double,double> tx(const M6 &m, double x, double y) {
     return { m[0]*x + m[2]*y + m[4], m[1]*x + m[3]*y + m[5] };
 }
 
-// Decode PDF name #XX hex escapes so our tokenized names match qpdf's ditems() keys.
 static std::string decodePdfName(const std::string &raw) {
     std::string out;
     out.reserve(raw.size());
@@ -413,8 +393,6 @@ static std::string decodePdfName(const std::string &raw) {
     return out;
 }
 
-// InlineImg is a synthetic token emitted for BI...ID...EI blocks; scanStream uses it
-// to record the image position from the current CTM without parsing binary pixel data.
 struct Tok { enum { Num, Name, Op, InlineImg } type; double num{0}; std::string s; };
 
 static std::vector<Tok> tokenise(const std::string &cs) {
@@ -464,16 +442,16 @@ static std::vector<Tok> tokenise(const std::string &cs) {
             std::string opStr = cs.substr(s0, i-s0);
 
             if (opStr == "BI") {
-                // Inline image: emit a marker, then skip past ID and the binary blob to EI.
+
                 Tok t; t.type=Tok::InlineImg; toks.push_back(t);
-                // Advance through the inline-image parameter dict until "ID".
+
                 while (i < n) {
                     while (i < n && isWS(cs[i])) ++i;
                     if (i+1 < n && cs[i]=='I' && cs[i+1]=='D' &&
                         (i+2 >= n || isWS(cs[i+2]))) { i += 2; break; }
                     while (i < n && !isWS(cs[i])) ++i;
                 }
-                // Raw-scan the binary blob for "EI" preceded and followed by whitespace.
+
                 while (i < n) {
                     if (cs[i]=='E' && i+1<n && cs[i+1]=='I') {
                         if ((i==0||isWS(cs[i-1])) && (i+2>=n||isWS(cs[i+2])))
@@ -511,8 +489,6 @@ static std::string getContentStream(QPDFObjectHandle obj) {
     return cs;
 }
 
-// Add XObjects from res into the map, skipping keys that are already present
-// (so the first call's entries — local/child resources — take priority).
 static void collectXObjects(QPDFObjectHandle res,
                             std::map<std::string, QPDFObjectHandle> &xobjs)
 {
@@ -520,10 +496,9 @@ static void collectXObjects(QPDFObjectHandle res,
     auto xobjDict = res.getKey("/XObject");
     if (!xobjDict.isDictionary()) return;
     for (auto &kv : xobjDict.ditems())
-        xobjs.emplace(kv.first, kv.second);  // emplace: no-op if key already exists
+        xobjs.emplace(kv.first, kv.second);
 }
 
-// Compute image bbox from current CTM and append if large enough.
 static void addImageBBox(const M6 &m, double pageH, QList<QRectF> &result) {
     double xs[4], ys[4];
     auto [x0,y0]=tx(m,0,0); xs[0]=x0; ys[0]=y0;
@@ -539,7 +514,6 @@ static void addImageBBox(const M6 &m, double pageH, QList<QRectF> &result) {
     if (r.width()>5 && r.height()>5) result.append(r);
 }
 
-// Forward declaration.
 static void scanStream(const std::string &cs,
                        QPDFObjectHandle localRes, QPDFObjectHandle pageRes,
                        std::vector<M6> &stack, double pageH,
@@ -552,8 +526,6 @@ static void scanStream(const std::string &cs,
 {
     if (depth > 8 || cs.empty()) return;
 
-    // Build XObject map: local (child) resources first, page resources as fallback.
-    // emplace() never overrides, so local entries win for duplicate keys.
     std::map<std::string, QPDFObjectHandle> xobjs;
     collectXObjects(localRes, xobjs);
     collectXObjects(pageRes,  xobjs);
@@ -561,7 +533,7 @@ static void scanStream(const std::string &cs,
     std::vector<Tok> operands;
     for (const Tok &tok : tokenise(cs)) {
         if (tok.type == Tok::InlineImg) {
-            // Inline image at current CTM position.
+
             addImageBBox(stack.back(), pageH, result);
             operands.clear();
             continue;
@@ -584,8 +556,6 @@ static void scanStream(const std::string &cs,
             for (int k=static_cast<int>(operands.size())-1; k>=0; --k)
                 if (operands[k].type==Tok::Name){ name=operands[k].s; break; }
 
-            // ditems() keys include the leading '/'; our tokenizer does too after decodePdfName.
-            // Defensive: also try without '/' in case qpdf version strips it.
             auto it = xobjs.find(name);
             if (it == xobjs.end() && !name.empty() && name[0]=='/')
                 it = xobjs.find(name.substr(1));
@@ -610,10 +580,8 @@ static void scanStream(const std::string &cs,
                     }
                     M6 composedCtm = compose(formMatrix, stack.back());
 
-                    // Form XObject uses its own isolated stack.
                     std::vector<M6> formStack = { composedCtm };
 
-                    // Form's local resources, with page resources as fallback.
                     QPDFObjectHandle formRes = formDict.getKey("/Resources");
 
                     try {
@@ -631,7 +599,7 @@ static void scanStream(const std::string &cs,
     }
 }
 
-} // namespace
+}
 
 static QList<QRectF> detectPdfImageRegions(const QString &pdfPath, int pageIndex,
                                             double pageHeightPts)
@@ -649,7 +617,7 @@ static QList<QRectF> detectPdfImageRegions(const QString &pdfPath, int pageIndex
             return result;
 
         QPDFPageObjectHelper ph = pages[pageIndex];
-        // getAttribute handles /Resources inherited from parent page-tree nodes.
+
         QPDFObjectHandle resources = ph.getAttribute("/Resources", false);
         QPDFObjectHandle pageObj   = ph.getObjectHandle();
         const std::string cs = getContentStream(pageObj);
@@ -670,7 +638,7 @@ static QList<QRectF> detectPdfImageRegions(const QString &pdfPath, int pageIndex
     return result;
 }
 
-#endif // HAVE_QPDF
+#endif
 
 void ImageAnnotationLayer::scanVisiblePage(int firstVisiblePage)
 {
@@ -681,7 +649,6 @@ void ImageAnnotationLayer::scanVisiblePage(int firstVisiblePage)
 
     const int scanPage = firstVisiblePage;
 
-    // Page height in PDF points (needed for coordinate conversion).
     const QSizeF pageSizePts = [&]() -> QSizeF {
         const QSize px100 = m_renderer->pageDisplaySize(scanPage, 100);
         const qreal s100  = PdfRenderer::screenScale(100);
@@ -691,13 +658,13 @@ void ImageAnnotationLayer::scanVisiblePage(int firstVisiblePage)
     QList<QRectF> regions;
 
 #ifdef HAVE_QPDF
-    // Primary: parse the PDF content stream directly — exact positions.
+
     regions = detectPdfImageRegions(m_filePath, scanPage, pageSizePts.height());
     qDebug() << "[ImageScan] qpdf found" << regions.size() << "image(s) on page" << scanPage;
 #endif
 
 #if defined(HAVE_QPDF) && defined(HAVE_TESSERACT)
-    // Fallback: use Tesseract layout analysis when qpdf found nothing.
+
     if (regions.isEmpty() && m_ocr && m_ocr->isReady()) {
 #elif defined(HAVE_TESSERACT)
     if (m_ocr && m_ocr->isReady()) {
@@ -713,8 +680,6 @@ void ImageAnnotationLayer::scanVisiblePage(int firstVisiblePage)
 #endif
     }
 
-    // Filter out images that cover the whole page — those are scanned-page backgrounds
-    // and clicking them would replace the entire visible page with a floating widget.
     const double pageArea = pageSizePts.width() * pageSizePts.height();
     if (pageArea > 0) {
         regions.removeIf([pageArea](const QRectF &r) {
@@ -742,5 +707,5 @@ void ImageAnnotationLayer::scanVisiblePage(int firstVisiblePage)
     }
 #else
     Q_UNUSED(firstVisiblePage)
-#endif // HAVE_PDF_RENDERING
+#endif
 }

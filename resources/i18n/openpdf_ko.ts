@@ -96,6 +96,14 @@ Please use a build that includes Qt6::Pdf support.
         <source>Justify</source>
         <translation type="unfinished"></translation>
     </message>
+    <message>
+        <source>Advanced</source>
+        <translation>고급</translation>
+    </message>
+    <message>
+        <source>All text box options</source>
+        <translation>텍스트 상자의 모든 옵션</translation>
+    </message>
 </context>
 <context>
     <name>ImageAnnotation</name>
@@ -140,16 +148,6 @@ Please use a build that includes Qt6::Pdf support.
         <location filename="../../src/ui/LeftSidebar.cpp" line="30"/>
         <source>Image</source>
         <translation>이미지</translation>
-    </message>
-    <message>
-        <location filename="../../src/ui/LeftSidebar.cpp" line="31"/>
-        <source>Table</source>
-        <translation>표</translation>
-    </message>
-    <message>
-        <location filename="../../src/ui/LeftSidebar.cpp" line="32"/>
-        <source>Page</source>
-        <translation>페이지</translation>
     </message>
     <message>
         <location filename="../../src/ui/LeftSidebar.cpp" line="33"/>
@@ -624,6 +622,10 @@ Please use a build that includes Qt6::Pdf support.
         <source>Save as Default</source>
         <translation type="unfinished"></translation>
     </message>
+    <message>
+        <source>Position &amp; Size</source>
+        <translation>위치 및 크기</translation>
+    </message>
 </context>
 <context>
     <name>TopToolbar</name>
@@ -682,5 +684,62 @@ Please use a build that includes Qt6::Pdf support.
         <source>No Document</source>
         <translation>문서 없음</translation>
     </message>
+</context>
+<context>
+    <name>FindController</name>
+    <message><source>Find in document</source><translation>문서에서 찾기</translation></message>
+    <message><source>Previous match (Shift+Enter)</source><translation>이전 일치 항목(Shift+Enter)</translation></message>
+    <message><source>Next match (Enter)</source><translation>다음 일치 항목(Enter)</translation></message>
+    <message><source>Close (Esc)</source><translation>닫기(Esc)</translation></message>
+</context>
+<context>
+    <name>SessionRecovery</name>
+    <message><source>Untitled</source><translation>제목 없음</translation></message>
+    <message><source>Restore Session</source><translation>세션 복원</translation></message>
+    <message><source>OpenPDF Studio did not shut down properly last time.</source><translation>OpenPDF Studio가 지난번에 정상적으로 종료되지 않았습니다.</translation></message>
+    <message><source>Restore the documents that were open?</source><translation>열려 있던 문서를 복원할까요?</translation></message>
+    <message><source>%1 (unsaved changes)</source><translation>%1(저장되지 않은 변경 사항)</translation></message>
+    <message><source>Restore</source><translation>복원</translation></message>
+    <message><source>Discard</source><translation>버리기</translation></message>
+</context>
+<context>
+    <name>DocumentView</name>
+    <message><source>Insert image</source><translation>이미지 삽입</translation></message>
+    <message><source>All files (*)</source><translation>모든 파일 (*)</translation></message>
+    <message><source>Drop a PDF, Word, OpenDocument or image file here, or click a tab to open</source><translation>PDF, Word, OpenDocument 또는 이미지를 여기에 놓거나 탭을 클릭하세요</translation></message>
+</context>
+<context>
+    <name>MainWindow</name>
+    <message><source>Open Document</source><translation>문서 열기</translation></message>
+    <message><source>Cannot open file</source><translation>파일을 열 수 없음</translation></message>
+    <message><source>"%1" is not a PDF and cannot be turned into one.</source><translation>“%1”은(는) PDF가 아니며 PDF로 변환할 수도 없습니다.</translation></message>
+    <message><source>There is no room to put the converted file.</source><translation>변환된 파일을 둘 공간이 없습니다.</translation></message>
+    <message><source>Import failed</source><translation>가져오기 실패</translation></message>
+    <message><source>"%1" could not be turned into a PDF.
+
+%2</source><translation>“%1”을(를) PDF로 변환하지 못했습니다.
+
+%2</translation></message>
+    <message><source>"%1" was converted, but the result could not be opened.</source><translation>“%1”은(는) 변환되었지만 결과를 열 수 없습니다.</translation></message>
+</context>
+<context>
+    <name>DocumentImport</name>
+    <message><source>Images</source><translation>이미지</translation></message>
+    <message><source>All files</source><translation>모든 파일</translation></message>
+    <message><source>All supported files</source><translation>지원되는 모든 파일</translation></message>
+    <message><source>PDF files</source><translation>PDF 파일</translation></message>
+    <message><source>Word documents</source><translation>Word 문서</translation></message>
+    <message><source>Word document</source><translation>Word 문서</translation></message>
+    <message><source>OpenDocument text</source><translation>OpenDocument 텍스트</translation></message>
+    <message><source>Image</source><translation>이미지</translation></message>
+    <message><source>The image is too large.</source><translation>이미지가 너무 큽니다.</translation></message>
+    <message><source>The PDF could not be written.</source><translation>PDF를 쓸 수 없습니다.</translation></message>
+    <message><source>The file does not exist.</source><translation>파일이 없습니다.</translation></message>
+    <message><source>The file could not be read. It may be damaged.</source><translation>파일을 읽을 수 없습니다. 손상되었을 수 있습니다.</translation></message>
+    <message><source>The file has no readable document part.</source><translation>파일에 읽을 수 있는 문서 부분이 없습니다.</translation></message>
+    <message><source>The document is damaged: %1</source><translation>문서가 손상되었습니다: %1</translation></message>
+    <message><source>This build was made without zlib and cannot read Word or OpenDocument files.</source><translation>이 빌드는 zlib 없이 만들어져 Word 또는 OpenDocument 파일을 읽을 수 없습니다.</translation></message>
+    <message><source>This is an older Word file that only carries a .docx name. Save it as a real .docx first.</source><translation>이것은 .docx 이름만 가진 오래된 Word 파일입니다. 먼저 실제 .docx로 저장하세요.</translation></message>
+    <message><source>%1 files cannot be opened.</source><translation>%1 파일은 열 수 없습니다.</translation></message>
 </context>
 </TS>

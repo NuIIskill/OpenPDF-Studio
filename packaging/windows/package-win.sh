@@ -34,7 +34,7 @@ mkdir -p "$APP_DIR"
 
 cp "$BUILD_DIR/OpenPDFStudio.exe" "$APP_DIR/"
 cp "$BUILD_DIR"/*.dll "$APP_DIR/"
-for d in platforms imageformats iconengines styles etc share; do
+for d in platforms imageformats iconengines styles tls networkinformation etc share; do
     [[ -d "$BUILD_DIR/$d" ]] && cp -r "$BUILD_DIR/$d" "$APP_DIR/"
 done
 # LICENSE ist nur die Übersicht und verweist auf LICENSES/ — beides mitgeben,

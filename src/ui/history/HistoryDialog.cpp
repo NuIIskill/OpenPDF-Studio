@@ -15,10 +15,6 @@
 #include <QScrollArea>
 #include <QVBoxLayout>
 
-// ─────────────────────────────────────────────────────────────────────────────
-// HistoryDialog
-// ─────────────────────────────────────────────────────────────────────────────
-
 HistoryDialog::HistoryDialog(DocumentHistory *history, const QString &documentName,
                              QWidget *parent)
     : QDialog(parent)
@@ -46,7 +42,6 @@ void HistoryDialog::buildUi()
     root->setContentsMargins(24, 20, 24, 18);
     root->setSpacing(0);
 
-    // ── Header ────────────────────────────────────────────────────────────────
     auto *headerRow = new QHBoxLayout;
     headerRow->setSpacing(10);
 
@@ -66,7 +61,6 @@ void HistoryDialog::buildUi()
     m_subtitle->setContentsMargins(0, 6, 0, 14);
     root->addWidget(m_subtitle);
 
-    // ── Timeline ──────────────────────────────────────────────────────────────
     m_scroll = new QScrollArea(this);
     m_scroll->setObjectName(QStringLiteral("HistoryScroll"));
     m_scroll->setFrameShape(QFrame::NoFrame);
@@ -88,7 +82,6 @@ void HistoryDialog::buildUi()
     m_empty->hide();
     root->addWidget(m_empty);
 
-    // ── State actions ─────────────────────────────────────────────────────────
     auto *actions = new QHBoxLayout;
     actions->setContentsMargins(0, 16, 0, 0);
     actions->setSpacing(10);
@@ -115,7 +108,6 @@ void HistoryDialog::buildUi()
 
     root->addLayout(actions);
 
-    // ── Footer ────────────────────────────────────────────────────────────────
     auto *footer = new QHBoxLayout;
     footer->setContentsMargins(0, 14, 0, 0);
     footer->setSpacing(10);
@@ -187,17 +179,10 @@ void HistoryDialog::changeEvent(QEvent *e)
     QDialog::changeEvent(e);
 }
 
-// ── Timeline ──────────────────────────────────────────────────────────────────
-
 void HistoryDialog::rebuildList()
 {
     if (!m_listLayout) return;
 
-    // Out of the layout and out of sight NOW, deleted once the call that got
-    // us here has returned: a rebuild can be triggered from a row's own signal
-    // handler, and deleting that row underneath it would take the dialog with
-    // it. deleteLater() alone would leave the old rows on screen next to the
-    // new ones until the event loop gets around to them.
     for (HistoryRow *row : std::as_const(m_rows)) {
         m_listLayout->removeWidget(row);
         row->hide();
@@ -211,14 +196,13 @@ void HistoryDialog::rebuildList()
     m_scroll->setVisible(!entries.isEmpty());
     m_empty->setVisible(entries.isEmpty());
 
-    // Newest at the top, as the eye expects a log to run.
     for (int i = static_cast<int>(entries.size()) - 1; i >= 0; --i) {
         const DocumentHistory::Entry &e = entries[i];
         auto *row = new HistoryRow(i, i + 1,
                                    e.time.toString(QStringLiteral("HH:mm")),
                                    titleFor(e), detailFor(e), iconFor(e.kind),
-                                   /*first=*/i == entries.size() - 1,
-                                   /*last=*/ i == 0, m_list);
+                                    i == entries.size() - 1,
+                                     i == 0, m_list);
         connect(row, &HistoryRow::clicked, this, &HistoryDialog::selectRow);
         connect(row, &HistoryRow::doubleClicked, this, &HistoryDialog::requestRestore);
         connect(row, &HistoryRow::menuRequested, this,
@@ -245,7 +229,6 @@ void HistoryDialog::rebuildList()
         m_rows.append(row);
     }
 
-    // Nothing picked yet (or the pick is gone): follow the document.
     const int current = m_history ? m_history->currentIndex() : -1;
     if (m_selected < 0 || m_selected >= entries.size()) m_selected = current;
     for (HistoryRow *row : std::as_const(m_rows))
@@ -289,15 +272,13 @@ void HistoryDialog::requestRestore(int index)
             this, tr("Go back to this state"),
             tr("This state is part of an earlier version of the document, so it "
                "has to be loaded again.\n\n"
-               "Text and image edits made since then are not part of any file "
+               "Text, image and drawing edits made since then are not part of any file "
                "yet and will be lost. Continue?"),
             QMessageBox::Yes | QMessageBox::No, QMessageBox::No);
         if (answer != QMessageBox::Yes) return;
     }
     Q_EMIT restoreRequested(index);
 }
-
-// ── Wording ───────────────────────────────────────────────────────────────────
 
 QString HistoryDialog::titleFor(const DocumentHistory::Entry &e)
 {
@@ -308,6 +289,14 @@ QString HistoryDialog::titleFor(const DocumentHistory::Entry &e)
     case Kind::TextRemoved:    return tr("Text removed");
     case Kind::ImageInserted:  return tr("Image inserted");
     case Kind::ImageRemoved:   return tr("Image removed");
+    case Kind::LinkAdded:      return tr("Link added");
+    case Kind::LinkEdited:     return tr("Link changed");
+    case Kind::LinkRemoved:    return tr("Link removed");
+    case Kind::NoteAdded:      return tr("Note added");
+    case Kind::NoteEdited:     return tr("Note changed");
+    case Kind::NoteRemoved:    return tr("Note removed");
+    case Kind::DrawingAdded:   return tr("Drawing added");
+    case Kind::DrawingRemoved: return tr("Drawing removed");
     case Kind::PageRotated:    return e.count > 1 ? tr("Pages rotated")
                                                   : tr("Page rotated");
     case Kind::PageDeleted:    return e.count > 1 ? tr("Pages deleted")
@@ -337,6 +326,14 @@ QString HistoryDialog::detailFor(const DocumentHistory::Entry &e)
     case Kind::TextRemoved:
     case Kind::ImageInserted:
     case Kind::ImageRemoved:
+    case Kind::LinkAdded:
+    case Kind::LinkEdited:
+    case Kind::LinkRemoved:
+    case Kind::NoteAdded:
+    case Kind::NoteEdited:
+    case Kind::NoteRemoved:
+    case Kind::DrawingAdded:
+    case Kind::DrawingRemoved:
         return page;
     case Kind::PageRotated: {
         const QString turn = e.value < 0 ? tr("%1° counter-clockwise").arg(-e.value)
@@ -365,6 +362,14 @@ QString HistoryDialog::iconFor(DocumentHistory::Kind kind)
     case Kind::TextRemoved:    return QStringLiteral("type");
     case Kind::ImageInserted:
     case Kind::ImageRemoved:   return QStringLiteral("image");
+    case Kind::LinkAdded:
+    case Kind::LinkEdited:     return QStringLiteral("paperclip");
+    case Kind::LinkRemoved:    return QStringLiteral("trash-2");
+    case Kind::NoteAdded:
+    case Kind::NoteEdited:     return QStringLiteral("message-square");
+    case Kind::NoteRemoved:    return QStringLiteral("trash-2");
+    case Kind::DrawingAdded:   return QStringLiteral("pencil");
+    case Kind::DrawingRemoved: return QStringLiteral("trash-2");
     case Kind::PageRotated:    return QStringLiteral("rotate-cw");
     case Kind::PageDeleted:    return QStringLiteral("trash-2");
     case Kind::PageAdded:      return QStringLiteral("file-plus");
@@ -376,12 +381,9 @@ QString HistoryDialog::iconFor(DocumentHistory::Kind kind)
     return QStringLiteral("file");
 }
 
-// ── Style ─────────────────────────────────────────────────────────────────────
-
 void HistoryDialog::applyStyle()
 {
-    // Light and dark are kept as two complete sheets so each theme reads as one
-    // block — same approach as the organizer.
+
     setStyleSheet(Theme::DarkMode ? QStringLiteral(R"(
 QDialog { background: #2B2B2B; }
 QLabel#HistoryHeadline { color: #EEEEEE; font-size: 17px; font-weight: 700; }

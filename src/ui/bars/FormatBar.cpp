@@ -1,5 +1,7 @@
 #include "ui/bars/FormatBar.hpp"
 
+#include "ui/theme/Theme.hpp"
+
 #include <QButtonGroup>
 #include <QColorDialog>
 #include <QFontComboBox>
@@ -15,10 +17,6 @@
 #include <QIcon>
 #include <QMenu>
 
-// ── Icon painters ─────────────────────────────────────────────────────────────
-
-// Draw horizontal text-line bars representing a text-alignment icon.
-// widths: fraction of available width per line (0..1). xOffset: left indent (0..1).
 static QIcon makeAlignIcon(std::initializer_list<float> widths,
                            std::initializer_list<float> xOffsets,
                            const QColor &color = QColor(0x37, 0x41, 0x51))
@@ -82,8 +80,6 @@ static QIcon makeIndentIcon(const QColor &color = QColor(0x37, 0x41, 0x51))
     p.setBrush(color);
     p.setPen(Qt::NoPen);
 
-    // Arrow right then 3 indented lines
-    // Arrow: small triangle pointing right
     QPolygon arrow;
     arrow << QPoint(pad, pad+1) << QPoint(pad+4, pad+4) << QPoint(pad, pad+7);
     p.drawPolygon(arrow);
@@ -96,7 +92,6 @@ static QIcon makeIndentIcon(const QColor &color = QColor(0x37, 0x41, 0x51))
     return QIcon(px);
 }
 
-// Bold: two vertical stems connected by two curved arms → geometric "B" shape.
 static QIcon makeBoldIcon(const QColor &color = QColor(0x37, 0x41, 0x51))
 {
     const int S = 16;
@@ -107,9 +102,8 @@ static QIcon makeBoldIcon(const QColor &color = QColor(0x37, 0x41, 0x51))
     p.setPen(Qt::NoPen);
     p.setBrush(color);
 
-    // Vertical left stem (thick)
     p.drawRoundedRect(QRectF(2.5, 1.5, 2.5, 13), 1, 1);
-    // Top bump
+
     QPainterPath top;
     top.moveTo(5, 1.5);
     top.lineTo(9, 1.5);
@@ -117,7 +111,7 @@ static QIcon makeBoldIcon(const QColor &color = QColor(0x37, 0x41, 0x51))
     top.quadTo(12.5, 8.0, 5, 8.0);
     top.lineTo(5, 1.5);
     p.fillPath(top, color);
-    // Bottom bump (slightly wider)
+
     QPainterPath bot;
     bot.moveTo(5, 8.0);
     bot.lineTo(9.5, 8.0);
@@ -125,17 +119,16 @@ static QIcon makeBoldIcon(const QColor &color = QColor(0x37, 0x41, 0x51))
     bot.quadTo(13.5, 14.5, 5, 14.5);
     bot.lineTo(5, 8.0);
     p.fillPath(bot, color);
-    // Transparent cutouts work on both light and dark toolbar backgrounds.
+
     p.setCompositionMode(QPainter::CompositionMode_Clear);
     p.setBrush(Qt::transparent);
     p.drawEllipse(QRectF(5.5, 2.5, 5.5, 4.5));
-    // White cutout bottom bump interior
+
     p.drawEllipse(QRectF(5.5, 8.8, 6.5, 4.5));
 
     return QIcon(px);
 }
 
-// Italic: a slanted bar with top/bottom serifs.
 static QIcon makeItalicIcon(const QColor &color = QColor(0x37, 0x41, 0x51))
 {
     const int S = 16;
@@ -148,17 +141,15 @@ static QIcon makeItalicIcon(const QColor &color = QColor(0x37, 0x41, 0x51))
     p.setPen(pen);
     p.setBrush(Qt::NoBrush);
 
-    // Slanted stem (top-right to bottom-left)
     p.drawLine(QLineF(9.5, 2.0, 6.5, 14.0));
-    // Top serif
+
     p.drawLine(QLineF(7.0, 2.0, 12.0, 2.0));
-    // Bottom serif
+
     p.drawLine(QLineF(4.0, 14.0, 9.0, 14.0));
 
     return QIcon(px);
 }
 
-// Underline: horizontal bar at bottom + short vertical lines (like "U" crossbar).
 static QIcon makeUnderlineIcon(const QColor &color = QColor(0x37, 0x41, 0x51))
 {
     const int S = 16;
@@ -171,20 +162,17 @@ static QIcon makeUnderlineIcon(const QColor &color = QColor(0x37, 0x41, 0x51))
     p.setPen(pen);
     p.setBrush(Qt::NoBrush);
 
-    // Left vertical stroke
     p.drawLine(QLineF(4.0, 2.0, 4.0, 10.0));
-    // Right vertical stroke
+
     p.drawLine(QLineF(12.0, 2.0, 12.0, 10.0));
-    // Bottom arc of U
+
     p.drawArc(QRectF(4.0, 6.0, 8.0, 6.0), 180*16, -180*16);
-    // Underline bar (full width)
+
     p.setPen(QPen(color, 2.0, Qt::SolidLine, Qt::FlatCap));
     p.drawLine(QLineF(2.5, 14.5, 13.5, 14.5));
 
     return QIcon(px);
 }
-
-// ── Static helpers ────────────────────────────────────────────────────────────
 
 QFrame *FormatBar::makeSep(QWidget *parent)
 {
@@ -212,7 +200,7 @@ QPushButton *FormatBar::makeFmtBtn(const QIcon &icon, QWidget *parent)
     return btn;
 }
 
-QPushButton *FormatBar::makeAlignBtn(const QString &/*iconName*/, const QString &/*fallback*/,
+QPushButton *FormatBar::makeAlignBtn(const QString & , const QString & ,
                                      const QString &tip, QWidget *parent)
 {
     auto *btn = new QPushButton(parent);
@@ -229,8 +217,6 @@ QPushButton *FormatBar::makeAlignBtn(const QString &/*iconName*/, const QString 
     return btn;
 }
 
-// Build a labeled group: small label above, controls below.
-// outLabel (optional): receives the QLabel* so callers can update it on retranslate.
 static QWidget *makeGroup(const QString &label, QLayout *controls, QWidget *parent,
                           QLabel **outLabel = nullptr)
 {
@@ -257,8 +243,6 @@ static QWidget *makeGroup(const QString &label, QLayout *controls, QWidget *pare
     return w;
 }
 
-// ── FormatBar ─────────────────────────────────────────────────────────────────
-
 FormatBar::FormatBar(QWidget *parent) : QFrame(parent)
 {
     setObjectName(QStringLiteral("FormatBar"));
@@ -273,7 +257,6 @@ FormatBar::FormatBar(QWidget *parent) : QFrame(parent)
 
     h->addStretch(1);
 
-    // ── Schriftart ────────────────────────────────────────────────────────────
     {
         m_fontFamily = new QFontComboBox(this);
         m_fontFamily->setObjectName(QStringLiteral("FormatBarCombo"));
@@ -297,7 +280,6 @@ FormatBar::FormatBar(QWidget *parent) : QFrame(parent)
 
     h->addSpacing(8);
 
-    // ── Schriftgröße ──────────────────────────────────────────────────────────
     {
         m_fontSize = new QComboBox(this);
         m_fontSize->setObjectName(QStringLiteral("FormatBarCombo"));
@@ -321,7 +303,7 @@ FormatBar::FormatBar(QWidget *parent) : QFrame(parent)
                 Q_EMIT fontSizeChanged(pt);
             }
         });
-        // Restore last valid value when user leaves an empty or invalid field.
+
         connect(m_fontSize->lineEdit(), &QLineEdit::editingFinished, this, [this]() {
             const QString t = m_fontSize->currentText().trimmed();
             bool ok; const int pt = t.toInt(&ok);
@@ -340,7 +322,6 @@ FormatBar::FormatBar(QWidget *parent) : QFrame(parent)
     h->addWidget(makeSep(this));
     h->addSpacing(10);
 
-    // ── Fett / Kursiv / Unterstrichen ────────────────────────────────────────
     {
         m_bold      = makeFmtBtn(makeBoldIcon(),      this);
         m_italic    = makeFmtBtn(makeItalicIcon(),    this);
@@ -356,13 +337,12 @@ FormatBar::FormatBar(QWidget *parent) : QFrame(parent)
         hl->addWidget(m_bold);
         hl->addWidget(m_italic);
         hl->addWidget(m_underline);
-        // Use an invisible label so the group aligns vertically with labeled groups.
+
         h->addWidget(makeGroup(QStringLiteral(" "), hl, this));
     }
 
     h->addSpacing(8);
 
-    // ── Textfarbe ─────────────────────────────────────────────────────────────
     {
         m_color = new QPushButton(this);
         m_color->setProperty("formatButton", true);
@@ -392,11 +372,8 @@ FormatBar::FormatBar(QWidget *parent) : QFrame(parent)
     h->addWidget(makeSep(this));
     h->addSpacing(10);
 
-    // ── Ausrichtung ───────────────────────────────────────────────────────────
     {
-        // Icons built here with literal initializer_list — not stored in structs
-        // (std::initializer_list does not own its backing array, so storing it
-        // in a struct produces dangling pointers after the initializer statement).
+
         struct AlignDef { const char *tip; Qt::Alignment align; };
         const AlignDef defs[] = {
             { QT_TR_NOOP("Align Left"),  Qt::AlignLeft    },
@@ -434,7 +411,6 @@ FormatBar::FormatBar(QWidget *parent) : QFrame(parent)
     h->addWidget(makeSep(this));
     h->addSpacing(10);
 
-    // ── Aufzählung / Abstand ──────────────────────────────────────────────────
     {
         const QString btnStyle = QStringLiteral(
             "QPushButton { background:transparent; border:1px solid #D1D5DB;"
@@ -491,7 +467,6 @@ FormatBar::FormatBar(QWidget *parent) : QFrame(parent)
 
     h->addSpacing(8);
 
-    // ── Zeilenabstand ─────────────────────────────────────────────────────────
     {
         m_spacing = new QComboBox(this);
         m_spacing->setObjectName(QStringLiteral("FormatBarCombo"));
@@ -516,17 +491,32 @@ FormatBar::FormatBar(QWidget *parent) : QFrame(parent)
         h->addWidget(makeGroup(tr("Line Spacing"), hl, this, &m_lblSpacing));
     }
 
+    h->addSpacing(10);
+    h->addWidget(makeSep(this));
+    h->addSpacing(10);
+
+    {
+
+        m_advanced = new QPushButton(QStringLiteral(" ") + tr("Advanced"), this);
+        m_advanced->setFixedHeight(30);
+        m_advanced->setIconSize({16, 16});
+        m_advanced->setToolTip(tr("All text box options"));
+        m_advanced->setCheckable(true);
+        m_advanced->setProperty("formatButton", true);
+        connect(m_advanced, &QPushButton::toggled, this, &FormatBar::advancedToggled);
+        auto *hl = new QHBoxLayout();
+        hl->setSpacing(0);
+        hl->addWidget(m_advanced);
+        h->addWidget(makeGroup(QStringLiteral(" "), hl, this));
+    }
+
     h->addStretch(1);
 
-    // Theme styles belong to the application stylesheet. The old per-widget
-    // white styles overrode Dark Mode completely.
     setStyleSheet({});
     for (QWidget *child : findChildren<QWidget *>())
         child->setStyleSheet({});
     refreshTheme();
 }
-
-// ── Public setters ────────────────────────────────────────────────────────────
 
 void FormatBar::setFontSize(int ptSize)
 {
@@ -566,6 +556,20 @@ void FormatBar::setItalicChecked(bool on)
     m_italic->setChecked(on);
 }
 
+void FormatBar::setUnderlineChecked(bool on)
+{
+    if (m_underline->isChecked() == on) return;
+    QSignalBlocker b(m_underline);
+    m_underline->setChecked(on);
+}
+
+void FormatBar::setAdvancedChecked(bool on)
+{
+    if (m_advanced->isChecked() == on) return;
+    QSignalBlocker b(m_advanced);
+    m_advanced->setChecked(on);
+}
+
 void FormatBar::setAlignment(TextBoxProperties::HorizontalAlign alignment)
 {
     const int index = static_cast<int>(alignment);
@@ -603,19 +607,21 @@ void FormatBar::refreshTheme()
         m_alignButtons[i]->setIcon(alignIcons[i]);
     if (m_list) m_list->setIcon(makeListIcon(false, iconColor));
     if (m_indent) m_indent->setIcon(makeIndentIcon(iconColor));
+    if (m_advanced)
+        m_advanced->setIcon(QIcon(Theme::renderSvg(QStringLiteral("sliders"), iconColor, 16,
+                                                   devicePixelRatioF())));
     updateColorSwatch(m_currentColor);
 }
 
 void FormatBar::updateColorSwatch(const QColor &c)
 {
-    // Compound icon: 14×14 color swatch + 4px gap + 10px chevron, all on 28×14 canvas.
+
     const int swatchW = 14, chevW = 10, gap = 4;
     const int totalW = swatchW + gap + chevW;
     QPixmap px(totalW, 14);
     px.fill(Qt::transparent);
     QPainter p(&px);
 
-    // Color swatch with border
     p.setPen(QPen(QColor(0xD1, 0xD5, 0xDB), 1));
     p.setBrush(c);
     p.drawRoundedRect(QRectF(0.5, 0.5, swatchW - 1, 13), 2, 2);
@@ -648,6 +654,8 @@ void FormatBar::retranslateUi()
     m_italic->setToolTip(tr("Italic"));
     m_underline->setToolTip(tr("Underline"));
     m_color->setToolTip(tr("Color"));
+    m_advanced->setText(QStringLiteral(" ") + tr("Advanced"));
+    m_advanced->setToolTip(tr("All text box options"));
 }
 
 void FormatBar::changeEvent(QEvent *e)

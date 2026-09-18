@@ -96,6 +96,14 @@ Please use a build that includes Qt6::Pdf support.
         <source>Justify</source>
         <translation type="unfinished"></translation>
     </message>
+    <message>
+        <source>Advanced</source>
+        <translation>高级</translation>
+    </message>
+    <message>
+        <source>All text box options</source>
+        <translation>文本框的全部选项</translation>
+    </message>
 </context>
 <context>
     <name>ImageAnnotation</name>
@@ -140,16 +148,6 @@ Please use a build that includes Qt6::Pdf support.
         <location filename="../../src/ui/LeftSidebar.cpp" line="30"/>
         <source>Image</source>
         <translation>图像</translation>
-    </message>
-    <message>
-        <location filename="../../src/ui/LeftSidebar.cpp" line="31"/>
-        <source>Table</source>
-        <translation>表格</translation>
-    </message>
-    <message>
-        <location filename="../../src/ui/LeftSidebar.cpp" line="32"/>
-        <source>Page</source>
-        <translation>页面</translation>
     </message>
     <message>
         <location filename="../../src/ui/LeftSidebar.cpp" line="33"/>
@@ -624,6 +622,10 @@ Please use a build that includes Qt6::Pdf support.
         <source>Save as Default</source>
         <translation type="unfinished"></translation>
     </message>
+    <message>
+        <source>Position &amp; Size</source>
+        <translation>位置与大小</translation>
+    </message>
 </context>
 <context>
     <name>TopToolbar</name>
@@ -682,5 +684,62 @@ Please use a build that includes Qt6::Pdf support.
         <source>No Document</source>
         <translation>无文档</translation>
     </message>
+</context>
+<context>
+    <name>FindController</name>
+    <message><source>Find in document</source><translation>在文档中查找</translation></message>
+    <message><source>Previous match (Shift+Enter)</source><translation>上一个匹配项（Shift+Enter）</translation></message>
+    <message><source>Next match (Enter)</source><translation>下一个匹配项（Enter）</translation></message>
+    <message><source>Close (Esc)</source><translation>关闭（Esc）</translation></message>
+</context>
+<context>
+    <name>SessionRecovery</name>
+    <message><source>Untitled</source><translation>未命名</translation></message>
+    <message><source>Restore Session</source><translation>恢复会话</translation></message>
+    <message><source>OpenPDF Studio did not shut down properly last time.</source><translation>OpenPDF Studio 上次未正常关闭。</translation></message>
+    <message><source>Restore the documents that were open?</source><translation>是否恢复之前打开的文档？</translation></message>
+    <message><source>%1 (unsaved changes)</source><translation>%1（未保存的更改）</translation></message>
+    <message><source>Restore</source><translation>恢复</translation></message>
+    <message><source>Discard</source><translation>放弃</translation></message>
+</context>
+<context>
+    <name>DocumentView</name>
+    <message><source>Insert image</source><translation>插入图片</translation></message>
+    <message><source>All files (*)</source><translation>所有文件 (*)</translation></message>
+    <message><source>Drop a PDF, Word, OpenDocument or image file here, or click a tab to open</source><translation>将 PDF、Word、OpenDocument 或图片拖到此处，或点击标签页打开</translation></message>
+</context>
+<context>
+    <name>MainWindow</name>
+    <message><source>Open Document</source><translation>打开文档</translation></message>
+    <message><source>Cannot open file</source><translation>无法打开文件</translation></message>
+    <message><source>"%1" is not a PDF and cannot be turned into one.</source><translation>“%1”不是 PDF，也无法转换为 PDF。</translation></message>
+    <message><source>There is no room to put the converted file.</source><translation>没有空间存放转换后的文件。</translation></message>
+    <message><source>Import failed</source><translation>导入失败</translation></message>
+    <message><source>"%1" could not be turned into a PDF.
+
+%2</source><translation>无法将“%1”转换为 PDF。
+
+%2</translation></message>
+    <message><source>"%1" was converted, but the result could not be opened.</source><translation>“%1”已转换，但无法打开结果。</translation></message>
+</context>
+<context>
+    <name>DocumentImport</name>
+    <message><source>Images</source><translation>图片</translation></message>
+    <message><source>All files</source><translation>所有文件</translation></message>
+    <message><source>All supported files</source><translation>所有支持的文件</translation></message>
+    <message><source>PDF files</source><translation>PDF 文件</translation></message>
+    <message><source>Word documents</source><translation>Word 文档</translation></message>
+    <message><source>Word document</source><translation>Word 文档</translation></message>
+    <message><source>OpenDocument text</source><translation>OpenDocument 文本</translation></message>
+    <message><source>Image</source><translation>图片</translation></message>
+    <message><source>The image is too large.</source><translation>图片过大。</translation></message>
+    <message><source>The PDF could not be written.</source><translation>无法写入 PDF。</translation></message>
+    <message><source>The file does not exist.</source><translation>文件不存在。</translation></message>
+    <message><source>The file could not be read. It may be damaged.</source><translation>无法读取文件，它可能已损坏。</translation></message>
+    <message><source>The file has no readable document part.</source><translation>文件中没有可读取的文档部分。</translation></message>
+    <message><source>The document is damaged: %1</source><translation>文档已损坏：%1</translation></message>
+    <message><source>This build was made without zlib and cannot read Word or OpenDocument files.</source><translation>此版本在构建时未包含 zlib，无法读取 Word 或 OpenDocument 文件。</translation></message>
+    <message><source>This is an older Word file that only carries a .docx name. Save it as a real .docx first.</source><translation>这是一个仅使用 .docx 名称的旧版 Word 文件。请先另存为真正的 .docx。</translation></message>
+    <message><source>%1 files cannot be opened.</source><translation>无法打开 %1 文件。</translation></message>
 </context>
 </TS>

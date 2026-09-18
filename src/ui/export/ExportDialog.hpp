@@ -15,19 +15,18 @@ class QButtonGroup;
 class QVBoxLayout;
 QT_END_NAMESPACE
 
-// Everything the dialog collects, in one place, so the caller does not have to
-// reach into individual widgets to find out what was asked for.
+/// Stores the user's export selections.
 struct ExportRequest {
     QString    path;
-    QString    format;                    // "pdf" | "word" | "image"
-    QList<int> pages;                     // zero-based, in order; never empty
+    QString    format;
+    QList<int> pages;
     int        imageQuality    { 85 };
     bool       compressImages  { true };
     bool       includeComments { true };
     bool       keepForms       { true };
     bool       embedFonts      { true };
     bool       openAfterExport { false };
-    QString    password;                  // empty = no protection
+    QString    password;
 };
 
 class ExportDialog : public QDialog
@@ -40,8 +39,6 @@ public:
 
     ExportRequest request() const;
 
-    // Test hook: drives the format cards from outside so the dialog's
-    // appearance per format can be captured without a display.
     void selectFormatForTest(const QString &id);
 
     QString selectedPath()   const;
@@ -50,11 +47,10 @@ public:
 
 private:
     void buildUi();
-    // buildUi() assembles the dialog from these; each one fills the body
-    // layout with its numbered section, in the order the user reads them.
+
     void applyDialogStyle();
     void buildFormatSection(QVBoxLayout *body);
-    void buildDestinationSection(QVBoxLayout *body);      // filename + location
+    void buildDestinationSection(QVBoxLayout *body);
     void buildRangeAndQualitySection(QVBoxLayout *body);
     void buildOptionsSection(QVBoxLayout *body);
     void buildSecuritySection(QVBoxLayout *body);
@@ -68,8 +64,7 @@ private:
     void updatePasswordFields();
     void updateOptionAvailability();
     void updateEstimate();
-    // Parses the range field ("1-3, 5, 8-10"). ok is false on malformed input
-    // or on a page number outside the document.
+
     QList<int> parseRange(bool *ok) const;
     QList<int> selectedPages() const;
     void onBrowse();

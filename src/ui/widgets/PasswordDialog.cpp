@@ -11,8 +11,7 @@ PasswordDialog::PasswordDialog(const QString &fileName, bool retry, QWidget *par
 {
     setWindowTitle(tr("Password required"));
     setModal(true);
-    // A one-field prompt has nothing to resize, so it gets no grip and no
-    // resizable frame; SetFixedSize also sizes it to its contents.
+
     setSizeGripEnabled(false);
     setWindowFlag(Qt::MSWindowsFixedSizeDialogHint, true);
 
@@ -42,9 +41,6 @@ PasswordDialog::PasswordDialog(const QString &fileName, bool retry, QWidget *par
     buttons->button(QDialogButtonBox::Ok)->setDefault(true);
     root->addWidget(buttons);
 
-    // The border is spelled out for both states. Left to the style alone the
-    // field was only outlined while focused, so tabbing to the buttons made it
-    // vanish into the dialog background.
     setStyleSheet(QStringLiteral(R"css(
         QLabel#PwMessage { font-size: 13px; }
         QLineEdit#PwInput {
@@ -60,7 +56,7 @@ PasswordDialog::PasswordDialog(const QString &fileName, bool retry, QWidget *par
 
     connect(buttons, &QDialogButtonBox::accepted, this, &QDialog::accept);
     connect(buttons, &QDialogButtonBox::rejected, this, &QDialog::reject);
-    // Enter in the field is the obvious way to confirm a password.
+
     connect(m_edit, &QLineEdit::returnPressed, this, &QDialog::accept);
 
     m_edit->setFocus();

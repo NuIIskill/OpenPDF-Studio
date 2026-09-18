@@ -11,4 +11,6 @@ target_sources(OpenPDFStudio PRIVATE
     SafeWrite.hpp
     SessionStore.cpp
     SessionStore.hpp
+    UpdateChecker.cpp
+    UpdateChecker.hpp
 )

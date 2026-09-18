@@ -15,7 +15,7 @@ StatusBar::StatusBar(QWidget *parent)
     setFixedHeight(48);
     setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Fixed);
     buildLayout();
-    setPageInfo(1, 1);       // also puts the arrows into their disabled state
+    setPageInfo(1, 1);
 }
 
 void StatusBar::setPageInfo(int current, int total)
@@ -24,7 +24,6 @@ void StatusBar::setPageInfo(int current, int total)
     m_currentPage = qBound(1, current, m_totalPages);
     m_validator->setTop(m_totalPages);
 
-    // Don't overwrite a number the user is in the middle of typing.
     if (!m_pageInput->hasFocus())
         m_pageInput->setText(QString::number(m_currentPage));
     m_totalLabel->setText(QStringLiteral("/ %1").arg(m_totalPages));
@@ -39,11 +38,10 @@ void StatusBar::commitPageInput()
     const int page = m_pageInput->text().trimmed().toInt(&ok);
 
     if (!ok || page < 1 || page > m_totalPages) {
-        m_pageInput->setText(QString::number(m_currentPage));   // reject
+        m_pageInput->setText(QString::number(m_currentPage));
         return;
     }
-    // editingFinished fires again on focus-out after Return; the guard keeps
-    // that from re-requesting the page the view already shows.
+
     if (page != m_currentPage)
         Q_EMIT pageRequested(page);
 }
@@ -90,7 +88,7 @@ void StatusBar::buildLayout()
     m_validator = new QIntValidator(1, 1, m_pageInput);
     m_pageInput->setValidator(m_validator);
     connect(m_pageInput, &QLineEdit::editingFinished, this, &StatusBar::commitPageInput);
-    // Return also hands focus back so the document keeps taking key input.
+
     connect(m_pageInput, &QLineEdit::returnPressed, m_pageInput, &QLineEdit::clearFocus);
     layout->addWidget(m_pageInput);
 

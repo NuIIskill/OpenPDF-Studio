@@ -7,8 +7,6 @@
 
 namespace {
 
-// Keyed by canonical path so the same document opened through a symlink or a
-// relative path still finds its password.
 QString key(const QString &filePath)
 {
     if (filePath.isEmpty()) return {};
@@ -19,7 +17,7 @@ QString key(const QString &filePath)
 QMutex                  &mutex() { static QMutex m; return m; }
 QHash<QString, QString> &table() { static QHash<QString, QString> t; return t; }
 
-} // namespace
+}
 
 namespace PdfPwStore {
 
@@ -64,4 +62,4 @@ std::string forQpdf(const QString &filePath)
     return get(filePath).toStdString();
 }
 
-} // namespace PdfPwStore
+}

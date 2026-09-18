@@ -484,6 +484,14 @@ Use page numbers like 1-3, 5, 8-10.</source>
         <source>Line Spacing</source>
         <translation>Zeilenabstand</translation>
     </message>
+    <message>
+        <source>Advanced</source>
+        <translation>Erweitert</translation>
+    </message>
+    <message>
+        <source>All text box options</source>
+        <translation>Alle Textfeld-Optionen</translation>
+    </message>
 </context>
 <context>
     <name>HistoryDialog</name>
@@ -559,10 +567,10 @@ Das Dokument selbst wird nicht verändert — nur die Liste der Stände, zu dene
         <location filename="../../src/ui/dialogs/HistoryDialog.cpp" line="453"/>
         <source>This state is part of an earlier version of the document, so it has to be loaded again.
 
-Text and image edits made since then are not part of any file yet and will be lost. Continue?</source>
+Text, image and drawing edits made since then are not part of any file yet and will be lost. Continue?</source>
         <translation>Dieser Stand gehört zu einer früheren Fassung des Dokuments und muss neu geladen werden.
 
-Text- und Bildbearbeitungen seit damals stehen in keiner Datei und gehen verloren. Fortfahren?</translation>
+Text-, Bild- und Zeichenbearbeitungen seit damals stehen in keiner Datei und gehen verloren. Fortfahren?</translation>
     </message>
     <message>
         <location filename="../../src/ui/dialogs/HistoryDialog.cpp" line="469"/>
@@ -736,16 +744,6 @@ Text- und Bildbearbeitungen seit damals stehen in keiner Datei und gehen verlore
         <location filename="../../src/ui/panels/LeftSidebar.cpp" line="30"/>
         <source>Image</source>
         <translation>Bild</translation>
-    </message>
-    <message>
-        <location filename="../../src/ui/panels/LeftSidebar.cpp" line="31"/>
-        <source>Table</source>
-        <translation>Tabelle</translation>
-    </message>
-    <message>
-        <location filename="../../src/ui/panels/LeftSidebar.cpp" line="32"/>
-        <source>Page</source>
-        <translation>Seite</translation>
     </message>
     <message>
         <location filename="../../src/ui/panels/LeftSidebar.cpp" line="33"/>
@@ -1783,6 +1781,10 @@ Enter the password to open it:</source>
         <source>Save as Default</source>
         <translation>Als Standard speichern</translation>
     </message>
+    <message>
+        <source>Position &amp; Size</source>
+        <translation>Position &amp; Größe</translation>
+    </message>
 </context>
 <context>
     <name>TopToolbar</name>
@@ -1841,5 +1843,137 @@ Enter the password to open it:</source>
         <source>No Document</source>
         <translation>Kein Dokument</translation>
     </message>
+</context>
+<context>
+    <name>BookmarkPanel</name>
+    <message><source>Bookmarks</source><translation>Lesezeichen</translation></message>
+    <message><source>Search bookmarks</source><translation>Lesezeichen durchsuchen</translation></message>
+    <message><source>This document has no bookmarks.</source><translation>Dieses Dokument enthält keine Lesezeichen.</translation></message>
+    <message><source>Open a PDF to view its bookmarks.</source><translation>Öffnen Sie eine PDF, um ihre Lesezeichen anzuzeigen.</translation></message>
+    <message><source>Close bookmarks</source><translation>Lesezeichen schließen</translation></message>
+    <message><source>Add bookmark for current page</source><translation>Lesezeichen für die aktuelle Seite hinzufügen</translation></message>
+    <message><source>Rename bookmark</source><translation>Lesezeichen umbenennen</translation></message>
+    <message><source>Delete bookmark</source><translation>Lesezeichen löschen</translation></message>
+    <message><source>Move bookmark up</source><translation>Lesezeichen nach oben verschieben</translation></message>
+    <message><source>Move bookmark down</source><translation>Lesezeichen nach unten verschieben</translation></message>
+    <message><source>Add bookmark</source><translation>Lesezeichen hinzufügen</translation></message>
+    <message><source>Title:</source><translation>Titel:</translation></message>
+    <message><source>Page %1</source><translation>Seite %1</translation></message>
+    <message><source>Delete &quot;%1&quot; and its child bookmarks?</source><translation>„%1“ und alle untergeordneten Lesezeichen löschen?</translation></message>
+</context>
+<context>
+    <name>FindController</name>
+    <message><source>Find in document</source><translation>Im Dokument suchen</translation></message>
+    <message><source>Previous match (Shift+Enter)</source><translation>Vorheriger Treffer (Umschalt+Eingabetaste)</translation></message>
+    <message><source>Next match (Enter)</source><translation>Nächster Treffer (Eingabetaste)</translation></message>
+    <message><source>Close (Esc)</source><translation>Schließen (Esc)</translation></message>
+</context>
+<context>
+    <name>LeftSidebar</name>
+    <message><source>Notes</source><translation>Notizen</translation></message>
+</context>
+<context>
+    <name>SettingsPanel</name>
+    <message><source>Notes</source><translation>Notizen</translation></message>
+</context>
+<context>
+    <name>HistoryDialog</name>
+    <message><source>Note added</source><translation>Notiz hinzugefügt</translation></message>
+    <message><source>Note changed</source><translation>Notiz geändert</translation></message>
+    <message><source>Note removed</source><translation>Notiz entfernt</translation></message>
+    <message><source>Drawing added</source><translation>Zeichnung hinzugefügt</translation></message>
+    <message><source>Drawing removed</source><translation>Zeichnung entfernt</translation></message>
+</context>
+<context>
+    <name>NoteLayer</name>
+    <message><source>Unpin note</source><translation>Notiz lösen</translation></message>
+    <message><source>Note</source><translation>Notiz</translation></message>
+    <message><source>Pin note</source><translation>Notiz anheften</translation></message>
+    <message><source>Edit note</source><translation>Notiz bearbeiten</translation></message>
+    <message><source>Page %1</source><translation>Seite %1</translation></message>
+    <message><source>Untitled note</source><translation>Notiz ohne Titel</translation></message>
+    <message><source>Delete note</source><translation>Notiz löschen</translation></message>
+    <message><source>Add note</source><translation>Notiz hinzufügen</translation></message>
+    <message><source>New note</source><translation>Neue Notiz</translation></message>
+</context>
+<context>
+    <name>NotesPanel</name>
+    <message><source>Pin</source><translation>Anheften</translation></message>
+    <message><source>Save</source><translation>Speichern</translation></message>
+    <message><source>Notes</source><translation>Notizen</translation></message>
+    <message><source>Title</source><translation>Titel</translation></message>
+    <message><source>Unpin</source><translation>Lösen</translation></message>
+    <message><source>No notes yet. Add one and place it on the current page.</source><translation>Noch keine Notizen. Fügen Sie eine Notiz auf der aktuellen Seite hinzu.</translation></message>
+    <message><source>Cancel</source><translation>Abbrechen</translation></message>
+    <message><source>Delete</source><translation>Löschen</translation></message>
+    <message><source>Write a note…</source><translation>Notiz schreiben…</translation></message>
+    <message><source>Page %1</source><translation>Seite %1</translation></message>
+    <message><source>Untitled note</source><translation>Notiz ohne Titel</translation></message>
+    <message><source>Close notes</source><translation>Notizen schließen</translation></message>
+    <message><source>New note</source><translation>Neue Notiz</translation></message>
+</context>
+<context>
+    <name>DrawBar</name>
+    <message><source>Pen</source><translation>Stift</translation></message>
+    <message><source>Highlighter</source><translation>Textmarker</translation></message>
+    <message><source>Eraser</source><translation>Radierer</translation></message>
+    <message><source>Thin</source><translation>Dünn</translation></message>
+    <message><source>Medium</source><translation>Mittel</translation></message>
+    <message><source>Thick</source><translation>Dick</translation></message>
+</context>
+<context>
+    <name>DrawingLayer</name>
+    <message><source>Erase drawing</source><translation>Zeichnung radieren</translation></message>
+    <message><source>Draw stroke</source><translation>Strich zeichnen</translation></message>
+</context>
+<context>
+    <name>SessionRecovery</name>
+    <message><source>Untitled</source><translation>Unbenannt</translation></message>
+    <message><source>Restore Session</source><translation>Sitzung wiederherstellen</translation></message>
+    <message><source>OpenPDF Studio did not shut down properly last time.</source><translation>OpenPDF Studio wurde beim letzten Mal nicht ordentlich beendet.</translation></message>
+    <message><source>Restore the documents that were open?</source><translation>Die geöffneten Dokumente wiederherstellen?</translation></message>
+    <message><source>%1 (unsaved changes)</source><translation>%1 (nicht gespeicherte Änderungen)</translation></message>
+    <message><source>Restore</source><translation>Wiederherstellen</translation></message>
+    <message><source>Discard</source><translation>Verwerfen</translation></message>
+</context>
+<context>
+    <name>DocumentView</name>
+    <message><source>Insert image</source><translation>Bild einfügen</translation></message>
+    <message><source>All files (*)</source><translation>Alle Dateien (*)</translation></message>
+    <message><source>Drop a PDF, Word, OpenDocument or image file here, or click a tab to open</source><translation>PDF, Word, OpenDocument oder Bild hier ablegen oder Tab anklicken</translation></message>
+</context>
+<context>
+    <name>MainWindow</name>
+    <message><source>Open Document</source><translation>Dokument öffnen</translation></message>
+    <message><source>Cannot open file</source><translation>Datei lässt sich nicht öffnen</translation></message>
+    <message><source>"%1" is not a PDF and cannot be turned into one.</source><translation>„%1“ ist kein PDF und lässt sich auch in keines umwandeln.</translation></message>
+    <message><source>There is no room to put the converted file.</source><translation>Für die umgewandelte Datei ist kein Platz.</translation></message>
+    <message><source>Import failed</source><translation>Import fehlgeschlagen</translation></message>
+    <message><source>"%1" could not be turned into a PDF.
+
+%2</source><translation>„%1“ ließ sich nicht in ein PDF umwandeln.
+
+%2</translation></message>
+    <message><source>"%1" was converted, but the result could not be opened.</source><translation>„%1“ wurde umgewandelt, das Ergebnis ließ sich aber nicht öffnen.</translation></message>
+</context>
+<context>
+    <name>DocumentImport</name>
+    <message><source>Images</source><translation>Bilder</translation></message>
+    <message><source>All files</source><translation>Alle Dateien</translation></message>
+    <message><source>All supported files</source><translation>Alle unterstützten Dateien</translation></message>
+    <message><source>PDF files</source><translation>PDF-Dateien</translation></message>
+    <message><source>Word documents</source><translation>Word-Dokumente</translation></message>
+    <message><source>Word document</source><translation>Word-Dokument</translation></message>
+    <message><source>OpenDocument text</source><translation>OpenDocument-Text</translation></message>
+    <message><source>Image</source><translation>Bild</translation></message>
+    <message><source>The image is too large.</source><translation>Das Bild ist zu groß.</translation></message>
+    <message><source>The PDF could not be written.</source><translation>Das PDF ließ sich nicht schreiben.</translation></message>
+    <message><source>The file does not exist.</source><translation>Die Datei gibt es nicht.</translation></message>
+    <message><source>The file could not be read. It may be damaged.</source><translation>Die Datei ließ sich nicht lesen. Möglicherweise ist sie beschädigt.</translation></message>
+    <message><source>The file has no readable document part.</source><translation>Die Datei enthält keinen lesbaren Dokumentteil.</translation></message>
+    <message><source>The document is damaged: %1</source><translation>Das Dokument ist beschädigt: %1</translation></message>
+    <message><source>This build was made without zlib and cannot read Word or OpenDocument files.</source><translation>Diese Fassung wurde ohne zlib gebaut und kann Word- und OpenDocument-Dateien nicht lesen.</translation></message>
+    <message><source>This is an older Word file that only carries a .docx name. Save it as a real .docx first.</source><translation>Das ist eine ältere Word-Datei, die nur den Namen .docx trägt. Bitte zuerst als echtes .docx speichern.</translation></message>
+    <message><source>%1 files cannot be opened.</source><translation>%1-Dateien lassen sich nicht öffnen.</translation></message>
 </context>
 </TS>

@@ -6,9 +6,7 @@
 #include <QPainter>
 #include <QPainterPath>
 
-// Painted by hand for the same reason ToggleSwitch is: a style-sheet indicator
-// would need a bitmap check mark, and the app deliberately ships without Qt SVG.
-
+/// Provides a themed checkbox for application settings.
 class SettingCheckBox : public QAbstractButton
 {
     Q_OBJECT
@@ -22,8 +20,8 @@ public:
         setSizePolicy(QSizePolicy::Preferred, QSizePolicy::Fixed);
     }
 
-    static constexpr int kBox     = 20;   // indicator edge length
-    static constexpr int kSpacing = 14;   // indicator → label gap
+    static constexpr int kBox     = 20;
+    static constexpr int kSpacing = 14;
 
     [[nodiscard]] QSize sizeHint() const override
     {

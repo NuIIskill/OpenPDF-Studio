@@ -4,8 +4,9 @@
 #include "ui/export/ExportDialog.hpp"
 #include "ui/organizer/PdfOrganizerDialog.hpp"
 #include "ui/history/HistoryDialog.hpp"
-#include "engine/edit/DocxExporter.hpp"
-#include "engine/edit/PdfExporter.hpp"
+#include "engine/export/DocxExporter.hpp"
+#include "engine/import/DocumentImport.hpp"
+#include "engine/export/PdfExporter.hpp"
 #include "ui/PresentationWindow.hpp"
 #include <QTextStream>
 #include "app/PdfPwStore.hpp"
@@ -24,6 +25,17 @@
 
 #include <QApplication>
 #include <QFileInfo>
+#include <QAbstractButton>
+#include <QDragEnterEvent>
+#include <QDragMoveEvent>
+#include <QDropEvent>
+#include <QMimeData>
+#include <QKeyEvent>
+#include <QLineEdit>
+#include <QScrollBar>
+#include "ui/edit/InlineEditor.hpp"
+
+#include <QTextEdit>
 #include <QTimer>
 #include <QEventLoop>
 #include <QMouseEvent>
@@ -32,6 +44,7 @@
 #include <QLocale>
 #include <QPixmap>
 #include <QMessageBox>
+#include <QPushButton>
 #include <QSettings>
 #include <QTranslator>
 #include <cstdlib>
@@ -40,11 +53,6 @@
 #  include <windows.h>
 #  include <string>
 
-// On Windows, the cross-compiled fontconfig DLL has Linux paths hardcoded
-// as its system config location.  Setting FONTCONFIG_FILE before QApplication
-// is created (which loads Qt6Gui.dll and triggers fontconfig init) prevents
-// fontconfig from crashing when it can't find its config at the Linux path.
-// We point it to a fonts.conf deployed alongside the exe (in etc/fonts/).
 static void initFontconfigWindows()
 {
     char buf[MAX_PATH];
@@ -54,14 +62,13 @@ static void initFontconfigWindows()
     const std::string exeDir = (lastSep != std::string::npos)
                                    ? exePath.substr(0, lastSep)
                                    : ".";
-    // Try the bundled fonts.conf first; fall back to letting fontconfig use
-    // the built-in config (which still has WINDOWSFONTDIR so fonts are found).
+
     const std::string fcConf = exeDir + "\\etc\\fonts\\fonts.conf";
     SetEnvironmentVariableA("FONTCONFIG_FILE", fcConf.c_str());
-    // The conf.avail dir sits next to fonts.conf
+
     const std::string fcPath = exeDir + "\\etc\\fonts";
     SetEnvironmentVariableA("FONTCONFIG_PATH", fcPath.c_str());
-    // Suppress the Linux-only mmap optimization (not reliable on Windows)
+
     SetEnvironmentVariableA("FONTCONFIG_USE_MMAP", "false");
 }
 #endif
@@ -77,7 +84,6 @@ int main(int argc, char *argv[])
         qputenv("QT_QPA_PLATFORM", "wayland");
 #endif
 
-    // Opt in to high-DPI scaling (default in Qt 6, but explicit for clarity)
     QApplication::setHighDpiScaleFactorRoundingPolicy(
         Qt::HighDpiScaleFactorRoundingPolicy::PassThrough);
 
@@ -88,7 +94,6 @@ int main(int argc, char *argv[])
     qapp.setOrganizationDomain(QStringLiteral("openpdf.io"));
     qapp.setApplicationVersion(QStringLiteral(APP_VERSION));
 
-    // ── Fusion style + theme (palette + QSS) ─────────────────────────────
     QApplication::setStyle(QStringLiteral("Fusion"));
     {
         const QString savedTheme = AppConfig::store().value(
@@ -96,7 +101,6 @@ int main(int argc, char *argv[])
         Theme::apply(savedTheme);
     }
 
-    // ── Application font ──────────────────────────────────────────────────
     {
         const QStringList candidates = { "Inter", "Noto Sans", "Segoe UI", "Helvetica Neue" };
         for (const QString &f : candidates) {
@@ -110,21 +114,17 @@ int main(int argc, char *argv[])
         }
     }
 
-    // ── Locale / translations ─────────────────────────────────────────────
-    // Use the locale-aware overload: tries openpdf_de_DE.qm → openpdf_de.qm → openpdf.qm
     QTranslator translator;
-    if (translator.load(QLocale::system(),
-                        QStringLiteral("openpdf"),
-                        QStringLiteral("_"),
-                        QStringLiteral(":/i18n"))) {
-        qapp.installTranslator(&translator);
+    {
+        const QString lang = AppConfig::store()
+                                 .value(QStringLiteral("appearance/language"),
+                                        AppSettings::systemDefaultLanguage())
+                                 .toString();
+        if (lang != QLatin1String("en")
+                && translator.load(QStringLiteral(":/i18n/openpdf_%1.qm").arg(lang)))
+            qapp.installTranslator(&translator);
     }
 
-    // ── App icon (blue rounded square + white "O") ────────────────────────
-    // Rendered from the same openpdf-studio.svg that produces the Linux PNG
-    // and the Windows .ico, so all three stay in sync.  This used to be drawn
-    // with QPainter using a bold "Inter" glyph, which silently fell back to a
-    // different font — and so a different logo — on any machine without Inter.
     {
         QIcon appIcon;
         for (const int sz : { 16, 24, 32, 48, 64, 128, 256 })
@@ -133,8 +133,6 @@ int main(int argc, char *argv[])
         qapp.setWindowIcon(appIcon);
     }
 
-    // Renders the export dialog to a PNG so its appearance can be checked
-    // without a display: OpenPDFStudio --shot-export-dialog out.png [word|image]
     if (qapp.arguments().size() >= 3
             && qapp.arguments().at(1) == QLatin1String("--shot-export-dialog")) {
         ExportDialog dlg(QStringLiteral("/tmp/demo.pdf"), 4, 0);
@@ -146,8 +144,6 @@ int main(int argc, char *argv[])
         return ok ? 0 : 3;
     }
 
-    // Same for the history dialog, with a made-up log so the timeline has
-    // something to show: OpenPDFStudio --shot-history-dialog out.png [dark]
     if (qapp.arguments().size() >= 3
             && qapp.arguments().at(1) == QLatin1String("--shot-history-dialog")) {
         using Kind = DocumentHistory::Kind;
@@ -168,16 +164,11 @@ int main(int argc, char *argv[])
         return ok ? 0 : 3;
     }
 
-    // The expiry notice as the user gets to see it, without waiting 30 days:
-    //   OPENPDF_USAGE=business OpenPDFStudio --shot-license-notice out.png [dark|light]
-    // Exit 3 means no notice was due — evaluation still running, personal use,
-    // or a key on record. The flag declares nothing of its own: it reports the
-    // state it finds, so it can be used to check that state.
     if (qapp.arguments().size() >= 3
             && qapp.arguments().at(1) == QLatin1String("--shot-license-notice")) {
         if (qapp.arguments().size() >= 4)
             Theme::apply(qapp.arguments().at(3));
-        QWidget host;   // parent only, never shown
+        QWidget host;
         LicenseNotice::showExpiryReminderIfDue(&host, {});
         qapp.processEvents();
         for (QWidget *w : qapp.topLevelWidgets())
@@ -186,10 +177,6 @@ int main(int argc, char *argv[])
         return 3;
     }
 
-    // Settings dialog on any of its pages, named by the English nav label:
-    //   OpenPDFStudio --shot-settings out.png ["License Key"] [dark|light]
-    // The License Key page exists only where the state says business use —
-    // OPENPDF_USAGE=business in front of it is how that is arranged for a shot.
     if (qapp.arguments().size() >= 3
             && qapp.arguments().at(1) == QLatin1String("--shot-settings")) {
         if (qapp.arguments().size() >= 5)
@@ -204,17 +191,12 @@ int main(int argc, char *argv[])
         return ok ? 0 : 3;
     }
 
-    // Runs the organizer's save path on an unchanged page list, so a refactor
-    // of it can be checked against the bytes it produced before:
-    //   OpenPDFStudio --organize-save in.pdf out.pdf
     if (qapp.arguments().size() >= 4
             && qapp.arguments().at(1) == QLatin1String("--organize-save")) {
         PdfOrganizerDialog dlg(qapp.arguments().at(2));
         return dlg.writeForTest(qapp.arguments().at(3)) ? 0 : 3;
     }
 
-    // Renders the page organizer with a document loaded:
-    //   OpenPDFStudio --shot-organizer out.png in.pdf [dark]
     if (qapp.arguments().size() >= 4
             && qapp.arguments().at(1) == QLatin1String("--shot-organizer")) {
         if (qapp.arguments().size() >= 5)
@@ -229,10 +211,6 @@ int main(int argc, char *argv[])
         return ok ? 0 : 3;
     }
 
-    // Headless regression/export entry point for the PDF target, exercising the
-    // same option path as the dialog:
-    //   OpenPDFStudio --export-pdf in.pdf out.pdf [pages=1,3-4] [nocomments]
-    //                 [noforms] [nofonts] [nocompress] [q=60] [pw=secret]
     const QStringList args = qapp.arguments();
     if (args.size() >= 4 && args.at(1) == QLatin1String("--export-pdf")) {
         PdfExportOptions opt;
@@ -260,9 +238,6 @@ int main(int argc, char *argv[])
         return exportPdf(args.at(2), args.at(3), opt) ? 0 : 3;
     }
 
-    // Headless regression/export entry point. It uses the same content path as
-    // the UI: OpenPDFStudio --export-docx input.pdf output.docx
-    // An optional trailing pages=1,3-4 selects a subset, as the dialog does.
     if (args.size() >= 4 && args.at(1) == QLatin1String("--export-docx")) {
         QList<int> pages;
         DocxExportOptions docxOpt;
@@ -289,12 +264,6 @@ int main(int argc, char *argv[])
         return ok ? 0 : 3;
     }
 
-    // One PNG per page, straight off the renderer — no window, no toolbar, no
-    // theme. That is what makes it comparable across platforms and across PDF
-    // backends, which --shot-window is not: that one grabs the whole UI.
-    //   OpenPDFStudio --export-images in.pdf out.png [pages=1,3-4] [q=85] [srcpw=secret]
-    // With more than one page the name gains a _page_N suffix, exactly as the
-    // export dialog writes it.
     if (args.size() >= 4 && args.at(1) == QLatin1String("--export-images")) {
         QList<int> pages;
         int quality = 85;
@@ -318,13 +287,20 @@ int main(int argc, char *argv[])
         return view.exportPagesToImages(args.at(3), quality, pages) ? 0 : 3;
     }
 
-    // Text selection, straight off the backend and printed as text. Selection
-    // is the one core feature the export entry points cannot reach, and it is
-    // also the one whose logic differs most between backends — Qt has an API
-    // for it, Poppler has to rebuild the reading order from a word list. This
-    // is where the two get compared.
-    //   OpenPDFStudio --select-text in.pdf [page=1] [from=x,y] [to=x,y] [srcpw=secret]
-    // Without from/to the whole page is selected.
+    if (args.size() >= 4 && args.at(1) == QLatin1String("--import-pdf")) {
+        QString dump;
+        for (int a = 4; a < args.size(); ++a)
+            if (args.at(a).startsWith(QLatin1String("dump=")))
+                dump = args.at(a).mid(5);
+
+        QString error;
+        if (!DocumentImport::convertToPdf(args.at(2), args.at(3), &error, dump)) {
+            qWarning().noquote() << "[import]" << error;
+            return 3;
+        }
+        return 0;
+    }
+
     if (args.size() >= 3 && args.at(1) == QLatin1String("--select-text")) {
 #ifdef HAVE_PDF_RENDERING
         int page = 1;
@@ -362,20 +338,6 @@ int main(int argc, char *argv[])
 #endif
     }
 
-    // Renders the whole window, with a document open, to a PNG. Everything the
-    // dialog shots cannot reach — toolbar, format bar, sidebars, the pages
-    // themselves — is only checkable this way without a display:
-    //   OpenPDFStudio --shot-window out.png in.pdf [dark]
-    //
-    // The wait is not decoration: pages are rendered by a timer after the
-    // scroll area has laid them out, so grabbing immediately yields blanks.
-    // Replaces the text line at a point and saves — the whole edit-and-save
-    // path without a window. Saving is the one thing the other entry points
-    // never touch, and the piece that differs most between backends.
-    //   OpenPDFStudio --apply-edit in.pdf out.pdf at=x,y text=Ersetzung [page=1] [srcpw=…]
-    //   OpenPDFStudio --apply-edit in.pdf out.pdf field=Feldname text=Wert
-    // The coordinates are PDF points with the origin top-left, the same as
-    // --select-text reports.
     if (args.size() >= 4 && args.at(1) == QLatin1String("--apply-edit")) {
 #ifdef HAVE_PDF_RENDERING
         int     page = 1;
@@ -402,7 +364,6 @@ int main(int argc, char *argv[])
         QTextStream out(stdout);
         out << "backend=" << backend->name() << "\n";
 
-        // Formularfeld: kein Textobjekt, sondern der Wert eines Widgets.
         if (!fieldName.isEmpty()) {
             EditSession fieldSession;
             EditSession::Edit fieldEdit;
@@ -413,8 +374,6 @@ int main(int argc, char *argv[])
             return backend->saveWithEdits(args.at(3), fieldSession) ? 0 : 3;
         }
 
-        // Genau der Weg, den der Inline-Editor geht: Zeile am Punkt suchen,
-        // ihre Glyphenkästen als Löschflächen nehmen, Ersatztext eintragen.
         const TextBlock block = backend->textAt(page - 1, at);
         if (!block.isValid()) {
             QTextStream(stdout) << "kein Text an dieser Stelle\n";
@@ -422,26 +381,42 @@ int main(int argc, char *argv[])
         }
 
         EditSession session;
+        EditSession::Edit blank;
+        blank.page         = page - 1;
+        blank.pdfBounds    = block.pdfBounds;
+        blank.sourceRect   = block.pdfBounds;
+        blank.originalText = block.text;
+        blank.eraseRects   = backend->glyphRects(page - 1, block.pdfBounds);
+        session.addEdit(blank);
+
         EditSession::Edit edit;
         edit.page         = page - 1;
         edit.pdfBounds    = block.pdfBounds;
+        edit.sourceRect   = block.pdfBounds;
         edit.originalText = block.text;
         edit.newText      = replacement;
-        edit.eraseRects   = backend->glyphRects(page - 1, block.pdfBounds);
         session.addEdit(edit);
 
+        out << QStringLiteral("block=%1,%2,%3,%4\n")
+                   .arg(block.pdfBounds.x(), 0, 'f', 1)
+                   .arg(block.pdfBounds.y(), 0, 'f', 1)
+                   .arg(block.pdfBounds.width(), 0, 'f', 1)
+                   .arg(block.pdfBounds.height(), 0, 'f', 1);
         out << "ersetzt<<\n" << block.text << "\n>>ersetzt\n";
+
+        for (int a = 4; a < args.size(); ++a) {
+            if (!args.at(a).startsWith(QLatin1String("preview="))) continue;
+            const QImage shot = backend->renderPage(page - 1, 2.0, &session);
+            if (shot.isNull() || !shot.save(args.at(a).mid(8), "PNG")) return 3;
+            out << "vorschau=" << args.at(a).mid(8) << "\n";
+            break;
+        }
         return backend->saveWithEdits(args.at(3), session) ? 0 : 3;
 #else
         return 3;
 #endif
     }
 
-    // Presentation mode as a PNG. It opens the document a second time, through
-    // its own backend, and nothing else in the app reaches that code — which is
-    // why it could stay broken on the Poppler build for so long without anyone
-    // noticing (it rendered a black screen).
-    //   OpenPDFStudio --shot-presentation out.png in.pdf [page=N]
     if (args.size() >= 4 && args.at(1) == QLatin1String("--shot-presentation")) {
         int page = 1;
         for (int a = 4; a < args.size(); ++a)
@@ -470,30 +445,36 @@ int main(int argc, char *argv[])
         QTimer::singleShot(2500, &settle, &QEventLoop::quit);
         settle.exec();
 
-        // Optional: enter edit mode and click a page position, so the editor
-        // frame and the format bar — neither of which exists otherwise — end
-        // up in the shot. The click is posted at the viewport so it travels
-        // the real event filter instead of calling the handler directly:
-        // that is the whole path an edit opens through.
-        //   OpenPDFStudio --shot-window out.png in.pdf edit=<x>,<y>
         for (int a = 4; a < args.size(); ++a) {
             if (!args.at(a).startsWith(QLatin1String("edit="))) continue;
             const QStringList xy = args.at(a).mid(5).split(u',');
             if (xy.size() != 2) break;
             DocumentView *dv = win->findChild<DocumentView *>();
             if (!dv) break;
-            // Through the sidebar signal, not DocumentView::setEditMode():
-            // the window owns the edit state and it is what shows the format
-            // bar and switches the sidebar. Setting it on the view alone puts
-            // the two out of step — which is exactly what this shot is for.
+
             Q_EMIT win->rightSidebar()->modeSelected(QStringLiteral("edit"));
             QApplication::processEvents();
-            // Order matters: the tool handler puts up a modal "enable edit
-            // mode?" box when edit mode is still off, and nothing would ever
-            // answer it here. With the mode already on it goes straight
-            // through — and only then does the format bar appear.
+
             Q_EMIT win->leftSidebar()->toolSelected(QStringLiteral("text"));
             QApplication::processEvents();
+            for (int z = 4; z < args.size(); ++z) {
+                if (!args.at(z).startsWith(QLatin1String("preseite="))) continue;
+                dv->goToPage(args.at(z).mid(9).toInt() - 1);
+                QApplication::processEvents();
+                QEventLoop ps;
+                QTimer::singleShot(900, &ps, &QEventLoop::quit);
+                ps.exec();
+                break;
+            }
+            for (int z = 4; z < args.size(); ++z) {
+                if (!args.at(z).startsWith(QLatin1String("prezoom="))) continue;
+                dv->setZoom(args.at(z).mid(8).toInt());
+                QApplication::processEvents();
+                QEventLoop zs;
+                QTimer::singleShot(900, &zs, &QEventLoop::quit);
+                zs.exec();
+                break;
+            }
             const QPoint at(xy.at(0).toInt(), xy.at(1).toInt());
             QWidget *vp = dv->viewport();
             for (const QEvent::Type type : { QEvent::MouseButtonPress,
@@ -505,20 +486,532 @@ int main(int argc, char *argv[])
             QEventLoop editSettle;
             QTimer::singleShot(1500, &editSettle, &QEventLoop::quit);
             editSettle.exec();
+
+            for (int r = 4; r < args.size(); ++r) {
+                if (!args.at(r).startsWith(QLatin1String("resize="))) continue;
+
+                QString spec = args.at(r).mid(7);
+                QString griff = QStringLiteral("se");
+                if (const int dp = spec.indexOf(u':'); dp > 0) {
+                    griff = spec.left(dp);
+                    spec  = spec.mid(dp + 1);
+                }
+                const QStringList d = spec.split(u',');
+                if (d.size() != 2) break;
+                auto *ed = dv->findChild<QTextEdit *>(QStringLiteral("InlineEditor"));
+                QWidget *frame = ed ? ed->parentWidget() : nullptr;
+                if (!frame) break;
+
+                const int W = frame->width(), H = frame->height();
+                const int L = 14, R = W - 15, T = 14, B = H - 15;
+                QPoint grab(R, B);
+                if      (griff == QLatin1String("e"))  grab = QPoint(R, H / 2);
+                else if (griff == QLatin1String("s"))  grab = QPoint(W / 2, B);
+                else if (griff == QLatin1String("w"))  grab = QPoint(L, H / 2);
+                else if (griff == QLatin1String("n"))  grab = QPoint(W / 2, T);
+                else if (griff == QLatin1String("sw")) grab = QPoint(L, B);
+                else if (griff == QLatin1String("ne")) grab = QPoint(R, T);
+                const QPoint weg(d.at(0).toInt(), d.at(1).toInt());
+                const QPoint g0 = frame->mapToGlobal(grab);
+                const auto send = [&](QEvent::Type t, const QPoint &lokal,
+                                      const QPoint &global) {
+                    QMouseEvent me(t, QPointF(lokal), QPointF(global),
+                                   Qt::LeftButton,
+                                   t == QEvent::MouseButtonRelease ? Qt::NoButton
+                                                                   : Qt::LeftButton,
+                                   Qt::NoModifier);
+                    QApplication::sendEvent(frame, &me);
+                    QApplication::processEvents();
+                };
+
+                {
+                    QTextStream out(stdout);
+                    out << "rahmen im fenster="
+                        << frame->mapTo(win, QPoint(0,0)).x() << ","
+                        << frame->mapTo(win, QPoint(0,0)).y() << " "
+                        << frame->width() << "x" << frame->height()
+                        << "  fenster=" << win->width() << "x" << win->height() << "\n";
+                    const QPoint ecken[8] = {
+                        {10, 10}, {W/2, 10}, {W-11, 10},
+                        {10, H/2}, {W-11, H/2},
+                        {10, H-11}, {W/2, H-11}, {W-11, H-11} };
+                    const char *namen[8] = {"nw","n","ne","w","e","sw","s","se"};
+                    for (int k = 0; k < 8; ++k) {
+                        QWidget *u = frame->childAt(ecken[k]);
+                        out << "  " << namen[k] << " lokal=" << ecken[k].x() << ","
+                            << ecken[k].y() << " kind="
+                            << (u ? u->metaObject()->className() : "(keins, also Rahmen)")
+                            << "\n";
+                    }
+                }
+
+                if (args.contains(QStringLiteral("echt"))) {
+                    QWidget *ziel = QApplication::widgetAt(g0);
+                    {
+                        QTextStream out(stdout);
+                        out << "zustellung an=";
+                        for (QWidget *w = ziel; w; w = w->parentWidget())
+                            out << w->metaObject()->className()
+                                << "(" << (w->objectName().isEmpty()
+                                               ? QStringLiteral("-") : w->objectName())
+                                << ") < ";
+                        out << "\n";
+                        if (ziel) {
+                            out << "   geometrie=" << ziel->geometry().x() << ","
+                                << ziel->geometry().y() << " "
+                                << ziel->width() << "x" << ziel->height()
+                                << "  mausdurchlaessig="
+                                << ziel->testAttribute(Qt::WA_TransparentForMouseEvents)
+                                << "\n";
+                        }
+                    }
+                    if (ziel) {
+                        const auto echt = [&](QEvent::Type t, const QPoint &global) {
+                            QMouseEvent me(t, QPointF(ziel->mapFromGlobal(global)),
+                                           QPointF(global), Qt::LeftButton,
+                                           t == QEvent::MouseButtonRelease ? Qt::NoButton
+                                                                           : Qt::LeftButton,
+                                           Qt::NoModifier);
+                            QApplication::sendEvent(ziel, &me);
+                            QApplication::processEvents();
+                        };
+                        echt(QEvent::MouseButtonPress, g0);
+                        echt(QEvent::MouseMove, g0 + weg / 2);
+                        echt(QEvent::MouseMove, g0 + weg);
+                        echt(QEvent::MouseButtonRelease, g0 + weg);
+                        QEventLoop s2;
+                        QTimer::singleShot(800, &s2, &QEventLoop::quit);
+                        s2.exec();
+                        break;
+                    }
+                }
+                send(QEvent::MouseButtonPress, grab, g0);
+                send(QEvent::MouseMove, grab + weg / 2, g0 + weg / 2);
+                send(QEvent::MouseMove, grab + weg, g0 + weg);
+                send(QEvent::MouseButtonRelease, grab + weg, g0 + weg);
+                QEventLoop settle;
+                QTimer::singleShot(800, &settle, &QEventLoop::quit);
+                settle.exec();
+                break;
+            }
+
+            for (int r = 4; r < args.size(); ++r) {
+                if (!args.at(r).startsWith(QLatin1String("move="))) continue;
+                const QStringList d = args.at(r).mid(5).split(u',');
+                if (d.size() != 2) break;
+                auto *ed = dv->findChild<QTextEdit *>(QStringLiteral("InlineEditor"));
+                QWidget *frame = ed ? ed->parentWidget() : nullptr;
+                if (!frame) break;
+                const QPoint grab(frame->width() * 3 / 8, 3);
+                const QPoint weg(d.at(0).toInt(), d.at(1).toInt());
+                const QPoint g0 = frame->mapToGlobal(grab);
+                const auto send = [&](QEvent::Type t, const QPoint &lokal,
+                                      const QPoint &global) {
+                    QMouseEvent me(t, QPointF(lokal), QPointF(global),
+                                   Qt::LeftButton,
+                                   t == QEvent::MouseButtonRelease ? Qt::NoButton
+                                                                   : Qt::LeftButton,
+                                   Qt::NoModifier);
+                    QApplication::sendEvent(frame, &me);
+                    QApplication::processEvents();
+                };
+                send(QEvent::MouseButtonPress, grab, g0);
+                send(QEvent::MouseMove, grab + weg / 2, g0 + weg / 2);
+                send(QEvent::MouseMove, grab + weg, g0 + weg);
+                send(QEvent::MouseButtonRelease, grab + weg, g0 + weg);
+                QEventLoop settle;
+                QTimer::singleShot(800, &settle, &QEventLoop::quit);
+                settle.exec();
+                break;
+            }
+
+            for (int r = 4; r < args.size(); ++r) {
+                if (!args.at(r).startsWith(QLatin1String("type="))) continue;
+                if (auto *ed = dv->findChild<QTextEdit *>(
+                        QStringLiteral("InlineEditor"))) {
+                    ed->selectAll();
+                    ed->insertPlainText(args.at(r).mid(5));
+                    QApplication::processEvents();
+                }
+                break;
+            }
+
+            for (int r = 4; r < args.size(); ++r) {
+                const QString o = args.at(r);
+                if (o.startsWith(QLatin1String("color="))) {
+                    dv->setEditorTextColor(QColor(o.mid(6)));
+                } else if (o.startsWith(QLatin1String("size="))) {
+                    dv->setEditorFontSize(o.mid(5).toInt());
+                } else if (o.startsWith(QLatin1String("font="))) {
+                    const QStringList teile = o.mid(5).split(u',');
+                    dv->setEditorFontFamily(teile.at(0));
+                    dv->setEditorBold(teile.contains(QLatin1String("bold")));
+                    dv->setEditorItalic(teile.contains(QLatin1String("italic")));
+                    dv->setEditorUnderline(teile.contains(QLatin1String("underline")));
+                } else {
+                    continue;
+                }
+                QApplication::processEvents();
+            }
+
+            const auto zeigeBounds = [&](const char *wann) {
+                const QRectF b = dv->editBounds();
+                const QRectF f = dv->editFrameRect();
+                QTextStream(stdout) << "bounds " << wann << "="
+                    << QStringLiteral("%1,%2,%3,%4").arg(b.x(), 0, 'f', 2)
+                           .arg(b.y(), 0, 'f', 2).arg(b.width(), 0, 'f', 2)
+                           .arg(b.height(), 0, 'f', 2)
+                    << "  schrift=" << QString::number(dv->editFontSizePt(), 'f', 2)
+                    << "  rahmen=" << QStringLiteral("%1,%2,%3,%4").arg(f.x(), 0, 'f', 2)
+                           .arg(f.y(), 0, 'f', 2).arg(f.width(), 0, 'f', 2)
+                           .arg(f.height(), 0, 'f', 2)
+                    << "\n";
+            };
+            if (args.contains(QStringLiteral("bounds"))) zeigeBounds("danach");
+
+            if (args.contains(QStringLiteral("selectall"))) {
+                if (auto *ed = dv->findChild<QTextEdit *>(
+                        QStringLiteral("InlineEditor"))) {
+                    ed->selectAll();
+                    QApplication::processEvents();
+                }
+            }
+
+            if (args.contains(QStringLiteral("nocaret"))
+                    || args.contains(QStringLiteral("caret"))) {
+                if (auto *ed = dv->findChild<InlineEditor *>())
+                    ed->setCaretVisible(args.contains(QStringLiteral("caret")));
+                QApplication::processEvents();
+            }
+
+            QPoint boxCenter(-1, -1);
+            if (auto *ed = dv->findChild<QTextEdit *>(QStringLiteral("InlineEditor"))) {
+                if (QWidget *fr = ed->parentWidget(); fr && fr->isVisible())
+                    boxCenter = dv->viewport()->mapFromGlobal(
+                        fr->mapToGlobal(fr->rect().center()));
+            }
+
+            if (args.contains(QStringLiteral("escape"))) {
+                QTextStream(stdout) << "seite vorher=" << dv->currentPage() << "\n";
+                if (auto *ed = dv->findChild<QTextEdit *>(
+                        QStringLiteral("InlineEditor"))) {
+                    QKeyEvent key(QEvent::KeyPress, Qt::Key_Escape, Qt::NoModifier);
+                    QApplication::sendEvent(ed, &key);
+                }
+                QEventLoop zu;
+                QTimer::singleShot(800, &zu, &QEventLoop::quit);
+                zu.exec();
+                QTextStream(stdout) << "seite nachher=" << dv->currentPage() << "\n";
+            }
+
+            if (args.contains(QStringLiteral("commit"))) {
+                QWidget *vp = dv->viewport();
+                const QPoint away(vp->width() - 30, vp->height() - 30);
+                for (const QEvent::Type type : { QEvent::MouseButtonPress,
+                                                 QEvent::MouseButtonRelease }) {
+                    QMouseEvent me(type, QPointF(away), vp->mapToGlobal(QPointF(away)),
+                                   Qt::LeftButton, Qt::LeftButton, Qt::NoModifier);
+                    QApplication::sendEvent(vp, &me);
+                }
+                QEventLoop done;
+                QTimer::singleShot(1200, &done, &QEventLoop::quit);
+                done.exec();
+                QTextStream(stdout) << "undo=" << dv->undoStack()->count() << "\n";
+
+                for (int r2 = 4; r2 < args.size(); ++r2) {
+                    if (!args.at(r2).startsWith(QLatin1String("then="))) continue;
+                    QPoint again = boxCenter;
+                    if (args.at(r2).mid(5) != QLatin1String("box")) {
+                        const QStringList xy2 = args.at(r2).mid(5).split(u',');
+                        if (xy2.size() != 2) break;
+                        again = QPoint(xy2.at(0).toInt(), xy2.at(1).toInt());
+                    }
+                    if (again.x() < 0) break;
+                    QWidget *vp2 = dv->viewport();
+                    for (int k = 0; k < 2; ++k) {
+                        for (const QEvent::Type type : { QEvent::MouseButtonPress,
+                                                         QEvent::MouseButtonRelease }) {
+                            QMouseEvent me(type, QPointF(again),
+                                           vp2->mapToGlobal(QPointF(again)),
+                                           Qt::LeftButton, Qt::LeftButton, Qt::NoModifier);
+                            QApplication::sendEvent(vp2, &me);
+                        }
+                        QEventLoop settle;
+                        QTimer::singleShot(600, &settle, &QEventLoop::quit);
+                        settle.exec();
+                    }
+                    QEventLoop opened;
+                    QTimer::singleShot(1200, &opened, &QEventLoop::quit);
+                    opened.exec();
+                    for (int r3 = 4; r3 < args.size(); ++r3) {
+                        if (!args.at(r3).startsWith(QLatin1String("then-type="))) continue;
+                        if (auto *ed2 = dv->findChild<QTextEdit *>(
+                                QStringLiteral("InlineEditor"))) {
+                            ed2->selectAll();
+                            ed2->insertPlainText(args.at(r3).mid(10));
+                            QApplication::processEvents();
+                        }
+                        break;
+                    }
+                    if (!args.contains(QStringLiteral("then-open"))) {
+                        const QPoint off(vp2->width() - 30, vp2->height() - 30);
+                        for (const QEvent::Type type : { QEvent::MouseButtonPress,
+                                                         QEvent::MouseButtonRelease }) {
+                            QMouseEvent me(type, QPointF(off), vp2->mapToGlobal(QPointF(off)),
+                                           Qt::LeftButton, Qt::LeftButton, Qt::NoModifier);
+                            QApplication::sendEvent(vp2, &me);
+                        }
+                        QEventLoop closed;
+                        QTimer::singleShot(1200, &closed, &QEventLoop::quit);
+                        closed.exec();
+                    }
+                    QTextStream(stdout) << "undo2=" << dv->undoStack()->count() << "\n";
+                    break;
+                }
+            }
+
+            for (int r4 = 4; r4 < args.size(); ++r4) {
+                if (!args.at(r4).startsWith(QLatin1String("save="))) continue;
+                QTextStream(stdout) << "gespeichert="
+                                    << (dv->saveToFile(args.at(r4).mid(5)) ? "ja" : "nein")
+                                    << "\n";
+                break;
+            }
+
+            for (int r = 4; r < args.size(); ++r) {
+                if (!args.at(r).startsWith(QLatin1String("size="))) continue;
+                for (const QString &step : args.at(r).mid(5).split(u',')) {
+                    const QStringList wh = step.split(u'x');
+                    if (wh.size() != 2) continue;
+                    win->resize(wh.at(0).toInt(), wh.at(1).toInt());
+                    QApplication::processEvents();
+                    QEventLoop sizeSettle;
+                    QTimer::singleShot(700, &sizeSettle, &QEventLoop::quit);
+                    sizeSettle.exec();
+                }
+                break;
+            }
+
+            for (int z = 4; z < args.size(); ++z) {
+                if (!args.at(z).startsWith(QLatin1String("zoom="))) continue;
+                for (const QString &step : args.at(z).mid(5).split(u','))
+                    if (const int pct = step.toInt(); pct > 0) {
+                        dv->setZoom(pct);
+                        QApplication::processEvents();
+                        QEventLoop zoomSettle;
+                        QTimer::singleShot(700, &zoomSettle, &QEventLoop::quit);
+                        zoomSettle.exec();
+                        if (args.contains(QStringLiteral("bounds")))
+                            zeigeBounds(qPrintable(QString::number(pct)));
+                    }
+                break;
+            }
             break;
+        }
+
+        for (int a = 4; a < args.size(); ++a) {
+            if (!args.at(a).startsWith(QLatin1String("tool="))) continue;
+            const QString toolId = args.at(a).mid(5);
+            Q_EMIT win->rightSidebar()->modeSelected(QStringLiteral("edit"));
+            QApplication::processEvents();
+            Q_EMIT win->leftSidebar()->toolSelected(toolId);
+            QApplication::processEvents();
+            QEventLoop toolSettle;
+            QTimer::singleShot(600, &toolSettle, &QEventLoop::quit);
+            toolSettle.exec();
+            break;
+        }
+
+        for (int a = 4; a < args.size(); ++a) {
+            if (!args.at(a).startsWith(QLatin1String("drag="))) continue;
+            const QStringList xy = args.at(a).mid(5).split(u',');
+            if (xy.size() != 4) break;
+            DocumentView *dv = win->findChild<DocumentView *>();
+            if (!dv) break;
+            QWidget *canvas = dv->canvasWidget();
+            if (!canvas) break;
+            const QPoint from(xy.at(0).toInt(), xy.at(1).toInt());
+            const QPoint to(xy.at(2).toInt(), xy.at(3).toInt());
+            const struct { QEvent::Type type; QPoint at; } steps[] = {
+                { QEvent::MouseButtonPress,   from },
+                { QEvent::MouseMove,          QPoint((from.x() + to.x()) / 2,
+                                                     (from.y() + to.y()) / 2) },
+                { QEvent::MouseMove,          to },
+                { QEvent::MouseButtonRelease, to },
+            };
+            for (const auto &step : steps) {
+                QMouseEvent me(step.type, QPointF(step.at),
+                               canvas->mapToGlobal(QPointF(step.at)),
+                               step.type == QEvent::MouseMove ? Qt::NoButton : Qt::LeftButton,
+                               Qt::LeftButton, Qt::NoModifier);
+                QApplication::sendEvent(canvas, &me);
+                QApplication::processEvents();
+            }
+            QEventLoop dragSettle;
+            QTimer::singleShot(800, &dragSettle, &QEventLoop::quit);
+            dragSettle.exec();
+            break;
+        }
+
+        for (int a = 4; a < args.size(); ++a) {
+            if (args.at(a).startsWith(QLatin1String("set="))) {
+                const QString assignment = args.at(a).mid(4);
+                const int split = assignment.indexOf(u'=');
+                if (split <= 0) continue;
+                const QString name  = assignment.left(split);
+                const QString value = assignment.mid(split + 1);
+                if (auto *field = win->findChild<QLineEdit *>(name))
+                    field->setText(value);
+                else
+                    qWarning() << "[shot] no field named" << name;
+                QApplication::processEvents();
+            } else if (args.at(a).startsWith(QLatin1String("press="))) {
+                const QString name = args.at(a).mid(6);
+                if (auto *button = win->findChild<QAbstractButton *>(name))
+                    button->click();
+                else
+                    qWarning() << "[shot] no button named" << name;
+                QApplication::processEvents();
+            } else {
+                continue;
+            }
+            QEventLoop settleStep;
+            QTimer::singleShot(400, &settleStep, &QEventLoop::quit);
+            settleStep.exec();
+        }
+
+        for (int a = 4; a < args.size(); ++a) {
+            if (!args.at(a).startsWith(QLatin1String("autoconfirm"))) continue;
+            const QString wanted = args.at(a).section(u'=', 1);
+            auto *poll = new QTimer(win);
+            QObject::connect(poll, &QTimer::timeout, win, [wanted]() {
+                auto *box = qobject_cast<QMessageBox *>(QApplication::activeModalWidget());
+                if (!box) return;
+                if (wanted.isEmpty()) {
+                    if (QPushButton *fallback = box->defaultButton()) fallback->click();
+                    return;
+                }
+                const QList<QAbstractButton *> buttons = box->buttons();
+                for (QAbstractButton *button : buttons)
+                    if (button->text().remove(u'&') == wanted) { button->click(); return; }
+
+                if (QPushButton *fallback = box->defaultButton()) fallback->click();
+                else if (!buttons.isEmpty())                      buttons.first()->click();
+            });
+            poll->start(100);
+            break;
+        }
+
+        for (int a = 4; a < args.size(); ++a) {
+            if (args.at(a).startsWith(QLatin1String("click="))) {
+                const QStringList xy = args.at(a).mid(6).split(u',');
+                if (xy.size() != 2) continue;
+                DocumentView *dv = win->findChild<DocumentView *>();
+                QWidget *canvas = dv ? dv->canvasWidget() : nullptr;
+                if (!canvas) continue;
+                const QPoint at(xy.at(0).toInt(), xy.at(1).toInt());
+                QWidget *target = canvas->childAt(at);
+                const QPoint local = target ? target->mapFrom(canvas, at) : at;
+                if (!target) target = canvas;
+                for (const QEvent::Type type : { QEvent::MouseButtonPress,
+                                                 QEvent::MouseButtonRelease }) {
+                    QMouseEvent me(type, QPointF(local), target->mapToGlobal(QPointF(local)),
+                                   Qt::LeftButton, Qt::LeftButton, Qt::NoModifier);
+                    QApplication::sendEvent(target, &me);
+                }
+            } else if (args.at(a).startsWith(QLatin1String("drop="))) {
+
+                DocumentView *dv = win->findChild<DocumentView *>();
+                if (!dv) continue;
+                QMimeData mime;
+                mime.setUrls({ QUrl::fromLocalFile(args.at(a).mid(5)) });
+                const QPointF at(dv->viewport()->width() / 2.0,
+                                 dv->viewport()->height() / 2.0);
+                QDragEnterEvent enter(at.toPoint(), Qt::CopyAction, &mime,
+                                      Qt::LeftButton, Qt::NoModifier);
+
+                QWidget *vp = dv->viewport();
+                QApplication::sendEvent(vp, &enter);
+                if (!enter.isAccepted()) {
+                    qWarning() << "[shot] drag refused:" << args.at(a).mid(5);
+                    continue;
+                }
+                QDragMoveEvent move(at.toPoint(), Qt::CopyAction, &mime,
+                                    Qt::LeftButton, Qt::NoModifier);
+                QApplication::sendEvent(vp, &move);
+                QDropEvent drop(at, Qt::CopyAction, &mime,
+                                Qt::LeftButton, Qt::NoModifier, QEvent::Drop);
+                QApplication::sendEvent(vp, &drop);
+                QApplication::processEvents();
+                QEventLoop dropSettle;
+                QTimer::singleShot(2000, &dropSettle, &QEventLoop::quit);
+                dropSettle.exec();
+                continue;
+            } else if (args.at(a) == QLatin1String("view=grid")) {
+                if (DocumentView *dv = win->findChild<DocumentView *>())
+                    dv->setViewMode(DocumentView::ViewMode::Grid);
+                QApplication::processEvents();
+                continue;
+            } else if (args.at(a).startsWith(QLatin1String("scroll="))) {
+                if (DocumentView *dv = win->findChild<DocumentView *>())
+                    dv->verticalScrollBar()->setValue(
+                        dv->verticalScrollBar()->value() + args.at(a).mid(7).toInt());
+                QApplication::processEvents();
+                continue;
+            } else if (args.at(a).startsWith(QLatin1String("wait="))) {
+                QEventLoop pause;
+                QTimer::singleShot(args.at(a).mid(5).toInt(), &pause, &QEventLoop::quit);
+                pause.exec();
+                continue;
+            } else if (args.at(a).startsWith(QLatin1String("key="))) {
+                const QKeySequence sequence(args.at(a).mid(4));
+                if (sequence.isEmpty()) continue;
+                QWidget *target = QApplication::focusWidget();
+                if (!target) target = win;
+                const QKeyCombination combination = sequence[0];
+                for (const QEvent::Type type : { QEvent::KeyPress, QEvent::KeyRelease }) {
+                    QKeyEvent ke(type, combination.key(), combination.keyboardModifiers());
+                    QApplication::sendEvent(target, &ke);
+                }
+            } else {
+                continue;
+            }
+            QApplication::processEvents();
+            QEventLoop inputSettle;
+            QTimer::singleShot(400, &inputSettle, &QEventLoop::quit);
+            inputSettle.exec();
+        }
+
+        for (int a = 4; a < args.size(); ++a) {
+            if (!args.at(a).startsWith(QLatin1String("save="))) continue;
+            DocumentView *dv = win->findChild<DocumentView *>();
+            if (!dv) break;
+            const bool saved = dv->saveToFile(args.at(a).mid(5));
+            qWarning() << "[shot] saved:" << saved << args.at(a).mid(5);
+            QEventLoop saveSettle;
+            QTimer::singleShot(1200, &saveSettle, &QEventLoop::quit);
+            saveSettle.exec();
+            break;
+        }
+
+        if (args.contains(QLatin1String("tools"))) {
+            win->leftSidebar()->openCustomizePopup();
+            QEventLoop cardSettle;
+            QTimer::singleShot(600, &cardSettle, &QEventLoop::quit);
+            cardSettle.exec();
         }
 
         const bool ok = win->grab().save(args.at(2));
         return ok ? 0 : 3;
     }
 
-    // ── Application controller ────────────────────────────────────────────
     App app;
     app.startup();
 
-    // Open a PDF passed on the command line (file association / debugging).
     if (args.size() > 1 && QFileInfo::exists(args.at(1)))
         app.mainWindow()->openPath(args.at(1));
+
+    app.mainWindow()->restoreSession();
 
     return qapp.exec();
 }

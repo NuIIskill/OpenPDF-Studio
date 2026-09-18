@@ -38,8 +38,7 @@ private:
     QTimer *m_fadeTimer{ nullptr };
 
 #ifdef HAVE_PDF_RENDERING
-    // Eigenes Backend: die Präsentation öffnet die Datei ein zweites Mal und
-    // ist damit unabhängig davon, was die Ansicht gerade tut.
+
     std::unique_ptr<PdfBackend> m_backend;
 #endif
 };

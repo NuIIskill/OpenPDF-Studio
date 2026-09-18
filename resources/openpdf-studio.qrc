@@ -23,9 +23,9 @@
         <file>icons/type.svg</file>
         <file>icons/message-square.svg</file>
         <file>icons/pencil.svg</file>
+        <file>icons/highlighter.svg</file>
+        <file>icons/eraser.svg</file>
         <file>icons/image.svg</file>
-        <file>icons/table.svg</file>
-        <file>icons/file.svg</file>
         <file>icons/bookmark.svg</file>
         <file>icons/paperclip.svg</file>
         <file>icons/settings.svg</file>
@@ -43,6 +43,8 @@
         <file>icons/chevron-left.svg</file>
         <file>icons/chevron-right.svg</file>
         <file>icons/chevron-down.svg</file>
+        <file>icons/chevron-up.svg</file>
+        <file>icons/search.svg</file>
         <file>icons/panel-right.svg</file>
         <file>icons/upload.svg</file>
         <file>icons/layers.svg</file>
@@ -52,6 +54,12 @@
         <file>icons/globe.svg</file>
         <file>icons/info.svg</file>
         <file>icons/play-circle.svg</file>
+        <file>icons/film.svg</file>
+        <file>icons/lock.svg</file>
+        <file>icons/play.svg</file>
+        <file>icons/pause.svg</file>
+        <file>icons/volume-2.svg</file>
+        <file>icons/volume-x.svg</file>
         <file>icons/sliders.svg</file>
         <file>icons/key.svg</file>
         <file>icons/shield-check.svg</file>
@@ -67,5 +75,6 @@
         <file>icons/file-plus.svg</file>
         <file>icons/export-pdf.svg</file>
         <file>icons/export-pdfa.svg</file>
+        <file>icons/grip-vertical.svg</file>
     </qresource>
 </RCC>

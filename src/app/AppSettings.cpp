@@ -2,22 +2,18 @@
 
 #include "app/AppConfig.hpp"
 
+#include <QFile>
+#include <QLocale>
 #include <QSettings>
-
-// ── Helpers ───────────────────────────────────────────────────────────────
 
 static QSettings &settings()
 {
     return AppConfig::store();
 }
 
-// ── AppSettings ───────────────────────────────────────────────────────────
-
 AppSettings::AppSettings(QObject *parent)
     : QObject(parent)
 {}
-
-// ── Window ────────────────────────────────────────────────────────────────
 
 QByteArray AppSettings::windowGeometry() const
 {
@@ -39,8 +35,6 @@ void AppSettings::setWindowState(const QByteArray &state)
     settings().setValue(QLatin1String(kWindowState), state);
 }
 
-// ── Document ──────────────────────────────────────────────────────────────
-
 QString AppSettings::lastOpenedFile() const
 {
     return settings().value(QLatin1String(kLastOpenedFile)).toString();
@@ -50,8 +44,6 @@ void AppSettings::setLastOpenedFile(const QString &path)
 {
     settings().setValue(QLatin1String(kLastOpenedFile), path);
 }
-
-// ── View ──────────────────────────────────────────────────────────────────
 
 int AppSettings::zoomLevel() const
 {
@@ -63,8 +55,6 @@ void AppSettings::setZoomLevel(int percent)
     settings().setValue(QLatin1String(kZoomLevel), percent);
 }
 
-// ── Appearance ────────────────────────────────────────────────────────────
-
 QString AppSettings::theme() const
 {
     return settings().value(QLatin1String(kTheme), QStringLiteral("system")).toString();
@@ -75,19 +65,22 @@ void AppSettings::setTheme(const QString &name)
     settings().setValue(QLatin1String(kTheme), name);
 }
 
-// ── Language ──────────────────────────────────────────────────────────────
+QString AppSettings::systemDefaultLanguage()
+{
+    const QString code = QLocale::system().name().section(QLatin1Char('_'), 0, 0);
+    return QFile::exists(QStringLiteral(":/i18n/openpdf_%1.qm").arg(code))
+        ? code : QStringLiteral("en");
+}
 
 QString AppSettings::language() const
 {
-    return settings().value(QLatin1String(kLanguage), QStringLiteral("en")).toString();
+    return settings().value(QLatin1String(kLanguage), systemDefaultLanguage()).toString();
 }
 
 void AppSettings::setLanguage(const QString &lang)
 {
     settings().setValue(QLatin1String(kLanguage), lang);
 }
-
-// ── Shortcuts ─────────────────────────────────────────────────────────────
 
 QKeySequence AppSettings::shortcut(const QString &actionKey,
                                     const QKeySequence &defaultSeq) const
@@ -103,8 +96,6 @@ void AppSettings::setShortcut(const QString &actionKey, const QKeySequence &seq)
     settings().setValue(QStringLiteral("shortcuts/") + actionKey,
                         seq.toString(QKeySequence::PortableText));
 }
-
-// ── Zoom ──────────────────────────────────────────────────────────────────
 
 int AppSettings::zoomStep() const
 {
@@ -143,7 +134,31 @@ void AppSettings::setWheelAction(const QString &a)
     settings().setValue(QStringLiteral("zoom/wheelAction"), a);
 }
 
-// ── Panels ────────────────────────────────────────────────────────────────
+QStringList AppSettings::toolOrder() const
+{
+    return settings().value(QLatin1String(kToolOrder)).toStringList();
+}
+
+void AppSettings::setToolOrder(const QStringList &ids)
+{
+    settings().setValue(QLatin1String(kToolOrder), ids);
+}
+
+QStringList AppSettings::hiddenTools() const
+{
+    return settings().value(QLatin1String(kToolHidden)).toStringList();
+}
+
+void AppSettings::setHiddenTools(const QStringList &ids)
+{
+    settings().setValue(QLatin1String(kToolHidden), ids);
+}
+
+void AppSettings::resetToolLayout()
+{
+    settings().remove(QLatin1String(kToolOrder));
+    settings().remove(QLatin1String(kToolHidden));
+}
 
 bool AppSettings::preservePanelLayout() const
 {
@@ -172,8 +187,6 @@ void AppSettings::setSplitterState(const QByteArray &state)
     settings().setValue(QStringLiteral("panels/splitterState"), state);
 }
 
-// ── Advanced ──────────────────────────────────────────────────────────────
-
 bool AppSettings::autoUpdateCheck() const
 {
     return settings().value(QStringLiteral("advanced/autoUpdateCheck"), true).toBool();
@@ -191,6 +204,39 @@ QString AppSettings::updateInterval() const
 void AppSettings::setUpdateInterval(const QString &interval)
 {
     settings().setValue(QStringLiteral("advanced/updateInterval"), interval);
+}
+
+QDateTime AppSettings::lastUpdateCheck() const
+{
+    return QDateTime::fromString(
+        settings().value(QStringLiteral("advanced/lastUpdateCheck")).toString(),
+        Qt::ISODate);
+}
+void AppSettings::setLastUpdateCheck(const QDateTime &when)
+{
+    settings().setValue(QStringLiteral("advanced/lastUpdateCheck"),
+                        when.toString(Qt::ISODate));
+}
+
+QString AppSettings::mediaPlayback() const
+{
+    return settings().value(QStringLiteral("media/playback"),
+                            QStringLiteral("inapp")).toString();
+}
+
+void AppSettings::setMediaPlayback(const QString &mode)
+{
+    settings().setValue(QStringLiteral("media/playback"), mode);
+}
+
+QString AppSettings::customPlayerCommand() const
+{
+    return settings().value(QStringLiteral("media/customPlayer")).toString();
+}
+
+void AppSettings::setCustomPlayerCommand(const QString &command)
+{
+    settings().setValue(QStringLiteral("media/customPlayer"), command);
 }
 
 bool AppSettings::hardwareAcceleration() const
@@ -229,8 +275,6 @@ void AppSettings::setLogLevel(const QString &level)
 {
     settings().setValue(QStringLiteral("advanced/logLevel"), level);
 }
-
-// ── Sync ──────────────────────────────────────────────────────────────────
 
 void AppSettings::sync()
 {

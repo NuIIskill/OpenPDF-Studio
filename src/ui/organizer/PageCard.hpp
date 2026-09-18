@@ -11,7 +11,7 @@
 #include <QVBoxLayout>
 #include <QWidget>
 
-// Card and grid geometry of the page organizer.
+/// Card and grid geometry of the page organizer.
 namespace OrgConst {
     constexpr int CARD_W    = 220;
     constexpr int CARD_H    = 265;
@@ -23,7 +23,7 @@ namespace OrgConst {
     constexpr int GRID_PAD  = 20;
 }
 
-// 2-column × 3-row dot-grid grip icon, painted directly
+/// 2-column × 3-row dot-grid grip icon, painted directly.
 class DragDots : public QWidget
 {
 public:
@@ -40,9 +40,9 @@ protected:
         p.setBrush(Theme::DarkMode ? QColor(0x6A, 0x6A, 0x6A)
                                    : QColor(0xC4, 0xC9, 0xD4));
         p.setPen(Qt::NoPen);
-        constexpr int R    = 2;   // dot radius
-        constexpr int xGap = 6;  // horizontal spacing (center-to-center)
-        constexpr int yGap = 6;  // vertical spacing
+        constexpr int R    = 2;
+        constexpr int xGap = 6;
+        constexpr int yGap = 6;
         const int startX = (width()  - xGap) / 2;
         const int startY = (height() - yGap * 2) / 2;
         for (int row = 0; row < 3; ++row)
@@ -51,7 +51,7 @@ protected:
     }
 };
 
-// individual page tile shown in the grid
+/// Displays one page tile in the organizer grid.
 class PageCard : public QFrame
 {
     Q_OBJECT
@@ -67,7 +67,6 @@ public:
         root->setContentsMargins(0, 0, 0, 0);
         root->setSpacing(0);
 
-        // ── Header row (drag handle + checkbox) ───────────────────────────
         auto *header = new QWidget(this);
         header->setFixedHeight(28);
         auto *hdr = new QHBoxLayout(header);
@@ -77,9 +76,6 @@ public:
         m_dragHandle = new DragDots(header);
         hdr->addWidget(m_dragHandle, 1, Qt::AlignLeft | Qt::AlignVCenter);
 
-        // Checkable QPushButton styled to look like a tick-box.
-        // "✓" text is always present; CSS makes it transparent when unchecked
-        // and white-on-blue when checked.
         m_check = new QPushButton(QStringLiteral("✓"), header);
         m_check->setObjectName(QStringLiteral("CardCheck"));
         m_check->setCheckable(true);
@@ -90,14 +86,12 @@ public:
 
         root->addWidget(header);
 
-        // ── Thumbnail ─────────────────────────────────────────────────────
         m_thumbLabel = new QLabel(this);
         m_thumbLabel->setObjectName(QStringLiteral("ThumbLabel"));
         m_thumbLabel->setFixedSize(OrgConst::THUMB_W, OrgConst::THUMB_H);
         m_thumbLabel->setAlignment(Qt::AlignCenter);
         root->addWidget(m_thumbLabel, 0, Qt::AlignHCenter);
 
-        // ── Page label ────────────────────────────────────────────────────
         m_pageLabel = new QLabel(this);
         m_pageLabel->setObjectName(QStringLiteral("PageCardLabel"));
         m_pageLabel->setAlignment(Qt::AlignCenter);
@@ -143,10 +137,7 @@ protected:
         if (m_dragArmed && (e->buttons() & Qt::LeftButton) &&
             (e->pos() - m_dragStart).manhattanLength() > QApplication::startDragDistance())
         {
-            // One drag per press. The signal runs the whole drag synchronously
-            // and reorders the grid; a second emit from the same press would
-            // carry this card's pre-drop index and move a page the user never
-            // picked up.
+
             m_dragArmed = false;
             Q_EMIT dragStarted(m_index);
             return;
@@ -155,8 +146,7 @@ protected:
     }
 
 private:
-    // Child styles are bundled here because setStyleSheet on the card frame
-    // creates a new style scope — dialog-level rules no longer reach children.
+
     static QString childStyles()
     {
         const bool dk = Theme::DarkMode;

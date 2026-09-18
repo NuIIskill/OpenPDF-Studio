@@ -96,6 +96,14 @@ Please use a build that includes Qt6::Pdf support.
         <source>Justify</source>
         <translation type="unfinished"></translation>
     </message>
+    <message>
+        <source>Advanced</source>
+        <translation>Avancé</translation>
+    </message>
+    <message>
+        <source>All text box options</source>
+        <translation>Toutes les options de la zone de texte</translation>
+    </message>
 </context>
 <context>
     <name>ImageAnnotation</name>
@@ -140,16 +148,6 @@ Please use a build that includes Qt6::Pdf support.
         <location filename="../../src/ui/LeftSidebar.cpp" line="30"/>
         <source>Image</source>
         <translation>Image</translation>
-    </message>
-    <message>
-        <location filename="../../src/ui/LeftSidebar.cpp" line="31"/>
-        <source>Table</source>
-        <translation>Tableau</translation>
-    </message>
-    <message>
-        <location filename="../../src/ui/LeftSidebar.cpp" line="32"/>
-        <source>Page</source>
-        <translation>Page</translation>
     </message>
     <message>
         <location filename="../../src/ui/LeftSidebar.cpp" line="33"/>
@@ -624,6 +622,10 @@ Please use a build that includes Qt6::Pdf support.
         <source>Save as Default</source>
         <translation type="unfinished"></translation>
     </message>
+    <message>
+        <source>Position &amp; Size</source>
+        <translation>Position et taille</translation>
+    </message>
 </context>
 <context>
     <name>TopToolbar</name>
@@ -682,5 +684,62 @@ Please use a build that includes Qt6::Pdf support.
         <source>No Document</source>
         <translation>Aucun document</translation>
     </message>
+</context>
+<context>
+    <name>FindController</name>
+    <message><source>Find in document</source><translation>Rechercher dans le document</translation></message>
+    <message><source>Previous match (Shift+Enter)</source><translation>Résultat précédent (Maj+Entrée)</translation></message>
+    <message><source>Next match (Enter)</source><translation>Résultat suivant (Entrée)</translation></message>
+    <message><source>Close (Esc)</source><translation>Fermer (Échap)</translation></message>
+</context>
+<context>
+    <name>SessionRecovery</name>
+    <message><source>Untitled</source><translation>Sans titre</translation></message>
+    <message><source>Restore Session</source><translation>Restaurer la session</translation></message>
+    <message><source>OpenPDF Studio did not shut down properly last time.</source><translation>OpenPDF Studio ne s'est pas fermé correctement la dernière fois.</translation></message>
+    <message><source>Restore the documents that were open?</source><translation>Restaurer les documents qui étaient ouverts ?</translation></message>
+    <message><source>%1 (unsaved changes)</source><translation>%1 (modifications non enregistrées)</translation></message>
+    <message><source>Restore</source><translation>Restaurer</translation></message>
+    <message><source>Discard</source><translation>Abandonner</translation></message>
+</context>
+<context>
+    <name>DocumentView</name>
+    <message><source>Insert image</source><translation>Insérer une image</translation></message>
+    <message><source>All files (*)</source><translation>Tous les fichiers (*)</translation></message>
+    <message><source>Drop a PDF, Word, OpenDocument or image file here, or click a tab to open</source><translation>Déposez ici un PDF, un document Word ou OpenDocument, ou une image, ou cliquez sur un onglet</translation></message>
+</context>
+<context>
+    <name>MainWindow</name>
+    <message><source>Open Document</source><translation>Ouvrir un document</translation></message>
+    <message><source>Cannot open file</source><translation>Impossible d'ouvrir le fichier</translation></message>
+    <message><source>"%1" is not a PDF and cannot be turned into one.</source><translation>« %1 » n'est pas un PDF et ne peut pas être converti en PDF.</translation></message>
+    <message><source>There is no room to put the converted file.</source><translation>Il n'y a pas de place pour le fichier converti.</translation></message>
+    <message><source>Import failed</source><translation>Échec de l'importation</translation></message>
+    <message><source>"%1" could not be turned into a PDF.
+
+%2</source><translation>« %1 » n'a pas pu être converti en PDF.
+
+%2</translation></message>
+    <message><source>"%1" was converted, but the result could not be opened.</source><translation>« %1 » a été converti, mais le résultat n'a pas pu être ouvert.</translation></message>
+</context>
+<context>
+    <name>DocumentImport</name>
+    <message><source>Images</source><translation>Images</translation></message>
+    <message><source>All files</source><translation>Tous les fichiers</translation></message>
+    <message><source>All supported files</source><translation>Tous les fichiers pris en charge</translation></message>
+    <message><source>PDF files</source><translation>Fichiers PDF</translation></message>
+    <message><source>Word documents</source><translation>Documents Word</translation></message>
+    <message><source>Word document</source><translation>Document Word</translation></message>
+    <message><source>OpenDocument text</source><translation>Texte OpenDocument</translation></message>
+    <message><source>Image</source><translation>Image</translation></message>
+    <message><source>The image is too large.</source><translation>L'image est trop grande.</translation></message>
+    <message><source>The PDF could not be written.</source><translation>Le PDF n'a pas pu être écrit.</translation></message>
+    <message><source>The file does not exist.</source><translation>Le fichier n'existe pas.</translation></message>
+    <message><source>The file could not be read. It may be damaged.</source><translation>Le fichier n'a pas pu être lu. Il est peut-être endommagé.</translation></message>
+    <message><source>The file has no readable document part.</source><translation>Le fichier ne contient aucune partie de document lisible.</translation></message>
+    <message><source>The document is damaged: %1</source><translation>Le document est endommagé : %1</translation></message>
+    <message><source>This build was made without zlib and cannot read Word or OpenDocument files.</source><translation>Cette version a été compilée sans zlib et ne peut pas lire les fichiers Word ou OpenDocument.</translation></message>
+    <message><source>This is an older Word file that only carries a .docx name. Save it as a real .docx first.</source><translation>Il s'agit d'un ancien fichier Word qui porte seulement un nom en .docx. Enregistrez-le d'abord comme véritable .docx.</translation></message>
+    <message><source>%1 files cannot be opened.</source><translation>Les fichiers %1 ne peuvent pas être ouverts.</translation></message>
 </context>
 </TS>

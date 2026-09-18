@@ -96,6 +96,14 @@ Please use a build that includes Qt6::Pdf support.
         <source>Justify</source>
         <translation type="unfinished"></translation>
     </message>
+    <message>
+        <source>Advanced</source>
+        <translation>詳細設定</translation>
+    </message>
+    <message>
+        <source>All text box options</source>
+        <translation>テキストボックスのすべてのオプション</translation>
+    </message>
 </context>
 <context>
     <name>ImageAnnotation</name>
@@ -140,16 +148,6 @@ Please use a build that includes Qt6::Pdf support.
         <location filename="../../src/ui/LeftSidebar.cpp" line="30"/>
         <source>Image</source>
         <translation>画像</translation>
-    </message>
-    <message>
-        <location filename="../../src/ui/LeftSidebar.cpp" line="31"/>
-        <source>Table</source>
-        <translation>テーブル</translation>
-    </message>
-    <message>
-        <location filename="../../src/ui/LeftSidebar.cpp" line="32"/>
-        <source>Page</source>
-        <translation>ページ</translation>
     </message>
     <message>
         <location filename="../../src/ui/LeftSidebar.cpp" line="33"/>
@@ -624,6 +622,10 @@ Please use a build that includes Qt6::Pdf support.
         <source>Save as Default</source>
         <translation type="unfinished"></translation>
     </message>
+    <message>
+        <source>Position &amp; Size</source>
+        <translation>位置とサイズ</translation>
+    </message>
 </context>
 <context>
     <name>TopToolbar</name>
@@ -682,5 +684,62 @@ Please use a build that includes Qt6::Pdf support.
         <source>No Document</source>
         <translation>ドキュメントなし</translation>
     </message>
+</context>
+<context>
+    <name>FindController</name>
+    <message><source>Find in document</source><translation>文書内を検索</translation></message>
+    <message><source>Previous match (Shift+Enter)</source><translation>前の一致（Shift+Enter）</translation></message>
+    <message><source>Next match (Enter)</source><translation>次の一致（Enter）</translation></message>
+    <message><source>Close (Esc)</source><translation>閉じる（Esc）</translation></message>
+</context>
+<context>
+    <name>SessionRecovery</name>
+    <message><source>Untitled</source><translation>無題</translation></message>
+    <message><source>Restore Session</source><translation>セッションの復元</translation></message>
+    <message><source>OpenPDF Studio did not shut down properly last time.</source><translation>OpenPDF Studio は前回正常に終了しませんでした。</translation></message>
+    <message><source>Restore the documents that were open?</source><translation>開いていた文書を復元しますか？</translation></message>
+    <message><source>%1 (unsaved changes)</source><translation>%1（未保存の変更）</translation></message>
+    <message><source>Restore</source><translation>復元</translation></message>
+    <message><source>Discard</source><translation>破棄</translation></message>
+</context>
+<context>
+    <name>DocumentView</name>
+    <message><source>Insert image</source><translation>画像を挿入</translation></message>
+    <message><source>All files (*)</source><translation>すべてのファイル (*)</translation></message>
+    <message><source>Drop a PDF, Word, OpenDocument or image file here, or click a tab to open</source><translation>PDF、Word、OpenDocument、画像をここにドロップするか、タブをクリックして開きます</translation></message>
+</context>
+<context>
+    <name>MainWindow</name>
+    <message><source>Open Document</source><translation>ドキュメントを開く</translation></message>
+    <message><source>Cannot open file</source><translation>ファイルを開けません</translation></message>
+    <message><source>"%1" is not a PDF and cannot be turned into one.</source><translation>「%1」は PDF ではなく、PDF に変換することもできません。</translation></message>
+    <message><source>There is no room to put the converted file.</source><translation>変換したファイルを置く場所がありません。</translation></message>
+    <message><source>Import failed</source><translation>インポートに失敗しました</translation></message>
+    <message><source>"%1" could not be turned into a PDF.
+
+%2</source><translation>「%1」を PDF に変換できませんでした。
+
+%2</translation></message>
+    <message><source>"%1" was converted, but the result could not be opened.</source><translation>「%1」は変換されましたが、結果を開けませんでした。</translation></message>
+</context>
+<context>
+    <name>DocumentImport</name>
+    <message><source>Images</source><translation>画像</translation></message>
+    <message><source>All files</source><translation>すべてのファイル</translation></message>
+    <message><source>All supported files</source><translation>対応するすべてのファイル</translation></message>
+    <message><source>PDF files</source><translation>PDF ファイル</translation></message>
+    <message><source>Word documents</source><translation>Word 文書</translation></message>
+    <message><source>Word document</source><translation>Word 文書</translation></message>
+    <message><source>OpenDocument text</source><translation>OpenDocument テキスト</translation></message>
+    <message><source>Image</source><translation>画像</translation></message>
+    <message><source>The image is too large.</source><translation>画像が大きすぎます。</translation></message>
+    <message><source>The PDF could not be written.</source><translation>PDF を書き込めませんでした。</translation></message>
+    <message><source>The file does not exist.</source><translation>ファイルが存在しません。</translation></message>
+    <message><source>The file could not be read. It may be damaged.</source><translation>ファイルを読み取れませんでした。壊れている可能性があります。</translation></message>
+    <message><source>The file has no readable document part.</source><translation>このファイルには読み取れる文書部分がありません。</translation></message>
+    <message><source>The document is damaged: %1</source><translation>文書が壊れています: %1</translation></message>
+    <message><source>This build was made without zlib and cannot read Word or OpenDocument files.</source><translation>このビルドは zlib なしで作成されており、Word や OpenDocument のファイルを読めません。</translation></message>
+    <message><source>This is an older Word file that only carries a .docx name. Save it as a real .docx first.</source><translation>これは .docx という名前だけの古い Word ファイルです。まず本来の .docx として保存してください。</translation></message>
+    <message><source>%1 files cannot be opened.</source><translation>%1 ファイルは開けません。</translation></message>
 </context>
 </TS>

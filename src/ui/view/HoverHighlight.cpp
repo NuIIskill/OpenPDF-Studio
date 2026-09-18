@@ -16,7 +16,7 @@ HoverHighlight::HoverHighlight(PageCanvas *canvas, QObject *parent)
     : QObject(parent)
     , m_canvas(canvas)
 {
-    // Transparent for mouse events so clicks pass through to the page.
+
     m_frame = new QFrame(canvas->canvasWidget());
     m_frame->setAttribute(Qt::WA_TransparentForMouseEvents, true);
     m_frame->hide();
@@ -42,7 +42,6 @@ void HoverHighlight::showAt(const QPoint &canvasPos)
 {
     if (!m_provider) return;
 
-    // Don't fight the open editor for the same area.
     if (m_editorFrame && m_editorFrame->isVisible()
             && m_editorFrame->geometry().contains(canvasPos)) {
         hide();
@@ -55,22 +54,14 @@ void HoverHighlight::showAt(const QPoint &canvasPos)
     const qreal   scale = m_canvas->screenScale();
     const QPointF pdfPt = QPointF(canvasPos - pageLbl->pos()) / scale;
 
-    // Hover must NEVER build the page model — that parses the whole file on
-    // the UI thread and freezes scrolling (Qt synthesizes mouse moves while
-    // scrolling). Only pages already built by a click get hover feedback.
     if (!m_provider->hasPage(pageIdx)) { hide(); return; }
 
-    // Blanked areas (source of a moved/deleted block) are intentionally empty —
-    // highlighting the visually erased native text there would be misleading.
     if (m_session && m_session->isBlankAt(pageIdx, pdfPt)) { hide(); return; }
 
-    // Exact hits only (6 pt slack) — nearest-match hover feels jumpy.
     const ContentItem item = m_provider->itemAt(pageIdx, pdfPt,
                                                 kAllContentTypes, 6.0);
     if (!item.isValid()) { hide(); return; }
 
-    // Items that are mostly erased (source of a moved block) aren't there
-    // anymore — don't advertise them.
     if (m_session && m_session->isBlankCovering(pageIdx, item.bounds)) {
         hide();
         return;
@@ -81,7 +72,7 @@ void HoverHighlight::showAt(const QPoint &canvasPos)
     m_page   = pageIdx;
     m_bounds = item.bounds;
 
-    const char *border = "#3B82F6";                       // Text/Paragraph: blue
+    const char *border = "#3B82F6";
     QString label      = tr("Text");
     switch (item.type) {
     case ContentItem::Type::Paragraph: label = tr("Paragraph");                     break;

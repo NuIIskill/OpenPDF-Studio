@@ -15,9 +15,12 @@ PDFium is the PDF engine - the same build on Linux and Windows, fetched by
 Without it the application starts but has no document functions at all.
 
 The rest are optional and change what is compiled in, via `HAVE_*` defines:
-qpdf (`HAVE_QPDF`, PDF export options and the organizer's vector save),
-Tesseract (`HAVE_TESSERACT`, OCR), `Qt6::PrintSupport` (`HAVE_QT_PRINT`).
-Code behind these must still compile when they are absent.
+qpdf (`HAVE_QPDF`, PDF export options, the organizer's vector save and all
+media reading and writing), Tesseract (`HAVE_TESSERACT`, OCR),
+`Qt6::PrintSupport` (`HAVE_QT_PRINT`) and `modules/rich-media/`
+(`HAVE_RICH_MEDIA`, which requires both qpdf and Qt Multimedia and is skipped
+with a warning without them). Code behind these must still compile when they
+are absent.
 
 ## Layout and layer rules
 
@@ -30,7 +33,10 @@ src/
   engine/         document logic, no widgets
     document/     PdfBackend + the PDFium implementation: opening, rendering,
                   text lookup, selection, the content model and saving
-    edit/         content model, ink metrics, exporters, session
+    edit/         content model, ink metrics, edit session
+    export/       the document into another format: PDF options, DOCX, images,
+                  printing
+    import/       another format into a PDF: docx, odt, images
     ocr/          Tesseract wrapper
     render/       PdfRenderer - zoom and point-to-pixel, asks the backend
   ui/             everything that is a widget
@@ -40,13 +46,17 @@ src/
     settings/     the settings panel and the widgets only it uses
     organizer/    the page organizer and the widgets only it uses
     history/      the change-log timeline
+    session/      crash recovery: what was open and how to get it back
     export/       the export dialog
     widgets/      shared widgets only - see the rule below
   3rdparty/       vendored (nanosvg)
-tests/            unit tests for the pure parts of engine/
+modules/
+  rich-media/     media playback and embedding - separately licensed, see
+                  its README; same engine//ui/ split as src/
+.claude/testing/  unit tests and harnesses for the pure parts of engine/
 ```
 
-Four rules keep this from eroding. They are cheap to check and were each
+Five rules keep this from eroding. They are cheap to check and were each
 broken once already:
 
 1. **`engine/` never includes `ui/`, and never uses QWidget.** Anything that
@@ -87,6 +97,32 @@ grep -rl '\bIconButton\b' src --include=*.cpp | grep -v ui/widgets/ | wc -l
 boundary is drawn around a directory, so everything that would have to move
 together stays together - see `modules/rich-media/README.md`.
 
+5. **`src/` never includes `modules/`.** The Core must build and run with
+   `modules/` absent, and code that lives there is under a different license -
+   a guarded `#include` in `src/` would quietly pull it back into the Core.
+   The direction is inverted instead: the Core carries three small registers
+   that name nothing media-related, and the module fills them from one static
+   initializer in `modules/rich-media/MediaModule.cpp`.
+
+   | register | what it takes | filled with |
+   | --- | --- | --- |
+   | `LeftSidebar::registerTool()` | a `ToolDef` | the *Rich Media* tool |
+   | `ToolPanels::add()` | a panel bound to a tool id | the insert panel |
+   | `PageOverlays::add()` | a `PageOverlay` factory | the media layer |
+
+   `PageOverlay::writeTo()` is where an overlay writes its part into the
+   staging file during a save. It sits on the overlay and not in a global list
+   of passes on purpose: an overlay belongs to exactly one document view, so it
+   needs no key to know which document is being saved - and a key would drift,
+   because `DocumentView::detachSourceFrom()` swaps the content path in the
+   middle of a save.
+
+Check 5 with:
+
+```bash
+grep -rn '#include "rich-media/' src    # must be empty
+```
+
 ## Adding a file
 
 Add it to the `CMakeLists.txt` **in its own folder** - each source directory
@@ -101,11 +137,22 @@ responsibilities sharing a file. `DocumentView` is the standing example of what
 that costs and is being split down accordingly - new state belongs in a
 controller under `ui/view/`, not on the view.
 
-## Testing
+## Scope discipline
 
-`tests/` covers the pure, widget-free parts (see `tst_inkmetrics.cpp` for the
-pattern: paint a probe image, assert on the measurement). Anything needing a
-document on screen is a manual pass.
+Make the smallest change that directly satisfies the request. Do not turn a
+one-off change into a generalized API, framework, migration, compatibility
+layer or new behavior for saved user state unless the user explicitly asks for
+it. If the request cannot be implemented without widening its scope, stop and
+ask before changing anything.
+
+## Comments
+
+Write code comments in English. Documentation comments should only give a
+short, one-sentence description of a class or namespace. Do not document
+methods or fields, narrate the implementation or its history, or explain
+behavior that is already clear from the code.
+
+## Testing
 
 **Nothing test-related is committed.** `tests/` is gitignored, and the root
 `CMakeLists.txt` only builds it when it happens to be present locally. Test

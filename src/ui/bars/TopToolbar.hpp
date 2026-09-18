@@ -19,7 +19,6 @@ class TopToolbar : public QWidget
 public:
     explicit TopToolbar(QWidget *parent = nullptr);
 
-    // Tab management
     int  addTab(const QString &label = {});
     void removeTab(int index);
     void setTabLabel(int index, const QString &label);

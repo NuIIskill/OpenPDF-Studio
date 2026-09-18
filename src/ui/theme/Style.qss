@@ -145,6 +145,153 @@ QSplitter::handle:vertical   { height: 1px; }
     color: #2563EB;
 }
 
+/* ── Bookmarks ───────────────────────────────────────────── */
+#BookmarkPanel {
+    background: #FFFFFF;
+    border-right: 1px solid #E5E7EB;
+}
+QLabel#BookmarkPanelTitle {
+    color: #111827;
+    font-size: 14px;
+    font-weight: 600;
+}
+QPushButton#BookmarkPanelClose,
+QPushButton#BookmarkAction {
+    background: transparent;
+    border: none;
+    border-radius: 6px;
+}
+QPushButton#BookmarkPanelClose:hover,
+QPushButton#BookmarkAction:hover { background: #F3F4F6; }
+QPushButton#BookmarkAction:pressed { background: #E5E7EB; }
+QPushButton#BookmarkAction:disabled { background: transparent; }
+QLineEdit#BookmarkSearch {
+    background: #FFFFFF;
+    border: 1px solid #D1D5DB;
+    border-radius: 6px;
+    color: #111827;
+    font-size: 12px;
+    padding: 0 8px;
+}
+QLineEdit#BookmarkSearch:focus { border-color: #93C5FD; }
+QTreeWidget#BookmarkTree {
+    background: transparent;
+    border: none;
+    color: #1F2937;
+    font-size: 12px;
+    outline: none;
+}
+QTreeWidget#BookmarkTree::item {
+    min-height: 30px;
+    padding: 1px 3px;
+    border-radius: 4px;
+}
+QTreeWidget#BookmarkTree::item:hover { background: #F9FAFB; }
+QTreeWidget#BookmarkTree::item:selected {
+    background: #EFF6FF;
+    color: #1D4ED8;
+}
+QTreeWidget#BookmarkTree::branch:closed:has-children {
+    image: url(:/icons/chevron-right.svg);
+}
+QTreeWidget#BookmarkTree::branch:open:has-children {
+    image: url(:/icons/chevron-down.svg);
+}
+QLabel#BookmarkEmpty {
+    color: #9CA3AF;
+    font-size: 12px;
+    padding: 24px;
+}
+
+/* ── Notes ──────────────────────────────────────────────── */
+#NotesPanel { background: #FFFFFF; border-left: 1px solid #E5E7EB; }
+QLabel#NotesTitle { color: #111827; font-size: 17px; font-weight: 700; }
+QPushButton#NotesClose {
+    background: transparent; border: none; border-radius: 6px; padding: 3px;
+}
+QPushButton#NotesClose:hover { background: #F3F4F6; }
+QPushButton#NotesNew {
+    background: #2563EB; border: none; border-radius: 6px; color: #FFFFFF;
+    font-size: 13px; font-weight: 600; padding: 9px 15px;
+}
+QPushButton#NotesNew:hover { background: #1D4ED8; }
+QPushButton#NotesNew:disabled { background: #93C5FD; color: #EFF6FF; }
+QScrollArea#NotesScroll, QWidget#NotesList { background: transparent; border: none; }
+QFrame#NoteCard {
+    background: #FFFFFF; border: 1px solid #E5E7EB; border-radius: 8px;
+}
+QFrame#NoteCard:hover { border-color: #93C5FD; background: #F9FAFB; }
+QFrame#NoteCard[selected="true"] { border: 1px solid #3B82F6; background: #F8FAFF; }
+QLabel#NoteDot { color: #FACC15; font-size: 14px; }
+QLabel#NoteCardTitle, QLabel#NotePopupTitle {
+    color: #1F2937; font-size: 13px; font-weight: 700;
+}
+QLabel#NoteCardBody, QLabel#NotePopupBody { color: #374151; font-size: 12px; }
+QLabel#NoteCardMeta { color: #6B7280; font-size: 11px; }
+QLabel#NotePinMarker { color: #2563EB; font-size: 10px; }
+QLabel#NotesEmpty { color: #9CA3AF; font-size: 12px; padding: 24px 8px; }
+QWidget#NoteEditor { border-top: 1px solid #E5E7EB; padding-top: 10px; }
+QLineEdit#NoteTitleEdit, QTextEdit#NoteTextEdit {
+    background: #FFFFFF; border: 1px solid #D1D5DB; border-radius: 7px;
+    color: #111827; font-size: 12px; padding: 8px;
+}
+QLineEdit#NoteTitleEdit:focus, QTextEdit#NoteTextEdit:focus { border-color: #60A5FA; }
+QPushButton#NoteSecondaryButton {
+    background: #F3F4F6; border: none; border-radius: 6px; color: #4B5563;
+    font-size: 12px; padding: 7px 10px;
+}
+QPushButton#NoteSecondaryButton:hover { background: #E5E7EB; }
+QPushButton#NoteSaveButton {
+    background: #2563EB; border: none; border-radius: 6px; color: white;
+    font-size: 12px; font-weight: 600; padding: 7px 14px;
+}
+QPushButton#NoteSaveButton:hover { background: #1D4ED8; }
+QPushButton#NoteMarker {
+    background: #FACC15; border: 2px solid #FFFFFF; border-radius: 4px; padding: 3px;
+}
+QPushButton#NoteMarker:hover { background: #EAB308; }
+QFrame#NotePopup {
+    background: #FFFFFF; border: 1px solid #D1D5DB; border-radius: 9px;
+}
+
+/* ── Customize Tools card ────────────────────────────────── */
+QFrame#ToolCustomizeCard {
+    background: #FFFFFF;
+    border: 1px solid #E5E7EB;
+    border-radius: 12px;
+}
+QLabel#ToolCustomizeTitle {
+    font-size: 14px;
+    font-weight: 700;
+    color: #111827;
+}
+QLabel#ToolCustomizeHint {
+    font-size: 12px;
+    color: #9CA3AF;
+    padding-top: 2px;
+}
+QPushButton#ToolCustomizeClose {
+    border: none;
+    background: transparent;
+    border-radius: 5px;
+}
+QPushButton#ToolCustomizeClose:hover { background: #F3F4F6; }
+QListWidget#ToolCustomizeList {
+    background: transparent;
+    border: none;
+    outline: none;
+}
+QPushButton#ToolCustomizeReset {
+    border: none;
+    background: transparent;
+    color: #2563EB;
+    font-size: 13px;
+    font-weight: 500;
+    padding: 6px 2px;
+    text-align: left;
+}
+QPushButton#ToolCustomizeReset:hover { color: #1D4ED8; }
+
 /* ── DocumentView canvas ─────────────────────────────────── */
 #DocumentView {
     background-color: #F3F4F6;
@@ -153,6 +300,50 @@ QSplitter::handle:vertical   { height: 1px; }
 
 #DocumentCanvas {
     background-color: #F3F4F6;
+}
+
+#DocumentFindOverlay {
+    background: transparent;
+}
+
+QFrame#DocumentFindBar {
+    background: #FFFFFF;
+    border: 1px solid #D1D5DB;
+    border-radius: 7px;
+}
+
+QLineEdit#DocumentFindInput {
+    background: #FFFFFF;
+    color: #111827;
+    border: 1px solid #D1D5DB;
+    border-radius: 5px;
+    padding: 0px 8px;
+    selection-background-color: #DBEAFE;
+    selection-color: #111827;
+}
+
+QLineEdit#DocumentFindInput:focus {
+    border-color: #93C5FD;
+}
+
+QLabel#DocumentFindCounter {
+    color: #4B5563;
+    font-size: 12px;
+}
+
+QPushButton#DocumentFindButton {
+    background: transparent;
+    border: none;
+    border-radius: 5px;
+    padding: 0px;
+}
+
+QPushButton#DocumentFindButton:hover {
+    background: #F3F4F6;
+}
+
+QPushButton#DocumentFindButton:pressed {
+    background: #E5E7EB;
 }
 
 /* PDF page labels — always white paper */
@@ -508,6 +699,18 @@ QFrame#ShortcutInfoBar {
 QLabel#ShortcutInfoIcon { color: #2563EB; font-size: 14px; font-weight: 700; }
 QLabel#ShortcutInfoText { color: #1D4ED8; font-size: 12px; }
 
+QPushButton#SettingsActionBtn {
+    border: 1px solid #E5E7EB;
+    border-radius: 6px;
+    background: #FFFFFF;
+    color: #374151;
+    font-size: 12px;
+    font-weight: 500;
+    padding: 4px 14px;
+}
+QPushButton#SettingsActionBtn:hover { background: #F3F4F6; }
+QPushButton#SettingsActionBtn:disabled { color: #9CA3AF; background: #F9FAFB; }
+
 /* ── Zoom settings page ───────────────────────────────────── */
 QFrame#ZoomCard,
 QFrame#SettingsCard {
@@ -633,3 +836,22 @@ QMenu#FormatBarMenu {
 QMenu#FormatBarMenu::item { background:transparent; color:#1F2937; padding:7px 22px 7px 10px; border-radius:3px; }
 QMenu#FormatBarMenu::item:selected { background:#EFF6FF; color:#1D4ED8; }
 QMenu#FormatBarMenu::separator { height:1px; background:#E5E7EB; margin:4px 6px; }
+
+/* ── Draw toolbar ────────────────────────────────────────── */
+QFrame#DrawBar { background:#FFFFFF; border-bottom:1px solid #E5E7EB; }
+QFrame#DrawBar QFrame#DrawBarSeparator { background:#E5E7EB; border:none; }
+QFrame#DrawBar QPushButton[drawTool="true"],
+QFrame#DrawBar QPushButton[drawChoice="true"],
+QFrame#DrawBar QPushButton[drawColor="true"] {
+    background:transparent; border:1px solid transparent; border-radius:9px; padding:0px;
+}
+QFrame#DrawBar QPushButton[drawTool="true"]:hover,
+QFrame#DrawBar QPushButton[drawChoice="true"]:hover,
+QFrame#DrawBar QPushButton[drawColor="true"]:hover { background:#F3F4F6; }
+QFrame#DrawBar QPushButton[drawTool="true"]:checked,
+QFrame#DrawBar QPushButton[drawChoice="true"]:checked {
+    background:#EFF6FF; border-color:#DBEAFE;
+}
+QFrame#DrawBar QPushButton[drawColor="true"]:checked {
+    background:#EFF6FF; border:2px solid #2563EB; border-radius:9px;
+}

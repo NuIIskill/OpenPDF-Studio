@@ -96,6 +96,14 @@ Please use a build that includes Qt6::Pdf support.
         <source>Justify</source>
         <translation type="unfinished"></translation>
     </message>
+    <message>
+        <source>Advanced</source>
+        <translation>Дополнительно</translation>
+    </message>
+    <message>
+        <source>All text box options</source>
+        <translation>Все параметры текстового поля</translation>
+    </message>
 </context>
 <context>
     <name>ImageAnnotation</name>
@@ -140,16 +148,6 @@ Please use a build that includes Qt6::Pdf support.
         <location filename="../../src/ui/LeftSidebar.cpp" line="30"/>
         <source>Image</source>
         <translation>Изображение</translation>
-    </message>
-    <message>
-        <location filename="../../src/ui/LeftSidebar.cpp" line="31"/>
-        <source>Table</source>
-        <translation>Таблица</translation>
-    </message>
-    <message>
-        <location filename="../../src/ui/LeftSidebar.cpp" line="32"/>
-        <source>Page</source>
-        <translation>Страница</translation>
     </message>
     <message>
         <location filename="../../src/ui/LeftSidebar.cpp" line="33"/>
@@ -624,6 +622,10 @@ Please use a build that includes Qt6::Pdf support.
         <source>Save as Default</source>
         <translation type="unfinished"></translation>
     </message>
+    <message>
+        <source>Position &amp; Size</source>
+        <translation>Положение и размер</translation>
+    </message>
 </context>
 <context>
     <name>TopToolbar</name>
@@ -682,5 +684,62 @@ Please use a build that includes Qt6::Pdf support.
         <source>No Document</source>
         <translation>Нет документа</translation>
     </message>
+</context>
+<context>
+    <name>FindController</name>
+    <message><source>Find in document</source><translation>Найти в документе</translation></message>
+    <message><source>Previous match (Shift+Enter)</source><translation>Предыдущее совпадение (Shift+Enter)</translation></message>
+    <message><source>Next match (Enter)</source><translation>Следующее совпадение (Enter)</translation></message>
+    <message><source>Close (Esc)</source><translation>Закрыть (Esc)</translation></message>
+</context>
+<context>
+    <name>SessionRecovery</name>
+    <message><source>Untitled</source><translation>Без имени</translation></message>
+    <message><source>Restore Session</source><translation>Восстановить сеанс</translation></message>
+    <message><source>OpenPDF Studio did not shut down properly last time.</source><translation>В прошлый раз OpenPDF Studio завершился некорректно.</translation></message>
+    <message><source>Restore the documents that were open?</source><translation>Восстановить открытые документы?</translation></message>
+    <message><source>%1 (unsaved changes)</source><translation>%1 (несохранённые изменения)</translation></message>
+    <message><source>Restore</source><translation>Восстановить</translation></message>
+    <message><source>Discard</source><translation>Отбросить</translation></message>
+</context>
+<context>
+    <name>DocumentView</name>
+    <message><source>Insert image</source><translation>Вставить изображение</translation></message>
+    <message><source>All files (*)</source><translation>Все файлы (*)</translation></message>
+    <message><source>Drop a PDF, Word, OpenDocument or image file here, or click a tab to open</source><translation>Перетащите сюда PDF, документ Word или OpenDocument либо изображение, или щёлкните вкладку</translation></message>
+</context>
+<context>
+    <name>MainWindow</name>
+    <message><source>Open Document</source><translation>Открыть документ</translation></message>
+    <message><source>Cannot open file</source><translation>Не удаётся открыть файл</translation></message>
+    <message><source>"%1" is not a PDF and cannot be turned into one.</source><translation>«%1» не является PDF и не может быть преобразован в PDF.</translation></message>
+    <message><source>There is no room to put the converted file.</source><translation>Нет места для преобразованного файла.</translation></message>
+    <message><source>Import failed</source><translation>Импорт не удался</translation></message>
+    <message><source>"%1" could not be turned into a PDF.
+
+%2</source><translation>Не удалось преобразовать «%1» в PDF.
+
+%2</translation></message>
+    <message><source>"%1" was converted, but the result could not be opened.</source><translation>«%1» преобразован, но открыть результат не удалось.</translation></message>
+</context>
+<context>
+    <name>DocumentImport</name>
+    <message><source>Images</source><translation>Изображения</translation></message>
+    <message><source>All files</source><translation>Все файлы</translation></message>
+    <message><source>All supported files</source><translation>Все поддерживаемые файлы</translation></message>
+    <message><source>PDF files</source><translation>Файлы PDF</translation></message>
+    <message><source>Word documents</source><translation>Документы Word</translation></message>
+    <message><source>Word document</source><translation>Документ Word</translation></message>
+    <message><source>OpenDocument text</source><translation>Текст OpenDocument</translation></message>
+    <message><source>Image</source><translation>Изображение</translation></message>
+    <message><source>The image is too large.</source><translation>Изображение слишком большое.</translation></message>
+    <message><source>The PDF could not be written.</source><translation>Не удалось записать PDF.</translation></message>
+    <message><source>The file does not exist.</source><translation>Файл не существует.</translation></message>
+    <message><source>The file could not be read. It may be damaged.</source><translation>Не удалось прочитать файл. Возможно, он повреждён.</translation></message>
+    <message><source>The file has no readable document part.</source><translation>В файле нет читаемой части документа.</translation></message>
+    <message><source>The document is damaged: %1</source><translation>Документ повреждён: %1</translation></message>
+    <message><source>This build was made without zlib and cannot read Word or OpenDocument files.</source><translation>Эта сборка собрана без zlib и не может читать файлы Word и OpenDocument.</translation></message>
+    <message><source>This is an older Word file that only carries a .docx name. Save it as a real .docx first.</source><translation>Это старый файл Word, у которого лишь имя .docx. Сначала сохраните его как настоящий .docx.</translation></message>
+    <message><source>%1 files cannot be opened.</source><translation>Файлы %1 открыть нельзя.</translation></message>
 </context>
 </TS>

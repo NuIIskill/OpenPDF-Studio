@@ -3,8 +3,6 @@
 #include <QDebug>
 #include <QElapsedTimer>
 
-// ── ContentProvider (cache) ───────────────────────────────────────────────────
-
 QList<ContentItem> ContentProvider::pageItems(int page)
 {
     auto it = m_cache.find(page);

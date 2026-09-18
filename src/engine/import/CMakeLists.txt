@@ -1,0 +1,22 @@
+target_sources(OpenPDFStudio PRIVATE
+    DocumentBuilder.cpp
+    DocumentBuilder.hpp
+    DocumentImport.cpp
+    DocumentImport.hpp
+    DocxReader.cpp
+    DocxReader.hpp
+    DocxStyles.cpp
+    DocxStyles.hpp
+    ImageImport.cpp
+    ImageImport.hpp
+    OdfStyles.cpp
+    OdfStyles.hpp
+    OdtReader.cpp
+    OdtReader.hpp
+    OfficeStyle.hpp
+    TextDocumentPdf.cpp
+    TextDocumentPdf.hpp
+    XmlRead.hpp
+    ZipArchive.cpp
+    ZipArchive.hpp
+)

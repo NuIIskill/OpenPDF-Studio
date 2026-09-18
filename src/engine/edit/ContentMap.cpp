@@ -7,19 +7,13 @@
 #include <string>
 #include <vector>
 
-// ═══════════════════════════════════════════════════════════════════════════════
-//  Backend-neutral part: font resolution, cluster classification, spatial lookup
-// ═══════════════════════════════════════════════════════════════════════════════
-
-// ── Font resolution ───────────────────────────────────────────────────────────
-
 ResolvedFont resolvePdfFont(const QString &rawBaseFont)
 {
     ResolvedFont out;
     if (rawBaseFont.isEmpty()) return out;
 
     QString n = rawBaseFont;
-    // Strip subset prefix "ABCDEF+FontName"
+
     const int plus = n.indexOf(u'+');
     if (plus > 0 && plus <= 6) n = n.mid(plus + 1);
 
@@ -32,13 +26,11 @@ ResolvedFont resolvePdfFont(const QString &rawBaseFont)
     out.italic = low.contains(QLatin1String("italic"))
               || low.contains(QLatin1String("oblique"));
 
-    // Family = part before the first '-' or ',' (style/subfamily separator)
     int cut = n.indexOf(u'-');
     const int cut2 = n.indexOf(u',');
     if (cut2 >= 0 && (cut < 0 || cut2 < cut)) cut = cut2;
     QString fam = (cut > 0) ? n.left(cut) : n;
 
-    // Alias map for the standard-14 families and their common clones.
     const QString famLow = fam.toLower();
     if (famLow.contains(QLatin1String("helvetica")))     { out.family = QStringLiteral("Helvetica");       return out; }
     if (famLow.contains(QLatin1String("arial")))          { out.family = QStringLiteral("Arial");           return out; }
@@ -47,7 +39,6 @@ ResolvedFont resolvePdfFont(const QString &rawBaseFont)
     if (famLow.contains(QLatin1String("symbol")))         { out.family = QStringLiteral("Symbol");          return out; }
     if (famLow.contains(QLatin1String("zapf")))           { out.family = QStringLiteral("ZapfDingbats");    return out; }
 
-    // Strip glued style suffixes ("VerdanaBold" → "Verdana")
     static const char *kStyleWords[] = {
         "BoldOblique", "BoldItalic", "Bold", "Italic", "Oblique",
         "Black", "Heavy", "Light", "Medium", "SemiBold", "Semibold",
@@ -68,7 +59,6 @@ ResolvedFont resolvePdfFont(const QString &rawBaseFont)
             fam.chop(1);
     }
 
-    // Camel-case split: "MinionPro" → "Minion Pro", "TrebuchetMS" → "Trebuchet MS"
     QString spaced;
     spaced.reserve(fam.size() + 4);
     for (int i = 0; i < fam.size(); ++i) {
@@ -80,15 +70,13 @@ ResolvedFont resolvePdfFont(const QString &rawBaseFont)
     return out;
 }
 
-// ── Cluster classification ────────────────────────────────────────────────────
-
 namespace {
 
 struct Seg {
     QRectF  bounds;
     QString text;
-    int     firstIdx { -1 };   // index into cluster list (style source)
-    QPointF origin;            // pen origin of the leftmost run in the segment
+    int     firstIdx { -1 };
+    QPointF origin;
 };
 
 struct RowSegs {
@@ -98,12 +86,12 @@ struct RowSegs {
     bool       table { false };
 };
 
-} // namespace
+}
 
 QList<ContentItem> classifyContentClusters(QList<ContentCluster> clusters,
                                            bool mergeVertical)
 {
-    // Drop empties and degenerate runs
+
     QList<ContentCluster> cl;
     cl.reserve(clusters.size());
     for (const ContentCluster &c : clusters)
@@ -117,7 +105,6 @@ QList<ContentItem> classifyContentClusters(QList<ContentCluster> clusters,
         return a.bounds.left() < b.bounds.left();
     });
 
-    // Phase 1: group runs into visual lines by center-Y proximity
     struct Row { QList<int> idx; double refY { 0.0 }; double lineH { 0.0 }; };
     QList<Row> rows;
     for (int i = 0; i < cl.size(); ++i) {
@@ -138,7 +125,6 @@ QList<ContentItem> classifyContentClusters(QList<ContentCluster> clusters,
             rows.append(Row{ { i }, cy, lh });
     }
 
-    // Phase 2: split each line into segments at column-sized horizontal gaps
     QList<RowSegs> rsegs;
     rsegs.reserve(rows.size());
     for (Row &row : rows) {
@@ -175,9 +161,6 @@ QList<ContentItem> classifyContentClusters(QList<ContentCluster> clusters,
     std::sort(rsegs.begin(), rsegs.end(),
               [](const RowSegs &a, const RowSegs &b) { return a.y < b.y; });
 
-    // A bullet and its following text are one list line, not two table
-    // columns. Without this normalization, several adjacent bullet rows meet
-    // the table-alignment heuristic and become a bogus two-column table.
     for (RowSegs &row : rsegs) {
         if (row.segs.size() < 2) continue;
         const QString marker = row.segs.first().text.trimmed();
@@ -186,8 +169,7 @@ QList<ContentItem> classifyContentClusters(QList<ContentCluster> clusters,
                 && marker != QStringLiteral("▪") && marker != QStringLiteral("◦"))
             continue;
         Seg merged = row.segs.first();
-        // Font/style must come from the list text, not from the tiny OpenSymbol
-        // bullet glyph (typically 3-4 pt bounding height).
+
         merged.firstIdx = row.segs[1].firstIdx;
         for (int n = 1; n < row.segs.size(); ++n) {
             merged.text += u' ' + row.segs[n].text;
@@ -196,12 +178,6 @@ QList<ContentItem> classifyContentClusters(QList<ContentCluster> clusters,
         row.segs = { merged };
     }
 
-    // Phase 3: table detection — a multi-segment row is a table row only when a
-    // vertically adjacent row is also multi-segment with ≥2 aligned column lefts.
-    // (An isolated two-part line — e.g. heading + page number — stays plain text.)
-    // Export keeps visual lines separate and can therefore accept the wider
-    // row pitch common in roomy business tables. The editor keeps the tighter
-    // threshold to avoid turning unrelated nearby labels into clickable cells.
     const double tableRowReach = mergeVertical ? 2.4 : 3.4;
     for (int i = 0; i < rsegs.size(); ++i) {
         if (rsegs[i].segs.size() < 2) continue;
@@ -224,7 +200,6 @@ QList<ContentItem> classifyContentClusters(QList<ContentCluster> clusters,
         }
     }
 
-    // Phase 4: emit one item per segment
     QList<ContentItem> items;
     for (const RowSegs &rs : rsegs) {
         for (const Seg &seg : rs.segs) {
@@ -258,10 +233,6 @@ QList<ContentItem> classifyContentClusters(QList<ContentCluster> clusters,
         return items;
     }
 
-    // Phase 5: vertical merge — consecutive aligned Text lines become a
-    // Paragraph; tightly stacked TableCell lines become one multi-line cell.
-    // Search a small window of recent items so multi-column layouts merge
-    // per column instead of blocking on interleaved sort order.
     std::sort(items.begin(), items.end(), [](const ContentItem &a, const ContentItem &b) {
         if (std::abs(a.bounds.top() - b.bounds.top()) > 0.5)
             return a.bounds.top() < b.bounds.top();
@@ -269,9 +240,7 @@ QList<ContentItem> classifyContentClusters(QList<ContentCluster> clusters,
     });
 
     QList<ContentItem> merged;
-    // Top of the line most recently merged into each item — the reference for
-    // the block's own line spacing, which the bounds alone no longer show once
-    // several lines have been united.
+
     QList<double> lastLineTop;
     for (ContentItem &item : items) {
         ContentItem *host = nullptr;
@@ -295,7 +264,6 @@ QList<ContentItem> classifyContentClusters(QList<ContentCluster> clusters,
                                            - item.bounds.center().x()) < fs * 1.5;
             if (!leftAligned && !centered) continue;
 
-            // Columns must overlap horizontally — guards diagonal merges.
             const double xOverlap = std::min(p.bounds.right(), item.bounds.right())
                                   - std::max(p.bounds.left(), item.bounds.left());
             if (xOverlap < 1.0) continue;
@@ -334,8 +302,6 @@ QList<ContentItem> classifyContentClusters(QList<ContentCluster> clusters,
     return merged;
 }
 
-// ── Spatial lookup ────────────────────────────────────────────────────────────
-
 ContentItem contentItemAt(const QList<ContentItem> &items, const QPointF &pdfPt,
                           unsigned typeMask, double maxDistance)
 {
@@ -349,7 +315,6 @@ ContentItem contentItemAt(const QList<ContentItem> &items, const QPointF &pdfPt,
         }
     };
 
-    // Pass 1: exact containment (3 pt tolerance); priority, then smaller area
     const ContentItem *best = nullptr;
     int    bestPrio = -1;
     double bestArea = 1e18;
@@ -364,7 +329,6 @@ ContentItem contentItemAt(const QList<ContentItem> &items, const QPointF &pdfPt,
     }
     if (best) return *best;
 
-    // Pass 2: nearest edge within maxDistance, biased toward fields and cells
     double bestDist = maxDistance;
     for (const ContentItem &item : items) {
         if (!(typeMask & contentTypeBit(item.type))) continue;
@@ -379,7 +343,3 @@ ContentItem contentItemAt(const QList<ContentItem> &items, const QPointF &pdfPt,
     }
     return best ? *best : ContentItem{};
 }
-
-// ═══════════════════════════════════════════════════════════════════════════════
-//  qpdf content-stream scanner
-// ═══════════════════════════════════════════════════════════════════════════════

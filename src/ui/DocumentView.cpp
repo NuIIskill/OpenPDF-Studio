@@ -3,17 +3,25 @@
 #include "app/PdfPwStore.hpp"
 #include "engine/document/DocumentSource.hpp"
 #include "engine/edit/InkMetrics.hpp"
+#include "engine/import/DocumentImport.hpp"
+#include "engine/import/ImageImport.hpp"
 #include "app/SafeWrite.hpp"
 #include "app/SessionStore.hpp"
 #include "ui/tools/ImageAnnotation.hpp"
 #include "ui/view/ImageAnnotationLayer.hpp"
+#include "ui/view/LinkAnnotationLayer.hpp"
+#include "ui/notes/NoteLayer.hpp"
+#include "ui/draw/DrawingLayer.hpp"
 #include "ui/view/HoverHighlight.hpp"
+#include "ui/view/FindController.hpp"
 #include "ui/view/PageLayoutEngine.hpp"
+#include "ui/view/PageOverlay.hpp"
 #include "ui/view/ZoomController.hpp"
 #include "ui/view/TextSelectionController.hpp"
 #include "ui/widgets/PasswordDialog.hpp"
 
 #include <QFileInfo>
+#include <QImageReader>
 
 #ifdef HAVE_QPDF
 #  include <qpdf/QPDF.hh>
@@ -22,7 +30,6 @@
 #  include <qpdf/QPDFObjectHandle.hh>
 #  include <cstring>
 #endif
-
 
 #include <QVBoxLayout>
 #include <QHBoxLayout>
@@ -72,41 +79,40 @@ void DocumentView::wheelEvent(QWheelEvent *e)
     if (!m_zoomCtl->handleWheel(e)) QScrollArea::wheelEvent(e);
 }
 
-// Everything anchored to a page has to follow a zoom: the selection highlights
-// and, while an edit is open, the editor frame.
 void DocumentView::repositionForZoom()
 {
-    // Page labels can be re-laid out once more after this, so the highlights
-    // are repositioned again when that layout has settled.
-    m_selection->relayout();
-    QTimer::singleShot(0, this, [this]() { m_selection->relayout(); });
 
+    m_selection->relayout();
+    m_linkLayer->relayout();
+    m_noteLayer->relayout();
+    m_drawingLayer->relayout();
+    QTimer::singleShot(0, this, [this]() { m_selection->relayout(); });
+    repositionEditorFrame();
+}
+
+void DocumentView::repositionEditorFrame()
+{
 #ifdef HAVE_PDF_RENDERING
-    // The blank that hides the original text sticks to its page inside the
-    // layout engine, so a re-render at the new zoom keeps it — only the editor
-    // frame has to follow.
+
     if (m_edit.activeEditPage < 0 || !m_editorFrame->isVisible()) return;
-    // Reposition the editor frame for the new zoom.  A 0 ms timer defers the
-    // reposition until after the layout has settled — the frame may still be
-    // growing to the text it holds.
+
     const int activePage = m_edit.activeEditPage;
     QTimer::singleShot(0, this, [this, activePage]() {
         if (m_edit.activeEditPage != activePage || !m_editorFrame->isVisible()) return;
-        // Force the canvas layout NOW — label positions are stale until the
-        // deferred relayout has run, and the 0 ms timer can fire first.
+
         if (m_layout) m_layout->activate();
         const QLabel *lbl = pageLabel(activePage);
         if (!lbl) return;
-        // Read the CURRENT zoom, not a captured one: rapid wheel zooming
-        // queues several of these lambdas and each must position for the
-        // zoom the page is actually rendered at.
+
         const qreal scale = PdfRenderer::screenScale(m_zoomCtl->zoom());
-        m_editorFrame->setPageRect(lbl->geometry());  // page rect changes with zoom
-        m_editorFrame->setBoxProperties(m_edit.currentBox, scale);
+        m_editorFrame->setPageRect(lbl->geometry());
         const QRectF cb(m_edit.activeEditBounds.topLeft() * scale + QPointF(lbl->pos()),
                         m_edit.activeEditBounds.size() * scale);
         m_editorFrame->repositionForZoom(
-            cb, qMax(6, qRound(m_edit.currentEditorRenderSizePt * scale)));
+            cb, qMax(1.0, m_edit.currentEditorRenderSizePt * scale),
+            m_edit.currentBox, scale);
+
+        m_edit.refreshLivePreview();
     });
 #endif
 }
@@ -116,19 +122,34 @@ void DocumentView::setTool(Tool tool)
     if (tool != Tool::Select) m_selection->clear();
     m_tool = tool;
 
-    // Image annotations are interactive only while the image tool is active.
     m_imageLayer->setToolActive(tool == Tool::Image);
+    m_linkLayer->setToolActive(tool == Tool::Attach);
+    m_noteLayer->setToolActive(tool == Tool::Comment);
+    m_drawingLayer->setActive(m_editMode && tool == Tool::Draw);
 
     switch (tool) {
     case Tool::Pan:    viewport()->setCursor(Qt::OpenHandCursor);    break;
     case Tool::Text:   viewport()->setCursor(Qt::IBeamCursor);       break;
-    case Tool::Select: viewport()->setCursor(Qt::IBeamCursor);       break;   // marks text
+    case Tool::Select: viewport()->setCursor(Qt::IBeamCursor);       break;
     case Tool::Image:
         viewport()->setCursor(Qt::CrossCursor);
         m_imageLayer->scanVisiblePage(firstVisiblePage());
         break;
+    case Tool::Attach:
+        viewport()->setCursor(Qt::IBeamCursor);
+        break;
+    case Tool::Comment:
+    case Tool::Draw:
+        viewport()->setCursor(Qt::CrossCursor);
+        break;
     default:           viewport()->setCursor(Qt::ArrowCursor);       break;
     }
+}
+
+void DocumentView::setActiveToolId(const QString &toolId)
+{
+    for (PageOverlay *overlay : std::as_const(m_overlays))
+        overlay->setActiveTool(toolId);
 }
 
 QString DocumentView::selectedText() const
@@ -141,15 +162,62 @@ void DocumentView::copySelectedText()
     m_selection->copyToClipboard();
 }
 
-// ── Editor font state (FormatBar sync) ────────────────────────────────────────
+void DocumentView::openFind()
+{
+    m_find->open();
+}
+
+void DocumentView::setDrawTool(DrawTool tool)
+{
+    m_drawingLayer->setTool(tool);
+}
+
+void DocumentView::setDrawColor(const QColor &color)
+{
+    m_drawingLayer->setColor(color);
+}
+
+void DocumentView::setDrawWidth(qreal widthPt)
+{
+    m_drawingLayer->setWidth(widthPt);
+}
+
+QList<NoteData> DocumentView::notes() const
+{
+    return m_noteLayer ? m_noteLayer->notes() : QList<NoteData>{};
+}
+
+void DocumentView::createNote()
+{
+    if (m_noteLayer && pageCount() > 0)
+        m_noteLayer->addAtPageCenter(currentPage());
+}
+
+void DocumentView::selectNote(const QString &id)
+{
+    if (m_noteLayer) m_noteLayer->activate(id);
+}
+
+void DocumentView::updateNote(const QString &id, const QString &title,
+                              const QString &text)
+{
+    if (m_noteLayer) m_noteLayer->update(id, title, text);
+}
+
+void DocumentView::deleteNote(const QString &id)
+{
+    if (m_noteLayer) m_noteLayer->remove(id);
+}
+
+void DocumentView::setNotePinned(const QString &id, bool pinned)
+{
+    if (m_noteLayer) m_noteLayer->setPinned(id, pinned);
+}
 
 int DocumentView::currentPage() const
 {
     if (pageLabelCount() == 0) return 0;
 
-    // The page covering most of the viewport is the one the user is reading.
-    // Taking the first partially visible page instead would keep the indicator
-    // one page behind for as long as a sliver of it hangs in at the top.
     const int top    = verticalScrollBar()->value();
     const int bottom = top + viewport()->height();
 
@@ -187,24 +255,17 @@ void DocumentView::scrollToPage(int page, bool allowRetry)
     if (pageLabelCount() == 0) return;
     page = qBound(0, page, pageLabelCount() - 1);
 
-    // The page widgets live on m_canvas, which is not the widget on screen in
-    // grid mode — jumping to a page there means returning to the page view.
     if (m_viewMode == ViewMode::Grid)
         setViewMode(ViewMode::Single);
 
-    // Right after open/zoom the layout can still be pending, in which case
-    // every page would report pos().y() == 0 and the jump would go nowhere.
     if (m_layout) m_layout->activate();
 
-    constexpr int kTopGap = 20;   // leave a little air above the page
+    constexpr int kTopGap = 20;
     const int target = qMax(0, pageLabel(page)->pos().y() - kTopGap);
     verticalScrollBar()->setValue(target);
 
     if (allowRetry && verticalScrollBar()->value() != target) {
-        // The scroll area sizes its canvas — and with it the scrollbar range —
-        // only once it has processed the new page widgets. Until then the jump
-        // is clamped to 0, which is what made the very first click on the page
-        // arrows after opening a document do nothing. Retry once, after that.
+
         QTimer::singleShot(0, this, [this, page]() { scrollToPage(page, false); });
         return;
     }
@@ -223,13 +284,19 @@ void DocumentView::reportCurrentPage()
 void DocumentView::retranslateUi()
 {
 #ifdef HAVE_PDF_RENDERING
-    m_dropHint->setText(tr("Drop a PDF here or click a tab to open"));
+    m_dropHint->setText(tr("Drop a PDF, Word, OpenDocument or image file here, or click a tab to open"));
 #else
     m_dropHint->setText(tr(
         "PDF rendering is not available in this build.\n"
         "Please use a build that includes Qt6::Pdf support.\n"
         "(See build-win.sh for instructions.)"));
 #endif
+    if (m_find) m_find->retranslateUi();
+}
+
+void DocumentView::refreshTheme()
+{
+    if (m_find) m_find->refreshTheme();
 }
 
 void DocumentView::changeEvent(QEvent *e)
@@ -241,8 +308,7 @@ void DocumentView::changeEvent(QEvent *e)
 
 void DocumentView::keyPressEvent(QKeyEvent *e)
 {
-    // Copy marked page text. Editors are QTextEdit children and consume their
-    // own Ctrl+C before it ever reaches the view, so both paths coexist.
+
     if (e->matches(QKeySequence::Copy) && m_selection->hasSelection()) {
         copySelectedText();
         e->accept();
@@ -259,18 +325,50 @@ void DocumentView::keyPressEvent(QKeyEvent *e)
 void DocumentView::resizeEvent(QResizeEvent *e)
 {
     QScrollArea::resizeEvent(e);
-    if (m_viewMode == ViewMode::Grid)
+    if (m_find) m_find->relayout();
+    if (m_viewMode == ViewMode::Grid) {
         m_layoutEngine->relayoutGrid(viewport()->width());
-    else
-        syncVisibleRect();
+        return;
+    }
+    syncVisibleRect();
+
+    QTimer::singleShot(0, this, &DocumentView::repositionPageOverlays);
+}
+
+void DocumentView::repositionPageOverlays()
+{
+    m_selection->relayout();
+    if (m_find) m_find->relayout();
+    m_imageLayer->relayout();
+    m_linkLayer->relayout();
+    m_noteLayer->relayout();
+    m_drawingLayer->relayout();
+    for (PageOverlay *overlay : std::as_const(m_overlays))
+        overlay->relayout();
+    repositionEditorFrame();
+}
+
+void DocumentView::scrollToSearchMatch(int page, const QRectF &bounds)
+{
+    if (page < 0 || page >= pageLabelCount()) return;
+    if (m_viewMode == ViewMode::Grid) setViewMode(ViewMode::Single);
+
+    QMetaObject::invokeMethod(this, [this, page, bounds]() {
+        if (m_layout) m_layout->activate();
+        const QLabel *label = pageLabel(page);
+        if (!label) return;
+        const int matchY = label->pos().y()
+            + qRound(bounds.center().y() * screenScale());
+        verticalScrollBar()->setValue(
+            qMax(0, matchY - viewport()->height() / 2));
+        reportCurrentPage();
+        m_find->relayout();
+    }, Qt::QueuedConnection);
 }
 
 QRect DocumentView::visibleCanvasRect() const
 {
-    // The canvas is a child of the viewport and scrolling moves it, so its
-    // negated position is the viewport origin in canvas coordinates. Reading
-    // it from the widget instead of the scrollbars also covers the case where
-    // the canvas is smaller than the viewport and gets centred.
+
     return QRect(-m_canvas->pos(), viewport()->size());
 }
 
@@ -279,8 +377,6 @@ void DocumentView::syncVisibleRect()
     if (m_viewMode != ViewMode::Single) return;
     m_layoutEngine->setVisibleRect(visibleCanvasRect());
 }
-
-// ── Page rendering (delegated to PageLayoutEngine) ────────────────────────────
 
 QLabel *DocumentView::pageLabel(int page) const
 {
@@ -300,7 +396,7 @@ void DocumentView::rerenderPage(int page)
 void DocumentView::setViewMode(ViewMode mode)
 {
     if (m_viewMode == mode) return;
-    m_selection->clear();   // grid view has no page-text geometry to anchor to
+    m_selection->clear();
     m_viewMode = mode;
 
     if (mode == ViewMode::Grid) {
@@ -310,8 +406,7 @@ void DocumentView::setViewMode(ViewMode mode)
         takeWidget();
         setWidget(m_gridCanvas);
         m_gridCanvas->show();
-        // Defer: viewport()->width() is reliable after the scroll area processes
-        // the new widget.
+
         QMetaObject::invokeMethod(this, [this]() {
             m_layoutEngine->relayoutGrid(viewport()->width());
         }, Qt::QueuedConnection);
@@ -322,23 +417,19 @@ void DocumentView::setViewMode(ViewMode mode)
         takeWidget();
         setWidget(m_canvas);
         m_canvas->show();
-        // Same as above: the canvas position is only meaningful after the
-        // scroll area has taken the widget back.
+
         QMetaObject::invokeMethod(this, [this]() { syncVisibleRect(); },
                                   Qt::QueuedConnection);
     }
     Q_EMIT viewModeChanged(mode);
 }
 
-// ── Context menu (editor / page selection) ────────────────────────────────────
-
 void DocumentView::showGeneralContextMenu(const QPoint &globalPos)
 {
     auto *focusEdit    = qobject_cast<QTextEdit *>(QApplication::focusWidget());
     const bool hasEdit = focusEdit && m_editorFrame && m_editorFrame->isVisible();
     const bool hasSel  = hasEdit && focusEdit->textCursor().hasSelection();
-    // Text marked on the page with the select tool — copy only, the page text
-    // itself is not modified from here.
+
     const bool hasPageSel = !hasEdit && !selectedText().isEmpty();
 
     QMenu menu(this);
@@ -352,8 +443,6 @@ void DocumentView::showGeneralContextMenu(const QPoint &globalPos)
     if (hasPageSel)      copySelectedText();
     else if (focusEdit)  focusEdit->copy();
 }
-
-// ── Edit mode ─────────────────────────────────────────────────────────────────
 
 qreal DocumentView::screenScale() const
 {
@@ -374,14 +463,12 @@ std::pair<int, QLabel *> DocumentView::pageAtCanvasPos(const QPoint &canvasPos) 
 
 bool DocumentView::eventFilter(QObject *obj, QEvent *e)
 {
-    // Page labels have WA_TransparentForMouseEvents so all clicks fall through to
-    // m_canvas (their parent). We also handle viewport() for clicks in the margins.
+
     const bool fromCanvas   = (obj == m_canvas);
     const bool fromViewport = (obj == viewport());
     if (!fromCanvas && !fromViewport)
         return QScrollArea::eventFilter(obj, e);
 
-    // Helpers: m_canvas coords are the canonical space; rubber band lives in viewport.
     const QPoint scroll(horizontalScrollBar()->value(), verticalScrollBar()->value());
     auto toCanvas   = [&](const QPoint &p) { return fromCanvas ? p : p + scroll; };
     auto toViewport = [&](const QPoint &p) { return fromCanvas ? p - scroll : p; };
@@ -394,30 +481,38 @@ bool DocumentView::eventFilter(QObject *obj, QEvent *e)
 
             if (m_editMode && m_tool == Tool::Text) {
 #ifdef HAVE_PDF_RENDERING
-                // Let TextBoxFrame/InlineEditor handle clicks inside the active frame.
+
                 if (m_editorFrame->isVisible() && m_editorFrame->geometry().contains(cvsPos))
                     return QScrollArea::eventFilter(obj, e);
-                // Commit the active edit before starting a new one.
-                // cancelCurrentEdit must NOT be used here — the user's typed
-                // text must be kept, not discarded.
+
                 commitCurrentEdit(m_editorFrame->currentText());
 #endif
-                m_textDragStart = cvsPos;   // stored in canvas coords
+                m_textDragStart = cvsPos;
                 m_textTracking  = true;
                 m_textDragging  = false;
                 return true;
             }
 
             if (m_tool == Tool::Image) {
-                // Click on a detected image frame extracts and places it;
-                // otherwise start the rubber band, but only on a page.
+
                 if (m_imageLayer->takeDetectedRegionAt(cvsPos)) return true;
-                m_imageLayer->handlePress(cvsPos);   // false → outside page, swallowed
+                m_imageLayer->handlePress(cvsPos);
+                return true;
+            }
+
+            if (m_tool == Tool::Comment) {
+                m_noteLayer->addAt(cvsPos);
+                return true;
+            }
+
+            if (m_tool == Tool::Draw) {
+                m_drawingLayer->handlePress(cvsPos);
                 return true;
             }
 
             switch (m_tool) {
             case Tool::Select:
+            case Tool::Attach:
                 m_selection->handlePress(cvsPos);
                 break;
             case Tool::Pan:
@@ -431,7 +526,11 @@ bool DocumentView::eventFilter(QObject *obj, QEvent *e)
         }
     } else if (e->type() == QEvent::MouseMove) {
         auto *me = static_cast<QMouseEvent *>(e);
-        // Hover feedback over detected content regions (Acrobat-style).
+        if (m_tool == Tool::Draw && (me->buttons() & Qt::LeftButton)) {
+            m_drawingLayer->handleMove(toCanvas(me->pos()));
+            return true;
+        }
+
         if (m_editMode && m_tool == Tool::Text && !m_textTracking)
             m_hover->showAt(toCanvas(me->pos()));
         else
@@ -458,12 +557,12 @@ bool DocumentView::eventFilter(QObject *obj, QEvent *e)
             }
             return true;
         }
-        // Select/Pan are navigation tools — they work in edit mode as well,
-        // matching the press handler above which is not gated on m_editMode.
+
         {
             const QPoint vpPos = toViewport(me->pos());
             switch (m_tool) {
             case Tool::Select:
+            case Tool::Attach:
                 if ((me->buttons() & Qt::LeftButton)
                         && m_selection->handleMove(toCanvas(me->pos())))
                     return true;
@@ -482,29 +581,36 @@ bool DocumentView::eventFilter(QObject *obj, QEvent *e)
     } else if (e->type() == QEvent::MouseButtonRelease) {
         auto *me = static_cast<QMouseEvent *>(e);
         if (me->button() == Qt::LeftButton) {
+            if (m_tool == Tool::Draw) {
+                m_drawingLayer->handleRelease();
+                return true;
+            }
             if (m_editMode && m_tool == Tool::Text && m_textTracking) {
                 m_textTracking = false;
                 if (m_textDragging) {
                     m_textDragging = false;
-                    const QRect band = m_rubberBand->geometry();   // viewport coords
+                    const QRect band = m_rubberBand->geometry();
                     m_rubberBand->hide();
                     if (band.width() > 30 && band.height() > 15)
-                        createTextFrame(band);                       // expects viewport rect ✓
+                        createTextFrame(band);
                 } else {
-                    handleEditClick(m_textDragStart);                // canvas coords ✓
+                    handleEditClick(m_textDragStart);
                 }
                 return true;
             }
             if (m_tool == Tool::Image && m_imageLayer->isDragTracking()) {
                 if (m_imageLayer->handleRelease()) {
-                    const QRect band = m_rubberBand->geometry();  // viewport coords
+                    const QRect band = m_rubberBand->geometry();
                     m_rubberBand->hide();
                     if (band.width() > 20 && band.height() > 20) {
                         const QString path = QFileDialog::getOpenFileName(this,
-                            tr("Bild einfügen"), {},
-                            tr("Bilder (*.png *.jpg *.jpeg *.bmp *.gif *.tiff *.webp);;Alle Dateien (*)"));
+                            tr("Insert image"), {},
+                            ImageImport::nameFilter() + QStringLiteral(";;")
+                                + tr("All files (*)"));
                         if (!path.isEmpty()) {
-                            const QImage img(path);
+                            QImageReader reader(path);
+                            reader.setAutoTransform(true);
+                            const QImage img = reader.read();
                             if (!img.isNull())
                                 m_imageLayer->placeInRect(img, band.translated(scroll));
                         }
@@ -514,6 +620,7 @@ bool DocumentView::eventFilter(QObject *obj, QEvent *e)
             }
             switch (m_tool) {
             case Tool::Select:
+            case Tool::Attach:
                 m_rubberBand->hide();
                 if (m_selection->handleRelease()) return true;
                 break;
@@ -522,11 +629,14 @@ bool DocumentView::eventFilter(QObject *obj, QEvent *e)
             }
         }
     } else if (e->type() == QEvent::ContextMenu) {
-        // Show the general context menu whenever edit mode is active or a
-        // content-editing tool is selected.  For the image tool, ImageAnnotation
-        // accepts its own context-menu event so it never reaches the canvas — the
-        // general menu appears only when clicking on empty canvas area.
-        // Marked page text offers "Kopieren" regardless of the mode.
+        if (m_tool == Tool::Attach) {
+            auto *ce = static_cast<QContextMenuEvent *>(e);
+            if (m_linkLayer->showEmptyContextMenu(
+                    toCanvas(ce->pos()), ce->globalPos(), m_selection->selectedParts()))
+                m_selection->clear();
+            return true;
+        }
+
         if (m_editMode || m_tool == Tool::Text || m_tool == Tool::Image
                 || m_selection->hasSelection()) {
             auto *ce = static_cast<QContextMenuEvent *>(e);
@@ -538,25 +648,18 @@ bool DocumentView::eventFilter(QObject *obj, QEvent *e)
     return QScrollArea::eventFilter(obj, e);
 }
 
-// ── Drag & Drop ───────────────────────────────────────────────────────────────
-
-static bool isImagePath(const QString &p)
-{
-    static const QStringList exts = {
-        ".png", ".jpg", ".jpeg", ".bmp", ".gif", ".tiff", ".tif", ".webp"
-    };
-    for (const QString &ext : exts)
-        if (p.endsWith(ext, Qt::CaseInsensitive)) return true;
-    return false;
-}
-
 void DocumentView::dragEnterEvent(QDragEnterEvent *e)
 {
     if (!e->mimeData()->hasUrls()) { e->ignore(); return; }
     for (const QUrl &url : e->mimeData()->urls()) {
         const QString path = url.toLocalFile();
-        if (path.endsWith(QLatin1String(".pdf"), Qt::CaseInsensitive) ||
-            (m_tool == Tool::Image && isImagePath(path))) {
+        if (DocumentImport::isPdf(path) || DocumentImport::isSupported(path)) {
+            e->acceptProposedAction();
+            return;
+        }
+
+        for (const PageOverlay *overlay : std::as_const(m_overlays)) {
+            if (!overlay->acceptsDroppedFile(path)) continue;
             e->acceptProposedAction();
             return;
         }
@@ -570,15 +673,40 @@ void DocumentView::dropEvent(QDropEvent *e)
 {
     for (const QUrl &url : e->mimeData()->urls()) {
         const QString path = url.toLocalFile();
-        if (path.endsWith(QLatin1String(".pdf"), Qt::CaseInsensitive)) {
-            // Opening a document is not the view's call — it decides which tab
-            // it lands in and has to be recorded as the last opened file.
-            Q_EMIT pdfDropped(path);
+        if (DocumentImport::isPdf(path)) {
+
+            Q_EMIT fileDropped(path);
             e->acceptProposedAction();
             return;
         }
-        if (m_tool == Tool::Image && isImagePath(path)) {
-            const QImage img(path);
+
+        if (!m_overlays.isEmpty()) {
+            const QPoint scroll(horizontalScrollBar()->value(), verticalScrollBar()->value());
+            const QPoint canvasPosition = e->position().toPoint() + scroll;
+            const auto [page, label] = pageAtCanvasPos(canvasPosition);
+            bool taken = false;
+            QString replacement;
+            for (PageOverlay *overlay : std::as_const(m_overlays))
+                if (overlay->handleDroppedFile(path, page, canvasPosition,
+                                               &replacement)) {
+                    taken = true;
+                    break;
+                }
+            if (taken) {
+                e->acceptProposedAction();
+                if (!replacement.isEmpty())
+                    openWorkingCopy(replacement, currentFile(),
+                                    { DocumentHistory::Kind::PageAdded,
+                                      qMax(0, page + 1) });
+                return;
+            }
+        }
+
+        if (m_tool == Tool::Image && pageCount() > 0
+                && ImageImport::isSupported(path)) {
+            QImageReader reader(path);
+            reader.setAutoTransform(true);
+            const QImage img = reader.read();
             if (!img.isNull()) {
                 const QPoint vpPos  = e->position().toPoint();
                 const QPoint scroll(horizontalScrollBar()->value(), verticalScrollBar()->value());
@@ -586,6 +714,12 @@ void DocumentView::dropEvent(QDropEvent *e)
                 e->acceptProposedAction();
                 return;
             }
+        }
+
+        if (DocumentImport::isSupported(path)) {
+            Q_EMIT fileDropped(path);
+            e->acceptProposedAction();
+            return;
         }
     }
 }

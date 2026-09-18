@@ -22,13 +22,13 @@ App::~App()
 
 void App::startup()
 {
-    // History states of runs that were killed before they could clean up.
+
     SessionStore::pruneSnapshots();
 
     m_mainWindow = std::make_unique<MainWindow>(m_settings.get());
     loadSettings();
     m_mainWindow->show();
-    // Re-apply theme after widgets are visible so refreshTheme() + unpolish/polish take effect
+
     m_mainWindow->applyTheme(m_settings->theme());
 }
 
@@ -46,8 +46,6 @@ AppSettings *App::settings() const
 {
     return m_settings.get();
 }
-
-// ── Private ────────────────────────────────────────────────────────────────
 
 void App::loadSettings()
 {

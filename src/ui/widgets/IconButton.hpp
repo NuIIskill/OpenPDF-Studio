@@ -5,10 +5,6 @@
 #include <QIcon>
 
 /// Compact square icon button (36×36 px) used throughout the UI.
-///
-/// Pass a Lucide icon name via setIconName() — it renders the SVG at the
-/// correct color for normal, checked, and disabled states automatically.
-/// Falls back to a text label if no icon name is set.
 class IconButton : public QPushButton
 {
     Q_OBJECT
@@ -17,8 +13,6 @@ public:
     explicit IconButton(const QString &label, QWidget *parent = nullptr);
     explicit IconButton(QWidget *parent = nullptr);
 
-    /// Load a Lucide SVG icon from :/icons/<name>.svg.
-    /// Pass QColor{} (default) to use Theme::IconNormal automatically.
     void setIconName(const QString &name,
                      const QColor  &normalColor = QColor{});
 

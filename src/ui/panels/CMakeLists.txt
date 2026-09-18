@@ -5,6 +5,10 @@ target_sources(OpenPDFStudio PRIVATE
     RightSidebar.hpp
     TextPropertiesPanel.cpp
     TextPropertiesPanel.hpp
+    ToolCustomizePopup.cpp
+    ToolCustomizePopup.hpp
     ToolPanel.cpp
     ToolPanel.hpp
+    ToolPanels.cpp
+    ToolPanels.hpp
 )

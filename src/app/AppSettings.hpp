@@ -2,8 +2,10 @@
 
 #include <QObject>
 #include <QByteArray>
+#include <QDateTime>
 #include <QKeySequence>
 #include <QString>
+#include <QStringList>
 
 class AppSettings : public QObject
 {
@@ -12,34 +14,30 @@ class AppSettings : public QObject
 public:
     explicit AppSettings(QObject *parent = nullptr);
 
-    // ── Window ────────────────────────────────────────────────────────────
     [[nodiscard]] QByteArray windowGeometry() const;
     void setWindowGeometry(const QByteArray &geometry);
 
     [[nodiscard]] QByteArray windowState() const;
     void setWindowState(const QByteArray &state);
 
-    // ── Document ──────────────────────────────────────────────────────────
     [[nodiscard]] QString lastOpenedFile() const;
     void setLastOpenedFile(const QString &path);
 
-    // ── View ──────────────────────────────────────────────────────────────
     [[nodiscard]] int  zoomLevel() const;
     void setZoomLevel(int percent);
 
-    // ── Appearance ────────────────────────────────────────────────────────
     [[nodiscard]] QString theme() const;
     void setTheme(const QString &name);
 
     [[nodiscard]] QString language() const;
     void setLanguage(const QString &lang);
 
-    // ── Shortcuts ─────────────────────────────────────────────────────────
+    [[nodiscard]] static QString systemDefaultLanguage();
+
     [[nodiscard]] QKeySequence shortcut(const QString &actionKey,
                                         const QKeySequence &defaultSeq) const;
     void setShortcut(const QString &actionKey, const QKeySequence &seq);
 
-    // ── Zoom ──────────────────────────────────────────────────────────────
     [[nodiscard]] int     zoomStep()      const;
     void setZoomStep(int step);
 
@@ -49,12 +47,17 @@ public:
     [[nodiscard]] bool    zoomToPointer() const;
     void setZoomToPointer(bool enabled);
 
-    [[nodiscard]] QString wheelAction()   const;  // "scroll" | "zoom"
+    [[nodiscard]] QString wheelAction()   const;
     void setWheelAction(const QString &action);
 
-    // ── Panels ────────────────────────────────────────────────────────────
-    // When off, the window always starts with the default panel layout and
-    // the stored state below is left untouched.
+    [[nodiscard]] QStringList toolOrder() const;
+    void setToolOrder(const QStringList &ids);
+
+    [[nodiscard]] QStringList hiddenTools() const;
+    void setHiddenTools(const QStringList &ids);
+
+    void resetToolLayout();
+
     [[nodiscard]] bool preservePanelLayout() const;
     void setPreservePanelLayout(bool enabled);
 
@@ -64,13 +67,20 @@ public:
     [[nodiscard]] QByteArray splitterState() const;
     void setSplitterState(const QByteArray &state);
 
-    // ── Advanced ──────────────────────────────────────────────────────────
+    [[nodiscard]] QString mediaPlayback() const;
+    void setMediaPlayback(const QString &mode);
+
+    [[nodiscard]] QString customPlayerCommand() const;
+    void setCustomPlayerCommand(const QString &command);
+
     [[nodiscard]] bool autoUpdateCheck() const;
     void setAutoUpdateCheck(bool enabled);
 
-    // "startup" | "daily" | "weekly" | "monthly"
     [[nodiscard]] QString updateInterval() const;
     void setUpdateInterval(const QString &interval);
+
+    [[nodiscard]] QDateTime lastUpdateCheck() const;
+    void setLastUpdateCheck(const QDateTime &when);
 
     [[nodiscard]] bool hardwareAcceleration() const;
     void setHardwareAcceleration(bool enabled);
@@ -81,7 +91,6 @@ public:
     [[nodiscard]] bool debugLogging() const;
     void setDebugLogging(bool enabled);
 
-    // "error" | "warning" | "info" | "debug"
     [[nodiscard]] QString logLevel() const;
     void setLogLevel(const QString &level);
 
@@ -94,4 +103,6 @@ private:
     static constexpr auto kZoomLevel      = "view/zoomLevel";
     static constexpr auto kTheme          = "appearance/theme";
     static constexpr auto kLanguage       = "appearance/language";
+    static constexpr auto kToolOrder      = "toolbar/order";
+    static constexpr auto kToolHidden     = "toolbar/hidden";
 };

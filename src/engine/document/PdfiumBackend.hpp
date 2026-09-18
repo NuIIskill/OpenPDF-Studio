@@ -12,15 +12,7 @@
 struct PdfiumChar;
 struct PdfiumLine;
 
-/// PdfBackend auf PDFium — der einzigen PDF-Engine dieses Programms, auf beiden
-/// Plattformen dieselbe Version.
-///
-/// Angesprochen wird ausschließlich die öffentliche C-API aus `public/`. Das
-/// ist keine Vorliebe, sondern die Bedingung dafür, dass der Windows-Build
-/// funktioniert: dort ist `pdfium.dll` mit MSVC-ABI gebaut, und nur über die
-/// C-Grenze verstehen sich MinGW und MSVC. Alles, was PDFium an C++ hat, ist
-/// hier tabu — ebenso alles, was Speicher über die Grenze reicht, den die
-/// andere Seite freigeben müsste.
+/// Implements PDF document operations with PDFium.
 class PdfiumBackend : public PdfBackend
 {
 public:
@@ -33,9 +25,14 @@ public:
     void close() override;
 
     int    pageCount() const override;
+    QList<PdfBookmark> bookmarks() const override;
+    QList<Link> pageLinks(int page) const override;
+    QList<Note> pageNotes(int page) const override;
     QSizeF pageSizePts(int page) const override;
     QSize  pixelSize(int page, qreal scale) const override;
     QImage renderPage(int page, qreal scale) const override;
+    QImage renderPage(int page, qreal scale,
+                      const EditSession *session) const override;
 
     std::unique_ptr<ContentProvider> makeContentProvider() const override;
 
@@ -48,25 +45,36 @@ public:
                           const QList<QRectF> &exclude = {}) const override;
     QList<QRectF> glyphRects(int page, const QRectF &area,
                              const QList<QRectF> &exclude = {}) const override;
+    QString embeddedFontFamily(int page, const QPointF &pdfPt) const override;
+    double  textWidthPt(int page, const QPointF &pdfPt,
+                        const QString &text, double sizePt) const override;
+    double  standardTextWidthPt(const QString &family, bool bold, bool italic,
+                                const QString &text, double sizePt) const override;
+    bool    canEmbedFont(const QString &family, bool bold,
+                         bool italic) const override;
+    bool    hasSelectableText(int page) const override;
 
+    QList<TextMatch> findText(const QString &text) const override;
     Selection selectPage(int page, const std::optional<QPointF> &from,
                          const std::optional<QPointF> &to) const override;
 
 private:
-    /// Die sichtbaren Zeilen einer Seite — die gemeinsame Grundlage aller vier
-    /// Textabfragen. Zeichen, deren Mitte in `exclude` liegt, fehlen: das sind
-    /// die von der Sitzung überschriebenen Stellen, deren Text als nicht
-    /// vorhanden gilt. `from`/`to` beschneiden den Bereich auf zwei Anker;
-    /// ohne sie gilt die ganze Seite.
-    ///
-    /// Macht alles in einem Zug, weil der Zeilentext nur zu haben ist, solange
-    /// PDFiums Textseite offen ist.
+    enum class LineSplit {
+        Baseline,
+        Blocks
+    };
+
+    QImage renderPageInternal(int page, qreal scale,
+                              const EditSession *session) const;
+
     std::vector<PdfiumLine> linesOfPage(int page, const QList<QRectF> &exclude,
                                         const std::optional<QPointF> &from,
-                                        const std::optional<QPointF> &to) const;
+                                        const std::optional<QPointF> &to,
+                                        LineSplit split) const;
 
     static std::vector<PdfiumLine> buildLines(const std::vector<PdfiumChar> &chars,
-                                              int first, int last);
+                                              int first, int last, LineSplit split,
+                                              const QList<QRectF> &textObjects);
 
     FPDF_DOCUMENT m_doc { nullptr };
 };

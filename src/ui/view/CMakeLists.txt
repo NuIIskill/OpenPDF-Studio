@@ -1,11 +1,17 @@
 target_sources(OpenPDFStudio PRIVATE
+    FindController.cpp
+    FindController.hpp
     HoverHighlight.cpp
     HoverHighlight.hpp
     ImageAnnotationLayer.cpp
     ImageAnnotationLayer.hpp
+    LinkAnnotationLayer.cpp
+    LinkAnnotationLayer.hpp
     PageCanvas.hpp
     PageLayoutEngine.cpp
     PageLayoutEngine.hpp
+    PageOverlay.cpp
+    PageOverlay.hpp
     TextSelectionController.cpp
     TextSelectionController.hpp
     ZoomController.cpp

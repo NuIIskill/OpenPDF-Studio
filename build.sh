@@ -108,6 +108,13 @@ if [ "${BUILD_APPIMAGE}" = "1" ]; then
     # Bundle the Wayland client lib so plugins don't pull in the system Qt6
     _copy_qt_lib "libQt6WaylandClient.so.6"
 
+    # Media playback. The library alone is not enough: the decoder is a
+    # dlopen'd plugin, and linuxdeploy cannot see a dependency nobody links
+    # against. Without it the player opens and stays black.
+    _copy_qt_lib "libQt6Multimedia.so.6"
+    _copy_qt_plugin "multimedia/libffmpegmediaplugin.so"
+    _copy_qt_plugin "multimedia/libgstreamermediaplugin.so"
+
     # ── Deploy dependencies (no packaging yet) ────────────────────────────────
     # NO_STRIP=1: bundled strip doesn't understand .relr.dyn on Fedora 40+.
     NO_STRIP=1 "${LINUXDEPLOY}" \

@@ -8,7 +8,6 @@
 #include <QPalette>
 #include <QStyleHints>
 
-// NanoSVG — single-header SVG parser + rasterizer (no Qt::Svg needed)
 #define NANOSVG_IMPLEMENTATION
 #include "nanosvg/nanosvg.h"
 #define NANOSVGRAST_IMPLEMENTATION
@@ -16,7 +15,6 @@
 
 namespace Theme {
 
-// ── Mutable color constants (initialized to light theme, overridden at startup)
 bool   DarkMode    = false;
 QColor Primary      { "#2563EB" };
 QColor IconNormal   { "#374151" };
@@ -44,11 +42,9 @@ QPixmap renderSvg(const QString &name, const QColor &color, int size, qreal dpr)
         return {};
     }
 
-    // Patch currentColor → actual hex color (Lucide uses stroke="currentColor")
     QByteArray data = f.readAll();
     data.replace("currentColor", color.name(QColor::HexRgb).toUtf8());
 
-    // nsvgParse modifies the buffer in-place — pass a writable copy
     QByteArray buf = data + '\0';
 
     NSVGimage *image = nsvgParse(buf.data(), "px", 96.0f);
@@ -58,8 +54,7 @@ QPixmap renderSvg(const QString &name, const QColor &color, int size, qreal dpr)
     }
 
     const int physSize = qRound(size * dpr);
-    // Scale the SVG's own viewBox up to physSize — Lucide icons are 24×24,
-    // the app logo is 256×256.
+
     const float viewBox = image->width > 0.0f ? image->width : 24.0f;
     const float scale = static_cast<float>(physSize) / viewBox;
 
@@ -73,14 +68,12 @@ QPixmap renderSvg(const QString &name, const QColor &color, int size, qreal dpr)
     nsvgDeleteRasterizer(rast);
     nsvgDelete(image);
 
-    // NanoSVG outputs RGBA — matches Qt's Format_RGBA8888
     QImage img(reinterpret_cast<const uchar *>(pixels.constData()),
                physSize, physSize,
                physSize * 4,
                QImage::Format_RGBA8888);
     img.setDevicePixelRatio(dpr);
 
-    // QImage shares the buffer — copy before pixels goes out of scope
     return QPixmap::fromImage(img.copy());
 }
 
@@ -120,7 +113,7 @@ void apply(const QString &mode)
 
     QPalette p;
     if (isDark) {
-        // Base: #353535 panels, #2B2B2B canvas
+
         p.setColor(QPalette::Window,          QColor(0x35, 0x35, 0x35));
         p.setColor(QPalette::WindowText,      QColor(0xD8, 0xD8, 0xD8));
         p.setColor(QPalette::Base,            QColor(0x2B, 0x2B, 0x2B));
@@ -156,10 +149,6 @@ void apply(const QString &mode)
         p.setColor(QPalette::PlaceholderText, QColor(0x9C, 0xA3, 0xAF));
     }
 
-    // setColor() without a group writes Active, Inactive AND Disabled alike, so
-    // up to here every disabled control renders exactly like an enabled one —
-    // a greyed-out checkbox was pixel-identical to a live one. The disabled
-    // group is therefore filled in explicitly, app-wide.
     const QColor dimText  = isDark ? QColor(0x6E, 0x6E, 0x6E) : QColor(0x9C, 0xA3, 0xAF);
     const QColor dimFill  = isDark ? QColor(0x30, 0x30, 0x30) : QColor(0xF3, 0xF4, 0xF6);
     for (QPalette::ColorRole role : { QPalette::WindowText, QPalette::Text,
@@ -174,4 +163,4 @@ void apply(const QString &mode)
     qApp->setStyleSheet(loadStyleSheet());
 }
 
-} // namespace Theme
+}

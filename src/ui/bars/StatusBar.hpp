@@ -24,7 +24,7 @@ public:
 Q_SIGNALS:
     void previousPageRequested();
     void nextPageRequested();
-    // Emitted when the user types a page number (1-based) and confirms it.
+
     void pageRequested(int page);
     void panelToggleRequested();
 

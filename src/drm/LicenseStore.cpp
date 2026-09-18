@@ -16,9 +16,6 @@ QSettings &userStore()
     return AppConfig::store();
 }
 
-// Was der Installer hinterlassen hat. Auf Windows die Registry, sonst eine
-// Datei am gleichen Ort im Dateisystem-Sinn: systemweit und nur für root
-// schreibbar. Fehlt beides, ist es eine private Installation.
 QSettings &machineStore()
 {
 #ifdef Q_OS_WIN
@@ -31,7 +28,7 @@ QSettings &machineStore()
     return s;
 }
 
-} // namespace
+}
 
 namespace License {
 
@@ -87,8 +84,6 @@ int evaluationDaysLeft()
     if (!start.isValid())
         return kEvaluationDays;
 
-    // Eine zurückgestellte Uhr darf die Frist nicht verlängern, aber auch nicht
-    // in einen negativen Rest kippen.
     const qint64 used = start.daysTo(QDate::currentDate());
     if (used < 0)
         return 0;
@@ -123,7 +118,7 @@ bool keyIsMachineWide()
 
 void setKey(const QString &key)
 {
-    // Platzhalter: keine Signaturprüfung. Kommt mit modules/rich-media/.
+
     userStore().setValue(QLatin1String(kUserKey), key.trimmed());
     userStore().sync();
 }
@@ -134,4 +129,4 @@ void clearKey()
     userStore().sync();
 }
 
-} // namespace License
+}
