@@ -19,6 +19,7 @@ class DrawBar;
 class StatusBar;
 class AppSettings;
 class SettingsPanel;
+class SessionRecovery;
 class UpdateChecker;
 
 QT_BEGIN_NAMESPACE
@@ -41,6 +42,8 @@ public:
     [[nodiscard]] StatusBar    *statusBar()    const { return m_statusBar;    }
 
     void openPath(const QString &path);
+
+    void restoreSession();
 
 public Q_SLOTS:
     void applyTheme(const QString &mode);
@@ -77,6 +80,7 @@ private:
     void onToolSelected(const QString &tool);
     void onStartPresentation();
 
+    void openImported(const QString &path);
     bool saveDocument(DocumentView *dv, const QString &path);
     bool confirmAndSave(DocumentView *dv);
     void openTextPanel();
@@ -100,6 +104,7 @@ private:
     QHash<QString, ToolPanelSlot> m_toolPanels;
 
     AppSettings          *m_appSettings  { nullptr };
+    SessionRecovery      *m_recovery     { nullptr };
     UpdateChecker        *m_updateChecker{ nullptr };
     TopToolbar           *m_topToolbar   { nullptr };
     FormatBar            *m_formatBar    { nullptr };

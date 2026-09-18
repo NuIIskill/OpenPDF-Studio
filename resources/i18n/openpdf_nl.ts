@@ -692,4 +692,54 @@ Please use a build that includes Qt6::Pdf support.
     <message><source>Next match (Enter)</source><translation>Volgende overeenkomst (Enter)</translation></message>
     <message><source>Close (Esc)</source><translation>Sluiten (Esc)</translation></message>
 </context>
+<context>
+    <name>SessionRecovery</name>
+    <message><source>Untitled</source><translation>Naamloos</translation></message>
+    <message><source>Restore Session</source><translation>Sessie herstellen</translation></message>
+    <message><source>OpenPDF Studio did not shut down properly last time.</source><translation>OpenPDF Studio is de vorige keer niet correct afgesloten.</translation></message>
+    <message><source>Restore the documents that were open?</source><translation>De geopende documenten herstellen?</translation></message>
+    <message><source>%1 (unsaved changes)</source><translation>%1 (niet-opgeslagen wijzigingen)</translation></message>
+    <message><source>Restore</source><translation>Herstellen</translation></message>
+    <message><source>Discard</source><translation>Verwerpen</translation></message>
+</context>
+<context>
+    <name>DocumentView</name>
+    <message><source>Insert image</source><translation>Afbeelding invoegen</translation></message>
+    <message><source>All files (*)</source><translation>Alle bestanden (*)</translation></message>
+    <message><source>Drop a PDF, Word, OpenDocument or image file here, or click a tab to open</source><translation>Sleep hier een PDF, Word- of OpenDocument-bestand of een afbeelding naartoe, of klik op een tabblad</translation></message>
+</context>
+<context>
+    <name>MainWindow</name>
+    <message><source>Open Document</source><translation>Document openen</translation></message>
+    <message><source>Cannot open file</source><translation>Kan bestand niet openen</translation></message>
+    <message><source>"%1" is not a PDF and cannot be turned into one.</source><translation>„%1” is geen PDF en kan er ook niet in worden omgezet.</translation></message>
+    <message><source>There is no room to put the converted file.</source><translation>Er is geen plek voor het omgezette bestand.</translation></message>
+    <message><source>Import failed</source><translation>Importeren mislukt</translation></message>
+    <message><source>"%1" could not be turned into a PDF.
+
+%2</source><translation>„%1” kon niet naar PDF worden omgezet.
+
+%2</translation></message>
+    <message><source>"%1" was converted, but the result could not be opened.</source><translation>„%1” is omgezet, maar het resultaat kon niet worden geopend.</translation></message>
+</context>
+<context>
+    <name>DocumentImport</name>
+    <message><source>Images</source><translation>Afbeeldingen</translation></message>
+    <message><source>All files</source><translation>Alle bestanden</translation></message>
+    <message><source>All supported files</source><translation>Alle ondersteunde bestanden</translation></message>
+    <message><source>PDF files</source><translation>PDF-bestanden</translation></message>
+    <message><source>Word documents</source><translation>Word-documenten</translation></message>
+    <message><source>Word document</source><translation>Word-document</translation></message>
+    <message><source>OpenDocument text</source><translation>OpenDocument-tekst</translation></message>
+    <message><source>Image</source><translation>Afbeelding</translation></message>
+    <message><source>The image is too large.</source><translation>De afbeelding is te groot.</translation></message>
+    <message><source>The PDF could not be written.</source><translation>Het PDF-bestand kon niet worden geschreven.</translation></message>
+    <message><source>The file does not exist.</source><translation>Het bestand bestaat niet.</translation></message>
+    <message><source>The file could not be read. It may be damaged.</source><translation>Het bestand kon niet worden gelezen. Mogelijk is het beschadigd.</translation></message>
+    <message><source>The file has no readable document part.</source><translation>Het bestand bevat geen leesbaar documentdeel.</translation></message>
+    <message><source>The document is damaged: %1</source><translation>Het document is beschadigd: %1</translation></message>
+    <message><source>This build was made without zlib and cannot read Word or OpenDocument files.</source><translation>Deze versie is zonder zlib gebouwd en kan geen Word- of OpenDocument-bestanden lezen.</translation></message>
+    <message><source>This is an older Word file that only carries a .docx name. Save it as a real .docx first.</source><translation>Dit is een ouder Word-bestand dat alleen een .docx-naam draagt. Sla het eerst op als een echt .docx-bestand.</translation></message>
+    <message><source>%1 files cannot be opened.</source><translation>%1-bestanden kunnen niet worden geopend.</translation></message>
+</context>
 </TS>

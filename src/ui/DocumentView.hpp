@@ -62,10 +62,11 @@ public:
     explicit DocumentView(QWidget *parent = nullptr);
     ~DocumentView() override;
 
-    bool   openFile(const QString &path);
+    bool   openFile(const QString &path, const QString &suggestedPath = QString());
 
     bool   openWorkingCopy(const QString &contentPath, const QString &targetPath,
-                           const DocumentHistory::Change &change = {});
+                           const DocumentHistory::Change &change = {},
+                           const QString &suggestedPath = QString());
     void   clearDocument();
     void   setZoom(int percent);
     void   setZoomSettings(int step, bool ctrlWheel, bool toPointer,
@@ -76,6 +77,7 @@ public:
     void   setEditMode(bool on);
     void   setViewMode(ViewMode mode);
     bool   saveToFile(const QString &path);
+    bool   writeRecoveryCopy(const QString &path);
     void   retranslateUi();
     void   refreshTheme();
 
@@ -104,6 +106,12 @@ public:
     }
 
     QString     contentFile()      const { return m_src->contentPath(); }
+
+    /// Where an imported document would be saved, empty for everything else.
+    QString     suggestedSavePath() const { return m_journal.suggestedPath; }
+
+    /// What to call the document in the interface.
+    QString     displayName() const;
     int         pageCount()        const override { return m_src->pageCount(); }
 
     int         currentPage()      const;
@@ -156,7 +164,7 @@ public:
 Q_SIGNALS:
     void fileOpened(const QString &path, int pageCount);
 
-    void pdfDropped(const QString &path);
+    void fileDropped(const QString &path);
     void pageChanged(int current, int total);
     void viewModeChanged(ViewMode mode);
     void zoomChanged(int percent);
@@ -295,6 +303,8 @@ private:
 #ifdef HAVE_PDF_RENDERING
 
     void discardEditHistory();
+
+    QString stageDocument(const QString &path);
 
     bool detachSourceFrom(const QString &saveTarget);
 

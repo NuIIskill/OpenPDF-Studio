@@ -102,6 +102,7 @@ void DocumentView::clearDocument()
     SessionStore::discard(previousContent);
     m_src->setContentPath(QString());
     m_journal.targetPath.clear();
+    m_journal.suggestedPath.clear();
     m_journal.workingCopyDirty = false;
     m_bookmarks.clear();
     m_bookmarksDirty = false;
@@ -126,7 +127,14 @@ void DocumentView::clearDocument()
     m_dropHint->show();
 }
 
-bool DocumentView::openFile(const QString &path)
+QString DocumentView::displayName() const
+{
+    const QString path = currentFile().isEmpty() ? m_journal.suggestedPath
+                                                 : currentFile();
+    return QFileInfo(path).fileName();
+}
+
+bool DocumentView::openFile(const QString &path, const QString &suggestedPath)
 {
     if (path.isEmpty()) return false;
     cancelCurrentEdit();
@@ -144,6 +152,7 @@ bool DocumentView::openFile(const QString &path)
 
     m_edit.clearOcrCache();
     m_journal.targetPath.clear();
+    m_journal.suggestedPath   = suggestedPath;
     m_journal.workingCopyDirty = false;
     m_bookmarks      = m_src->backend()->bookmarks();
     m_bookmarksDirty = false;
@@ -163,7 +172,7 @@ bool DocumentView::openFile(const QString &path)
 
     QMetaObject::invokeMethod(this, [this]() { syncVisibleRect(); },
                               Qt::QueuedConnection);
-    m_journal.noteDocumentOpened(QFileInfo(currentFile()).fileName());
+    m_journal.noteDocumentOpened(displayName());
     Q_EMIT fileOpened(m_src->contentPath(), m_src->pageCount());
     m_lastReportedPage = 0;
     Q_EMIT pageChanged(1, m_src->pageCount());
@@ -172,6 +181,7 @@ bool DocumentView::openFile(const QString &path)
 #else
     m_src->setContentPath(path);
     m_journal.targetPath.clear();
+    m_journal.suggestedPath   = suggestedPath;
     m_journal.workingCopyDirty = false;
     m_bookmarks.clear();
     m_bookmarksDirty = false;
@@ -181,7 +191,7 @@ bool DocumentView::openFile(const QString &path)
     m_find->documentChanged();
     m_dropHint->show();
     retranslateUi();
-    m_journal.noteDocumentOpened(QFileInfo(currentFile()).fileName());
+    m_journal.noteDocumentOpened(displayName());
     Q_EMIT fileOpened(m_src->contentPath(), m_src->pageCount());
     m_lastReportedPage = 0;
     Q_EMIT pageChanged(1, m_src->pageCount());
@@ -191,7 +201,8 @@ bool DocumentView::openFile(const QString &path)
 
 bool DocumentView::openWorkingCopy(const QString &contentPath,
                                    const QString &targetPath,
-                                   const DocumentHistory::Change &change)
+                                   const DocumentHistory::Change &change,
+                                   const QString &suggestedPath)
 {
 
     m_journal.openChange = change;
@@ -203,7 +214,7 @@ bool DocumentView::openWorkingCopy(const QString &contentPath,
     if (!targetPath.isEmpty() && !PdfPwStore::has(contentPath))
         PdfPwStore::set(contentPath, PdfPwStore::get(targetPath));
 
-    if (!openFile(contentPath)) return false;
+    if (!openFile(contentPath, suggestedPath)) return false;
     if (targetPath.isEmpty()) {
 
         m_journal.workingCopyDirty = true;
@@ -226,30 +237,12 @@ bool DocumentView::saveToFile(const QString &path)
     m_journal.history()->materializeSnapshot();
     commitCurrentEdit(m_editorFrame->currentText());
 
-    auto *backend = m_src->backend();
-    if (!backend || !m_session || m_src->pageCount() <= 0) return false;
+    if (!m_src->backend() || !m_session || m_src->pageCount() <= 0) return false;
 
     const bool detached = detachSourceFrom(path);
 
-    const QString staging = SafeWrite::stagingPath(path);
+    const QString staging = stageDocument(path);
     if (staging.isEmpty()) return false;
-    if (!backend->saveWithEdits(staging, *m_session)) {
-        SafeWrite::discard(staging);
-        return false;
-    }
-
-    for (PageOverlay *overlay : std::as_const(m_overlays)) {
-        if (overlay->writeTo(staging)) continue;
-        SafeWrite::discard(staging);
-        return false;
-    }
-
-    if (m_bookmarksDirty
-            && !BookmarkWriter::write(staging, m_bookmarks,
-                                      PdfPwStore::get(m_src->contentPath()))) {
-        SafeWrite::discard(staging);
-        return false;
-    }
 
     if (detached) {
         if (!SafeWrite::commit(staging, path)) return false;
@@ -311,6 +304,50 @@ bool DocumentView::bookmarkEditingAvailable() const
 {
     return m_src->pageCount() > 0 && BookmarkWriter::available()
         && editableBookmarks(m_bookmarks);
+}
+
+#ifdef HAVE_PDF_RENDERING
+QString DocumentView::stageDocument(const QString &path)
+{
+    auto *backend = m_src->backend();
+    if (!backend || !m_session || m_src->pageCount() <= 0) return {};
+
+    const QString staging = SafeWrite::stagingPath(path);
+    if (staging.isEmpty()) return {};
+
+    if (!backend->saveWithEdits(staging, *m_session)) {
+        SafeWrite::discard(staging);
+        return {};
+    }
+
+    for (PageOverlay *overlay : std::as_const(m_overlays)) {
+        if (overlay->writeTo(staging)) continue;
+        SafeWrite::discard(staging);
+        return {};
+    }
+
+    if (m_bookmarksDirty
+            && !BookmarkWriter::write(staging, m_bookmarks,
+                                      PdfPwStore::get(m_src->contentPath()))) {
+        SafeWrite::discard(staging);
+        return {};
+    }
+    return staging;
+}
+#endif
+
+bool DocumentView::writeRecoveryCopy(const QString &path)
+{
+#ifdef HAVE_PDF_RENDERING
+    if (path.isEmpty() || path == m_src->contentPath()) return false;
+
+    const QString staging = stageDocument(path);
+    if (staging.isEmpty()) return false;
+    return SafeWrite::commit(staging, path);
+#else
+    Q_UNUSED(path)
+    return false;
+#endif
 }
 
 #ifdef HAVE_PDF_RENDERING

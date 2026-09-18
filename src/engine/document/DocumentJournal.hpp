@@ -41,6 +41,9 @@ public:
 
     QString targetPath;
 
+    /// Where an imported document would be saved, before the user has named it.
+    QString suggestedPath;
+
     bool workingCopyDirty { false };
 
     DocumentHistory::Change openChange;

@@ -16,10 +16,13 @@
 #include "ui/organizer/PdfOrganizerDialog.hpp"
 #include "ui/export/ExportDialog.hpp"
 #include "ui/history/HistoryDialog.hpp"
+#include "ui/session/SessionRecovery.hpp"
 #include "engine/edit/DocxExporter.hpp"
+#include "engine/import/DocumentImport.hpp"
 #include "engine/edit/PdfExporter.hpp"
 #include "ui/theme/Theme.hpp"
 #include "app/AppSettings.hpp"
+#include "app/SessionStore.hpp"
 #include "app/UpdateChecker.hpp"
 #include "drm/LicenseNotice.hpp"
 
@@ -55,6 +58,7 @@ MainWindow::MainWindow(AppSettings *settings, QWidget *parent)
 {
     setWindowTitle(QStringLiteral("OpenPDF Studio"));
     setMinimumSize(1280, 800);
+    m_recovery = new SessionRecovery(this);
     buildUi();
     connectSignals();
     applyPanelLayout();
@@ -354,17 +358,20 @@ DocumentView *MainWindow::addDocView()
                         m_appSettings->zoomToPointer(), m_appSettings->wheelAction());
     m_docViews.append(dv);
     m_docStack->addWidget(dv);
+    m_recovery->watch(dv);
 
     const int idx = m_topToolbar->addTab();
 
-    connect(dv, &DocumentView::pdfDropped, this, &MainWindow::openPath);
+    // Queued: a dropped Word file takes long enough to convert that the
+    // dragging application would sit and wait inside its own drop event.
+    connect(dv, &DocumentView::fileDropped, this, &MainWindow::openPath,
+            Qt::QueuedConnection);
 
     connect(dv, &DocumentView::fileOpened, this, [this, dv](const QString &path, int pages) {
+        Q_UNUSED(path)
         const int i = m_docViews.indexOf(dv);
-        if (i >= 0) {
-            const QFileInfo fi(path);
-            m_topToolbar->setTabLabel(i, fi.fileName());
-        }
+        if (i >= 0)
+            m_topToolbar->setTabLabel(i, dv->displayName());
         m_statusBar->setPageInfo(1, pages);
         if (dv == currentDocView()) m_notesPanel->setDocumentAvailable(pages > 0);
         if (dv == currentDocView()) refreshBookmarkPanel();
@@ -468,6 +475,7 @@ void MainWindow::onTabCloseRequested(int index)
     DocumentView *dv = m_docViews[index];
 
     if (!confirmAndSave(dv)) return;
+    m_recovery->forget(dv);
 
     if (m_docViews.size() <= 1) {
         dv->clearDocument();
@@ -497,13 +505,27 @@ void MainWindow::onTabCloseRequested(int index)
 void MainWindow::onOpenFile()
 {
     const QString path = QFileDialog::getOpenFileName(
-        this, tr("Open PDF"), {}, tr("PDF files (*.pdf)"));
+        this, tr("Open Document"), {}, DocumentImport::openFilter());
     if (path.isEmpty()) return;
     openPath(path);
 }
 
 void MainWindow::openPath(const QString &path)
 {
+    if (path.isEmpty()) return;
+
+    if (!DocumentImport::isPdf(path)) {
+        if (DocumentImport::isSupported(path)) {
+            openImported(path);
+            return;
+        }
+        QMessageBox::warning(
+            this, tr("Cannot open file"),
+            tr("\"%1\" is not a PDF and cannot be turned into one.")
+                .arg(QFileInfo(path).fileName()));
+        return;
+    }
+
     DocumentView *dv = currentDocView();
     if (!dv) return;
 
@@ -512,10 +534,82 @@ void MainWindow::openPath(const QString &path)
     m_appSettings->sync();
 }
 
+void MainWindow::openImported(const QString &path)
+{
+    const QFileInfo source(path);
+    const QString working = SessionStore::newWorkingFile(path);
+    QString error;
+
+    bool converted = false;
+    if (working.isEmpty()) {
+        error = tr("There is no room to put the converted file.");
+    } else {
+        QApplication::setOverrideCursor(Qt::WaitCursor);
+        converted = DocumentImport::convertToPdf(path, working, &error);
+        QApplication::restoreOverrideCursor();
+    }
+
+    if (!converted) {
+        SessionStore::discard(working);
+        QMessageBox::warning(
+            this, tr("Import failed"),
+            tr("\"%1\" could not be turned into a PDF.\n\n%2")
+                .arg(source.fileName(), error));
+        return;
+    }
+
+    // An open document is never replaced: the import has nowhere else to go,
+    // while a PDF the user drops still has its own file on disk.
+    DocumentView *dv = currentDocView();
+    if (!dv || dv->pageCount() > 0) dv = addDocView();
+
+    // The target stays empty on purpose, so saving asks for a name instead of
+    // writing next to the original without being told to.
+    const QString suggested =
+        source.dir().filePath(source.completeBaseName() + QStringLiteral(".pdf"));
+    if (!dv->openWorkingCopy(working, QString(), {}, suggested)) {
+        SessionStore::discard(working);
+        QMessageBox::warning(
+            this, tr("Import failed"),
+            tr("\"%1\" was converted, but the result could not be opened.")
+                .arg(source.fileName()));
+        return;
+    }
+    onTabActivated(m_docViews.indexOf(dv));
+}
+
+void MainWindow::restoreSession()
+{
+    const QList<SessionStore::OpenDocument> documents =
+        m_recovery->offerAbandonedDocuments();
+    int first = -1;
+    for (const SessionStore::OpenDocument &doc : documents) {
+        DocumentView *dv = currentDocView();
+        if (!dv || dv->pageCount() > 0) dv = addDocView();
+
+        const bool opened = doc.content.isEmpty()
+            ? dv->openFile(doc.target)
+            : dv->openWorkingCopy(doc.content, doc.target);
+        if (!opened) continue;
+
+        const int page = doc.page;
+        QMetaObject::invokeMethod(dv, [dv, page] { dv->goToPage(page); },
+                                  Qt::QueuedConnection);
+        if (first < 0) first = m_docViews.indexOf(dv);
+    }
+    if (first >= 0) onTabActivated(first);
+
+    m_recovery->begin();
+}
+
 bool MainWindow::saveDocument(DocumentView *dv, const QString &path)
 {
     if (!dv || path.isEmpty()) return false;
-    if (dv->saveToFile(path)) return true;
+    if (dv->saveToFile(path)) {
+        const int i = m_docViews.indexOf(dv);
+        if (i >= 0) m_topToolbar->setTabLabel(i, dv->displayName());
+        return true;
+    }
 
     QMessageBox::warning(
         this, tr("Save failed"),
@@ -535,7 +629,8 @@ void MainWindow::onSave()
         saveDocument(dv, dv->currentFile());
     } else {
         const QString path = QFileDialog::getSaveFileName(
-            this, tr("Save PDF As"), {}, tr("PDF files (*.pdf)"));
+            this, tr("Save PDF As"), dv->suggestedSavePath(),
+            tr("PDF files (*.pdf)"));
         if (!path.isEmpty())
             saveDocument(dv, path);
     }
@@ -546,7 +641,8 @@ void MainWindow::onSaveAs()
     DocumentView *dv = currentDocView();
     if (!dv) return;
     const QString path = QFileDialog::getSaveFileName(
-        this, tr("Save PDF As"), {}, tr("PDF files (*.pdf)"));
+        this, tr("Save PDF As"), dv->suggestedSavePath(),
+        tr("PDF files (*.pdf)"));
     if (!path.isEmpty())
         saveDocument(dv, path);
 }
@@ -993,6 +1089,7 @@ void MainWindow::closeEvent(QCloseEvent *e)
         }
     }
     savePanelLayout();
+    m_recovery->finish();
     e->accept();
 }
 
@@ -1064,9 +1161,8 @@ bool MainWindow::confirmAndSave(DocumentView *dv)
 {
     if (!dv || !dv->hasUnsavedEdits()) return true;
 
-    const QString name = dv->currentFile().isEmpty()
-        ? tr("Untitled")
-        : QFileInfo(dv->currentFile()).fileName();
+    const QString name = dv->displayName().isEmpty()
+        ? tr("Untitled") : dv->displayName();
 
     const QMessageBox::StandardButton btn = QMessageBox::question(
         this,
@@ -1083,7 +1179,8 @@ bool MainWindow::confirmAndSave(DocumentView *dv)
             return saveDocument(dv, dv->currentFile());
 
         const QString path = QFileDialog::getSaveFileName(
-            this, tr("Save PDF As"), {}, tr("PDF files (*.pdf)"));
+            this, tr("Save PDF As"), dv->suggestedSavePath(),
+            tr("PDF files (*.pdf)"));
         if (path.isEmpty()) return false;
         return saveDocument(dv, path);
     }

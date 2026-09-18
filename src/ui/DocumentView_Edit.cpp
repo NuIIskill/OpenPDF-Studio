@@ -81,7 +81,7 @@ DocumentView::DocumentView(QWidget *parent)
     m_layout->setContentsMargins(40, 40, 40, 40);
     m_layout->setSpacing(20);
 
-    m_dropHint = new QLabel(tr("Drop a PDF here or click a tab to open"), m_canvas);
+    m_dropHint = new QLabel(tr("Drop a PDF, Word, OpenDocument or image file here, or click a tab to open"), m_canvas);
     m_dropHint->setObjectName(QStringLiteral("DropHint"));
     m_dropHint->setAlignment(Qt::AlignCenter);
     m_dropHint->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);

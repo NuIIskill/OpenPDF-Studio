@@ -750,10 +750,11 @@ QPixmap PdfOrganizerDialog::renderThumb(const PageEntry &e)
 
 bool PdfOrganizerDialog::writePdf(const QString &outPath)
 {
+    const QList<const PageEntry *> entries = pagesToSave();
     QList<OrganizerPage> pages;
-    pages.reserve(m_pages.size());
-    for (const PageEntry &e : m_pages)
-        pages.append({ e.pdfPath, e.pageIndex, e.isBlank, e.rotation });
+    pages.reserve(entries.size());
+    for (const PageEntry *e : entries)
+        pages.append({ e->pdfPath, e->pageIndex, e->isBlank, e->rotation });
 
     const OrganizerWriter::Result r = OrganizerWriter(pages, m_docs).write(outPath);
     if (r.ok) return true;
@@ -781,6 +782,22 @@ bool PdfOrganizerDialog::writePdf(const QString &outPath)
         break;
     }
     return false;
+}
+
+QList<const PageEntry *> PdfOrganizerDialog::pagesToSave() const
+{
+    QList<const PageEntry *> pages;
+    for (const PageEntry &e : m_pages) {
+        if (e.selected)
+            pages.append(&e);
+    }
+    if (!pages.isEmpty())
+        return pages;
+
+    pages.reserve(m_pages.size());
+    for (const PageEntry &e : m_pages)
+        pages.append(&e);
+    return pages;
 }
 
 bool PdfOrganizerDialog::writeForTest(const QString &path)
@@ -833,17 +850,18 @@ DocumentHistory::Change PdfOrganizerDialog::appliedChange() const
 {
     using Kind = DocumentHistory::Kind;
 
+    const QList<const PageEntry *> pages = pagesToSave();
     DocumentHistory::Change c;
     c.kind  = Kind::PagesOrganized;
-    c.count = static_cast<int>(m_pages.size());
+    c.count = static_cast<int>(pages.size());
 
     QList<int> survivors;
     QSet<int>  seen;
     int rotated = 0, added = 0;
     int firstRotatedPos = -1, firstAddedPos = -1, rotation = 0;
 
-    for (int i = 0; i < m_pages.size(); ++i) {
-        const PageEntry &e = m_pages[i];
+    for (int i = 0; i < pages.size(); ++i) {
+        const PageEntry &e = *pages[i];
         const bool fromSource = !e.isBlank && !m_initialPath.isEmpty()
                              && e.pdfPath == m_initialPath && !seen.contains(e.pageIndex);
         if (fromSource) {

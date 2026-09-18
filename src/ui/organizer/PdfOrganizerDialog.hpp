@@ -89,6 +89,7 @@ private:
     void saveAs();
     void save();
     bool writePdf(const QString &outPath);
+    QList<const PageEntry *> pagesToSave() const;
 
 #ifdef HAVE_QPDF
 

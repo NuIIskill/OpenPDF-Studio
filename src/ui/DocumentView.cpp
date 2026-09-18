@@ -3,6 +3,8 @@
 #include "app/PdfPwStore.hpp"
 #include "engine/document/DocumentSource.hpp"
 #include "engine/edit/InkMetrics.hpp"
+#include "engine/import/DocumentImport.hpp"
+#include "engine/import/ImageImport.hpp"
 #include "app/SafeWrite.hpp"
 #include "app/SessionStore.hpp"
 #include "ui/tools/ImageAnnotation.hpp"
@@ -19,6 +21,7 @@
 #include "ui/widgets/PasswordDialog.hpp"
 
 #include <QFileInfo>
+#include <QImageReader>
 
 #ifdef HAVE_QPDF
 #  include <qpdf/QPDF.hh>
@@ -281,7 +284,7 @@ void DocumentView::reportCurrentPage()
 void DocumentView::retranslateUi()
 {
 #ifdef HAVE_PDF_RENDERING
-    m_dropHint->setText(tr("Drop a PDF here or click a tab to open"));
+    m_dropHint->setText(tr("Drop a PDF, Word, OpenDocument or image file here, or click a tab to open"));
 #else
     m_dropHint->setText(tr(
         "PDF rendering is not available in this build.\n"
@@ -601,10 +604,13 @@ bool DocumentView::eventFilter(QObject *obj, QEvent *e)
                     m_rubberBand->hide();
                     if (band.width() > 20 && band.height() > 20) {
                         const QString path = QFileDialog::getOpenFileName(this,
-                            tr("Bild einfügen"), {},
-                            tr("Bilder (*.png *.jpg *.jpeg *.bmp *.gif *.tiff *.webp);;Alle Dateien (*)"));
+                            tr("Insert image"), {},
+                            ImageImport::nameFilter() + QStringLiteral(";;")
+                                + tr("All files (*)"));
                         if (!path.isEmpty()) {
-                            const QImage img(path);
+                            QImageReader reader(path);
+                            reader.setAutoTransform(true);
+                            const QImage img = reader.read();
                             if (!img.isNull())
                                 m_imageLayer->placeInRect(img, band.translated(scroll));
                         }
@@ -642,23 +648,12 @@ bool DocumentView::eventFilter(QObject *obj, QEvent *e)
     return QScrollArea::eventFilter(obj, e);
 }
 
-static bool isImagePath(const QString &p)
-{
-    static const QStringList exts = {
-        ".png", ".jpg", ".jpeg", ".bmp", ".gif", ".tiff", ".tif", ".webp"
-    };
-    for (const QString &ext : exts)
-        if (p.endsWith(ext, Qt::CaseInsensitive)) return true;
-    return false;
-}
-
 void DocumentView::dragEnterEvent(QDragEnterEvent *e)
 {
     if (!e->mimeData()->hasUrls()) { e->ignore(); return; }
     for (const QUrl &url : e->mimeData()->urls()) {
         const QString path = url.toLocalFile();
-        if (path.endsWith(QLatin1String(".pdf"), Qt::CaseInsensitive) ||
-            (m_tool == Tool::Image && isImagePath(path))) {
+        if (DocumentImport::isPdf(path) || DocumentImport::isSupported(path)) {
             e->acceptProposedAction();
             return;
         }
@@ -678,9 +673,9 @@ void DocumentView::dropEvent(QDropEvent *e)
 {
     for (const QUrl &url : e->mimeData()->urls()) {
         const QString path = url.toLocalFile();
-        if (path.endsWith(QLatin1String(".pdf"), Qt::CaseInsensitive)) {
+        if (DocumentImport::isPdf(path)) {
 
-            Q_EMIT pdfDropped(path);
+            Q_EMIT fileDropped(path);
             e->acceptProposedAction();
             return;
         }
@@ -707,8 +702,11 @@ void DocumentView::dropEvent(QDropEvent *e)
             }
         }
 
-        if (m_tool == Tool::Image && isImagePath(path)) {
-            const QImage img(path);
+        if (m_tool == Tool::Image && pageCount() > 0
+                && ImageImport::isSupported(path)) {
+            QImageReader reader(path);
+            reader.setAutoTransform(true);
+            const QImage img = reader.read();
             if (!img.isNull()) {
                 const QPoint vpPos  = e->position().toPoint();
                 const QPoint scroll(horizontalScrollBar()->value(), verticalScrollBar()->value());
@@ -716,6 +714,12 @@ void DocumentView::dropEvent(QDropEvent *e)
                 e->acceptProposedAction();
                 return;
             }
+        }
+
+        if (DocumentImport::isSupported(path)) {
+            Q_EMIT fileDropped(path);
+            e->acceptProposedAction();
+            return;
         }
     }
 }

@@ -5,6 +5,7 @@
 #include "ui/organizer/PdfOrganizerDialog.hpp"
 #include "ui/history/HistoryDialog.hpp"
 #include "engine/edit/DocxExporter.hpp"
+#include "engine/import/DocumentImport.hpp"
 #include "engine/edit/PdfExporter.hpp"
 #include "ui/PresentationWindow.hpp"
 #include <QTextStream>
@@ -284,6 +285,20 @@ int main(int argc, char *argv[])
         DocumentView view;
         if (!view.openFile(args.at(2))) return 2;
         return view.exportPagesToImages(args.at(3), quality, pages) ? 0 : 3;
+    }
+
+    if (args.size() >= 4 && args.at(1) == QLatin1String("--import-pdf")) {
+        QString dump;
+        for (int a = 4; a < args.size(); ++a)
+            if (args.at(a).startsWith(QLatin1String("dump=")))
+                dump = args.at(a).mid(5);
+
+        QString error;
+        if (!DocumentImport::convertToPdf(args.at(2), args.at(3), &error, dump)) {
+            qWarning().noquote() << "[import]" << error;
+            return 3;
+        }
+        return 0;
     }
 
     if (args.size() >= 3 && args.at(1) == QLatin1String("--select-text")) {
@@ -995,6 +1010,8 @@ int main(int argc, char *argv[])
 
     if (args.size() > 1 && QFileInfo::exists(args.at(1)))
         app.mainWindow()->openPath(args.at(1));
+
+    app.mainWindow()->restoreSession();
 
     return qapp.exec();
 }

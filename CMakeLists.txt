@@ -218,6 +218,20 @@ else()
     message(STATUS "OCR backend: none  (sudo dnf install tesseract-devel tesseract-langpack-deu)")
 endif()
 
+# ── zlib: inflate for the docx/odt import (engine/import/ZipArchive) ─────────
+# Both are ZIP containers. Without zlib the import still opens images; docx and
+# odt report that this build cannot read them.
+find_package(ZLIB QUIET)
+if(ZLIB_FOUND)
+    message(STATUS "Document import: zlib ${ZLIB_VERSION_STRING} — docx and odt enabled")
+    target_compile_definitions(OpenPDFStudio PRIVATE HAVE_ZLIB)
+    target_link_libraries(OpenPDFStudio PRIVATE ZLIB::ZLIB)
+else()
+    message(WARNING
+        "zlib: not found — this build cannot open docx or odt files.\n"
+        "    Fix with: sudo dnf install zlib-devel")
+endif()
+
 if(UNIX AND NOT APPLE)
     # Value is hardcoded in main.cpp to avoid CMake semicolon-as-list-separator issues.
     target_compile_definitions(OpenPDFStudio PRIVATE DEFAULT_QPA_PLATFORM)
@@ -365,7 +379,7 @@ page organizer, annotations, OCR and export to PDF, DOCX and image formats.")
     # as Recommends left dpkg free to leave them out. The RPM never had the
     # problem because AUTOREQ reads the sonames out of the binary.
     set(CPACK_DEBIAN_PACKAGE_DEPENDS
-        "libqt6core6 | libqt6core6t64, libqt6gui6, libqt6widgets6, libqt6printsupport6, libqt6network6, libqt6multimedia6, libqpdf29 | libqpdf29t64, libtesseract5 | libtesseract5t64")
+        "libqt6core6 | libqt6core6t64, libqt6gui6, libqt6widgets6, libqt6printsupport6, libqt6network6, libqt6multimedia6, libqpdf29 | libqpdf29t64, libtesseract5 | libtesseract5t64, zlib1g")
     # libqt6pdf6 ist raus: die PDF-Engine ist PDFium und liegt im Paket.
     # ffmpeg only converts video while embedding it and is genuinely optional.
     set(CPACK_DEBIAN_PACKAGE_SUGGESTS "ffmpeg")

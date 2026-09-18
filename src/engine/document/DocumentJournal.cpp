@@ -55,6 +55,7 @@ void DocumentJournal::markSaved(const QString &path)
     m_undo->setClean();
     savedImageRevision = m_session->imageRevision();
     workingCopyDirty   = false;
+    suggestedPath.clear();
 
     targetPath = (QFileInfo(path).absoluteFilePath()
                         == QFileInfo(m_src->contentPath()).absoluteFilePath())

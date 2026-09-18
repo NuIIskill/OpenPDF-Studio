@@ -692,4 +692,54 @@ Please use a build that includes Qt6::Pdf support.
     <message><source>Next match (Enter)</source><translation>Risultato successivo (Invio)</translation></message>
     <message><source>Close (Esc)</source><translation>Chiudi (Esc)</translation></message>
 </context>
+<context>
+    <name>SessionRecovery</name>
+    <message><source>Untitled</source><translation>Senza titolo</translation></message>
+    <message><source>Restore Session</source><translation>Ripristina sessione</translation></message>
+    <message><source>OpenPDF Studio did not shut down properly last time.</source><translation>OpenPDF Studio non è stato chiuso correttamente l'ultima volta.</translation></message>
+    <message><source>Restore the documents that were open?</source><translation>Ripristinare i documenti che erano aperti?</translation></message>
+    <message><source>%1 (unsaved changes)</source><translation>%1 (modifiche non salvate)</translation></message>
+    <message><source>Restore</source><translation>Ripristina</translation></message>
+    <message><source>Discard</source><translation>Scarta</translation></message>
+</context>
+<context>
+    <name>DocumentView</name>
+    <message><source>Insert image</source><translation>Inserisci immagine</translation></message>
+    <message><source>All files (*)</source><translation>Tutti i file (*)</translation></message>
+    <message><source>Drop a PDF, Word, OpenDocument or image file here, or click a tab to open</source><translation>Trascina qui un PDF, un documento Word o OpenDocument, oppure un'immagine, o fai clic su una scheda</translation></message>
+</context>
+<context>
+    <name>MainWindow</name>
+    <message><source>Open Document</source><translation>Apri documento</translation></message>
+    <message><source>Cannot open file</source><translation>Impossibile aprire il file</translation></message>
+    <message><source>"%1" is not a PDF and cannot be turned into one.</source><translation>«%1» non è un PDF e non può essere convertito in PDF.</translation></message>
+    <message><source>There is no room to put the converted file.</source><translation>Non c'è spazio per il file convertito.</translation></message>
+    <message><source>Import failed</source><translation>Importazione non riuscita</translation></message>
+    <message><source>"%1" could not be turned into a PDF.
+
+%2</source><translation>«%1» non è stato possibile convertirlo in PDF.
+
+%2</translation></message>
+    <message><source>"%1" was converted, but the result could not be opened.</source><translation>«%1» è stato convertito, ma non è stato possibile aprire il risultato.</translation></message>
+</context>
+<context>
+    <name>DocumentImport</name>
+    <message><source>Images</source><translation>Immagini</translation></message>
+    <message><source>All files</source><translation>Tutti i file</translation></message>
+    <message><source>All supported files</source><translation>Tutti i file supportati</translation></message>
+    <message><source>PDF files</source><translation>File PDF</translation></message>
+    <message><source>Word documents</source><translation>Documenti Word</translation></message>
+    <message><source>Word document</source><translation>Documento Word</translation></message>
+    <message><source>OpenDocument text</source><translation>Testo OpenDocument</translation></message>
+    <message><source>Image</source><translation>Immagine</translation></message>
+    <message><source>The image is too large.</source><translation>L'immagine è troppo grande.</translation></message>
+    <message><source>The PDF could not be written.</source><translation>Non è stato possibile scrivere il PDF.</translation></message>
+    <message><source>The file does not exist.</source><translation>Il file non esiste.</translation></message>
+    <message><source>The file could not be read. It may be damaged.</source><translation>Non è stato possibile leggere il file. Potrebbe essere danneggiato.</translation></message>
+    <message><source>The file has no readable document part.</source><translation>Il file non contiene alcuna parte di documento leggibile.</translation></message>
+    <message><source>The document is damaged: %1</source><translation>Il documento è danneggiato: %1</translation></message>
+    <message><source>This build was made without zlib and cannot read Word or OpenDocument files.</source><translation>Questa versione è stata compilata senza zlib e non può leggere file Word o OpenDocument.</translation></message>
+    <message><source>This is an older Word file that only carries a .docx name. Save it as a real .docx first.</source><translation>Questo è un vecchio file Word che porta solo un nome .docx. Salvalo prima come vero .docx.</translation></message>
+    <message><source>%1 files cannot be opened.</source><translation>I file %1 non possono essere aperti.</translation></message>
+</context>
 </TS>

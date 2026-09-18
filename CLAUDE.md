@@ -43,6 +43,7 @@ src/
     settings/     the settings panel and the widgets only it uses
     organizer/    the page organizer and the widgets only it uses
     history/      the change-log timeline
+    session/      crash recovery: what was open and how to get it back
     export/       the export dialog
     widgets/      shared widgets only - see the rule below
   3rdparty/       vendored (nanosvg)
