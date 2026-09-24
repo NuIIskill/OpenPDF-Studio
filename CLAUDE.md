@@ -27,8 +27,11 @@ are absent.
 ```
 src/
   main.cpp        entry point
+  App.cpp         application controller: settings, main window, startup
+  cli/            command-line modes (export, import, edit checks, screenshots);
+                  may use everything, only main.cpp includes it
   app/            infrastructure: config.ini, settings, safe writes, session,
-                  history, passwords
+                  passwords, update check
   drm/            business licence: state, settings page, the two notices
   engine/         document logic, no widgets
     document/     PdfBackend + the PDFium implementation: opening, rendering,
@@ -36,13 +39,20 @@ src/
     edit/         content model, ink metrics, edit session
     export/       the document into another format: PDF options, DOCX, images,
                   printing
+    historymanager/
+                  change log, journal, restore, timeline archive
     import/       another format into a PDF: docx, odt, images
     ocr/          Tesseract wrapper
     render/       PdfRenderer - zoom and point-to-pixel, asks the backend
-  ui/             everything that is a widget
-    bars/ panels/ tools/ theme/
-    view/         controllers driving the document canvas
+  ui/             everything that is a widget; MainWindow, DocumentView and
+                  the presentation window sit at its root
+    bars/ panels/ theme/
+                  the window frame around the document
+    view/         the document canvas: its controllers and annotation layers
     edit/         the in-place text editor widgets
+    draw/         freehand drawing: its bar and layer
+    notes/        sticky notes: their layer and panel
+    bookmarks/    the bookmark panel
     settings/     the settings panel and the widgets only it uses
     organizer/    the page organizer and the widgets only it uses
     history/      the change-log timeline
@@ -62,28 +72,27 @@ broken once already:
 1. **`engine/` never includes `ui/`, and never uses QWidget.** Anything that
    paints or takes input belongs in `ui/`. This is what makes the engine
    testable without a display.
-2. **`app/` never includes `ui/`.** It is infrastructure that `ui/` builds on,
-   not the other way round.
+2. **`app/` never includes `engine/` or `ui/`.** It is infrastructure that
+   both build on, not the other way round; `engine/` may use `app/`.
 3. **Includes are always root-relative to `src/`**, e.g.
    `#include "ui/view/PageCanvas.hpp"` - never `"PageCanvas.hpp"` or
    `"view/PageCanvas.hpp"`. `src/` is on the include path. The only exceptions
    are AUTOMOC's own `"Foo.moc"` and `3rdparty/` headers.
 4. **Every folder under `ui/` names a task, never a shape.** `settings/`,
    `organizer/`, `history/` and `export/` are each one thing the user does, with
-   whatever widgets that takes. There is no `dialogs/` any more: it collected by
-   form ("is a QDialog") and so had the organizer sitting outside it while being
-   one - the same decay that had made `widgets/` mean "a widget that is not a
-   bar, panel or dialog", where of nine files one was shared, six belonged to
-   one owner each and two were used by nobody.
+   whatever widgets that takes. Folders named by form (`dialogs/`, `tools/`)
+   decayed into places nobody owned and have been removed.
 
-   `ui/widgets/` is the one exception, and only for widgets more than one owner
-   uses - `IconButton`, `PasswordDialog`. A widget with a single owner lives in
-   its task's folder, not here.
+   The exceptions are the window frame (`bars/`, `panels/`, `theme/`), the
+   canvas (`view/`) and `ui/widgets/`, which holds only widgets more than one
+   owner uses - `IconButton`, `PasswordDialog`. A widget with a single owner
+   lives in its task's folder, not here.
 
 Check 1 and 2 with:
 
 ```bash
 grep -rn '#include "ui/' src/engine src/app     # must be empty
+grep -rn '#include "engine/' src/app            # must be empty
 grep -rln 'QWidget\|QDialog' src/engine         # must be empty
 ```
 
@@ -157,7 +166,5 @@ behavior that is already clear from the code.
 **Nothing test-related is committed.** `tests/` is gitignored, and the root
 `CMakeLists.txt` only builds it when it happens to be present locally. Test
 fixtures, sample documents, harness scripts and their output belong in
-`.claude/testing/` - also ignored. This sentence used to say the opposite
-("fixtures are versioned under `tests/`, do not put them in ignored
-directories"), which is how a set of generated fixtures nearly ended up in a
-commit. If you think a fixture needs to be versioned, ask first.
+`.claude/testing/` - also ignored. If you think a fixture needs to be
+versioned, ask first.

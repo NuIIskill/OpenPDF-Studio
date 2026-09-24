@@ -2,7 +2,7 @@
 # Holt die vorgebauten PDFium-Bibliotheken für Linux und Windows nach
 # third_party/pdfium/ (gitignoriert).
 #
-# PDFium ist das, was auch in Qt6::Pdf steckt — hier ohne die Qt-Hülle und für
+# PDFium ist das, was auch in Qt6::Pdf steckt, hier ohne die Qt-Hülle und für
 # beide Plattformen in derselben Version.
 #
 # Bewusst OHNE V8: Formular-JavaScript wird nicht gebraucht, und die Variante
@@ -14,7 +14,7 @@
 # Version und Prüfsummen sind gepinnt. Für ein Produkt, das ausgeliefert wird,
 # ist ein fremdes Binary eine Lieferketten-Entscheidung: nicht "das neueste",
 # sondern genau dieses, nachprüfbar. Beim Hochziehen der Version müssen die
-# Prüfsummen mit — sonst bricht das Skript ab, und das ist so gewollt.
+# Prüfsummen mit, sonst bricht das Skript ab, und das ist so gewollt.
 set -euo pipefail
 
 PDFIUM_RELEASE="chromium/8009"     # PDFium 153.0.8009.0

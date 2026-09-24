@@ -7,6 +7,8 @@ target_sources(OpenPDFStudio PRIVATE
     MainWindow.hpp
     PresentationWindow.cpp
     PresentationWindow.hpp
+    SaveIndicator.cpp
+    SaveIndicator.hpp
 )
 
 add_subdirectory(bars)
@@ -21,6 +23,5 @@ add_subdirectory(panels)
 add_subdirectory(session)
 add_subdirectory(settings)
 add_subdirectory(theme)
-add_subdirectory(tools)
 add_subdirectory(view)
 add_subdirectory(widgets)

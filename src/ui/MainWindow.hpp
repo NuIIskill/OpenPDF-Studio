@@ -17,6 +17,7 @@ class TextPropertiesPanel;
 class FormatBar;
 class DrawBar;
 class StatusBar;
+class SaveIndicator;
 class AppSettings;
 class SettingsPanel;
 class SessionRecovery;
@@ -115,6 +116,7 @@ private:
     TextPropertiesPanel  *m_textPanel    { nullptr };
     RightSidebar         *m_rightSidebar { nullptr };
     StatusBar            *m_statusBar    { nullptr };
+    SaveIndicator        *m_saveIndicator{ nullptr };
     QSplitter            *m_splitter     { nullptr };
 
     QStackedWidget        *m_docStack  { nullptr };

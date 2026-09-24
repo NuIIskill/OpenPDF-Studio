@@ -15,13 +15,13 @@
 #include <QScrollArea>
 #include <QVBoxLayout>
 
-HistoryDialog::HistoryDialog(DocumentHistory *history, const QString &documentName,
+HistoryDialog::HistoryDialog(const DocumentHistory *history, const QString &documentName,
                              QWidget *parent)
     : QDialog(parent)
     , m_history(history)
     , m_documentName(documentName)
 {
-    setWindowTitle(tr("Change history — OpenPDF Studio"));
+    setWindowTitle(tr("Change history · OpenPDF Studio"));
     setMinimumSize(620, 520);
     resize(700, 620);
 
@@ -120,7 +120,7 @@ void HistoryDialog::buildUi()
         const auto answer = QMessageBox::question(
             this, tr("Clear history"),
             tr("Forget every recorded step except the one the document is at?\n\n"
-               "The document itself is not changed — only the list of states you "
+               "The document itself is not changed, only the list of states you "
                "can go back to."),
             QMessageBox::Yes | QMessageBox::No, QMessageBox::No);
         if (answer == QMessageBox::Yes) Q_EMIT clearRequested();
@@ -142,7 +142,7 @@ void HistoryDialog::buildUi()
 
 void HistoryDialog::retranslateUi()
 {
-    setWindowTitle(tr("Change history — OpenPDF Studio"));
+    setWindowTitle(tr("Change history · OpenPDF Studio"));
     m_title->setText(tr("Change history"));
     m_subtitle->setText(m_documentName.isEmpty()
         ? tr("Every change made to this document, newest first.")
@@ -297,6 +297,8 @@ QString HistoryDialog::titleFor(const DocumentHistory::Entry &e)
     case Kind::NoteRemoved:    return tr("Note removed");
     case Kind::DrawingAdded:   return tr("Drawing added");
     case Kind::DrawingRemoved: return tr("Drawing removed");
+    case Kind::BookmarksChanged: return tr("Bookmarks changed");
+    case Kind::OverlayChanged: return e.text.isEmpty() ? tr("Page content changed") : e.text;
     case Kind::PageRotated:    return e.count > 1 ? tr("Pages rotated")
                                                   : tr("Page rotated");
     case Kind::PageDeleted:    return e.count > 1 ? tr("Pages deleted")
@@ -334,7 +336,10 @@ QString HistoryDialog::detailFor(const DocumentHistory::Entry &e)
     case Kind::NoteRemoved:
     case Kind::DrawingAdded:
     case Kind::DrawingRemoved:
+    case Kind::OverlayChanged:
         return page;
+    case Kind::BookmarksChanged:
+        return {};
     case Kind::PageRotated: {
         const QString turn = e.value < 0 ? tr("%1° counter-clockwise").arg(-e.value)
                                          : tr("%1° clockwise").arg(e.value);
@@ -370,6 +375,8 @@ QString HistoryDialog::iconFor(DocumentHistory::Kind kind)
     case Kind::NoteRemoved:    return QStringLiteral("trash-2");
     case Kind::DrawingAdded:   return QStringLiteral("pencil");
     case Kind::DrawingRemoved: return QStringLiteral("trash-2");
+    case Kind::BookmarksChanged: return QStringLiteral("bookmark");
+    case Kind::OverlayChanged: return QStringLiteral("layers");
     case Kind::PageRotated:    return QStringLiteral("rotate-cw");
     case Kind::PageDeleted:    return QStringLiteral("trash-2");
     case Kind::PageAdded:      return QStringLiteral("file-plus");

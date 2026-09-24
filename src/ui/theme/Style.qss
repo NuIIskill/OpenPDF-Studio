@@ -306,6 +306,21 @@ QPushButton#ToolCustomizeReset:hover { color: #1D4ED8; }
     background: transparent;
 }
 
+#SaveIndicator {
+    background: transparent;
+}
+
+QFrame#SaveIndicatorPill {
+    background: #FFFFFF;
+    border: 1px solid #D1D5DB;
+    border-radius: 8px;
+}
+
+QLabel#SaveIndicatorText {
+    color: #111827;
+    font-size: 13px;
+}
+
 QFrame#DocumentFindBar {
     background: #FFFFFF;
     border: 1px solid #D1D5DB;
@@ -346,7 +361,7 @@ QPushButton#DocumentFindButton:pressed {
     background: #E5E7EB;
 }
 
-/* PDF page labels — always white paper */
+/* PDF page labels: always white paper */
 QLabel#PageLabel {
     background: #FFFFFF;
     border: 1px solid #D1D5DB;

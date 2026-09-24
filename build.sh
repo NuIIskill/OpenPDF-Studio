@@ -151,7 +151,7 @@ if [ "${BUILD_APPIMAGE}" = "1" ]; then
         # Plugins: re-copy from QT_INSTALL_PLUGINS to fix DT_INIT corruption,
         # then set RPATH so they find bundled Qt6 libs in usr/lib/.
         # (patchelf 0.15.0 moves .init but forgets to update DT_INIT in plugins
-        # too — lazily-loaded plugins crash the same way as libs at startup)
+        # too: lazily loaded plugins crash the same way as libs at startup)
         QT_PLUGIN_SRC=$(qmake6 -query QT_INSTALL_PLUGINS 2>/dev/null || \
                         qmake  -query QT_INSTALL_PLUGINS 2>/dev/null || \
                         echo "/usr/lib64/qt6/plugins")
@@ -166,7 +166,7 @@ if [ "${BUILD_APPIMAGE}" = "1" ]; then
                 "${plugin}" 2>/dev/null || true
         done
     else
-        echo "WARNING: system patchelf not found — AppImage may crash (install patchelf >= 0.18)" >&2
+        echo "WARNING: system patchelf not found. AppImage may crash (install patchelf >= 0.18)" >&2
     fi
 
     # ── Remove X11/XCB (Wayland-only app) ────────────────────────────────────
@@ -192,7 +192,7 @@ if [ "${BUILD_APPIMAGE}" = "1" ]; then
     rm -f "${APPDIR}/usr/bin/qt.conf"
 
     # ── Write proper AppRun (replaces linuxdeploy's symlink) ─────────────────
-    # IMPORTANT: remove the symlink first — cat > follows symlinks and would
+    # IMPORTANT: remove the symlink first. cat > follows symlinks and would
     # overwrite the binary instead of creating a new AppRun file.
     rm -f "${APPDIR}/AppRun"
     cat > "${APPDIR}/AppRun" << 'APPRUN_EOF'

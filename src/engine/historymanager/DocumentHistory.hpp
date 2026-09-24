@@ -1,13 +1,19 @@
 #pragma once
 
+#include "engine/document/PdfBookmark.hpp"
+
+#include <QByteArray>
 #include <QDateTime>
+#include <QHash>
 #include <QImage>
 #include <QList>
 #include <QObject>
 #include <QRectF>
 #include <QString>
 
-/// The change log of one open document — what the History panel shows and what "go back to this state" walks along.
+#include <limits>
+
+/// The change log of one open document: what the History panel shows and what "go back to this state" walks along.
 class DocumentHistory : public QObject
 {
     Q_OBJECT
@@ -27,6 +33,8 @@ public:
         NoteRemoved,
         DrawingAdded,
         DrawingRemoved,
+        BookmarksChanged,
+        OverlayChanged,
         PageRotated,
         PageDeleted,
         PageAdded,
@@ -41,6 +49,13 @@ public:
         int    page { -1 };
         QRectF pdfBounds;
         QImage image;
+    };
+
+    /// Everything outside the undo stack that an entry brings back.
+    struct DocumentState {
+        QList<ImageState>          images;
+        QList<PdfBookmark>         bookmarks;
+        QHash<QString, QByteArray> overlays;
     };
 
     /// What a caller reports; the history adds time, state and ordering.
@@ -60,7 +75,7 @@ public:
         int              value { 0 };
         QString          text;
         int              undoIndex { 0 };
-        QList<ImageState> images;
+        DocumentState    state;
 
         QString          snapshot;
 
@@ -82,7 +97,7 @@ public:
     };
 
     void record(const Change &c, int undoIndex,
-                const QList<ImageState> &images = {},
+                const DocumentState &state = {},
                 const QString &snapshotSource = QString(),
                 Snapshot mode = Snapshot::Copy);
 
@@ -90,7 +105,10 @@ public:
 
     void setCurrentIndex(int index);
 
-    int  indexForUndoIndex(int undoIndex) const;
+    void setUndoDepth(int depth);
+
+    bool currentIsAnchored() const;
+    void anchorCurrent(const QString &snapshot, const DocumentState &state);
 
     QString baseFileFor(int index) const;
 
@@ -101,6 +119,9 @@ public:
     void clear();
 
     void reset();
+
+    void adopt(QList<Entry> entries, int current, const QString &currentSource,
+               const DocumentState &currentState, int undoIndex);
 
 Q_SIGNALS:
 
@@ -116,6 +137,7 @@ private:
     QList<Entry> m_entries;
     int          m_current { -1 };
     int          m_baseCounter { 0 };
+    int          m_undoDepth { std::numeric_limits<int>::max() };
 
     int          m_pendingEntry { -1 };
     QString      m_pendingSource;

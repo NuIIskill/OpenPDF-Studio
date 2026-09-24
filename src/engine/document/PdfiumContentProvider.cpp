@@ -148,7 +148,7 @@ QList<ContentCluster> PdfiumContentProvider::collectWords(FPDF_TEXTPAGE tp,
         FPDFText_GetCharOrigin(tp, i, &originX, &originY);
         const QRectF box(left, pageHeight - top, right - left, top - bottom);
         const double baseline = pageHeight - originY;
-        const double fontSize = FPDFText_GetFontSize(tp, i);
+        const double fontSize = PdfiumTextRules::effectiveFontSize(tp, i);
 
         if (open && (!PdfiumTextRules::sameLine(baseline, lastBaseline, box.height())
                      || PdfiumTextRules::separatesWords(lastBox, box, fontSize)))

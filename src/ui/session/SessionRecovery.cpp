@@ -1,6 +1,7 @@
 #include "ui/session/SessionRecovery.hpp"
 
-#include "app/DocumentHistory.hpp"
+#include "engine/historymanager/DocumentHistory.hpp"
+#include "engine/historymanager/HistoryArchive.hpp"
 #include "ui/DocumentView.hpp"
 
 #include <QDateTime>
@@ -64,11 +65,16 @@ QList<SessionStore::OpenDocument> SessionRecovery::offerAbandonedDocuments()
     box.exec();
 
     if (box.clickedButton() != restore) {
-        for (const SessionStore::OpenDocument &doc : abandoned)
-            SessionStore::discard(doc.content);
+        for (const SessionStore::OpenDocument &doc : abandoned) discard(doc);
         return {};
     }
     return abandoned;
+}
+
+void SessionRecovery::discard(const SessionStore::OpenDocument &doc)
+{
+    SessionStore::discard(doc.content);
+    HistoryArchive::discard(doc.history);
 }
 
 void SessionRecovery::begin()
@@ -90,8 +96,6 @@ void SessionRecovery::watch(DocumentView *view)
 
     connect(view->history(), &DocumentHistory::changed, this,
             [this, view] { noteChange(view); });
-    connect(view, &DocumentView::bookmarkDataChanged, this,
-            [this, view] { noteChange(view); });
     connect(view, &DocumentView::fileOpened, this,
             [this, view] { dropCopy(view); });
     connect(view, &QObject::destroyed, this, [this, view] {
@@ -111,8 +115,10 @@ void SessionRecovery::forget(DocumentView *view)
 void SessionRecovery::finish()
 {
     m_timer->stop();
-    for (auto it = m_copies.cbegin(); it != m_copies.cend(); ++it)
+    for (auto it = m_copies.cbegin(); it != m_copies.cend(); ++it) {
         SessionStore::discard(it.value().path);
+        SessionStore::discardSnapshot(it.value().archive);
+    }
     m_copies.clear();
     if (m_active) SessionStore::endSession();
     m_active = false;
@@ -130,6 +136,7 @@ void SessionRecovery::dropCopy(DocumentView *view)
     const auto it = m_copies.constFind(view);
     if (it == m_copies.cend()) return;
     SessionStore::discard(it.value().path);
+    SessionStore::discardSnapshot(it.value().archive);
     m_copies.erase(it);
 }
 
@@ -138,41 +145,71 @@ void SessionRecovery::tick()
     const qint64 now = QDateTime::currentMSecsSinceEpoch();
 
     for (DocumentView *view : std::as_const(m_views)) {
-        if (view->pageCount() <= 0 || !view->hasUnsavedEdits()) {
+        const bool dirty    = view->hasUnsavedEdits();
+        const bool timeline = view->history()->count() > 1;
+        if (view->pageCount() <= 0 || (!dirty && !timeline)) {
             dropCopy(view);
             continue;
         }
 
         auto it = m_copies.find(view);
         if (it == m_copies.end())
-            it = m_copies.insert(view, Copy { QString(), true, now, 0 });
+            it = m_copies.insert(view, Copy { QString(), QString(), true, now, 0 });
         if (!it->stale) continue;
         if (now - it->changedAt < kSettleMs) continue;
         if (it->writtenAt != 0 && now - it->writtenAt < kMinApartMs) continue;
 
-        QString path = it->path;
-        const bool freshPath = path.isEmpty();
-        if (freshPath) {
-            path = SessionStore::newWorkingFile(view->currentFile().isEmpty()
-                                                    ? view->contentFile()
-                                                    : view->currentFile());
-            if (path.isEmpty()) continue;
-        }
-
-        const bool written = view->writeRecoveryCopy(path);
-
-        Copy &copy = m_copies[view];
+        Copy &copy = *it;
         copy.writtenAt = now;
-        if (!written) {
-            qWarning() << "SessionRecovery: could not write" << path;
-            if (freshPath) SessionStore::discard(path);
-            continue;
+        if (dirty) {
+            if (!writeContent(view, copy)) continue;
+        } else {
+            SessionStore::discard(copy.path);
+            copy.path.clear();
         }
-        copy.path  = path;
+        if (timeline) {
+            if (!writeArchive(view, copy)) continue;
+        } else {
+            SessionStore::discardSnapshot(copy.archive);
+            copy.archive.clear();
+        }
         copy.stale = false;
     }
 
     syncManifest();
+}
+
+bool SessionRecovery::writeContent(DocumentView *view, Copy &copy)
+{
+    const bool fresh = copy.path.isEmpty();
+    const QString path = fresh
+        ? SessionStore::newWorkingFile(view->currentFile().isEmpty() ? view->contentFile()
+                                                                     : view->currentFile())
+        : copy.path;
+    if (path.isEmpty()) return false;
+
+    if (!view->writeRecoveryCopy(path)) {
+        qWarning() << "SessionRecovery: could not write" << path;
+        if (fresh) SessionStore::discard(path);
+        return false;
+    }
+    copy.path = path;
+    return true;
+}
+
+bool SessionRecovery::writeArchive(DocumentView *view, Copy &copy)
+{
+    const bool fresh = copy.archive.isEmpty();
+    const QString path = fresh ? SessionStore::newArchiveFile(view->contentFile()) : copy.archive;
+    if (path.isEmpty()) return false;
+
+    if (!view->writeTimeline(path)) {
+        qWarning() << "SessionRecovery: could not write" << path;
+        if (fresh) SessionStore::discardSnapshot(path);
+        return false;
+    }
+    copy.archive = path;
+    return true;
 }
 
 void SessionRecovery::syncManifest()
@@ -186,6 +223,7 @@ void SessionRecovery::syncManifest()
         SessionStore::OpenDocument doc;
         doc.target  = view->currentFile();
         doc.content = m_copies.value(view).path;
+        doc.history = m_copies.value(view).archive;
         doc.page    = view->currentPage();
         doc.dirty   = view->hasUnsavedEdits();
         if (doc.target.isEmpty() && doc.content.isEmpty()) continue;

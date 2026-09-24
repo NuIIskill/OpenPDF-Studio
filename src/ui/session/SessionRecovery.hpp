@@ -24,6 +24,8 @@ public:
 
     QList<SessionStore::OpenDocument> offerAbandonedDocuments();
 
+    static void discard(const SessionStore::OpenDocument &doc);
+
     void begin();
     void watch(DocumentView *view);
     void forget(DocumentView *view);
@@ -32,6 +34,7 @@ public:
 private:
     struct Copy {
         QString path;
+        QString archive;
         bool    stale     { false };
         qint64  changedAt { 0 };
         qint64  writtenAt { 0 };
@@ -40,6 +43,8 @@ private:
     void tick();
     void noteChange(DocumentView *view);
     void dropCopy(DocumentView *view);
+    bool writeContent(DocumentView *view, Copy &copy);
+    bool writeArchive(DocumentView *view, Copy &copy);
     void syncManifest();
 
     QWidget               *m_parent { nullptr };

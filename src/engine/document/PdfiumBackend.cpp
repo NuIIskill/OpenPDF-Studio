@@ -465,13 +465,26 @@ std::vector<PdfiumLine> PdfiumBackend::linesOfPage(int page,
         double originX = 0, originY = 0;
         FPDFText_GetCharOrigin(tp, i, &originX, &originY);
 
-        const QRectF box(left, pageHeight - top, right - left, top - bottom);
+        QRectF box(left, pageHeight - top, right - left, top - bottom);
+        double baseline = pageHeight - originY;
+
+        // A space that the writer placed through the text matrix instead of a
+        // glyph comes back with an empty box at a meaningless spot; Qt's own PDF
+        // writer does exactly that. Sorted by that spot it ends up somewhere in
+        // the middle of another word, and every word on the page runs into the
+        // next. Anchored to the character before it, it lands where it belongs.
+        if (box.width() <= 0.0 && !chars.empty()) {
+            const PdfiumChar &previous = chars.back();
+            box      = QRectF(previous.box.right(), previous.box.top(),
+                              0.01, previous.box.height());
+            baseline = previous.baseline;
+        }
         if (box.width() <= 0.0 && box.height() <= 0.0) continue;
 
         if (centerInAny(box, exclude)) continue;
 
-        chars.push_back({ box, ch, i, FPDFText_GetFontSize(tp, i),
-                          pageHeight - originY });
+        chars.push_back({ box, ch, i,
+                          PdfiumTextRules::effectiveFontSize(tp, i), baseline });
     }
     std::sort(chars.begin(), chars.end(), readingOrderLess);
 

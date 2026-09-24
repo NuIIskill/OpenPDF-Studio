@@ -3,8 +3,6 @@ target_sources(OpenPDFStudio PRIVATE
     AppConfig.hpp
     AppSettings.cpp
     AppSettings.hpp
-    DocumentHistory.cpp
-    DocumentHistory.hpp
     PdfPwStore.cpp
     PdfPwStore.hpp
     SafeWrite.cpp

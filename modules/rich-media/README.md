@@ -1,6 +1,6 @@
 # Rich Media
 
-Media embedded in PDFs — `/Screen`, `/RichMedia` and `/Movie` annotations:
+Media embedded in PDFs as `/Screen`, `/RichMedia` and `/Movie` annotations:
 finding it, playing it, and putting new media into a document.
 
 ```
@@ -11,7 +11,7 @@ This module is **source-available, not open source**. It is free for personal
 use; business use needs a Business License after a 30-day evaluation. The full
 terms are in `LICENSE` next to this file (identical to
 `LICENSES/OPENPDF-BUSINESS.txt`). Every other part of OpenPDF Studio is Core
-and dual-licensed GPL-3.0-only or Commercial — see the repository `LICENSE`.
+and dual-licensed GPL-3.0-only or Commercial, see the repository `LICENSE`.
 
 ## Status
 
@@ -64,8 +64,8 @@ Everything the module does works the same on every platform it builds on:
 Conversion is the one thing that reaches outside, because encoding video is not
 something this program carries its own code for. It behaves identically
 everywhere: with ffmpeg the offer appears, without it the user is told what the
-consequence is. Reading a file's format used to ask ffprobe and no longer does
-— `MediaFormat` walks the ISO base media boxes far enough to name the container
+consequence is. Reading a file's format used to ask ffprobe and no longer does:
+`MediaFormat` walks the ISO base media boxes far enough to name the container
 and the codec, which is exactly the question being asked.
 
 Written on insert is what Acrobat writes itself, checked object by object
@@ -90,7 +90,7 @@ and it puts the file into `/EF` under both `/F` and `/UF`. The first is a
 promise nobody here can keep; the second is redundant.
 
 The `/AP` appearance stream is not decoration. PDFium draws it, and so does
-every other viewer — without it the place a video sits is a white hole in
+every other viewer. Without it the place a video sits is a white hole in
 anything that cannot play the video.
 
 **Format.** A PDF may embed any file, but it is only played where a viewer
@@ -99,14 +99,14 @@ that plays in the PDF viewers that play media at all, and in browsers and on
 phones besides. Anything else is caught by `MediaProbe` before it is embedded,
 and the user is offered a conversion (`libx264`, `yuv420p`, `+faststart`; a
 stream that is already H.264 is only repackaged). The question put to the user
-is about reach, not about one product — naming a single viewer would be both
+is about reach, not about one product: naming a single viewer would be both
 narrower and less true. Without ffprobe nothing is checked; without ffmpeg the
 user is told what will happen and can embed anyway.
 
 Two rules the code keeps:
 
 - Only embedded assets are played. A `/Movie` or `/Screen` annotation pointing
-  at a path or an address outside the document is shown and refused — a viewer
+  at a path or an address outside the document is shown and refused. A viewer
   that follows addresses out of a stranger's document betrays its reader.
 - Nothing starts by itself. `/RichMediaSettings /Activation /Condition` is
   written as `/XA` (on click) unless the user asks for `/PO`, and the reading
@@ -120,7 +120,7 @@ of its own, using its dimensions at 150 dpi with the longest side held between
 288 and 420 pt.
 
 A page cannot be a session change, so this writes a working copy and hands it
-to the view — the same route the page organizer takes, and the user's file
+to the view, the same route the page organizer takes, and the user's file
 stays untouched until they save.
 
 Both the drag and the drop ask the overlays. That is not redundancy: a file
@@ -136,7 +136,7 @@ The other two settings are the user asking for an outside player, and there it
 is allowed.
 
 Playback starts with a question. A document that is merely open must not be
-able to start a decoder — let alone a player process outside this program — on
+able to start a decoder (let alone a player process outside this program) on
 a single click, so the first playback in a document asks: play once, always for
 this document, or not at all. The careful answer is the preset one, and trust
 lasts for the session and covers exactly that document. Media the user has just
@@ -167,7 +167,7 @@ picture looks like playback and hides the road that would have shown the video.
 
 Media Foundation is started on that first use and not at construction. It loads
 a decoding stack on startup, and where that stack is broken it takes the
-process down before a file has even been named — which is exactly what Wine
+process down before a file has even been named, which is exactly what Wine
 does, where the same MP4 then plays through DirectShow without a complaint.
 
 The Qt engine hands frames over instead of using a `QVideoWidget`. Two bugs
@@ -188,7 +188,7 @@ which backends are present, so a report says something.
 of playing it; `Delete` and the context menu remove it. A medium that is
 already in the document cannot disappear before the next save, so its frame
 switches to covering the spot in the page's own colour, sampled from the
-rendered page around it — the same approach the Core uses for text that has
+rendered page around it: the same approach the Core uses for text that has
 been deleted but not yet written out.
 
 The selected frame's eight handles resize it, and dragging its body moves it.
@@ -228,7 +228,7 @@ external player, and the module's own settings.
    `// SPDX-License-Identifier: LicenseRef-OpenPDF-Business`
 2. Add `modules/rich-media/CMakeLists.txt` with its own
    `target_sources(OpenPDFStudio PRIVATE ...)`, as every source folder has,
-   plus `add_subdirectory(modules/rich-media)` in the root `CMakeLists.txt` —
+   plus `add_subdirectory(modules/rich-media)` in the root `CMakeLists.txt`,
    guarded so a checkout without this directory still configures.
 3. Keep it behind a `HAVE_RICH_MEDIA` define, so the Core-only build stays a
    build that actually gets exercised.
@@ -241,17 +241,17 @@ external player, and the module's own settings.
 The key is deployment data, not a gate. Section 6 of the license is explicit:
 the notice is a reminder, and the module must not stop working, withhold
 features or make itself unusable when a check fails or is absent. Personal Use
-never needs a key at all (section 2 — no registration, no activation).
+never needs a key at all (section 2: no registration, no activation).
 
-The setup asks once which kind of use this is — one page, "Personal" preselected
-— and records the answer as `HKLM\Software\OpenPDFStudio\Usage` =
+The setup asks once which kind of use this is (one page, "Personal" preselected)
+and records the answer as `HKLM\Software\OpenPDFStudio\Usage` =
 `personal` | `business`. That answer is the first thing the module looks at: with
 `personal` there is no notice, no countdown and no key prompt, ever. It decides
 nothing else; both answers install and run the identical program.
 
 Only the Windows setup can ask at install time. An RPM, a DEB or an AppImage
-has nobody to ask, so the application does it itself on first start — same
-question, same two answers, personal preselected — and stores it as
+has nobody to ask, so the application does it itself on first start (same
+question, same two answers, personal preselected) and stores it as
 `[license] usage` in `config.ini`. That value also outranks the installer's,
 because a declaration that cannot be corrected is worse than none. Correcting it
 means editing that one line: it is deliberately not in the settings dialog,
@@ -261,13 +261,13 @@ The key itself is held in two places, machine before user:
 
 | Scope | Windows | Set by |
 | --- | --- | --- |
-| machine | `HKLM\Software\OpenPDFStudio\BusinessLicense` — values `Key`, `Source`, `SetAt` | `Setup.exe /S /KEY=XXXX-XXXX`, i.e. an administrator rolling the product out |
+| machine | `HKLM\Software\OpenPDFStudio\BusinessLicense`, values `Key`, `Source`, `SetAt` | `Setup.exe /S /KEY=XXXX-XXXX`, i.e. an administrator rolling the product out |
 | user | `config.ini`, `[license] businessKey` | the *License Key* settings page |
 
 A machine key wins over a user key, so a site license covers every account on
 the machine without anyone typing anything. `Usage` outranks both: a personal
 declaration silences the reminder even if some key is present. The installer only writes the value
-when `/KEY=` is passed, and never validates it — checking belongs to the
+when `/KEY=` is passed, and never validates it: checking belongs to the
 module, not to the setup. Uninstalling removes the machine key with the rest of
 `HKLM\Software\OpenPDFStudio`.
 
@@ -279,7 +279,7 @@ administrator passes `/KEY=`; a normal installation is bit-identical to a
 deployed one. In the module the same rule holds: no notice at start-up, none in
 a personal-use installation, and none for anyone who never opens a document
 with media in it. The reminder belongs at the point where the module is
-actually used, once, dismissible — never as a gate and never as a greeting.
+actually used, once, dismissible, never as a gate and never as a greeting.
 
 The 30-day Evaluation Period cannot be derived from either place: it runs per
 organisation from the first business use (section 1.5), not per installation.
@@ -289,17 +289,17 @@ the term itself.
 ### What exists today
 
 `src/drm/` is the placeholder for all of this: `LicenseStore` holds the state,
-`LicensePage` is the settings page, `LicenseNotice` the two dialogs — the first
+`LicensePage` is the settings page, `LicenseNotice` the two dialogs: the first
 start's question and the expiry notice. Nothing there verifies anything: a
 key is stored as typed, and the only thing actually computed is how many of the
 30 days are left, counted from the first start of a business installation
 (`license/evaluationStart`). Once they are up, the application shows the notice
-at every start and otherwise carries on unchanged — the notice asks for a key,
+at every start and otherwise carries on unchanged. The notice asks for a key,
 it does not withhold anything, and no part of the program consults the result. The page is built only
-where `Usage` is `business` — a personal installation has no License Key entry
+where `Usage` is `business`. A personal installation has no License Key entry
 in its settings at all. Switching between the two means editing
 `[license] usage`, and the 30 days are not restarted by switching back and
-forth — `[license] evaluationStart` is written once and never rewritten. `OPENPDF_USAGE=business|personal` overrides all of it
+forth: `[license] evaluationStart` is written once and never rewritten. `OPENPDF_USAGE=business|personal` overrides all of it
 for tests and screenshots (`--shot-settings`, `--shot-license-notice`), which
 report the state they find rather than declaring one.
 

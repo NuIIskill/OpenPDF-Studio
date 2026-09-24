@@ -85,10 +85,10 @@ void HoverHighlight::showAt(const QPoint &canvasPos)
 
     QString tip = label;
     if (!item.fontFamily.isEmpty() && item.fontSizePt > 0.0)
-        tip += QStringLiteral(" — %1 %2 pt").arg(item.fontFamily)
+        tip += QStringLiteral(" · %1 %2 pt").arg(item.fontFamily)
                    .arg(qRound(item.fontSizePt));
     else if (item.fontSizePt > 0.0)
-        tip += QStringLiteral(" — %1 pt").arg(qRound(item.fontSizePt));
+        tip += QStringLiteral(" · %1 pt").arg(qRound(item.fontSizePt));
     if (!item.fieldName.isEmpty())
         tip += QStringLiteral(" (%1)").arg(item.fieldName);
 

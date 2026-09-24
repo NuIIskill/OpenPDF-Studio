@@ -242,7 +242,7 @@ Please use a build that includes Qt6::Pdf support.
     <message>
         <location filename="../../src/ui/organizer/PdfOrganizerDialog.cpp" line="165"/>
         <location filename="../../src/ui/organizer/PdfOrganizerDialog.cpp" line="806"/>
-        <source>PDF Organizer — OpenPDF Studio</source>
+        <source>PDF Organizer · OpenPDF Studio</source>
         <translation type="unfinished"></translation>
     </message>
     <message>

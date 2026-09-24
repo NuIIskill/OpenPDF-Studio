@@ -4,6 +4,7 @@
 #include "rich-media/engine/MediaAsset.hpp"
 #include "rich-media/engine/MediaSpec.hpp"
 
+#include <QByteArray>
 #include <QList>
 
 /// Media inserted or dropped but not yet saved.
@@ -23,6 +24,9 @@ public:
 
     bool isEmpty() const { return m_inserts.isEmpty() && m_removals.isEmpty(); }
     void clear();
+
+    QByteArray toBytes() const;
+    static MediaSession fromBytes(const QByteArray &bytes);
 
 private:
     QList<MediaSpec>  m_inserts;

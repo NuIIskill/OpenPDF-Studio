@@ -1,8 +1,6 @@
 target_sources(OpenPDFStudio PRIVATE
     BookmarkWriter.cpp
     BookmarkWriter.hpp
-    DocumentJournal.cpp
-    DocumentJournal.hpp
     DocumentSource.cpp
     DocumentSource.hpp
     OrganizerDoc.hpp

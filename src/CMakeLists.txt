@@ -5,6 +5,7 @@ target_sources(OpenPDFStudio PRIVATE
 )
 
 add_subdirectory(app)
+add_subdirectory(cli)
 add_subdirectory(drm)
 add_subdirectory(engine)
 add_subdirectory(ui)

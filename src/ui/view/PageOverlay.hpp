@@ -1,5 +1,6 @@
 #pragma once
 
+#include <QByteArray>
 #include <QList>
 #include <QPoint>
 #include <QString>
@@ -40,6 +41,22 @@ public:
     }
 
     virtual bool writeTo(const QString &stagingPath) { Q_UNUSED(stagingPath) return true; }
+
+    virtual QString stateKey() const { return {}; }
+
+    virtual QByteArray state() const { return {}; }
+
+    virtual void restoreState(const QByteArray &state) { Q_UNUSED(state) }
+
+    void setChangeReporter(std::function<void(const QString &title, int page)> reporter)
+    { m_reportChange = std::move(reporter); }
+
+protected:
+    void reportChange(const QString &title, int page) const
+    { if (m_reportChange) m_reportChange(title, page); }
+
+private:
+    std::function<void(const QString &title, int page)> m_reportChange;
 };
 
 /// Layers contributed by optional parts of the program.

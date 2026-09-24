@@ -8,6 +8,7 @@
 #include "ui/bars/FormatBar.hpp"
 #include "ui/draw/DrawBar.hpp"
 #include "ui/bars/StatusBar.hpp"
+#include "ui/SaveIndicator.hpp"
 #include "ui/panels/LeftSidebar.hpp"
 #include "ui/panels/ToolPanels.hpp"
 #include "ui/panels/RightSidebar.hpp"
@@ -184,6 +185,8 @@ void MainWindow::buildUi()
 
     m_statusBar = new StatusBar(central);
     root->addWidget(m_statusBar);
+
+    m_saveIndicator = new SaveIndicator(m_docStack);
 
     addDocView();
 }
@@ -591,6 +594,8 @@ void MainWindow::restoreSession()
             ? dv->openFile(doc.target)
             : dv->openWorkingCopy(doc.content, doc.target);
         if (!opened) continue;
+        if (!doc.history.isEmpty() && !dv->adoptTimeline(doc.history))
+            SessionRecovery::discard({ QString(), QString(), doc.history });
 
         const int page = doc.page;
         QMetaObject::invokeMethod(dv, [dv, page] { dv->goToPage(page); },
@@ -608,13 +613,15 @@ bool MainWindow::saveDocument(DocumentView *dv, const QString &path)
     if (dv->saveToFile(path)) {
         const int i = m_docViews.indexOf(dv);
         if (i >= 0) m_topToolbar->setTabLabel(i, dv->displayName());
+        m_saveIndicator->flash(QFileInfo(path).fileName());
+        m_topToolbar->flashSaved();
         return true;
     }
 
     QMessageBox::warning(
         this, tr("Save failed"),
         tr("Could not write \"%1\".\n\nThe file may be write-protected or "
-           "open in another program. The document is unchanged — try saving "
+           "open in another program. The document is unchanged. Try saving "
            "it under a different name.")
             .arg(QFileInfo(path).fileName()));
     return false;
@@ -842,22 +849,22 @@ void MainWindow::openHistoryDialog()
     dlg->setAttribute(Qt::WA_DeleteOnClose);
 
     const auto syncButtons = [dv, dlg]() {
-        dlg->setUndoRedoAvailable(dv->undoStack()->canUndo(),
-                                  dv->undoStack()->canRedo());
+        const DocumentHistory *history = dv->history();
+        dlg->setUndoRedoAvailable(history->canRestore(history->currentIndex() - 1),
+                                  history->canRestore(history->currentIndex() + 1));
     };
     syncButtons();
-    connect(dv->undoStack(), &QUndoStack::canUndoChanged, dlg, syncButtons);
-    connect(dv->undoStack(), &QUndoStack::canRedoChanged, dlg, syncButtons);
+    connect(dv->history(), &DocumentHistory::changed, dlg, syncButtons);
 
     connect(dlg, &HistoryDialog::undoRequested, this, &MainWindow::onUndo);
     connect(dlg, &HistoryDialog::redoRequested, this, &MainWindow::onRedo);
     connect(dlg, &HistoryDialog::clearRequested, dv, [dv]() {
-        dv->history()->clear();
+        dv->clearHistory();
     });
     connect(dlg, &HistoryDialog::restoreRequested, this, [this, dv, dlg](int index) {
         if (dv->restoreHistoryState(index)) return;
         QMessageBox::warning(dlg, tr("Change history"),
-                             tr("This state could not be restored — the copy of "
+                             tr("This state could not be restored. The copy of "
                                 "the document it was kept in is no longer there."));
     });
     connect(dlg, &QDialog::finished, this, [this]() {

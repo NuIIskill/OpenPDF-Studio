@@ -118,9 +118,9 @@ void ExportDialog::updateOptionAvailability()
     if (m_compressChk)  m_compressChk->setEnabled(true);
 
     const QString pdfOnly = !pdfExportAvailable()
-        ? tr("Not available in this build — rewriting a PDF's annotations, "
+        ? tr("Not available in this build: rewriting a PDF's annotations, "
              "forms, fonts or encryption needs qpdf.")
-        : tr("Only available when exporting as PDF — a %1 file has no "
+        : tr("Only available when exporting as PDF. A %1 file has no "
              "equivalent.").arg(m_selectedFormat == QLatin1String("word")
                                     ? tr("Word") : tr("PNG"));
     for (QCheckBox *box : { m_commentsChk, m_formsChk, m_fontsChk, m_passwordChk })
@@ -131,14 +131,14 @@ void ExportDialog::updateEstimate()
 {
     if (!m_sizeLabel) return;
     if (m_currentFile.isEmpty() || m_sourceBytes <= 0) {
-        m_sizeLabel->setText(tr("Estimated file size: —"));
+        m_sizeLabel->setText(tr("Estimated file size: unknown"));
         return;
     }
 
     bool rangeOk = true;
     if (m_rangeRadio && m_rangeRadio->isChecked()) parseRange(&rangeOk);
     if (!rangeOk) {
-        m_sizeLabel->setText(tr("Estimated file size: — (check the page range)"));
+        m_sizeLabel->setText(tr("Estimated file size: unknown (check the page range)"));
         return;
     }
 
@@ -476,7 +476,7 @@ void ExportDialog::applyDialogStyle()
         QWidget#XFooter {
             border-top: 1px solid palette(mid);
         }
-        /* palette(mid) is a border shade, not a text shade — against the
+        /* palette(mid) is a border shade, not a text shade. Against the
            footer it came out barely legible. windowText carries the theme's
            actual contrast in both light and dark. */
         QLabel#XSizeLabel {
@@ -693,7 +693,7 @@ QWidget *ExportDialog::buildFooter()
     auto *fl = new QHBoxLayout(footer);
     fl->setContentsMargins(28, 0, 28, 0);
     fl->setSpacing(12);
-    m_sizeLabel = new QLabel(tr("Estimated file size: —"));
+    m_sizeLabel = new QLabel(tr("Estimated file size: unknown"));
     m_sizeLabel->setObjectName(QStringLiteral("XSizeLabel"));
     fl->addWidget(m_sizeLabel, 1);
     auto *cancelBtn = new QPushButton(tr("Cancel"));

@@ -9,7 +9,7 @@
 # DirectShow with MFPlay behind it, both part of Windows itself.
 #
 # Zwei Abhängigkeiten kommen NICHT aus den Fedora-Paketen und müssen einmalig
-# beschafft werden — ohne sie fehlen ganze Funktionen:
+# beschafft werden. Ohne sie fehlen ganze Funktionen:
 #
 #   packaging/fetch-pdfium.sh                  PDF-Anzeige, -Text und -Speichern
 #   packaging/windows/build-qpdf-mingw.sh      PDF-Export mit Optionen, Organizer
@@ -50,21 +50,21 @@ fi
 
 # ── Cross-gebaute Abhängigkeiten ─────────────────────────────────────────────
 # Fedora liefert kein mingw64-qpdf. Ohne qpdf fehlen im Windows-Build der
-# PDF-Export mit Optionen und der vektorielle Save des Organizers — beides
+# PDF-Export mit Optionen und der vektorielle Save des Organizers, beides
 # ersatzlos, nicht bloß eingeschränkt.
 QPDF_PREFIX="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/third_party/mingw64"
 MINGW_SYSROOT="${MINGW_SYSROOT:-/usr/x86_64-w64-mingw32/sys-root/mingw}"
 if [[ -f "${QPDF_PREFIX}/lib/cmake/qpdf/qpdfConfig.cmake" ]]; then
     echo "==> qpdf: ${QPDF_PREFIX}"
     # Weder CMAKE_PREFIX_PATH noch CMAKE_FIND_ROOT_PATH helfen hier:
-    # die mingw-Toolchain setzt CMAKE_FIND_ROOT_PATH_MODE_PACKAGE auf ONLY —
-    # damit sucht find_package() nur noch unterhalb von CMAKE_FIND_ROOT_PATH —
+    # die mingw-Toolchain setzt CMAKE_FIND_ROOT_PATH_MODE_PACKAGE auf ONLY
+    # (damit sucht find_package() nur noch unterhalb von CMAKE_FIND_ROOT_PATH)
     # und überschreibt diesen Pfad anschließend mit einem schlichten SET(),
     # das auch ein -D von der Kommandozeile aussticht. Ein direkt gesetztes
     # <Paket>_DIR wird dagegen unverändert verwendet.
     PREFIX_ARGS=(-Dqpdf_DIR="${QPDF_PREFIX}/lib/cmake/qpdf")
 else
-    echo "==> qpdf: nicht gebaut — PDF-Export und Organizer-Vektorsave fehlen."
+    echo "==> qpdf: nicht gebaut. PDF-Export und Organizer-Vektorsave fehlen."
     echo "    Bauen mit: packaging/windows/build-qpdf-mingw.sh"
     PREFIX_ARGS=()
 fi
@@ -96,7 +96,7 @@ if [[ -d "$QT_BIN" ]]; then
     # the sysroot. What is not in the sysroot is a Windows system DLL and stays
     # where it is.
     #
-    # Runs after the plugins are in place — see deploy_dependencies below.
+    # Runs after the plugins are in place, see deploy_dependencies below.
     deploy_dependencies() {
         local objdump=x86_64-w64-mingw32-objdump
         command -v "$objdump" >/dev/null || { echo "  WARNUNG: kein $objdump"; return; }
@@ -167,12 +167,12 @@ if [[ -d "$QT_BIN" ]]; then
         cp -u "${PLUGIN_DIR}/styles/"*.dll "${BUILD_DIR}/styles/" 2>/dev/null || true
     fi
 
-    # TLS-Backend — ohne das Plugin scheitert jedes https, und die
+    # TLS-Backend: ohne das Plugin scheitert jedes https, und die
     # Update-Prüfung ist die einzige Verbindung, die das Programm aufbaut.
     # Nur Schannel: das nimmt Windows' eigenen Zertifikatsspeicher und braucht
     # keine mitgelieferte CA-Liste. Das OpenSSL-Backend bliebe ohne
     # libssl-3-x64.dll ohnehin ungeladen. (libcrypto-3-x64.dll oben ist davon
-    # unabhängig — Qt6Network.dll importiert sie fest, ohne sie startet die
+    # unabhängig: Qt6Network.dll importiert sie fest, ohne sie startet die
     # .exe gar nicht.)
     if [[ -d "${PLUGIN_DIR}/tls" ]]; then
         mkdir -p "${BUILD_DIR}/tls"
@@ -207,7 +207,7 @@ if [[ -d "$QT_BIN" ]]; then
 
     echo "==> Deploy complete."
 else
-    echo "==> WARN: Qt bin dir not found at ${QT_BIN} — skipping DLL deploy."
+    echo "==> WARN: Qt bin dir not found at ${QT_BIN}, skipping DLL deploy."
 fi
 
 echo "==> Done: ${BUILD_DIR}/OpenPDFStudio.exe"

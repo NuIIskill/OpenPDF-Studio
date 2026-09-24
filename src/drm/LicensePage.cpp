@@ -159,8 +159,8 @@ void LicensePage::refreshStatus()
         const int left = License::evaluationDaysLeft();
         if (left > 0) {
             m_statusTitle->setText(left == 1
-                ? tr("Evaluation — 1 day left")
-                : tr("Evaluation — %1 days left").arg(left));
+                ? tr("Evaluation: 1 day left")
+                : tr("Evaluation: %1 days left").arg(left));
             m_statusDesc->setText(
                 tr("Business use is free to evaluate for %1 days. No key needed yet.")
                     .arg(License::kEvaluationDays));

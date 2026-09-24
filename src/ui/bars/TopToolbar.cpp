@@ -8,6 +8,7 @@
 #include <QPushButton>
 #include <QScrollArea>
 #include <QScrollBar>
+#include <QTimer>
 
 TopToolbar::TopToolbar(QWidget *parent)
     : QWidget(parent)
@@ -34,6 +35,12 @@ void TopToolbar::setViewMode(bool gridView)
 {
     m_viewSingleBtn->setChecked(!gridView);
     m_viewGridBtn->setChecked(gridView);
+}
+
+void TopToolbar::flashSaved()
+{
+    m_saveBtn->setIconName(QStringLiteral("save"), Theme::Success);
+    m_saveFlash->start();
 }
 
 void TopToolbar::refreshTheme()
@@ -252,6 +259,12 @@ void TopToolbar::buildLayout()
     m_saveBtn->setIconName(QStringLiteral("save"));
     m_saveBtn->setToolTip(tr("Save"));
     connect(m_saveBtn, &QPushButton::clicked, this, &TopToolbar::saveRequested);
+    m_saveFlash = new QTimer(this);
+    m_saveFlash->setSingleShot(true);
+    m_saveFlash->setInterval(1800);
+    connect(m_saveFlash, &QTimer::timeout, this, [this] {
+        m_saveBtn->setIconName(QStringLiteral("save"), Theme::IconNormal);
+    });
     layout->addWidget(m_saveBtn);
 
     m_printBtn = new IconButton(this);

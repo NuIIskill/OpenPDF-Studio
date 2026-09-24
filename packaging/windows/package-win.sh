@@ -4,7 +4,7 @@
 #   2. dist/OpenPDF-Studio-<version>-Setup.exe            (Installer mit Uninstaller)
 #
 # Voraussetzungen:
-#   - build-win/ mit fertigem Cross-Build (./build-win.sh) — wird sonst automatisch gebaut
+#   - build-win/ mit fertigem Cross-Build (./build-win.sh), wird sonst automatisch gebaut
 #   - makensis:  natives Paket (dnf install mingw32-nsis)  ODER
 #                NSIS-Windows-Distribution unter ~/.cache/openpdf-studio/nsis/makensis.exe (via Wine)
 #                → wird bei Bedarf automatisch heruntergeladen
@@ -22,7 +22,7 @@ echo "==> OpenPDF Studio $VERSION (win64)"
 
 # ── 0. Build sicherstellen ────────────────────────────────────────────────────
 if [[ ! -f "$BUILD_DIR/OpenPDFStudio.exe" ]]; then
-    echo "==> Kein Windows-Build gefunden — starte ./build-win.sh"
+    echo "==> Kein Windows-Build gefunden, starte ./build-win.sh"
     (cd "$ROOT" && ./build-win.sh)
 fi
 
@@ -37,7 +37,7 @@ cp "$BUILD_DIR"/*.dll "$APP_DIR/"
 for d in platforms imageformats iconengines styles tls networkinformation etc share; do
     [[ -d "$BUILD_DIR/$d" ]] && cp -r "$BUILD_DIR/$d" "$APP_DIR/"
 done
-# LICENSE ist nur die Übersicht und verweist auf LICENSES/ — beides mitgeben,
+# LICENSE ist nur die Übersicht und verweist auf LICENSES/. Beides mitgeben,
 # sonst zeigt der Installer eine Lizenz, deren Volltexte fehlen. Im
 # Installationsordner, nicht im Startmenü: Lizenztexte sind zum Nachschlagen da,
 # nicht zum Anklicken.
@@ -46,12 +46,12 @@ cp -r "$ROOT/LICENSES" "$APP_DIR/"
 
 # Bis August 2026 stand hier eine Fallunterscheidung: ein gegen Poppler
 # gelinktes Binary durfte nur unter der GPL verteilt werden, ein Qt6::Pdf-Build
-# auch kommerziell. Beide Backends sind durch PDFium ersetzt (BSD-3-Clause) —
+# auch kommerziell. Beide Backends sind durch PDFium ersetzt (BSD-3-Clause),
 # es gibt nur noch einen Build und nur noch eine Lizenzlage.
 NSIS_LICENSE_FLAGS=()
 
 # GPLv3 §6 verlangt den zugehörigen Quelltext. Für die Binärpakete genügt der
-# Verweis auf das öffentliche Repository — samt Commit, damit "zugehörig" auch
+# Verweis auf das öffentliche Repository samt Commit, damit "zugehörig" auch
 # stimmt.
 COMMIT="$(git -C "$ROOT" rev-parse --short HEAD 2>/dev/null || echo "unbekannt / unknown")"
 {
@@ -66,7 +66,7 @@ COMMIT="$(git -C "$ROOT" rev-parse --short HEAD 2>/dev/null || echo "unbekannt /
 } > "$APP_DIR/SOURCE.txt"
 
 # Portable-Modus ist eine Datei, keine Einstellung: liegt config.ini neben der
-# .exe, speichert das Programm dort statt im Benutzerprofil. Nur ins ZIP — im
+# .exe, speichert das Programm dort statt im Benutzerprofil. Nur ins ZIP: im
 # Installationsordner wäre sie nicht beschreibbar und damit wirkungslos.
 cat > "$APP_DIR/config.ini" <<'INI'
 ; OpenPDF Studio — portable Konfiguration / portable configuration
@@ -76,7 +76,7 @@ cat > "$APP_DIR/config.ini" <<'INI'
 ; As long as this file sits next to OpenPDFStudio.exe, the program keeps all
 ; its settings here instead of in the user profile.
 ;
-; Hinweis: das Programm schreibt die Datei beim Beenden neu — diese
+; Hinweis: das Programm schreibt die Datei beim Beenden neu. Diese
 ; Kommentarzeilen verschwinden dabei.
 INI
 
@@ -90,7 +90,7 @@ rm -f "$PORTABLE_ZIP"
 echo "==> Portable: $PORTABLE_ZIP ($(du -h "$PORTABLE_ZIP" | cut -f1))"
 
 # ── 3. Setup.exe via NSIS ─────────────────────────────────────────────────────
-# Ab hier baut NSIS aus demselben Staging — ohne die portable config.ini.
+# Ab hier baut NSIS aus demselben Staging, ohne die portable config.ini.
 rm -f "$APP_DIR/config.ini"
 
 SETUP_EXE="$DIST_DIR/OpenPDF-Studio-$VERSION-Setup.exe"
@@ -140,7 +140,7 @@ run_makensis
 echo "==> Setup:    $SETUP_EXE ($(du -h "$SETUP_EXE" | cut -f1))"
 
 echo
-echo "Fertig — Artefakte in dist/:"
+echo "Fertig. Artefakte in dist/:"
 echo "  • $(basename "$PORTABLE_ZIP")  (entpacken, OpenPDFStudio.exe starten)"
 echo "  • $(basename "$SETUP_EXE")  (Installer inkl. Uninstaller)"
 echo

@@ -20,11 +20,11 @@ OcrEngine::OcrEngine()
         m_api   = api;
         m_ready = true;
     } else if (api->Init(nullptr, "eng") == 0) {
-        qDebug() << "[OCR] Tesseract ready (eng only — install tesseract-langpack-deu for German)";
+        qDebug() << "[OCR] Tesseract ready (eng only, install tesseract-langpack-deu for German)";
         m_api   = api;
         m_ready = true;
     } else {
-        qWarning() << "[OCR] Tesseract init failed — install tesseract + tesseract-langpack-eng";
+        qWarning() << "[OCR] Tesseract init failed, install tesseract + tesseract-langpack-eng";
         delete api;
     }
 #endif

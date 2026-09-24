@@ -30,11 +30,11 @@ class FindController;
 class TextSelectionController;
 class ZoomController;
 
-#include "engine/document/DocumentJournal.hpp"
+#include "engine/historymanager/DocumentJournal.hpp"
 #include "engine/document/PdfBookmark.hpp"
 #include "engine/document/DocumentSource.hpp"
 #include "ui/edit/EditController.hpp"
-#include "app/DocumentHistory.hpp"
+#include "engine/historymanager/DocumentHistory.hpp"
 #include "engine/ocr/OcrEngine.hpp"
 #include "engine/export/DocxExporter.hpp"
 #include "engine/export/DocumentExporter.hpp"
@@ -99,16 +99,12 @@ public:
     void   setDrawColor(const QColor &color);
     void   setDrawWidth(qreal widthPt);
 
-    QString     currentFile()      const
-    {
-        if (m_journal.workingCopyDirty && m_journal.targetPath.isEmpty()) return {};
-        return m_journal.targetPath.isEmpty() ? m_src->contentPath() : m_journal.targetPath;
-    }
+    QString     currentFile()      const { return m_journal.currentFile(); }
 
     QString     contentFile()      const { return m_src->contentPath(); }
 
     /// Where an imported document would be saved, empty for everything else.
-    QString     suggestedSavePath() const { return m_journal.suggestedPath; }
+    QString     suggestedSavePath() const { return m_journal.suggestedPath(); }
 
     /// What to call the document in the interface.
     QString     displayName() const;
@@ -129,11 +125,13 @@ public:
     QRectF editFrameRect() const;
     double editFontSizePt() const;
 
-    DocumentHistory *history()     const { return m_journal.history(); }
+    const DocumentHistory *history() const { return m_journal.history(); }
 
     bool        restoreHistoryState(int index);
-    bool        hasUnsavedEdits()  const
-    { return m_journal.hasUnsavedEdits() || m_bookmarksDirty; }
+    void        clearHistory();
+    bool        writeTimeline(const QString &path);
+    bool        adoptTimeline(const QString &path);
+    bool        hasUnsavedEdits()  const { return m_journal.hasUnsavedEdits(); }
     bool        pdfRenderingAvailable() const;
     QList<DocxPage> allPageContent(const QList<int> &pages = {});
     bool exportPagesToImages(const QString &outputPath, int quality = 85,
@@ -249,7 +247,11 @@ private:
     void reportCurrentPage();
     void scrollToPage(int page, bool allowRetry);
 
-    QList<DocumentHistory::ImageState> imageStates() const;
+    bool   openContent(const QString &path, const QString &suggestedPath,
+                       const DocumentHistory::Change &change);
+
+    DocumentHistory::DocumentState documentState() const;
+    void   applyState(const DocumentHistory::DocumentState &state);
 
     QWidget     *m_canvas    { nullptr };
     QVBoxLayout *m_layout    { nullptr };

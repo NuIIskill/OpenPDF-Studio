@@ -76,5 +76,6 @@
         <file>icons/export-pdf.svg</file>
         <file>icons/export-pdfa.svg</file>
         <file>icons/grip-vertical.svg</file>
+        <file>icons/check.svg</file>
     </qresource>
 </RCC>

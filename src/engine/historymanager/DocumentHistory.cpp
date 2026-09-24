@@ -1,4 +1,4 @@
-#include "app/DocumentHistory.hpp"
+#include "engine/historymanager/DocumentHistory.hpp"
 #include "app/SessionStore.hpp"
 
 #include <QFile>
@@ -14,7 +14,7 @@ DocumentHistory::~DocumentHistory()
 }
 
 void DocumentHistory::record(const Change &c, int undoIndex,
-                             const QList<ImageState> &images,
+                             const DocumentState &state,
                              const QString &snapshotSource, Snapshot mode)
 {
 
@@ -37,7 +37,7 @@ void DocumentHistory::record(const Change &c, int undoIndex,
     e.value     = c.value;
     e.text      = c.text;
     e.undoIndex = undoIndex;
-    e.images    = images;
+    e.state     = state;
     e.base      = m_entries.isEmpty() ? m_baseCounter : m_entries.last().base;
     if (!snapshotSource.isEmpty()) {
 
@@ -74,18 +74,29 @@ void DocumentHistory::setCurrentIndex(int index)
     Q_EMIT changed();
 }
 
-int DocumentHistory::indexForUndoIndex(int undoIndex) const
+void DocumentHistory::setUndoDepth(int depth)
 {
-    if (m_entries.isEmpty()) return -1;
+    m_undoDepth = depth;
+}
 
-    const int base = m_entries[qBound(0, m_current, count() - 1)].base;
-    int fallback = -1;
-    for (int i = count() - 1; i >= 0; --i) {
-        if (m_entries[i].base != base) continue;
-        fallback = i;
-        if (m_entries[i].undoIndex <= undoIndex) return i;
-    }
-    return fallback;
+bool DocumentHistory::currentIsAnchored() const
+{
+    if (m_current < 0) return false;
+
+    const bool hasFile = !baseFileFor(m_current).isEmpty()
+        || (m_pendingEntry >= 0 && m_entries[m_pendingEntry].base == m_entries[m_current].base);
+    return hasFile && m_entries[m_current].undoIndex == anchorUndoIndex(m_current);
+}
+
+void DocumentHistory::anchorCurrent(const QString &snapshot, const DocumentState &state)
+{
+    if (m_current < 0 || snapshot.isEmpty()) return;
+
+    Entry &e    = m_entries[m_current];
+    e.snapshot  = snapshot;
+    e.state     = state;
+    e.undoIndex = 0;
+    e.base      = ++m_baseCounter;
 }
 
 QString DocumentHistory::baseFileFor(int index) const
@@ -108,7 +119,8 @@ bool DocumentHistory::restoringDropsEdits(int index) const
 bool DocumentHistory::canRestore(int index) const
 {
     if (index < 0 || index >= m_entries.size() || m_current < 0) return false;
-    if (m_entries[index].base == m_entries[m_current].base) return true;
+    if (m_entries[index].base == m_entries[m_current].base)
+        return m_entries[index].undoIndex <= m_undoDepth;
     if (baseFileFor(index).isEmpty()) return false;
 
     return m_entries[index].undoIndex == anchorUndoIndex(index);
@@ -154,6 +166,38 @@ void DocumentHistory::reset()
     m_current = -1;
     m_pendingEntry = -1;
     m_pendingSource.clear();
+    Q_EMIT changed();
+}
+
+void DocumentHistory::adopt(QList<Entry> entries, int current,
+                            const QString &currentSource,
+                            const DocumentState &currentState, int undoIndex)
+{
+    reset();
+    if (entries.isEmpty()) return;
+
+    current = qBound(0, current, static_cast<int>(entries.size()) - 1);
+    while (entries.size() > current + 1)
+        SessionStore::discardSnapshot(entries.takeLast().snapshot);
+
+    for (Entry &e : entries) {
+        if (!e.snapshot.isEmpty() && !QFile::exists(e.snapshot)) e.snapshot.clear();
+        m_baseCounter = qMax(m_baseCounter, e.base);
+    }
+
+    Entry &now = entries[current];
+    SessionStore::discardSnapshot(now.snapshot);
+    now.snapshot.clear();
+    now.state     = currentState;
+    now.undoIndex = undoIndex;
+    now.base      = ++m_baseCounter;
+
+    m_entries = std::move(entries);
+    m_current = current;
+    if (!currentSource.isEmpty()) {
+        m_pendingEntry  = current;
+        m_pendingSource = currentSource;
+    }
     Q_EMIT changed();
 }
 

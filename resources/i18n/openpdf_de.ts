@@ -110,12 +110,12 @@ Bitte einen Build mit Qt6::Pdf-Unterstützung verwenden.
     </message>
     <message>
         <location filename="../../src/ui/dialogs/ExportDialog.cpp" line="137"/>
-        <source>Not available in this build — rewriting a PDF&apos;s annotations, forms, fonts or encryption needs qpdf.</source>
+        <source>Not available in this build: rewriting a PDF&apos;s annotations, forms, fonts or encryption needs qpdf.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
         <location filename="../../src/ui/dialogs/ExportDialog.cpp" line="139"/>
-        <source>Only available when exporting as PDF — a %1 file has no equivalent.</source>
+        <source>Only available when exporting as PDF. A %1 file has no equivalent.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
@@ -130,7 +130,7 @@ Bitte einen Build mit Qt6::Pdf-Unterstützung verwenden.
     </message>
     <message>
         <location filename="../../src/ui/dialogs/ExportDialog.cpp" line="157"/>
-        <source>Estimated file size: — (check the page range)</source>
+        <source>Estimated file size: unknown (check the page range)</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
@@ -331,7 +331,7 @@ Bitte einen Build mit Qt6::Pdf-Unterstützung verwenden.
     <message>
         <location filename="../../src/ui/dialogs/ExportDialog.cpp" line="150"/>
         <location filename="../../src/ui/dialogs/ExportDialog.cpp" line="720"/>
-        <source>Estimated file size: —</source>
+        <source>Estimated file size: unknown</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
@@ -498,8 +498,8 @@ Use page numbers like 1-3, 5, 8-10.</source>
     <message>
         <location filename="../../src/ui/dialogs/HistoryDialog.cpp" line="191"/>
         <location filename="../../src/ui/dialogs/HistoryDialog.cpp" line="316"/>
-        <source>Change history — OpenPDF Studio</source>
-        <translation>Änderungsverlauf — OpenPDF Studio</translation>
+        <source>Change history · OpenPDF Studio</source>
+        <translation>Änderungsverlauf · OpenPDF Studio</translation>
     </message>
     <message>
         <location filename="../../src/ui/dialogs/HistoryDialog.cpp" line="292"/>
@@ -511,10 +511,10 @@ Use page numbers like 1-3, 5, 8-10.</source>
         <location filename="../../src/ui/dialogs/HistoryDialog.cpp" line="293"/>
         <source>Forget every recorded step except the one the document is at?
 
-The document itself is not changed — only the list of states you can go back to.</source>
+The document itself is not changed, only the list of states you can go back to.</source>
         <translation>Alle aufgezeichneten Schritte außer dem aktuellen Stand vergessen?
 
-Das Dokument selbst wird nicht verändert — nur die Liste der Stände, zu denen du zurückkehren kannst.</translation>
+Das Dokument selbst wird nicht verändert, nur die Liste der Stände, zu denen du zurückkehren kannst.</translation>
     </message>
     <message>
         <location filename="../../src/ui/dialogs/HistoryDialog.cpp" line="317"/>
@@ -529,7 +529,7 @@ Das Dokument selbst wird nicht verändert — nur die Liste der Stände, zu dene
     <message>
         <location filename="../../src/ui/dialogs/HistoryDialog.cpp" line="320"/>
         <source>Every change made to &quot;%1&quot;, newest first.</source>
-        <translation>Hier siehst du alle Änderungen an „%1“ — die neueste zuerst.</translation>
+        <translation>Hier siehst du alle Änderungen an „%1“, die neueste zuerst.</translation>
     </message>
     <message>
         <location filename="../../src/ui/dialogs/HistoryDialog.cpp" line="321"/>
@@ -809,8 +809,8 @@ Text-, Bild- und Zeichenbearbeitungen seit damals stehen in keiner Datei und geh
         <translation>Für die geschäftliche Nutzung ist eine Lizenz erforderlich. Bitte einen Lizenzschlüssel eingeben.</translation>
     </message>
     <message>
-        <source>OpenPDF Studio keeps working as before. Business use needs a Business License — you can enter the key in the settings.</source>
-        <translation type="vanished">OpenPDF Studio läuft unverändert weiter. Für die geschäftliche Nutzung ist eine Business-Lizenz nötig — der Schlüssel lässt sich in den Einstellungen eintragen.</translation>
+        <source>OpenPDF Studio keeps working as before. Business use needs a Business License. You can enter the key in the settings.</source>
+        <translation type="vanished">OpenPDF Studio läuft unverändert weiter. Für die geschäftliche Nutzung ist eine Business-Lizenz nötig. Der Schlüssel lässt sich in den Einstellungen eintragen.</translation>
     </message>
     <message>
         <location filename="../../src/drm/LicenseNotice.cpp" line="56"/>
@@ -851,13 +851,13 @@ Text-, Bild- und Zeichenbearbeitungen seit damals stehen in keiner Datei und geh
     </message>
     <message>
         <location filename="../../src/drm/LicensePage.cpp" line="169"/>
-        <source>Evaluation — 1 day left</source>
-        <translation>Evaluierung — noch 1 Tag</translation>
+        <source>Evaluation: 1 day left</source>
+        <translation>Evaluierung: noch 1 Tag</translation>
     </message>
     <message>
         <location filename="../../src/drm/LicensePage.cpp" line="170"/>
-        <source>Evaluation — %1 days left</source>
-        <translation>Evaluierung — noch %1 Tage</translation>
+        <source>Evaluation: %1 days left</source>
+        <translation>Evaluierung: noch %1 Tage</translation>
     </message>
     <message>
         <location filename="../../src/drm/LicensePage.cpp" line="172"/>
@@ -870,8 +870,8 @@ Text-, Bild- und Zeichenbearbeitungen seit damals stehen in keiner Datei und geh
         <translation>Evaluierungszeitraum abgelaufen</translation>
     </message>
     <message>
-        <source>Business use needs a license key. OpenPDF Studio keeps working either way — nothing is switched off.</source>
-        <translation type="vanished">Geschäftliche Nutzung braucht einen Lizenzschlüssel. OpenPDF Studio läuft in jedem Fall weiter — nichts wird abgeschaltet.</translation>
+        <source>Business use needs a license key. OpenPDF Studio keeps working either way. Nothing is switched off.</source>
+        <translation type="vanished">Geschäftliche Nutzung braucht einen Lizenzschlüssel. OpenPDF Studio läuft in jedem Fall weiter. Nichts wird abgeschaltet.</translation>
     </message>
     <message>
         <location filename="../../src/drm/LicensePage.cpp" line="177"/>
@@ -1007,8 +1007,8 @@ Text-, Bild- und Zeichenbearbeitungen seit damals stehen in keiner Datei und geh
         <translation type="vanished">Die %1-tägige Evaluierung für die geschäftliche Nutzung ist abgelaufen.</translation>
     </message>
     <message>
-        <source>OpenPDF Studio keeps working as before. Business use needs a Business License — you can enter the key in the settings.</source>
-        <translation type="vanished">OpenPDF Studio läuft unverändert weiter. Für die geschäftliche Nutzung ist eine Business-Lizenz nötig — der Schlüssel lässt sich in den Einstellungen eintragen.</translation>
+        <source>OpenPDF Studio keeps working as before. Business use needs a Business License. You can enter the key in the settings.</source>
+        <translation type="vanished">OpenPDF Studio läuft unverändert weiter. Für die geschäftliche Nutzung ist eine Business-Lizenz nötig. Der Schlüssel lässt sich in den Einstellungen eintragen.</translation>
     </message>
     <message>
         <source>Enter license key</source>
@@ -1027,7 +1027,7 @@ Text-, Bild- und Zeichenbearbeitungen seit damals stehen in keiner Datei und geh
         <location filename="../../src/ui/MainWindow.cpp" line="388"/>
         <source>Could not write &quot;%1&quot;.
 
-The file may be write-protected or open in another program. The document is unchanged — try saving it under a different name.</source>
+The file may be write-protected or open in another program. The document is unchanged. Try saving it under a different name.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
@@ -1043,8 +1043,8 @@ The file may be write-protected or open in another program. The document is unch
     </message>
     <message>
         <location filename="../../src/ui/MainWindow.cpp" line="639"/>
-        <source>This state could not be restored — the copy of the document it was kept in is no longer there.</source>
-        <translation>Dieser Stand konnte nicht wiederhergestellt werden — die Kopie des Dokuments, in der er lag, ist nicht mehr vorhanden.</translation>
+        <source>This state could not be restored. The copy of the document it was kept in is no longer there.</source>
+        <translation>Dieser Stand konnte nicht wiederhergestellt werden. Die Kopie des Dokuments, in der er lag, ist nicht mehr vorhanden.</translation>
     </message>
     <message>
         <location filename="../../src/ui/MainWindow.cpp" line="665"/>
@@ -1133,8 +1133,8 @@ Enter the password to open it:</source>
     <message>
         <location filename="../../src/ui/dialogs/PdfOrganizerDialog.cpp" line="356"/>
         <location filename="../../src/ui/dialogs/PdfOrganizerDialog.cpp" line="1490"/>
-        <source>PDF Organizer — OpenPDF Studio</source>
-        <translation>PDF-Organizer — OpenPDF Studio</translation>
+        <source>PDF Organizer · OpenPDF Studio</source>
+        <translation>PDF-Organizer · OpenPDF Studio</translation>
     </message>
     <message>
         <location filename="../../src/ui/dialogs/PdfOrganizerDialog.cpp" line="528"/>
@@ -1883,6 +1883,8 @@ Enter the password to open it:</source>
     <message><source>Note removed</source><translation>Notiz entfernt</translation></message>
     <message><source>Drawing added</source><translation>Zeichnung hinzugefügt</translation></message>
     <message><source>Drawing removed</source><translation>Zeichnung entfernt</translation></message>
+    <message><source>Bookmarks changed</source><translation>Lesezeichen geändert</translation></message>
+    <message><source>Page content changed</source><translation>Seiteninhalt geändert</translation></message>
 </context>
 <context>
     <name>NoteLayer</name>

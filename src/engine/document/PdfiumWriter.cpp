@@ -150,7 +150,7 @@ bool reapplyEncryption(const QString &file, const QString &password)
 
     Q_UNUSED(file)
     qWarning() << "[PdfiumWriter] ohne qpdf kann die Verschlüsselung nicht"
-               << "wiederhergestellt werden — Speichern abgebrochen";
+               << "wiederhergestellt werden, Speichern abgebrochen";
     return password.isEmpty();
 #endif
 }
@@ -168,7 +168,7 @@ bool PdfiumWriter::save(const QString &sourcePath, const QString &outputPath,
     FPDF_DOCUMENT doc = FPDF_LoadDocument(path.constData(),
                                           pw.isEmpty() ? nullptr : pw.constData());
     if (!doc) {
-        qWarning() << "[PdfiumWriter] konnte" << sourcePath << "nicht öffnen —"
+        qWarning() << "[PdfiumWriter] konnte" << sourcePath << "nicht öffnen,"
                    << "Fehler" << FPDF_GetLastError();
         return false;
     }

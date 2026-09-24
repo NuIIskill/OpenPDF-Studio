@@ -42,6 +42,9 @@ public:
     bool handleDroppedFile(const QString &path, int page,
                            const QPoint &canvasPosition,
                            QString *newDocument) override;
+    QString stateKey() const override;
+    QByteArray state() const override;
+    void restoreState(const QByteArray &state) override;
 
 protected:
     bool eventFilter(QObject *watched, QEvent *event) override;
@@ -61,7 +64,10 @@ private:
 
     void rebuildFrames();
     void clearFrames();
+    void loadFrames();
     void addFrame(Placed placed);
+    void markRemoved(Placed &placed, const QImage &cleanBackground);
+    void noteChanged(const QString &title, int page);
 
     void positionFrame(const Placed &placed) const;
     void ensureBackgroundPatch(Placed &placed);
@@ -109,6 +115,8 @@ private:
 
     QHash<QString, QString> m_smallerCopies;
     MediaSession   m_session;
+    mutable QByteArray m_stateCache;
+    mutable bool       m_stateCached { true };
 
     bool m_toolActive { false };
 

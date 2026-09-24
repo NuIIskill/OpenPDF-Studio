@@ -54,23 +54,23 @@ target_link_libraries(OpenPDFStudio PRIVATE
     Qt6::Core
     Qt6::Widgets
     Qt6::Gui
-    # Nur für die Update-Prüfung (app/UpdateChecker) — der einzige Netzzugriff
+    # Nur für die Update-Prüfung (app/UpdateChecker), den einzigen Netzzugriff
     # im Programm. Teil von qtbase, deshalb REQUIRED statt optional.
     Qt6::Network
 )
 
 # ── PDFium ───────────────────────────────────────────────────────────────────
 # Bezogen über packaging/fetch-pdfium.sh (Version gepinnt, Prüfsumme geprüft).
-# Dieselbe Engine, die auch in Qt6::Pdf steckt — hier ohne Qt-Hülle und auf
+# Dieselbe Engine, die auch in Qt6::Pdf steckt, hier ohne Qt-Hülle und auf
 # beiden Plattformen in derselben Version.
 #
 # Seit Schritt 10 das EINZIGE Backend: Qt6::Pdf und Poppler sind draußen. Ohne
-# PDFium kann dieser Build keine PDFs anzeigen — die Anwendung startet, aber
+# PDFium kann dieser Build keine PDFs anzeigen. Die Anwendung startet, aber
 # HAVE_PDF_RENDERING ist nicht gesetzt und jede Dokumentfunktion fehlt.
 #
 # PDFium_DIR wird direkt gesetzt statt über CMAKE_PREFIX_PATH: beim Cross-Build
 # sucht find_package() wegen CMAKE_FIND_ROOT_PATH_MODE_PACKAGE=ONLY nur noch im
-# Sysroot — ein direkt gesetztes <Paket>_DIR gilt trotzdem.
+# Sysroot. Ein direkt gesetztes <Paket>_DIR gilt trotzdem.
 if(NOT DEFINED PDFium_DIR)
     if(WIN32)
         set(PDFium_DIR "${CMAKE_CURRENT_SOURCE_DIR}/third_party/pdfium/win-x64")
@@ -80,7 +80,7 @@ if(NOT DEFINED PDFium_DIR)
 endif()
 # PDFiumConfig.cmake sucht seine Dateien mit find_path()/find_file(). Beim
 # Cross-Build beschränkt die mingw-Toolchain beide auf CMAKE_FIND_ROOT_PATH
-# (MODE_INCLUDE/LIBRARY = ONLY), und der projektlokale Prefix liegt außerhalb —
+# (MODE_INCLUDE/LIBRARY = ONLY), und der projektlokale Prefix liegt außerhalb:
 # gefunden würde dort nichts. Für diesen einen Aufruf auf BOTH stellen und
 # danach zurücksetzen; die gesuchten Namen (fpdfview.h, pdfium.dll) gibt es auf
 # dem Host nicht, es kann also nichts Falsches einsammeln.
@@ -103,7 +103,7 @@ if(PDFium_FOUND)
         set_property(TARGET OpenPDFStudio APPEND PROPERTY BUILD_RPATH "${_pdfium_libdir}")
     endif()
 else()
-    message(WARNING "PDFium fehlt — dieser Build kann keine PDFs anzeigen.\n"
+    message(WARNING "PDFium fehlt. Dieser Build kann keine PDFs anzeigen.\n"
                     "    Beheben mit: packaging/fetch-pdfium.sh")
 endif()
 
@@ -117,7 +117,7 @@ target_include_directories(OpenPDFStudio PRIVATE
 )
 
 # PkgConfig is used as a fallback for qpdf and Tesseract on native builds only.
-# Cross-compilation must not use host pkg-config — it returns Linux headers that
+# Cross-compilation must not use host pkg-config: it returns Linux headers that
 # conflict with the Windows sysroot (e.g. /usr/include/stdint.h vs MinGW types).
 if(NOT CMAKE_CROSSCOMPILING)
     find_package(PkgConfig QUIET)
@@ -131,7 +131,7 @@ if(qpdf_FOUND)
     set(OPENPDF_HAVE_QPDF TRUE)
     # qpdf::libqpdf, nicht "qpdf": der Config-Export definiert nur das Ziel mit
     # Namensraum. Ein blankes "qpdf" ist für CMake bloß ein Bibliotheksname und
-    # bringt keine Include-Pfade mit — auf Linux fällt das nicht auf, weil die
+    # bringt keine Include-Pfade mit. Auf Linux fällt das nicht auf, weil die
     # Header ohnehin unter /usr/include liegen, beim Cross-Build fehlen sie.
     target_link_libraries(OpenPDFStudio PRIVATE qpdf::libqpdf)
 elseif(PkgConfig_FOUND)
@@ -143,7 +143,7 @@ elseif(PkgConfig_FOUND)
         target_include_directories(OpenPDFStudio PRIVATE ${QPDF_INCLUDE_DIRS})
         target_link_libraries(OpenPDFStudio PRIVATE ${QPDF_LIBRARIES})
     else()
-        message(STATUS "qpdf: not found — sudo dnf install qpdf-devel for vector PDF output")
+        message(STATUS "qpdf: not found. sudo dnf install qpdf-devel for vector PDF output")
     endif()
 endif()
 
@@ -198,7 +198,7 @@ if(OPENPDF_RICH_MEDIA AND EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/modules/rich-media
         endif()
         list(JOIN _openpdf_missing " " _openpdf_missing_line)
         message(WARNING
-            "Rich Media: nicht gebaut — dieser Build kann Medien weder "
+            "Rich Media: nicht gebaut. Dieser Build kann Medien weder "
             "abspielen noch einbetten.\n"
             "    Beheben mit: sudo dnf install ${_openpdf_missing_line}")
     endif()
@@ -223,12 +223,12 @@ endif()
 # odt report that this build cannot read them.
 find_package(ZLIB QUIET)
 if(ZLIB_FOUND)
-    message(STATUS "Document import: zlib ${ZLIB_VERSION_STRING} — docx and odt enabled")
+    message(STATUS "Document import: zlib ${ZLIB_VERSION_STRING}, docx and odt enabled")
     target_compile_definitions(OpenPDFStudio PRIVATE HAVE_ZLIB)
     target_link_libraries(OpenPDFStudio PRIVATE ZLIB::ZLIB)
 else()
     message(WARNING
-        "zlib: not found — this build cannot open docx or odt files.\n"
+        "zlib: not found. This build cannot open docx or odt files.\n"
         "    Fix with: sudo dnf install zlib-devel")
 endif()
 
@@ -243,7 +243,7 @@ if(WIN32)
                    "${CMAKE_CURRENT_BINARY_DIR}/openpdf-studio.rc" @ONLY)
     target_sources(OpenPDFStudio PRIVATE "${CMAKE_CURRENT_BINARY_DIR}/openpdf-studio.rc")
     # windres embeds the .ico into the .res, but CMake does not scan .rc files
-    # for their includes — without this the resource is never recompiled when
+    # for their includes. Without this the resource is never recompiled when
     # only the icon changes, and the exe silently keeps the previous icon.
     set_source_files_properties("${CMAKE_CURRENT_BINARY_DIR}/openpdf-studio.rc"
         PROPERTIES OBJECT_DEPENDS
@@ -254,7 +254,7 @@ if(MINGW)
     # MinGW <ratio>/<chrono_io.h> system headers use 'long int' (32-bit, Windows LLP64)
     # for ratio template params, but atto/femto/pico/tera/peta/exa need 64-bit values.
     # GCC reports this as [-Wnarrowing]/[-Wtemplate-body] errors in C++20. Our code is
-    # fine — suppress only these system-header diagnostics.
+    # fine, so suppress only these system header diagnostics.
     target_compile_options(OpenPDFStudio PRIVATE -Wno-narrowing -Wno-template-body)
 endif()
 
@@ -264,7 +264,7 @@ install(TARGETS OpenPDFStudio
 
 # PDFium wird mitgeliefert: es gibt dafür kein Systempaket, weder in Fedora noch
 # in Debian. Die Bibliothek landet in einem eigenen Verzeichnis und wird über
-# RPATH gefunden — nicht in /usr/lib, wo sie mit nichts kollidieren soll.
+# RPATH gefunden, nicht in /usr/lib, wo sie mit nichts kollidieren soll.
 if(PDFium_FOUND AND UNIX AND NOT APPLE)
     install(FILES "${PDFium_LIBRARY}"
         DESTINATION lib/openpdf-studio
@@ -305,7 +305,7 @@ install(FILES packaging/appimage/README.md
 )
 
 # ── CPack: RPM + DEB ─────────────────────────────────────────────────────────
-# Gebaut über packaging/linux/package-linux.sh (nicht direkt cpack aufrufen —
+# Gebaut über packaging/linux/package-linux.sh (nicht direkt cpack aufrufen:
 # das Skript setzt Prefix/Ausgabepfad und schiebt die Artefakte nach dist/).
 if(UNIX AND NOT APPLE)
     set(CPACK_PACKAGE_NAME "openpdf-studio")
@@ -344,17 +344,17 @@ page organizer, annotations, OCR and export to PDF, DOCX and image formats.")
     set(CPACK_RPM_FILE_NAME RPM-DEFAULT)
     # rpmbuild leitet Requires automatisch aus den ELF-Sonames ab. Die
     # mitgelieferte libpdfium.so darf dabei nicht als fremde Abhängigkeit
-    # auftauchen — sie liegt im Paket selbst und wird über RPATH gefunden.
+    # auftauchen. Sie liegt im Paket selbst und wird über RPATH gefunden.
     # AUTOPROV OFF allein genügt dafür nicht: das unterdrückt nur das Provides
     # der Bibliothek, das aus dem Binary abgeleitete Requires bleibt stehen und
-    # ist dann von nichts erfüllbar — dnf bricht mit "nothing provides
+    # ist dann von nichts erfüllbar: dnf bricht mit "nothing provides
     # libpdfium.so()(64bit)" ab. Die Requires-Seite muss deshalb zusätzlich
     # über den rpm-Filter raus. Der doppelte Backslash ist Absicht: der
     # Makro-Expander von rpm frisst eine Ebene, in der Spec landet \\. als \.
     set(CPACK_RPM_PACKAGE_AUTOREQ ON)
     set(CPACK_RPM_PACKAGE_AUTOPROV OFF)
     set(CPACK_RPM_SPEC_MORE_DEFINE "%global __requires_exclude ^libpdfium\\\\.so")
-    # Diese Verzeichnisse gehören filesystem/hicolor-icon-theme — nicht mitpaketieren.
+    # Diese Verzeichnisse gehören filesystem/hicolor-icon-theme, nicht mitpaketieren.
     set(CPACK_RPM_EXCLUDE_FROM_AUTO_FILELIST_ADDITION
         /usr/share/applications
         /usr/share/icons
@@ -387,7 +387,7 @@ page organizer, annotations, OCR and export to PDF, DOCX and image formats.")
     include(CPack)
 endif()
 
-# Translation update helper — run: cmake --build . --target update_translations
+# Translation update helper. Run: cmake --build . --target update_translations
 # Pre-compiled .qm files are already embedded via resources/openpdf-studio.qrc.
 # This target only updates the .ts source files for translators.
 if(Qt6LinguistTools_FOUND AND NOT CMAKE_CROSSCOMPILING)

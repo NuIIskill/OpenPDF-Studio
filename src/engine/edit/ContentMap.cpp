@@ -95,7 +95,11 @@ QList<ContentItem> classifyContentClusters(QList<ContentCluster> clusters,
     QList<ContentCluster> cl;
     cl.reserve(clusters.size());
     for (const ContentCluster &c : clusters)
-        if (!c.text.trimmed().isEmpty() && c.bounds.height() > 0.5)
+        // Only a cluster without any extent is dropped. A row of underscores in
+        // a form field is 0.39 pt of ink and would fail a height threshold,
+        // although it is as much text as the line above it.
+        if (!c.text.trimmed().isEmpty()
+                && c.bounds.width() > 0.0 && c.bounds.height() > 0.0)
             cl.append(c);
     if (cl.isEmpty()) return {};
 

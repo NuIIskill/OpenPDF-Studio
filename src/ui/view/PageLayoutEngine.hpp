@@ -22,7 +22,7 @@ QT_END_NAMESPACE
 class PdfRenderer;
 #endif
 
-/// Builds and maintains the page widgets — single column and grid.
+/// Builds and maintains the page widgets for single column and grid.
 class PageLayoutEngine : public QObject
 {
     Q_OBJECT

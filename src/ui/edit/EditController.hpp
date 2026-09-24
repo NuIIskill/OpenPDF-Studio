@@ -18,7 +18,7 @@ class PageCanvas;
 class TextBoxFrame;
 class ZoomController;
 
-#include "app/DocumentHistory.hpp"
+#include "engine/historymanager/DocumentHistory.hpp"
 
 #ifdef HAVE_PDF_RENDERING
 #  include "engine/edit/EditSession.hpp"
@@ -146,8 +146,6 @@ public:
 
     QList<EditSession::Edit> undoSnapBefore;
 #endif
-
-    bool pushingEdit { false };
 
 private:
 #ifdef HAVE_PDF_RENDERING

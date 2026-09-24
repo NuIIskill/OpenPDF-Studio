@@ -963,10 +963,8 @@ void EditController::commit(const QString &newText)
     const auto snapAfter = m_session->snapshotEdits();
     if (snapAfter != snapBefore) {
 
-        pushingEdit = true;
         m_undo->push(new EditUndoCmd(m_session, this, srcPage, page,
                                           snapBefore, snapAfter));
-        pushingEdit = false;
 
         Q_EMIT changeRecorded({ trimNew.isEmpty() ? DocumentHistory::Kind::TextRemoved
                                          : DocumentHistory::Kind::TextEdited,

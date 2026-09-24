@@ -60,7 +60,7 @@
 PdfOrganizerDialog::PdfOrganizerDialog(const QString &initialPath, QWidget *parent)
     : QDialog(parent)
 {
-    setWindowTitle(tr("PDF Organizer — OpenPDF Studio"));
+    setWindowTitle(tr("PDF Organizer · OpenPDF Studio"));
     setMinimumSize(860, 620);
     resize(1040, 700);
     buildUi();
@@ -916,7 +916,7 @@ void PdfOrganizerDialog::resizeEvent(QResizeEvent *e)
 
 void PdfOrganizerDialog::retranslateUi()
 {
-    setWindowTitle(tr("PDF Organizer — OpenPDF Studio"));
+    setWindowTitle(tr("PDF Organizer · OpenPDF Studio"));
     updatePageLabels();
     updateFooterCount();
 }

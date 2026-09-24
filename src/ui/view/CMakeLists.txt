@@ -3,6 +3,8 @@ target_sources(OpenPDFStudio PRIVATE
     FindController.hpp
     HoverHighlight.cpp
     HoverHighlight.hpp
+    ImageAnnotation.cpp
+    ImageAnnotation.hpp
     ImageAnnotationLayer.cpp
     ImageAnnotationLayer.hpp
     LinkAnnotationLayer.cpp

@@ -37,7 +37,7 @@ bool commit(const QString &stagingPath, const QString &target)
         return false;
     }
     if (!QFile::rename(stagingPath, target)) {
-        qWarning() << "SafeWrite: cannot put" << stagingPath << "in place —"
+        qWarning() << "SafeWrite: cannot put" << stagingPath << "in place,"
                    << "restoring the previous file";
         QFile::rename(backup, target);
         discard(stagingPath);

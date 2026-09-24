@@ -1,10 +1,10 @@
 ﻿; OpenPDF Studio — Windows installer (NSIS 3.x)
 ;
-; Build via packaging/windows/package-win.sh — it stages the runtime files and
+; Build via packaging/windows/package-win.sh. It stages the runtime files and
 ; passes the required defines:
 ;   makensis -DAPP_VERSION=0.1.0 -DSTAGE_DIR=..\..\dist\stage -DOUT_FILE=..\..\dist\OpenPDF-Studio-Setup.exe installer.nsi
 ;
-; Optional: -DGPL_ONLY=1 — gesetzt, wenn der Build gegen Poppler-Qt6 gelinkt ist.
+; Optional: -DGPL_ONLY=1, gesetzt, wenn der Build gegen Poppler-Qt6 gelinkt ist.
 ; Ein solches Binary darf nur unter der GPL verteilt werden (LICENSES/README.md);
 ; ohne das Define gilt die Doppellizenz des Quelltextes.
 ;
@@ -24,7 +24,7 @@ SetCompressor /SOLID lzma
   !define APP_VERSION "0.0.0"
 !endif
 !ifndef STAGE_DIR
-  !error "STAGE_DIR not defined — run via package-win.sh"
+  !error "STAGE_DIR not defined, run via package-win.sh"
 !endif
 !ifndef OUT_FILE
   !define OUT_FILE "OpenPDF-Studio-Setup.exe"
@@ -105,7 +105,7 @@ Page custom UsagePageCreate UsagePageLeave
 ; Kurze Selbstauskunft, mehr nicht. Sie schaltet nichts frei und sperrt nichts
 ; (LICENSES/OPENPDF-BUSINESS.txt, Abschnitt 6); wer "Privat" wählt, bekommt vom
 ; Thema Lizenzierung nie wieder etwas zu sehen. Bei /S wird die Seite nicht
-; angezeigt — dann gilt "business", falls /KEY= mitkam, sonst "personal".
+; angezeigt. Dann gilt "business", falls /KEY= mitkam, sonst "personal".
 Function UsageSyncFields
   ${NSD_GetState} $RbBusiness $1
   ${If} $1 == ${BST_CHECKED}
@@ -181,12 +181,12 @@ Section "-Programm" SecApp
   WriteRegStr HKLM "Software\OpenPDFStudio" "InstallDir" "$INSTDIR"
 
   ; Selbstauskunft aus der Nutzungsseite. Reine Angabe: die Anwendung entscheidet
-  ; daran nur, ob sie den Business-Hinweis überhaupt zeigt — nie, was sie kann.
+  ; daran nur, ob sie den Business-Hinweis überhaupt zeigt, und nie, was sie kann.
   WriteRegStr HKLM "Software\OpenPDFStudio" "Usage" "$UsageMode"
 
   ; Business-Schlüssel aus /KEY= (Massenverteilung). Maschinenweit, damit ihn
   ; jeder Benutzer des Rechners sieht; die Anwendung liest HKLM vor HKCU.
-  ; Ohne /KEY wird hier nichts geschrieben und nichts gelöscht — ein früher
+  ; Ohne /KEY wird hier nichts geschrieben und nichts gelöscht. Ein früher
   ; ausgerollter Schlüssel überlebt damit die Aktualisierung.
   ${If} $BusinessKey != ""
     ${GetTime} "" "L" $R2 $R3 $R4 $R5 $R6 $R7 $R8
@@ -236,7 +236,7 @@ Section "Uninstall"
   RMDir /r "$INSTDIR"
 
   DeleteRegKey HKLM "${UNINST_KEY}"
-  ; Nimmt den Unterschlüssel BusinessLicense mit — eine Deinstallation
+  ; Nimmt den Unterschlüssel BusinessLicense mit. Eine Deinstallation
   ; hinterlässt keinen Schlüssel auf dem Rechner. Beim erneuten Ausrollen
   ; also wieder /KEY= mitgeben.
   DeleteRegKey HKLM "Software\OpenPDFStudio"
@@ -260,17 +260,17 @@ LangString LIC_TOP ${LANG_ENGLISH} "OpenPDF Studio is available under either the
 
 LangString PAGE_USAGE_TITLE ${LANG_GERMAN}  "Art der Nutzung"
 LangString PAGE_USAGE_TITLE ${LANG_ENGLISH} "Type of use"
-LangString PAGE_USAGE_SUB   ${LANG_GERMAN}  "Eine Selbstauskunft — sie ändert keine Rechte und schaltet nichts frei."
-LangString PAGE_USAGE_SUB   ${LANG_ENGLISH} "Self-declaration only - it changes no rights and unlocks nothing."
+LangString PAGE_USAGE_SUB   ${LANG_GERMAN}  "Eine Selbstauskunft. Sie ändert keine Rechte und schaltet nichts frei."
+LangString PAGE_USAGE_SUB   ${LANG_ENGLISH} "Self-declaration only. It changes no rights and unlocks nothing."
 
 LangString USAGE_INTRO    ${LANG_GERMAN}  "OpenPDF Studio ist privat vollständig und dauerhaft kostenlos. Nur die Medienwiedergabe braucht bei geschäftlicher Nutzung nach 30 Tagen eine Business-Lizenz."
 LangString USAGE_INTRO    ${LANG_ENGLISH} "OpenPDF Studio is completely and permanently free for personal use. Only media playback needs a Business License after 30 days of business use."
-LangString USAGE_PERSONAL ${LANG_GERMAN}  "Privat — nichts weiter erforderlich"
-LangString USAGE_PERSONAL ${LANG_ENGLISH} "Personal - nothing further required"
+LangString USAGE_PERSONAL ${LANG_GERMAN}  "Privat, nichts weiter erforderlich"
+LangString USAGE_PERSONAL ${LANG_ENGLISH} "Personal, nothing further required"
 LangString USAGE_BUSINESS ${LANG_GERMAN}  "Geschäftlich (Firma, Freiberuf, Behörde, Verein)"
 LangString USAGE_BUSINESS ${LANG_ENGLISH} "Business (company, freelance, public body, non-profit)"
-LangString USAGE_KEY_LABEL ${LANG_GERMAN}  "Business-Schlüssel, falls vorhanden — sonst leer lassen:"
-LangString USAGE_KEY_LABEL ${LANG_ENGLISH} "Business key, if you have one - otherwise leave empty:"
+LangString USAGE_KEY_LABEL ${LANG_GERMAN}  "Business-Schlüssel, falls vorhanden, sonst leer lassen:"
+LangString USAGE_KEY_LABEL ${LANG_ENGLISH} "Business key, if you have one, otherwise leave empty:"
 LangString USAGE_FOOT     ${LANG_GERMAN}  "Die Angabe entscheidet nur, ob das Programm den Lizenzhinweis zeigt. Es funktioniert in beiden Fällen vollständig gleich, mit und ohne Schlüssel."
 LangString USAGE_FOOT     ${LANG_ENGLISH} "The answer only decides whether the program shows the licensing notice. It works exactly the same either way, with or without a key."
 

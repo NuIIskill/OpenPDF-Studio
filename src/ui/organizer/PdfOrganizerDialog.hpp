@@ -1,6 +1,6 @@
 #pragma once
 
-#include "app/DocumentHistory.hpp"
+#include "engine/historymanager/DocumentHistory.hpp"
 
 #include <QDialog>
 #include <QMap>

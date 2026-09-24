@@ -6,8 +6,7 @@
 #include "engine/document/DocumentSource.hpp"
 #include "engine/edit/InkMetrics.hpp"
 #include "app/SafeWrite.hpp"
-#include "app/SessionStore.hpp"
-#include "ui/tools/ImageAnnotation.hpp"
+#include "ui/view/ImageAnnotation.hpp"
 #include "ui/view/ImageAnnotationLayer.hpp"
 #include "ui/view/LinkAnnotationLayer.hpp"
 #include "ui/notes/NoteLayer.hpp"
@@ -92,6 +91,14 @@ DocumentView::DocumentView(QWidget *parent)
     m_gridCanvas = new QWidget();
     m_gridCanvas->setObjectName(QStringLiteral("GridCanvas"));
 
+    // The scroll bars exist before setObjectName() above, so the stylesheet
+    // rules keyed on "#DocumentView" were already cached as not matching.
+    for (QWidget *bar : { static_cast<QWidget *>(verticalScrollBar()),
+                          static_cast<QWidget *>(horizontalScrollBar()) }) {
+        bar->style()->unpolish(bar);
+        bar->style()->polish(bar);
+    }
+
     connect(verticalScrollBar(), &QScrollBar::valueChanged,
             this, [this]() { reportCurrentPage(); syncVisibleRect(); });
     connect(horizontalScrollBar(), &QScrollBar::valueChanged,
@@ -159,10 +166,8 @@ DocumentView::DocumentView(QWidget *parent)
         m_journal.recordChange({ DocumentHistory::Kind::DrawingRemoved, page });
     });
 
-    connect(m_undoStack, &QUndoStack::indexChanged, this, [this](int index) {
-        if (m_journal.restoring || m_edit.pushingEdit || m_journal.history()->isEmpty()) return;
-        m_journal.history()->setCurrentIndex(m_journal.history()->indexForUndoIndex(index));
-    });
+    connect(m_undoStack, &QUndoStack::indexChanged, this,
+            [this] { m_journal.undoStackChanged(); });
 
     m_layoutEngine = new PageLayoutEngine(m_canvas, m_layout, m_gridCanvas, this);
 
@@ -177,6 +182,11 @@ DocumentView::DocumentView(QWidget *parent)
     m_hover = new HoverHighlight(this, this);
 
     m_overlays = PageOverlays::createAll(this, this);
+    for (PageOverlay *overlay : std::as_const(m_overlays))
+        overlay->setChangeReporter([this](const QString &title, int page) {
+            m_journal.recordSideChange(
+                { DocumentHistory::Kind::OverlayChanged, page, 1, 0, title });
+        });
 
     connect(m_layoutEngine, &PageLayoutEngine::layoutChanged,
             this, &DocumentView::repositionPageOverlays);
@@ -248,7 +258,7 @@ DocumentView::DocumentView(QWidget *parent)
     m_edit.attach(this, m_src.get(), m_editorFrame, m_zoomCtl, m_hover,
                   m_ocrEngine, m_undoStack);
 
-    m_journal.attach(m_src.get(), m_undoStack, [this] { return imageStates(); });
+    m_journal.attach(m_src.get(), m_undoStack, [this] { return documentState(); });
 #ifdef HAVE_PDF_RENDERING
     m_journal.setSession(m_session);
 #endif
@@ -277,7 +287,6 @@ DocumentView::~DocumentView()
 
     m_undoStack->disconnect(this);
 
-    SessionStore::discard(m_src->contentPath());
     delete m_ocrEngine;
 #ifdef HAVE_PDF_RENDERING
 
@@ -357,7 +366,7 @@ void DocumentView::discardEditHistory()
     m_noteLayer->clear();
     m_drawingLayer->clear();
     m_undoStack->clear();
-    m_journal.savedImageRevision = m_session->imageRevision();
+    m_journal.editsDiscarded();
 }
 
 #endif
@@ -365,13 +374,13 @@ void DocumentView::discardEditHistory()
 void DocumentView::undo()
 {
     closeEditorBeforeUndo();
-    m_undoStack->undo();
+    restoreHistoryState(m_journal.history()->currentIndex() - 1);
 }
 
 void DocumentView::redo()
 {
     closeEditorBeforeUndo();
-    m_undoStack->redo();
+    restoreHistoryState(m_journal.history()->currentIndex() + 1);
 }
 
 void DocumentView::closeEditorBeforeUndo()
