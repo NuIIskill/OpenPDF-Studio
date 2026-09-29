@@ -72,7 +72,7 @@ private:
     void applyStyle(bool sel)
     {
         const bool dk = Theme::DarkMode;
-        const QColor iconColor = sel ? QColor("#3B82F6")
+        const QColor iconColor = sel ? QColor("#2563EB")
                                      : QColor(dk ? "#9CA3AF" : "#6B7280");
         const QPixmap px = Theme::renderSvg(m_iconName, iconColor, 22);
         if (!px.isNull()) m_iconLabel->setPixmap(px);
@@ -80,15 +80,15 @@ private:
         if (sel) {
             const QString bg = dk ? "#1E3358" : "#FFFFFF";
             setStyleSheet(QStringLiteral(
-                "OptionCard { border:2px solid #3B82F6; border-radius:8px; background:%1; }").arg(bg));
+                "OptionCard { border:2px solid #2563EB; border-radius:8px; background:%1; }").arg(bg));
             m_check->setStyleSheet(QStringLiteral(
-                "background:#3B82F6; border-radius:10px; color:white; font-size:12px; font-weight:700;"));
+                "background:#2563EB; border-radius:10px; color:white; font-size:12px; font-weight:700;"));
             m_titleLabel->setStyleSheet(dk
                 ? QStringLiteral("font-size:12px; font-weight:600; color:#93C5FD;")
                 : QStringLiteral("font-size:12px; font-weight:600; color:#1D4ED8;"));
             m_descLabel->setStyleSheet(dk
                 ? QStringLiteral("font-size:10px; color:#60A5FA;")
-                : QStringLiteral("font-size:10px; color:#3B82F6;"));
+                : QStringLiteral("font-size:10px; color:#2563EB;"));
         } else {
             const QString bg  = dk ? "#404040" : "#FFFFFF";
             const QString bdr = dk ? "#555555" : "#E5E7EB";

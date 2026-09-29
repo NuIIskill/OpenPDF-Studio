@@ -19,7 +19,10 @@ class QPrinter;
 #endif
 QT_END_NAMESPACE
 
+class DigitalSignatureLayer;
+struct SignatureAppearance;
 class ImageAnnotationLayer;
+class SignaturePlacement;
 class LinkAnnotationLayer;
 class NoteLayer;
 class DrawingLayer;
@@ -31,6 +34,7 @@ class TextSelectionController;
 class ZoomController;
 
 #include "engine/historymanager/DocumentJournal.hpp"
+#include "engine/sign/SignatureManager.hpp"
 #include "engine/document/PdfBookmark.hpp"
 #include "engine/document/DocumentSource.hpp"
 #include "ui/edit/EditController.hpp"
@@ -98,6 +102,11 @@ public:
     void   setDrawTool(DrawTool tool);
     void   setDrawColor(const QColor &color);
     void   setDrawWidth(qreal widthPt);
+    void   placeSignature(const QImage &image);
+    void   placeSignatureField(const QImage &preview,
+                               std::function<void(int page, const QRectF &pdfBounds)> onPlaced);
+    void   addDigitalSignature(const SignRequest &request, const SignatureAppearance &appearance);
+    SignError signatureError() const;
 
     QString     currentFile()      const { return m_journal.currentFile(); }
 
@@ -261,6 +270,8 @@ private:
     PageLayoutEngine *m_layoutEngine { nullptr };
 
     ImageAnnotationLayer *m_imageLayer { nullptr };
+    SignaturePlacement   *m_signaturePlacement { nullptr };
+    DigitalSignatureLayer *m_signatureLayer { nullptr };
     LinkAnnotationLayer  *m_linkLayer  { nullptr };
     NoteLayer            *m_noteLayer  { nullptr };
     DrawingLayer         *m_drawingLayer { nullptr };
@@ -309,6 +320,8 @@ private:
     QString stageDocument(const QString &path);
 
     bool detachSourceFrom(const QString &saveTarget);
+    bool hasEditsBesideSignatures() const;
+    QString copyForSigning(const QString &path) const;
 
     EditSession  *m_session     { nullptr };
     TextBoxFrame *m_editorFrame { nullptr };

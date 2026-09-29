@@ -27,7 +27,7 @@ ExportDialog::ExportDialog(const QString &currentFile, int pageCount,
     , m_currentPage(qBound(0, currentPage, qMax(0, pageCount - 1)))
     , m_sourceBytes(currentFile.isEmpty() ? 0 : QFileInfo(currentFile).size())
 {
-    setWindowTitle(tr("Export"));
+    setWindowTitle(tr("Export - OpenPDF Studio"));
     setModal(true);
     setFixedSize(720, 760);
     buildUi();
@@ -507,12 +507,12 @@ void ExportDialog::applyDialogStyle()
             border: none;
             border-radius: 6px;
             padding: 0 20px;
-            background: #3B82F6;
+            background: #2563EB;
             color: white;
             font-weight: 700;
         }
-        QPushButton#XExport:hover   { background: #2563EB; }
-        QPushButton#XExport:pressed { background: #1D4ED8; }
+        QPushButton#XExport:hover   { background: #1D4ED8; }
+        QPushButton#XExport:pressed { background: #1E40AF; }
     )css"));
 }
 

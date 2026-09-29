@@ -210,8 +210,12 @@ void DocumentJournal::savedOverBase(const QString &path, bool reopened)
 
 bool DocumentJournal::hasUnsavedEdits() const
 {
+    return m_sideRevision != m_savedSideRevision || hasUnsavedContentEdits();
+}
+
+bool DocumentJournal::hasUnsavedContentEdits() const
+{
     if (m_workingCopyDirty) return true;
-    if (m_sideRevision != m_savedSideRevision) return true;
 #ifdef HAVE_PDF_RENDERING
     if (!m_session) return false;
 

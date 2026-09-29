@@ -15,6 +15,8 @@
 #include "ui/view/FindController.hpp"
 #include "ui/view/PageLayoutEngine.hpp"
 #include "ui/view/PageOverlay.hpp"
+#include "ui/view/DigitalSignatureLayer.hpp"
+#include "ui/view/SignaturePlacement.hpp"
 #include "ui/view/ZoomController.hpp"
 #include "ui/view/TextSelectionController.hpp"
 #include "ui/widgets/PasswordDialog.hpp"
@@ -126,6 +128,9 @@ DocumentView::DocumentView(QWidget *parent)
     connect(m_imageLayer, &ImageAnnotationLayer::imageRemoved, this, [this](int page) {
         m_journal.recordChange({ DocumentHistory::Kind::ImageRemoved, page });
     });
+    m_signaturePlacement = new SignaturePlacement(this, this, this);
+    connect(m_signaturePlacement, &SignaturePlacement::placed,
+            m_imageLayer, &ImageAnnotationLayer::placeInRect);
     m_linkLayer = new LinkAnnotationLayer(this, this);
     connect(m_linkLayer, &LinkAnnotationLayer::pageNeedsRerender,
             this, &DocumentView::rerenderPage);
@@ -182,6 +187,8 @@ DocumentView::DocumentView(QWidget *parent)
     m_hover = new HoverHighlight(this, this);
 
     m_overlays = PageOverlays::createAll(this, this);
+    m_signatureLayer = new DigitalSignatureLayer(this, this);
+    m_overlays.append(m_signatureLayer);
     for (PageOverlay *overlay : std::as_const(m_overlays))
         overlay->setChangeReporter([this](const QString &title, int page) {
             m_journal.recordSideChange(

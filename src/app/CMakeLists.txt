@@ -7,6 +7,10 @@ target_sources(OpenPDFStudio PRIVATE
     PdfPwStore.hpp
     SafeWrite.cpp
     SafeWrite.hpp
+    SignatureProfileStore.cpp
+    SignatureProfileStore.hpp
+    SignatureStore.cpp
+    SignatureStore.hpp
     SessionStore.cpp
     SessionStore.hpp
     UpdateChecker.cpp

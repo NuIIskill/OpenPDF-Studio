@@ -1,4 +1,6 @@
 target_sources(OpenPDFStudio PRIVATE
+    DigitalSignatureLayer.cpp
+    DigitalSignatureLayer.hpp
     FindController.cpp
     FindController.hpp
     HoverHighlight.cpp
@@ -14,6 +16,8 @@ target_sources(OpenPDFStudio PRIVATE
     PageLayoutEngine.hpp
     PageOverlay.cpp
     PageOverlay.hpp
+    SignaturePlacement.cpp
+    SignaturePlacement.hpp
     TextSelectionController.cpp
     TextSelectionController.hpp
     ZoomController.cpp

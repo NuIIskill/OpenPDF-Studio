@@ -52,7 +52,6 @@ int main(int argc, char *argv[])
 
     QApplication qapp(argc, argv);
     qapp.setApplicationName(QStringLiteral("OpenPDF Studio"));
-    qapp.setApplicationDisplayName(QStringLiteral("OpenPDF Studio"));
     qapp.setOrganizationName(QStringLiteral("OpenPDF"));
     qapp.setOrganizationDomain(QStringLiteral("openpdf.io"));
     qapp.setApplicationVersion(QStringLiteral(APP_VERSION));

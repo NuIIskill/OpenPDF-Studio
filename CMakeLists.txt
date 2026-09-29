@@ -147,6 +147,32 @@ elseif(PkgConfig_FOUND)
     endif()
 endif()
 
+# ── Digital signatures: engine/sign ─────────────────────────────────────────
+# qpdf writes the signature as an incremental update. The certificates come
+# from the platform: the Windows certificate store through CNG, elsewhere the
+# PKCS#11 modules p11-kit registers. GnuTLS builds and checks the CMS; the key
+# is used through p11-kit directly, because GnuTLS always logs in.
+if(OPENPDF_HAVE_QPDF)
+    if(WIN32)
+        message(STATUS "Digital signatures: Windows certificate store")
+        target_compile_definitions(OpenPDFStudio PRIVATE HAVE_DIGITAL_SIGNATURE)
+        target_link_libraries(OpenPDFStudio PRIVATE crypt32 ncrypt)
+    elseif(PkgConfig_FOUND)
+        pkg_check_modules(GNUTLS QUIET gnutls)
+        pkg_check_modules(P11KIT QUIET p11-kit-1)
+        if(GNUTLS_FOUND AND P11KIT_FOUND)
+            message(STATUS "Digital signatures: PKCS#11 via p11-kit ${P11KIT_VERSION}, GnuTLS ${GNUTLS_VERSION}")
+            target_compile_definitions(OpenPDFStudio PRIVATE HAVE_DIGITAL_SIGNATURE)
+            target_include_directories(OpenPDFStudio PRIVATE ${GNUTLS_INCLUDE_DIRS} ${P11KIT_INCLUDE_DIRS})
+            target_link_libraries(OpenPDFStudio PRIVATE ${GNUTLS_LIBRARIES} ${P11KIT_LIBRARIES})
+        else()
+            message(STATUS "Digital signatures: off (sudo dnf install gnutls-devel p11-kit-devel)")
+        endif()
+    endif()
+else()
+    message(STATUS "Digital signatures: off, qpdf is required")
+endif()
+
 # ── Rich Media: modules/rich-media (source-available, siehe LICENSES/) ───────
 # Licensed separately and therefore its own directory. A checkout without
 # modules/ configures and builds unchanged; only playback and embedding are
@@ -379,7 +405,7 @@ page organizer, annotations, OCR and export to PDF, DOCX and image formats.")
     # as Recommends left dpkg free to leave them out. The RPM never had the
     # problem because AUTOREQ reads the sonames out of the binary.
     set(CPACK_DEBIAN_PACKAGE_DEPENDS
-        "libqt6core6 | libqt6core6t64, libqt6gui6, libqt6widgets6, libqt6printsupport6, libqt6network6, libqt6multimedia6, libqpdf29 | libqpdf29t64, libtesseract5 | libtesseract5t64, zlib1g")
+        "libqt6core6 | libqt6core6t64, libqt6gui6, libqt6widgets6, libqt6printsupport6, libqt6network6, libqt6multimedia6, libqpdf29 | libqpdf29t64, libgnutls30 | libgnutls30t64, libp11-kit0, libtesseract5 | libtesseract5t64, zlib1g")
     # libqt6pdf6 ist raus: die PDF-Engine ist PDFium und liegt im Paket.
     # ffmpeg only converts video while embedding it and is genuinely optional.
     set(CPACK_DEBIAN_PACKAGE_SUGGESTS "ffmpeg")

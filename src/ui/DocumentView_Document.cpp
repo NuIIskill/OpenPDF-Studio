@@ -16,11 +16,14 @@
 #include "ui/view/FindController.hpp"
 #include "ui/view/PageOverlay.hpp"
 #include "ui/view/HoverHighlight.hpp"
+#include "ui/view/DigitalSignatureLayer.hpp"
+#include "ui/view/SignaturePlacement.hpp"
 #include "ui/view/PageLayoutEngine.hpp"
 #include "ui/view/ZoomController.hpp"
 #include "ui/view/TextSelectionController.hpp"
 #include "ui/widgets/PasswordDialog.hpp"
 
+#include <QFile>
 #include <QFileInfo>
 
 #ifdef HAVE_QPDF
@@ -78,6 +81,7 @@ bool editableBookmarks(const QList<PdfBookmark> &bookmarks)
 void DocumentView::clearDocument()
 {
     cancelCurrentEdit();
+    m_signaturePlacement->cancel();
     m_selection->clear();
     m_find->documentChanged();
 
@@ -215,16 +219,26 @@ bool DocumentView::saveToFile(const QString &path)
 #ifdef HAVE_PDF_RENDERING
 
     m_journal.prepareSave();
+    m_signatureLayer->clearError();
     commitCurrentEdit(m_editorFrame->currentText());
 
     if (!m_src->backend() || !m_session || m_src->pageCount() <= 0) return false;
 
+    const bool signing = m_signatureLayer->hasPending();
+    // Signing alone keeps the file's bytes, so signatures already in it stay valid.
+    const bool signOnly = signing && !hasEditsBesideSignatures();
     const bool detached = detachSourceFrom(path);
 
-    const QString staging = stageDocument(path);
+    const QString staging = signOnly ? copyForSigning(path) : stageDocument(path);
     if (staging.isEmpty()) return false;
+    if (signing && m_signatureLayer->signInto(staging) != SignError::None) {
+        SafeWrite::discard(staging);
+        return false;
+    }
 
-    if (detached) {
+    // A signed file is final: the view reloads it instead of staying on a
+    // working copy that would be signed again on the next save.
+    if (detached && !signing) {
         if (!SafeWrite::commit(staging, path)) return false;
         m_bookmarksDirty = false;
         m_journal.markSaved(path);
@@ -325,6 +339,22 @@ bool DocumentView::writeRecoveryCopy(const QString &path)
 }
 
 #ifdef HAVE_PDF_RENDERING
+bool DocumentView::hasEditsBesideSignatures() const
+{
+    if (m_journal.hasUnsavedContentEdits() || m_bookmarksDirty) return true;
+    for (const PageOverlay *overlay : std::as_const(m_overlays))
+        if (overlay != m_signatureLayer && !overlay->state().isEmpty()) return true;
+    return false;
+}
+
+QString DocumentView::copyForSigning(const QString &path) const
+{
+    const QString staging = SafeWrite::stagingPath(path);
+    if (staging.isEmpty()) return {};
+    QFile::remove(staging);
+    return QFile::copy(m_src->contentPath(), staging) ? staging : QString();
+}
+
 bool DocumentView::detachSourceFrom(const QString &saveTarget)
 {
     if (m_src->contentPath().isEmpty() || saveTarget.isEmpty()) return false;

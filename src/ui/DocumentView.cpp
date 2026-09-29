@@ -12,6 +12,8 @@
 #include "ui/notes/NoteLayer.hpp"
 #include "ui/draw/DrawingLayer.hpp"
 #include "ui/view/HoverHighlight.hpp"
+#include "ui/view/DigitalSignatureLayer.hpp"
+#include "ui/view/SignaturePlacement.hpp"
 #include "ui/view/FindController.hpp"
 #include "ui/view/PageLayoutEngine.hpp"
 #include "ui/view/PageOverlay.hpp"
@@ -392,9 +394,34 @@ void DocumentView::rerenderPage(int page)
     m_layoutEngine->rerenderPage(page);
 }
 
+void DocumentView::placeSignature(const QImage &image)
+{
+    setViewMode(ViewMode::Single);
+    m_signaturePlacement->start(image);
+}
+
+void DocumentView::addDigitalSignature(const SignRequest &request,
+                                       const SignatureAppearance &appearance)
+{
+    m_signatureLayer->add(request, appearance);
+}
+
+SignError DocumentView::signatureError() const
+{
+    return m_signatureLayer->lastError();
+}
+
+void DocumentView::placeSignatureField(const QImage &preview,
+                                       std::function<void(int, const QRectF &)> onPlaced)
+{
+    setViewMode(ViewMode::Single);
+    m_signaturePlacement->startField(preview, std::move(onPlaced));
+}
+
 void DocumentView::setViewMode(ViewMode mode)
 {
     if (m_viewMode == mode) return;
+    m_signaturePlacement->cancel();
     m_selection->clear();
     m_viewMode = mode;
 

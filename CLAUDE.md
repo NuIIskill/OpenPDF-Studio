@@ -17,7 +17,9 @@ Without it the application starts but has no document functions at all.
 The rest are optional and change what is compiled in, via `HAVE_*` defines:
 qpdf (`HAVE_QPDF`, PDF export options, the organizer's vector save and all
 media reading and writing), Tesseract (`HAVE_TESSERACT`, OCR),
-`Qt6::PrintSupport` (`HAVE_QT_PRINT`) and `modules/rich-media/`
+`Qt6::PrintSupport` (`HAVE_QT_PRINT`), digital signatures
+(`HAVE_DIGITAL_SIGNATURE`: qpdf plus GnuTLS and p11-kit on Linux, CNG on Windows) and
+`modules/rich-media/`
 (`HAVE_RICH_MEDIA`, which requires both qpdf and Qt Multimedia and is skipped
 with a warning without them). Code behind these must still compile when they
 are absent.
@@ -44,6 +46,7 @@ src/
     import/       another format into a PDF: docx, odt, images
     ocr/          Tesseract wrapper
     render/       PdfRenderer - zoom and point-to-pixel, asks the backend
+    sign/         digital signatures: certificates, signing, verification
   ui/             everything that is a widget; MainWindow, DocumentView and
                   the presentation window sit at its root
     bars/ panels/ theme/
@@ -58,6 +61,7 @@ src/
     history/      the change-log timeline
     session/      crash recovery: what was open and how to get it back
     export/       the export dialog
+    sign/         signing: the sign dialog and the digital signing flow
     widgets/      shared widgets only - see the rule below
   3rdparty/       vendored (nanosvg)
 modules/
@@ -160,6 +164,10 @@ Write code comments in English. Documentation comments should only give a
 short, one-sentence description of a class or namespace. Do not document
 methods or fields, narrate the implementation or its history, or explain
 behavior that is already clear from the code.
+
+## Changes
+
+Every change must be recorded in `.claude/changes.txt`.
 
 ## Testing
 

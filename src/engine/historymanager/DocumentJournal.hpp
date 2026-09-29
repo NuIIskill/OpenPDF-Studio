@@ -75,6 +75,7 @@ public:
     void markSaved(const QString &path);
     void savedOverBase(const QString &path, bool reopened);
     bool hasUnsavedEdits() const;
+    bool hasUnsavedContentEdits() const;
 
     QString copyToWorkingFile(const QString &source, const QString &like) const;
     void    discardCopy(const QString &path) const;

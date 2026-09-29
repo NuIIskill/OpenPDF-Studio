@@ -16,11 +16,13 @@
 #include "ui/settings/SettingsPanel.hpp"
 #include "ui/organizer/PdfOrganizerDialog.hpp"
 #include "ui/export/ExportDialog.hpp"
+#include "ui/export/Exporting.hpp"
+#include "ui/export/Printing.hpp"
 #include "ui/history/HistoryDialog.hpp"
+#include "ui/sign/DigitalSigning.hpp"
+#include "ui/sign/SignDialog.hpp"
 #include "ui/session/SessionRecovery.hpp"
-#include "engine/export/DocxExporter.hpp"
 #include "engine/import/DocumentImport.hpp"
-#include "engine/export/PdfExporter.hpp"
 #include "ui/theme/Theme.hpp"
 #include "app/AppSettings.hpp"
 #include "app/SessionStore.hpp"
@@ -45,13 +47,7 @@
 #include <QKeySequence>
 #include <QShortcut>
 
-#ifdef HAVE_QT_PRINT
-#include <QMarginsF>
-#include <QPageLayout>
-#include <QPageRanges>
-#include <QPrintDialog>
-#include <QPrinter>
-#endif
+#include <functional>
 
 MainWindow::MainWindow(AppSettings *settings, QWidget *parent)
     : QMainWindow(parent)
@@ -193,7 +189,15 @@ void MainWindow::buildUi()
 
 void MainWindow::connectSignals()
 {
+    connectBars();
+    connectPanels();
+    connectEditBars();
+    setupShortcuts();
+    loadZoomSettings();
+}
 
+void MainWindow::connectBars()
+{
     connect(m_topToolbar, &TopToolbar::newTabRequested,       this, &MainWindow::onNewTab);
     connect(m_topToolbar, &TopToolbar::tabActivated,          this, &MainWindow::onTabActivated);
     connect(m_topToolbar, &TopToolbar::tabCloseRequested,     this, &MainWindow::onTabCloseRequested);
@@ -211,6 +215,30 @@ void MainWindow::connectSignals()
 
     connect(m_leftSidebar, &LeftSidebar::toolSelected,        this, &MainWindow::onToolSelected);
     connect(m_leftSidebar, &LeftSidebar::settingsRequested, this, [this]() { openSettings(); });
+    connect(m_rightSidebar, &RightSidebar::modeSelected, this, &MainWindow::onModeSelected);
+
+
+    connect(m_statusBar, &StatusBar::previousPageRequested, this, [this]() {
+        if (DocumentView *dv = currentDocView())
+            dv->goToPage(dv->currentPage() - 1);
+    });
+    connect(m_statusBar, &StatusBar::nextPageRequested, this, [this]() {
+        if (DocumentView *dv = currentDocView())
+            dv->goToPage(dv->currentPage() + 1);
+    });
+    connect(m_statusBar, &StatusBar::pageRequested, this, [this](int page) {
+        if (DocumentView *dv = currentDocView())
+            dv->goToPage(page - 1);
+    });
+    connect(m_statusBar, &StatusBar::panelToggleRequested,  this, [this]() {
+        setRightSidebarCollapsed(!m_rightSidebarCollapsed);
+
+        savePanelLayout();
+    });
+}
+
+void MainWindow::connectPanels()
+{
     connect(m_bookmarkPanel, &BookmarkPanel::closeRequested, this, [this]() {
         onToolSelected(QStringLiteral("select"));
     });
@@ -242,14 +270,15 @@ void MainWindow::connectSignals()
         if (DocumentView *dv = currentDocView()) dv->setNotePinned(id, pinned);
     });
 
-    connect(m_rightSidebar, &RightSidebar::modeSelected, this, &MainWindow::onModeSelected);
-
     connect(m_textPanel, &TextPropertiesPanel::propertiesChanged, this,
             [this](const TextBoxProperties &properties) {
         if (DocumentView *dv = currentDocView())
             dv->setTextBoxProperties(properties);
     });
+}
 
+void MainWindow::connectEditBars()
+{
     connect(m_formatBar, &FormatBar::fontSizeChanged, this, [this](int pt) {
         if (DocumentView *dv = currentDocView())
             dv->setEditorFontSize(pt);
@@ -302,55 +331,35 @@ void MainWindow::connectSignals()
     connect(m_drawBar, &DrawBar::colorChanged, this, [this](const QColor &color) {
         if (DocumentView *dv = currentDocView()) dv->setDrawColor(color);
     });
-    /// Maps a shortcut key to a MainWindow action.
-    struct Def { const char *key; void (MainWindow::*slot)(); };
-    const Def defs[] = {
-        { "save",   &MainWindow::onSave     },
-        { "saveas", &MainWindow::onSaveAs   },
-        { "print",  &MainWindow::onPrint    },
-        { "open",   &MainWindow::onOpenFile },
-        { "undo",   &MainWindow::onUndo     },
-        { "redo",   &MainWindow::onRedo     },
-        { "zoomin", &MainWindow::onZoomIn   },
-        { "zoomout",&MainWindow::onZoomOut  },
+}
+
+void MainWindow::setupShortcuts()
+{
+    struct ShortcutDef { const char *key; const char *defaultSeq; std::function<void()> action; };
+    const ShortcutDef shortcuts[] = {
+        { "save",         "Ctrl+S",       [this]() { onSave(); } },
+        { "saveas",       "Ctrl+Shift+S", [this]() { onSaveAs(); } },
+        { "print",        "Ctrl+P",       [this]() { onPrint(); } },
+        { "open",         "Ctrl+O",       [this]() { onOpenFile(); } },
+        { "undo",         "Ctrl+Z",       [this]() { onUndo(); } },
+        { "redo",         "Ctrl+Y",       [this]() { onRedo(); } },
+        { "find",         "Ctrl+F",       [this]() {
+            if (DocumentView *dv = currentDocView()) dv->openFind();
+        } },
+        { "texttool",     "T",            [this]() { onToolSelected(QStringLiteral("text")); } },
+        { "comment",      "N",            [this]() { onToolSelected(QStringLiteral("comment")); } },
+        { "zoomin",       "Ctrl++",       [this]() { onZoomIn(); } },
+        { "zoomout",      "Ctrl+-",       [this]() { onZoomOut(); } },
+        { "presentation", "F5",           [this]() { onStartPresentation(); } },
     };
-    for (const auto &d : defs) {
+    for (const ShortcutDef &def : shortcuts) {
         auto *sc = new QShortcut(QKeySequence{}, this);
-        connect(sc, &QShortcut::activated, this, d.slot);
-        m_shortcuts.insert(QLatin1String(d.key), sc);
+        connect(sc, &QShortcut::activated, this, def.action);
+        m_shortcuts.insert(QLatin1String(def.key),
+                           { sc, QKeySequence::fromString(QLatin1String(def.defaultSeq),
+                                                          QKeySequence::PortableText) });
     }
-
-    const auto addLambda = [&](const char *key, auto fn) {
-        auto *sc = new QShortcut(QKeySequence{}, this);
-        connect(sc, &QShortcut::activated, this, fn);
-        m_shortcuts.insert(QLatin1String(key), sc);
-    };
-    addLambda("find",         [this]() {
-        if (DocumentView *dv = currentDocView()) dv->openFind();
-    });
-    addLambda("texttool",     [this]() { onToolSelected(QStringLiteral("text")); });
-    addLambda("comment",      [this]() { onToolSelected(QStringLiteral("comment")); });
-    addLambda("presentation", [this]() { onStartPresentation(); });
     loadShortcuts();
-    loadZoomSettings();
-
-    connect(m_statusBar, &StatusBar::previousPageRequested, this, [this]() {
-        if (DocumentView *dv = currentDocView())
-            dv->goToPage(dv->currentPage() - 1);
-    });
-    connect(m_statusBar, &StatusBar::nextPageRequested, this, [this]() {
-        if (DocumentView *dv = currentDocView())
-            dv->goToPage(dv->currentPage() + 1);
-    });
-    connect(m_statusBar, &StatusBar::pageRequested, this, [this](int page) {
-        if (DocumentView *dv = currentDocView())
-            dv->goToPage(page - 1);
-    });
-    connect(m_statusBar, &StatusBar::panelToggleRequested,  this, [this]() {
-        setRightSidebarCollapsed(!m_rightSidebarCollapsed);
-
-        savePanelLayout();
-    });
 }
 
 DocumentView *MainWindow::addDocView()
@@ -448,10 +457,9 @@ DocumentView *MainWindow::currentDocView() const
 
 void MainWindow::onNewTab()
 {
-    addDocView();
-    if (DocumentView *dv = currentDocView()) dv->setEditMode(m_editMode);
-    onToolSelected(m_activeTool);
-    refreshBookmarkPanel();
+    DocumentView *dv = addDocView();
+    dv->setEditMode(m_editMode);
+    onTabActivated(m_docViews.indexOf(dv));
 }
 
 void MainWindow::onTabActivated(int index)
@@ -494,15 +502,7 @@ void MainWindow::onTabCloseRequested(int index)
     dv->deleteLater();
     m_topToolbar->removeTab(index);
 
-    if (!m_docViews.isEmpty()) {
-        const int next = qMin(index, m_docViews.size() - 1);
-        m_docStack->setCurrentWidget(m_docViews[next]);
-        m_topToolbar->setCurrentTab(next);
-        m_notesPanel->setNotes(m_docViews[next]->notes());
-        m_notesPanel->setDocumentAvailable(m_docViews[next]->pageCount() > 0);
-        onToolSelected(m_activeTool);
-        refreshBookmarkPanel();
-    }
+    onTabActivated(qMin(index, m_docViews.size() - 1));
 }
 
 void MainWindow::onOpenFile()
@@ -618,6 +618,11 @@ bool MainWindow::saveDocument(DocumentView *dv, const QString &path)
         return true;
     }
 
+    if (dv->signatureError() != SignError::None) {
+        QMessageBox::warning(this, tr("Save failed"),
+                             DigitalSigning::message(dv->signatureError(), path));
+        return false;
+    }
     QMessageBox::warning(
         this, tr("Save failed"),
         tr("Could not write \"%1\".\n\nThe file may be write-protected or "
@@ -627,97 +632,34 @@ bool MainWindow::saveDocument(DocumentView *dv, const QString &path)
     return false;
 }
 
+QString MainWindow::askSavePath(DocumentView *dv)
+{
+    return QFileDialog::getSaveFileName(this, tr("Save PDF As"), dv->suggestedSavePath(),
+                                        tr("PDF files (*.pdf)"));
+}
+
 void MainWindow::onSave()
 {
     DocumentView *dv = currentDocView();
     if (!dv) return;
 
-    if (!dv->currentFile().isEmpty()) {
-        saveDocument(dv, dv->currentFile());
-    } else {
-        const QString path = QFileDialog::getSaveFileName(
-            this, tr("Save PDF As"), dv->suggestedSavePath(),
-            tr("PDF files (*.pdf)"));
-        if (!path.isEmpty())
-            saveDocument(dv, path);
-    }
+    const QString path = dv->currentFile().isEmpty() ? askSavePath(dv) : dv->currentFile();
+    if (!path.isEmpty())
+        saveDocument(dv, path);
 }
 
 void MainWindow::onSaveAs()
 {
     DocumentView *dv = currentDocView();
     if (!dv) return;
-    const QString path = QFileDialog::getSaveFileName(
-        this, tr("Save PDF As"), dv->suggestedSavePath(),
-        tr("PDF files (*.pdf)"));
+    const QString path = askSavePath(dv);
     if (!path.isEmpty())
         saveDocument(dv, path);
 }
 
 void MainWindow::onPrint()
 {
-#ifdef HAVE_QT_PRINT
-    DocumentView *dv = currentDocView();
-    if (!dv || dv->contentFile().isEmpty()) return;
-    const int pageCount = dv->pageCount();
-    if (pageCount <= 0) return;
-
-    QPrinter printer(QPrinter::HighResolution);
-    printer.setDocName(QFileInfo(dv->currentFile()).completeBaseName());
-
-    printer.setPageMargins(QMarginsF(0, 0, 0, 0), QPageLayout::Millimeter);
-    printer.setFromTo(1, pageCount);
-
-    QPrintDialog dlg(&printer, this);
-    dlg.setOption(QAbstractPrintDialog::PrintPageRange);
-    dlg.setOption(QAbstractPrintDialog::PrintCurrentPage);
-    dlg.setWindowTitle(tr("Print"));
-    if (dlg.exec() != QDialog::Accepted) return;
-
-    QList<int> pages;
-    switch (printer.printRange()) {
-    case QPrinter::CurrentPage:
-        pages.append(dv->currentPage());
-        break;
-    case QPrinter::PageRange: {
-
-        const QPageRanges ranges = printer.pageRanges();
-        if (!ranges.isEmpty()) {
-            for (int p = ranges.firstPage(); p <= ranges.lastPage(); ++p)
-                if (ranges.contains(p)) pages.append(p - 1);
-        } else {
-            for (int p = printer.fromPage(); p <= printer.toPage(); ++p)
-                pages.append(p - 1);
-        }
-        break;
-    }
-    default:
-        break;
-    }
-
-    const int copies = printer.supportsMultipleCopies()
-        ? 1 : qMax(1, printer.copyCount());
-    if (copies > 1) {
-        if (pages.isEmpty())
-            for (int p = 0; p < pageCount; ++p) pages.append(p);
-        const QList<int> once = pages;
-        pages.clear();
-        if (printer.collateCopies()) {
-            for (int c = 0; c < copies; ++c) pages.append(once);
-        } else {
-            for (int page : once)
-                for (int c = 0; c < copies; ++c) pages.append(page);
-        }
-    }
-
-    QApplication::setOverrideCursor(Qt::WaitCursor);
-    const bool ok = dv->printDocument(&printer, pages);
-    QApplication::restoreOverrideCursor();
-
-    if (!ok)
-        QMessageBox::warning(this, tr("Print"),
-                             tr("The document could not be printed."));
-#endif
+    Printing::run(this, currentDocView());
 }
 
 void MainWindow::onUndo()
@@ -759,28 +701,8 @@ void MainWindow::onZoomOut()
 
 void MainWindow::loadShortcuts()
 {
-    struct Def { const char *key; const char *defaultSeq; };
-    static const Def kDefs[] = {
-        { "save",     "Ctrl+S"       },
-        { "saveas",   "Ctrl+Shift+S" },
-        { "print",    "Ctrl+P"       },
-        { "open",     "Ctrl+O"       },
-        { "undo",     "Ctrl+Z"       },
-        { "redo",     "Ctrl+Y"       },
-        { "find",         "Ctrl+F"       },
-        { "texttool",     "T"            },
-        { "comment",      "N"            },
-        { "zoomin",       "Ctrl++"       },
-        { "zoomout",      "Ctrl+-"       },
-        { "presentation", "F5"           },
-    };
-    for (const auto &def : kDefs) {
-        const QString k = QLatin1String(def.key);
-        if (!m_shortcuts.contains(k)) continue;
-        const QKeySequence dflt = QKeySequence::fromString(
-            QLatin1String(def.defaultSeq), QKeySequence::PortableText);
-        m_shortcuts[k]->setKey(m_appSettings->shortcut(k, dflt));
-    }
+    for (auto it = m_shortcuts.cbegin(); it != m_shortcuts.cend(); ++it)
+        it->shortcut->setKey(m_appSettings->shortcut(it.key(), it->defaultKey));
 }
 
 void MainWindow::loadZoomSettings()
@@ -793,10 +715,7 @@ void MainWindow::loadZoomSettings()
 void MainWindow::onModeSelected(const QString &mode)
 {
     if (mode == QLatin1String("edit")) {
-        m_editMode = !m_editMode;
-        for (DocumentView *dv : m_docViews)
-            dv->setEditMode(m_editMode);
-        m_rightSidebar->setMode(m_editMode ? QStringLiteral("edit") : QString{});
+        setEditMode(!m_editMode);
         if (!m_editMode) {
             closeTextPanel();
             m_formatBar->setAdvancedChecked(false);
@@ -804,13 +723,23 @@ void MainWindow::onModeSelected(const QString &mode)
             m_drawBar->hide();
             onToolSelected(QStringLiteral("select"));
         }
+    } else if (mode == QLatin1String("sign")) {
+        SignDialog dlg(this);
+        DocumentView *dv = currentDocView();
+        if (dlg.exec() == QDialog::Accepted && dv && dv->pageCount() > 0) {
+            if (dlg.isDigital()) {
+                DigitalSigning::run(dv, dlg.signRequest(), dlg.appearance());
+            } else {
+                dv->placeSignature(dlg.signatureImage());
+            }
+        }
     } else if (mode == QLatin1String("export")) {
         DocumentView *dv   = currentDocView();
         const QString file = dv ? dv->currentFile() : QString{};
         const int pageCount = dv ? dv->pageCount() : 1;
         ExportDialog dlg(file, pageCount, dv ? dv->currentPage() : 0, this);
         if (dlg.exec() == QDialog::Accepted && dv)
-            runExport(dv, dlg.request());
+            Exporting::run(this, dv, dlg.request());
     } else if (mode == QLatin1String("organize")) {
         DocumentView *dv = currentDocView();
 
@@ -834,112 +763,16 @@ void MainWindow::onModeSelected(const QString &mode)
 
 void MainWindow::openHistoryDialog()
 {
-    DocumentView *dv = currentDocView();
-    if (!dv || dv->contentFile().isEmpty()) {
-        QMessageBox::information(this, tr("Change history"),
-                                 tr("Open a document to see its change history."));
+    HistoryDialog *dlg = HistoryDialog::openFor(currentDocView(), this);
+    if (!dlg) {
         m_rightSidebar->setMode(m_editMode ? QStringLiteral("edit") : QString{});
         return;
     }
 
     m_rightSidebar->setMode(QStringLiteral("history"));
-
-    auto *dlg = new HistoryDialog(dv->history(),
-                                  QFileInfo(dv->currentFile()).fileName(), this);
-    dlg->setAttribute(Qt::WA_DeleteOnClose);
-
-    const auto syncButtons = [dv, dlg]() {
-        const DocumentHistory *history = dv->history();
-        dlg->setUndoRedoAvailable(history->canRestore(history->currentIndex() - 1),
-                                  history->canRestore(history->currentIndex() + 1));
-    };
-    syncButtons();
-    connect(dv->history(), &DocumentHistory::changed, dlg, syncButtons);
-
-    connect(dlg, &HistoryDialog::undoRequested, this, &MainWindow::onUndo);
-    connect(dlg, &HistoryDialog::redoRequested, this, &MainWindow::onRedo);
-    connect(dlg, &HistoryDialog::clearRequested, dv, [dv]() {
-        dv->clearHistory();
-    });
-    connect(dlg, &HistoryDialog::restoreRequested, this, [this, dv, dlg](int index) {
-        if (dv->restoreHistoryState(index)) return;
-        QMessageBox::warning(dlg, tr("Change history"),
-                             tr("This state could not be restored. The copy of "
-                                "the document it was kept in is no longer there."));
-    });
     connect(dlg, &QDialog::finished, this, [this]() {
         m_rightSidebar->setMode(m_editMode ? QStringLiteral("edit") : QString{});
     });
-    dlg->open();
-}
-
-void MainWindow::runExport(DocumentView *dv, const ExportRequest &req)
-{
-    if (!dv || req.path.isEmpty()) return;
-
-    const QString shownName = QFileInfo(req.path).fileName();
-    bool ok = false;
-    QString failure;
-
-    if (req.format == QLatin1String("word")) {
-        const QList<DocxPage> content = dv->allPageContent(req.pages);
-        const QString title = QFileInfo(dv->currentFile()).completeBaseName();
-        DocxExportOptions docxOpt;
-        docxOpt.compressImages = req.compressImages;
-        docxOpt.imageQuality   = req.imageQuality;
-        ok = DocxExporter::exportToDocx(req.path, content, title, docxOpt);
-        failure = tr("Could not write to \"%1\".").arg(req.path);
-
-    } else if (req.format == QLatin1String("image")) {
-        ok = dv->exportPagesToImages(req.path, req.imageQuality, req.pages);
-        failure = tr("Could not export PNG images to \"%1\".")
-                      .arg(QFileInfo(req.path).absolutePath());
-
-    } else {
-
-        const QString source = dv->contentFile();
-        PdfExportOptions opt;
-        opt.pages           = req.pages;
-        opt.includeComments = req.includeComments;
-        opt.keepForms       = req.keepForms;
-        opt.embedFonts      = req.embedFonts;
-        opt.compressImages  = req.compressImages;
-        opt.imageQuality    = req.imageQuality;
-        opt.userPassword    = req.password;
-
-        const bool plainRequest = req.pages.size() == dv->pageCount()
-                               && req.includeComments && req.keepForms
-                               && req.embedFonts && req.password.isEmpty();
-        ok = pdfExportAvailable() && exportPdf(source, req.path, opt);
-        if (!ok && plainRequest) ok = dv->saveToFile(req.path);
-        failure = ok ? QString{}
-                     : pdfExportAvailable()
-                         ? tr("Could not write \"%1\".").arg(shownName)
-
-                         : tr("Could not write \"%1\".\n\n"
-                              "Selecting pages or setting a password for a PDF "
-                              "needs qpdf, which this build does not include. "
-                              "Exporting as Word or PNG is unaffected.")
-                               .arg(shownName);
-    }
-
-    if (!ok) {
-        QMessageBox::warning(this, tr("Export failed"), failure);
-        return;
-    }
-
-    const int pages = req.pages.size();
-    QMessageBox::information(this, tr("Export successful"),
-        req.format == QLatin1String("image") && pages > 1
-            ? tr("%1 pages exported as PNG images.").arg(pages)
-            : tr("Document exported to \"%1\".").arg(shownName));
-
-    if (req.openAfterExport) {
-
-        const bool many = req.format == QLatin1String("image") && pages > 1;
-        const QString target = many ? QFileInfo(req.path).absolutePath() : req.path;
-        QDesktopServices::openUrl(QUrl::fromLocalFile(target));
-    }
 }
 
 void MainWindow::onToolSelected(const QString &tool)
@@ -968,10 +801,7 @@ void MainWindow::onToolSelected(const QString &tool)
             return;
         }
 
-        m_editMode = true;
-        m_rightSidebar->setMode(QStringLiteral("edit"));
-        for (DocumentView *dv : m_docViews)
-            dv->setEditMode(true);
+        setEditMode(true);
     }
 
     m_activeTool = tool;
@@ -1100,6 +930,14 @@ void MainWindow::closeEvent(QCloseEvent *e)
     e->accept();
 }
 
+void MainWindow::setEditMode(bool on)
+{
+    m_editMode = on;
+    for (DocumentView *dv : m_docViews)
+        dv->setEditMode(on);
+    m_rightSidebar->setMode(on ? QStringLiteral("edit") : QString{});
+}
+
 void MainWindow::setRightSidebarCollapsed(bool collapsed)
 {
     m_rightSidebarCollapsed = collapsed;
@@ -1181,14 +1019,7 @@ bool MainWindow::confirmAndSave(DocumentView *dv)
     if (btn == QMessageBox::Cancel) return false;
 
     if (btn == QMessageBox::Save) {
-
-        if (!dv->currentFile().isEmpty())
-            return saveDocument(dv, dv->currentFile());
-
-        const QString path = QFileDialog::getSaveFileName(
-            this, tr("Save PDF As"), dv->suggestedSavePath(),
-            tr("PDF files (*.pdf)"));
-        if (path.isEmpty()) return false;
+        const QString path = dv->currentFile().isEmpty() ? askSavePath(dv) : dv->currentFile();
         return saveDocument(dv, path);
     }
 

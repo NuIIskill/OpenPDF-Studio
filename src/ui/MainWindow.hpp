@@ -1,9 +1,8 @@
 #pragma once
 
-#include "ui/export/ExportDialog.hpp"
-
 #include <QMainWindow>
 #include <QHash>
+#include <QKeySequence>
 #include <QMap>
 #include <QTranslator>
 
@@ -58,6 +57,10 @@ private:
     void retranslateUi();
     void buildUi();
     void connectSignals();
+    void connectBars();
+    void connectPanels();
+    void connectEditBars();
+    void setupShortcuts();
 
     DocumentView *addDocView();
     DocumentView *currentDocView() const;
@@ -77,13 +80,14 @@ private:
 
     void openHistoryDialog();
 
-    void runExport(DocumentView *dv, const ExportRequest &req);
     void onToolSelected(const QString &tool);
     void onStartPresentation();
 
     void openImported(const QString &path);
+    QString askSavePath(DocumentView *dv);
     bool saveDocument(DocumentView *dv, const QString &path);
     bool confirmAndSave(DocumentView *dv);
+    void setEditMode(bool on);
     void openTextPanel();
     void closeTextPanel();
     void refreshBookmarkPanel();
@@ -122,7 +126,8 @@ private:
     QStackedWidget        *m_docStack  { nullptr };
     QList<DocumentView *>  m_docViews;
 
-    QMap<QString, QShortcut *> m_shortcuts;
+    struct Shortcut { QShortcut *shortcut { nullptr }; QKeySequence defaultKey; };
+    QMap<QString, Shortcut> m_shortcuts;
     QTranslator m_translator;
     int         m_zoom                   { 100 };
     QString     m_activeTool             { QStringLiteral("select") };

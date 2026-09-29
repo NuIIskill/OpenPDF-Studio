@@ -13,6 +13,7 @@ class QVBoxLayout;
 class QWidget;
 QT_END_NAMESPACE
 
+class DocumentView;
 class HistoryRow;
 
 /// The change log of the open document, as a timeline the user can step back into.
@@ -23,6 +24,8 @@ class HistoryDialog : public QDialog
 public:
     HistoryDialog(const DocumentHistory *history, const QString &documentName,
                   QWidget *parent = nullptr);
+
+    static HistoryDialog *openFor(DocumentView *view, QWidget *parent);
 
     void retranslateUi();
 

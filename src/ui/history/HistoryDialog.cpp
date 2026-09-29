@@ -1,11 +1,13 @@
 #include "ui/history/HistoryDialog.hpp"
 #include "ui/history/HistoryRow.hpp"
+#include "ui/DocumentView.hpp"
 #include "ui/theme/Theme.hpp"
 
 #include <QAction>
 #include <QApplication>
 #include <QClipboard>
 #include <QEvent>
+#include <QFileInfo>
 #include <QFrame>
 #include <QHBoxLayout>
 #include <QLabel>
@@ -21,7 +23,7 @@ HistoryDialog::HistoryDialog(const DocumentHistory *history, const QString &docu
     , m_history(history)
     , m_documentName(documentName)
 {
-    setWindowTitle(tr("Change history · OpenPDF Studio"));
+    setWindowTitle(tr("Change history - OpenPDF Studio"));
     setMinimumSize(620, 520);
     resize(700, 620);
 
@@ -34,6 +36,39 @@ HistoryDialog::HistoryDialog(const DocumentHistory *history, const QString &docu
         });
     }
     rebuildList();
+}
+
+HistoryDialog *HistoryDialog::openFor(DocumentView *view, QWidget *parent)
+{
+    if (!view || view->contentFile().isEmpty()) {
+        QMessageBox::information(parent, tr("Change history") + QStringLiteral(" - OpenPDF Studio"),
+                                 tr("Open a document to see its change history."));
+        return nullptr;
+    }
+
+    auto *dlg = new HistoryDialog(view->history(),
+                                  QFileInfo(view->currentFile()).fileName(), parent);
+    dlg->setAttribute(Qt::WA_DeleteOnClose);
+
+    const auto syncButtons = [view, dlg]() {
+        const DocumentHistory *history = view->history();
+        dlg->setUndoRedoAvailable(history->canRestore(history->currentIndex() - 1),
+                                  history->canRestore(history->currentIndex() + 1));
+    };
+    syncButtons();
+    connect(view->history(), &DocumentHistory::changed, dlg, syncButtons);
+
+    connect(dlg, &HistoryDialog::undoRequested, view, &DocumentView::undo);
+    connect(dlg, &HistoryDialog::redoRequested, view, &DocumentView::redo);
+    connect(dlg, &HistoryDialog::clearRequested, view, &DocumentView::clearHistory);
+    connect(dlg, &HistoryDialog::restoreRequested, dlg, [view, dlg](int index) {
+        if (view->restoreHistoryState(index)) return;
+        QMessageBox::warning(dlg, tr("Change history") + QStringLiteral(" - OpenPDF Studio"),
+                             tr("This state could not be restored. The copy of "
+                                "the document it was kept in is no longer there."));
+    });
+    dlg->open();
+    return dlg;
 }
 
 void HistoryDialog::buildUi()
@@ -118,7 +153,7 @@ void HistoryDialog::buildUi()
     connect(m_clearBtn, &QPushButton::clicked, this, [this]() {
         if (!m_history || m_history->count() < 2) return;
         const auto answer = QMessageBox::question(
-            this, tr("Clear history"),
+            this, tr("Clear history") + QStringLiteral(" - OpenPDF Studio"),
             tr("Forget every recorded step except the one the document is at?\n\n"
                "The document itself is not changed, only the list of states you "
                "can go back to."),
@@ -142,7 +177,7 @@ void HistoryDialog::buildUi()
 
 void HistoryDialog::retranslateUi()
 {
-    setWindowTitle(tr("Change history · OpenPDF Studio"));
+    setWindowTitle(tr("Change history - OpenPDF Studio"));
     m_title->setText(tr("Change history"));
     m_subtitle->setText(m_documentName.isEmpty()
         ? tr("Every change made to this document, newest first.")
@@ -219,9 +254,9 @@ void HistoryDialog::rebuildList()
                        && index < m_history->entries().size()) {
                 const DocumentHistory::Entry &entry = m_history->entries()[index];
                 QString line = entry.time.toString(QStringLiteral("HH:mm"))
-                             + QStringLiteral(" · ") + titleFor(entry);
+                             + QStringLiteral(" - ") + titleFor(entry);
                 const QString detail = detailFor(entry);
-                if (!detail.isEmpty()) line += QStringLiteral(" · ") + detail;
+                if (!detail.isEmpty()) line += QStringLiteral(" - ") + detail;
                 QApplication::clipboard()->setText(line);
             }
         });
@@ -269,7 +304,7 @@ void HistoryDialog::requestRestore(int index)
 
     if (m_history->restoringDropsEdits(index)) {
         const auto answer = QMessageBox::question(
-            this, tr("Go back to this state"),
+            this, tr("Go back to this state") + QStringLiteral(" - OpenPDF Studio"),
             tr("This state is part of an earlier version of the document, so it "
                "has to be loaded again.\n\n"
                "Text, image and drawing edits made since then are not part of any file "
@@ -343,8 +378,8 @@ QString HistoryDialog::detailFor(const DocumentHistory::Entry &e)
     case Kind::PageRotated: {
         const QString turn = e.value < 0 ? tr("%1° counter-clockwise").arg(-e.value)
                                          : tr("%1° clockwise").arg(e.value);
-        if (e.count > 1) return pages + QStringLiteral(" · ") + turn;
-        return page.isEmpty() ? turn : page + QStringLiteral(" · ") + turn;
+        if (e.count > 1) return pages + QStringLiteral(" - ") + turn;
+        return page.isEmpty() ? turn : page + QStringLiteral(" - ") + turn;
     }
     case Kind::PageDeleted:
     case Kind::PageAdded:

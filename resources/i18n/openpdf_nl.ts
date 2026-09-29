@@ -15,6 +15,302 @@
     </message>
 </context>
 <context>
+    <name>CreateCertificateDialog</name>
+    <message>
+        <location filename="../../src/ui/sign/CreateCertificateDialog.cpp" line="36"/>
+        <source>New certificate - OpenPDF Studio</source>
+        <translation>Nieuw certificaat - OpenPDF Studio</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/sign/CreateCertificateDialog.cpp" line="44"/>
+        <source>Creates a self-signed certificate for signing. Viewers show signatures made with it as intact, but cannot confirm who signed.</source>
+        <translation>Maakt een zelfondertekend certificaat om mee te ondertekenen. Viewers tonen handtekeningen die ermee zijn gemaakt als ongewijzigd, maar kunnen niet bevestigen wie heeft ondertekend.</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/sign/CreateCertificateDialog.cpp" line="50"/>
+        <source>Your full name</source>
+        <translation>Uw volledige naam</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/sign/CreateCertificateDialog.cpp" line="51"/>
+        <location filename="../../src/ui/sign/CreateCertificateDialog.cpp" line="52"/>
+        <source>Optional</source>
+        <translation>Optioneel</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/sign/CreateCertificateDialog.cpp" line="55"/>
+        <source>1 year</source>
+        <translation>1 jaar</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/sign/CreateCertificateDialog.cpp" line="56"/>
+        <source>3 years</source>
+        <translation>3 jaar</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/sign/CreateCertificateDialog.cpp" line="57"/>
+        <source>5 years</source>
+        <translation>5 jaar</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/sign/CreateCertificateDialog.cpp" line="63"/>
+        <source>Name</source>
+        <translation>Naam</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/sign/CreateCertificateDialog.cpp" line="64"/>
+        <source>Organization</source>
+        <translation>Organisatie</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/sign/CreateCertificateDialog.cpp" line="67"/>
+        <source>Email</source>
+        <translation>E-mail</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/sign/CreateCertificateDialog.cpp" line="68"/>
+        <source>Valid for</source>
+        <translation>Geldig voor</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/sign/CreateCertificateDialog.cpp" line="77"/>
+        <source>The certificate is stored in your Windows certificate store.</source>
+        <translation>Het certificaat wordt opgeslagen in het Windows-certificaatarchief.</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/sign/CreateCertificateDialog.cpp" line="79"/>
+        <source>The certificate and its key are stored in the OpenPDF Studio settings folder, readable only by you.</source>
+        <translation>Het certificaat en de sleutel worden opgeslagen in de instellingenmap van OpenPDF Studio, alleen leesbaar voor u.</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/sign/CreateCertificateDialog.cpp" line="88"/>
+        <source>Cancel</source>
+        <translation>Annuleren</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/sign/CreateCertificateDialog.cpp" line="90"/>
+        <source>Create</source>
+        <translation>Maken</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/sign/CreateCertificateDialog.cpp" line="123"/>
+        <source>The certificate could not be created.</source>
+        <translation>Het certificaat kon niet worden gemaakt.</translation>
+    </message>
+</context>
+<context>
+    <name>DigitalSignatureLayer</name>
+    <message>
+        <location filename="../../src/ui/view/DigitalSignatureLayer.cpp" line="31"/>
+        <source>Digital signature added</source>
+        <translation>Digitale handtekening toegevoegd</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/view/DigitalSignatureLayer.cpp" line="39"/>
+        <source>Signed when the document is saved</source>
+        <translation>Wordt ondertekend bij het opslaan van het document</translation>
+    </message>
+</context>
+<context>
+    <name>DigitalSigning</name>
+    <message>
+        <location filename="../../src/ui/sign/DigitalSigning.cpp" line="142"/>
+        <source>This build cannot sign digitally.</source>
+        <translation>Deze build kan niet digitaal ondertekenen.</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/sign/DigitalSigning.cpp" line="144"/>
+        <source>The certificate or its private key was not found. Check that the card or token is connected.</source>
+        <translation>Het certificaat of de bijbehorende privésleutel is niet gevonden. Controleer of de kaart of token is aangesloten.</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/sign/DigitalSigning.cpp" line="147"/>
+        <source>The card or token asks for a PIN. The document was not signed.</source>
+        <translation>De kaart of token vraagt om een pincode. Het document is niet ondertekend.</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/sign/DigitalSigning.cpp" line="149"/>
+        <source>The PIN is wrong. The document was not signed.</source>
+        <translation>De pincode is onjuist. Het document is niet ondertekend.</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/sign/DigitalSigning.cpp" line="151"/>
+        <source>The PIN is locked. The card or token has to be unlocked first.</source>
+        <translation>De pincode is geblokkeerd. De kaart of token moet eerst worden ontgrendeld.</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/sign/DigitalSigning.cpp" line="153"/>
+        <source>Password-protected documents cannot be signed yet.</source>
+        <translation>Met een wachtwoord beveiligde documenten kunnen nog niet worden ondertekend.</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/sign/DigitalSigning.cpp" line="155"/>
+        <source>The document could not be prepared for signing.</source>
+        <translation>Het document kon niet worden voorbereid voor ondertekening.</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/sign/DigitalSigning.cpp" line="157"/>
+        <source>Could not write &quot;%1&quot;.</source>
+        <translation>Kan &quot;%1&quot; niet schrijven.</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/sign/DigitalSigning.cpp" line="162"/>
+        <source>Signing failed. The document was not signed.</source>
+        <translation>Ondertekenen mislukt. Het document is niet ondertekend.</translation>
+    </message>
+</context>
+<context>
+    <name>DigitalSignPage</name>
+    <message>
+        <location filename="../../src/ui/sign/DigitalSignPage.cpp" line="91"/>
+        <source>Select certificate</source>
+        <translation>Certificaat selecteren</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/sign/DigitalSignPage.cpp" line="112"/>
+        <location filename="../../src/ui/sign/DigitalSignPage.cpp" line="317"/>
+        <source>Please select a certificate...</source>
+        <translation>Selecteer een certificaat...</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/sign/DigitalSignPage.cpp" line="145"/>
+        <source>Advanced</source>
+        <translation>Geavanceerd</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/sign/DigitalSignPage.cpp" line="147"/>
+        <source>Additional signing options.</source>
+        <translation>Extra ondertekeningsopties.</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/sign/DigitalSignPage.cpp" line="175"/>
+        <source>Not available yet</source>
+        <translation>Nog niet beschikbaar</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/sign/DigitalSignPage.cpp" line="177"/>
+        <source>Add timestamp</source>
+        <translation>Tijdstempel toevoegen</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/sign/DigitalSignPage.cpp" line="178"/>
+        <source>Include a trusted timestamp in the signature.</source>
+        <translation>Een vertrouwde tijdstempel in de handtekening opnemen.</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/sign/DigitalSignPage.cpp" line="179"/>
+        <source>Lock document after signing</source>
+        <translation>Document vergrendelen na ondertekening</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/sign/DigitalSignPage.cpp" line="180"/>
+        <source>Prevent further changes to the PDF.</source>
+        <translation>Verdere wijzigingen aan de pdf voorkomen.</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/sign/DigitalSignPage.cpp" line="185"/>
+        <source>Invisible signature</source>
+        <translation>Onzichtbare handtekening</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/sign/DigitalSignPage.cpp" line="186"/>
+        <source>Sign the document without a visible signature.</source>
+        <translation>Het document ondertekenen zonder zichtbare handtekening.</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/sign/DigitalSignPage.cpp" line="208"/>
+        <source>Signature appearance</source>
+        <translation>Weergave van de handtekening</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/sign/DigitalSignPage.cpp" line="216"/>
+        <source>Profile</source>
+        <translation>Profiel</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/sign/DigitalSignPage.cpp" line="220"/>
+        <source>Customize appearance...</source>
+        <translation>Weergave aanpassen...</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/sign/DigitalSignPage.cpp" line="232"/>
+        <source>Customize how the signature looks in the document.</source>
+        <translation>Pas aan hoe de handtekening er in het document uitziet.</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/sign/DigitalSignPage.cpp" line="241"/>
+        <source>Standard</source>
+        <translation>Standaard</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/sign/DigitalSignPage.cpp" line="241"/>
+        <source>Unnamed profile</source>
+        <translation>Naamloos profiel</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/sign/DigitalSignPage.cpp" line="255"/>
+        <source>New profile...</source>
+        <translation>Nieuw profiel...</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/sign/DigitalSignPage.cpp" line="276"/>
+        <source>Profile %1</source>
+        <translation>Profiel %1</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/sign/DigitalSignPage.cpp" line="304"/>
+        <location filename="../../src/ui/sign/DigitalSignPage.cpp" line="371"/>
+        <source>Unnamed certificate</source>
+        <translation>Naamloos certificaat</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/sign/DigitalSignPage.cpp" line="306"/>
+        <source>%1, expired</source>
+        <translation>%1, verlopen</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/sign/DigitalSignPage.cpp" line="311"/>
+        <source>Valid until %1</source>
+        <translation>Geldig tot %1</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/sign/DigitalSignPage.cpp" line="315"/>
+        <source>New certificate...</source>
+        <translation>Nieuw certificaat...</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/sign/DigitalSignPage.cpp" line="316"/>
+        <source>No certificates found</source>
+        <translation>Geen certificaten gevonden</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/sign/DigitalSignPage.cpp" line="364"/>
+        <source>Delete certificate...</source>
+        <translation>Certificaat verwijderen...</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/sign/DigitalSignPage.cpp" line="367"/>
+        <source>Only certificates created in OpenPDF Studio can be deleted.</source>
+        <translation>Alleen certificaten die in OpenPDF Studio zijn gemaakt, kunnen worden verwijderd.</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/sign/DigitalSignPage.cpp" line="372"/>
+        <location filename="../../src/ui/sign/DigitalSignPage.cpp" line="379"/>
+        <source>Delete certificate</source>
+        <translation>Certificaat verwijderen</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/sign/DigitalSignPage.cpp" line="373"/>
+        <source>Delete the certificate &quot;%1&quot;? Its private key is deleted as well, so it can no longer sign. Signatures already made with it stay valid.</source>
+        <translation>Certificaat &quot;%1&quot; verwijderen? De privésleutel wordt ook verwijderd, zodat er niet meer mee kan worden ondertekend. Al gemaakte handtekeningen blijven geldig.</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/sign/DigitalSignPage.cpp" line="380"/>
+        <source>The certificate could not be deleted.</source>
+        <translation>Het certificaat kon niet worden verwijderd.</translation>
+    </message>
+</context>
+<context>
     <name>DocumentView</name>
     <message>
         <location filename="../../src/ui/DocumentView.cpp" line="34"/>
@@ -398,6 +694,39 @@ Please use a build that includes Qt6::Pdf support.
         <source>Organize</source>
         <translation>Organiseren</translation>
     </message>
+    <message>
+        <location filename="../../src/ui/panels/RightSidebar.cpp" line="23"/>
+        <source>Sign</source>
+        <translation>Ondertekenen</translation>
+    </message>
+</context>
+<context>
+    <name>SavedSignaturesView</name>
+    <message>
+        <location filename="../../src/ui/sign/SavedSignaturesView.cpp" line="42"/>
+        <source>No saved signatures yet.</source>
+        <translation>Nog geen opgeslagen handtekeningen.</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/sign/SavedSignaturesView.cpp" line="94"/>
+        <source>Rename signature</source>
+        <translation>Handtekening hernoemen</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/sign/SavedSignaturesView.cpp" line="94"/>
+        <source>Name</source>
+        <translation>Naam</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/sign/SavedSignaturesView.cpp" line="99"/>
+        <source>Could not rename the signature.</source>
+        <translation>De handtekening kon niet worden hernoemd.</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/sign/SavedSignaturesView.cpp" line="107"/>
+        <source>Delete &quot;%1&quot;?</source>
+        <translation>&quot;%1&quot; verwijderen?</translation>
+    </message>
 </context>
 <context>
     <name>SettingsPanel</name>
@@ -535,6 +864,342 @@ Please use a build that includes Qt6::Pdf support.
         <location filename="../../src/ui/SettingsPanel.cpp" line="635"/>
         <source>A modern, open-source PDF editor built with Qt.</source>
         <translation>Een moderne, open-source PDF-editor gebouwd met Qt.</translation>
+    </message>
+</context>
+<context>
+    <name>SignatureAppearance</name>
+    <message>
+        <location filename="../../src/ui/sign/SignatureAppearance.cpp" line="45"/>
+        <source>Digitally signed by %1</source>
+        <translation>Digitaal ondertekend door %1</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/sign/SignatureAppearance.cpp" line="46"/>
+        <source>Digitally signed</source>
+        <translation>Digitaal ondertekend</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/sign/SignatureAppearance.cpp" line="50"/>
+        <source>Date: %1</source>
+        <translation>Datum: %1</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/sign/SignatureAppearance.cpp" line="52"/>
+        <source>Reason: %1</source>
+        <translation>Reden: %1</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/sign/SignatureAppearance.cpp" line="54"/>
+        <source>Location: %1</source>
+        <translation>Locatie: %1</translation>
+    </message>
+</context>
+<context>
+    <name>SignatureAppearanceDialog</name>
+    <message>
+        <location filename="../../src/ui/sign/SignatureAppearanceDialog.cpp" line="42"/>
+        <source>Document approved</source>
+        <translation>Document goedgekeurd</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/sign/SignatureAppearanceDialog.cpp" line="42"/>
+        <source>I am the author of this document</source>
+        <translation>Ik ben de auteur van dit document</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/sign/SignatureAppearanceDialog.cpp" line="43"/>
+        <source>I have reviewed this document</source>
+        <translation>Ik heb dit document gecontroleerd</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/sign/SignatureAppearanceDialog.cpp" line="43"/>
+        <source>I agree to the terms</source>
+        <translation>Ik ga akkoord met de voorwaarden</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/sign/SignatureAppearanceDialog.cpp" line="55"/>
+        <source>Signature appearance - OpenPDF Studio</source>
+        <translation>Weergave van de handtekening - OpenPDF Studio</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/sign/SignatureAppearanceDialog.cpp" line="65"/>
+        <location filename="../../src/ui/sign/SignatureAppearanceDialog.cpp" line="69"/>
+        <source>Profile name</source>
+        <translation>Profielnaam</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/sign/SignatureAppearanceDialog.cpp" line="75"/>
+        <source>Show in signature appearance</source>
+        <translation>Tonen in de handtekening</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/sign/SignatureAppearanceDialog.cpp" line="79"/>
+        <source>Preview</source>
+        <translation>Voorbeeld</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/sign/SignatureAppearanceDialog.cpp" line="89"/>
+        <source>Your name</source>
+        <translation>Uw naam</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/sign/SignatureAppearanceDialog.cpp" line="96"/>
+        <source>City</source>
+        <translation>Stad</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/sign/SignatureAppearanceDialog.cpp" line="107"/>
+        <source>Name</source>
+        <translation>Naam</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/sign/SignatureAppearanceDialog.cpp" line="108"/>
+        <source>Reason</source>
+        <translation>Reden</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/sign/SignatureAppearanceDialog.cpp" line="109"/>
+        <source>Location</source>
+        <translation>Locatie</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/sign/SignatureAppearanceDialog.cpp" line="137"/>
+        <source>Show signer name</source>
+        <translation>Naam tonen</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/sign/SignatureAppearanceDialog.cpp" line="138"/>
+        <source>Show date</source>
+        <translation>Datum tonen</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/sign/SignatureAppearanceDialog.cpp" line="139"/>
+        <source>Show reason</source>
+        <translation>Reden tonen</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/sign/SignatureAppearanceDialog.cpp" line="140"/>
+        <source>Show location</source>
+        <translation>Locatie tonen</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/sign/SignatureAppearanceDialog.cpp" line="141"/>
+        <source>Show PNG logo</source>
+        <translation>PNG-logo tonen</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/sign/SignatureAppearanceDialog.cpp" line="168"/>
+        <source>No logo chosen</source>
+        <translation>Geen logo gekozen</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/sign/SignatureAppearanceDialog.cpp" line="172"/>
+        <source>Choose PNG...</source>
+        <translation>PNG kiezen...</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/sign/SignatureAppearanceDialog.cpp" line="179"/>
+        <source>PNG logo</source>
+        <translation>PNG-logo</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/sign/SignatureAppearanceDialog.cpp" line="206"/>
+        <source>Delete profile</source>
+        <translation>Profiel verwijderen</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/sign/SignatureAppearanceDialog.cpp" line="216"/>
+        <source>Cancel</source>
+        <translation>Annuleren</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/sign/SignatureAppearanceDialog.cpp" line="218"/>
+        <source>Apply</source>
+        <translation>Toepassen</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/sign/SignatureAppearanceDialog.cpp" line="235"/>
+        <source>Delete the profile &quot;%1&quot;?</source>
+        <translation>Profiel &quot;%1&quot; verwijderen?</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/sign/SignatureAppearanceDialog.cpp" line="247"/>
+        <source>Choose logo</source>
+        <translation>Logo kiezen</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/sign/SignatureAppearanceDialog.cpp" line="248"/>
+        <source>PNG images (*.png)</source>
+        <translation>PNG-afbeeldingen (*.png)</translation>
+    </message>
+</context>
+<context>
+    <name>SignatureCard</name>
+    <message>
+        <location filename="../../src/ui/sign/SignatureCard.cpp" line="110"/>
+        <source>Untitled signature</source>
+        <translation>Naamloze handtekening</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/sign/SignatureCard.cpp" line="71"/>
+        <source>Rename</source>
+        <translation>Naam wijzigen</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/sign/SignatureCard.cpp" line="72"/>
+        <source>Delete</source>
+        <translation>Verwijderen</translation>
+    </message>
+</context>
+<context>
+    <name>SignDialog</name>
+    <message>
+        <location filename="../../src/ui/sign/SignDialog.cpp" line="105"/>
+        <source>Sign - OpenPDF Studio</source>
+        <translation>Ondertekenen - OpenPDF Studio</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/sign/SignDialog.cpp" line="179"/>
+        <source>Add signature</source>
+        <translation>Handtekening toevoegen</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/sign/SignDialog.cpp" line="180"/>
+        <source>Sign digitally</source>
+        <translation>Digitaal ondertekenen</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/sign/SignDialog.cpp" line="183"/>
+        <source>Not available in this build</source>
+        <translation>Niet beschikbaar in deze build</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/sign/SignDialog.cpp" line="200"/>
+        <source>Create, import or choose a signature, then place it freely in the PDF.</source>
+        <translation>Maak, importeer of kies een handtekening en plaats deze daarna vrij in de PDF.</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/sign/SignDialog.cpp" line="214"/>
+        <source>Once created, the signature can be placed freely in the PDF and adjusted later.</source>
+        <translation>Na het maken kan de handtekening vrij in de PDF worden geplaatst en later worden aangepast.</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/sign/SignDialog.cpp" line="245"/>
+        <source>Draw</source>
+        <translation>Tekenen</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/sign/SignDialog.cpp" line="246"/>
+        <source>Type</source>
+        <translation>Typen</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/sign/SignDialog.cpp" line="247"/>
+        <source>Import image</source>
+        <translation>Afbeelding importeren</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/sign/SignDialog.cpp" line="248"/>
+        <source>Saved</source>
+        <translation>Opgeslagen</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/sign/SignDialog.cpp" line="283"/>
+        <source>Clear</source>
+        <translation>Wissen</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/sign/SignDialog.cpp" line="298"/>
+        <source>Type your name</source>
+        <translation>Typ uw naam</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/sign/SignDialog.cpp" line="318"/>
+        <source>Choose image...</source>
+        <translation>Afbeelding kiezen...</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/sign/SignDialog.cpp" line="343"/>
+        <source>Blue</source>
+        <translation>Blauw</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/sign/SignDialog.cpp" line="344"/>
+        <source>Dark blue</source>
+        <translation>Donkerblauw</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/sign/SignDialog.cpp" line="345"/>
+        <source>Black</source>
+        <translation>Zwart</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/sign/SignDialog.cpp" line="346"/>
+        <source>Red</source>
+        <translation>Rood</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/sign/SignDialog.cpp" line="364"/>
+        <location filename="../../src/ui/sign/SignDialog.cpp" line="366"/>
+        <source>%1 px</source>
+        <translation>%1 px</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/sign/SignDialog.cpp" line="368"/>
+        <source>Color</source>
+        <translation>Kleur</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/sign/SignDialog.cpp" line="371"/>
+        <source>Line width</source>
+        <translation>Lijndikte</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/sign/SignDialog.cpp" line="487"/>
+        <source>Cancel</source>
+        <translation>Annuleren</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/sign/SignDialog.cpp" line="559"/>
+        <source>Could not save the signature.</source>
+        <translation>De handtekening kon niet worden opgeslagen.</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/sign/SignDialog.cpp" line="631"/>
+        <source>Sign</source>
+        <translation>Ondertekenen</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/sign/SignDialog.cpp" line="554"/>
+        <source>%1 (Image)</source>
+        <translation>%1 (afbeelding)</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/sign/SignDialog.cpp" line="555"/>
+        <source>Signature %1</source>
+        <translation>Handtekening %1</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/sign/SignDialog.cpp" line="492"/>
+        <source>Save</source>
+        <translation>Opslaan</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/sign/SignDialog.cpp" line="497"/>
+        <location filename="../../src/ui/sign/SignDialog.cpp" line="631"/>
+        <location filename="../../src/ui/sign/SignDialog.cpp" line="635"/>
+        <source>Place</source>
+        <translation>Plaatsen</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/sign/SignDialog.cpp" line="573"/>
+        <source>Import signature image</source>
+        <translation>Handtekeningafbeelding importeren</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/sign/SignDialog.cpp" line="574"/>
+        <source>Images (%1)</source>
+        <translation>Afbeeldingen (%1)</translation>
     </message>
 </context>
 <context>

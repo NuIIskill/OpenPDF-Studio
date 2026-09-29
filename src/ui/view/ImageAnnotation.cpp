@@ -25,6 +25,8 @@ ImageAnnotation::ImageAnnotation(const QString &imagePath, QWidget *parent)
     m_imgLabel = new QLabel(this);
     m_imgLabel->setAlignment(Qt::AlignCenter);
     m_imgLabel->setAttribute(Qt::WA_TransparentForMouseEvents, true);
+    // The page render already shows the image; the label only follows a drag or resize.
+    m_imgLabel->hide();
     layout->addWidget(m_imgLabel);
 
     m_deleteBtn = new QPushButton(QStringLiteral("✕"), this);
@@ -123,6 +125,7 @@ void ImageAnnotation::mousePressEvent(QMouseEvent *e)
             m_resizing     = true;
             m_resizeOrigin = e->globalPosition().toPoint();
             m_sizeAtResize = size();
+            m_imgLabel->show();
             setCursor(Qt::SizeFDiagCursor);
             grabMouse(Qt::SizeFDiagCursor);
             e->accept();
@@ -131,6 +134,7 @@ void ImageAnnotation::mousePressEvent(QMouseEvent *e)
         m_dragging      = true;
         m_posBeforeDrag = pos();
         m_dragOff       = e->pos();
+        m_imgLabel->show();
         setCursor(Qt::SizeAllCursor);
         grabMouse(Qt::SizeAllCursor);
         e->accept();
@@ -180,6 +184,7 @@ void ImageAnnotation::mouseReleaseEvent(QMouseEvent *e)
 {
     if (e->button() == Qt::LeftButton && (m_resizing || m_dragging)) {
         m_resizing = m_dragging = false;
+        m_imgLabel->hide();
         releaseMouse();
         setCursor(Qt::SizeAllCursor);
         Q_EMIT geometryChanged(geometry());
