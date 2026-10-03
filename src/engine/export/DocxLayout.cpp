@@ -191,9 +191,23 @@ QList<QList<ContentItem>> clusterRows(QList<ContentItem> items)
     for (const ContentItem &item : items) {
         if (!rows.isEmpty()) {
             const QList<ContentItem> &row = rows.last();
-            const double tol = qMax(row.first().bounds.height(),
-                                    item.bounds.height()) * 0.6;
-            if (qAbs(row.first().bounds.center().y() - item.bounds.center().y()) <= tol) {
+            const double lineH = row.first().bounds.height();
+            const double tol   = qMax(lineH, item.bounds.height()) * 0.6;
+
+            // An underline is a fraction of a line high and sits just below the
+            // text it belongs to, further away than the usual tolerance allows.
+            // Measured from the bottom of the row it is close, while the next
+            // line of text is not, so the two stay apart. Left on its own it
+            // becomes a row of its own and a table of note fields ends up with
+            // twice the rows it has.
+            double bottom = 0.0;
+            for (const ContentItem &c : row) bottom = qMax(bottom, c.bounds.bottom());
+            const bool rule = item.bounds.height() <= qMax(1.5, lineH * 0.3);
+            const bool trails = rule && item.bounds.top() >= bottom
+                             && item.bounds.top() - bottom <= lineH * 1.5;
+
+            if (trails
+                || qAbs(row.first().bounds.center().y() - item.bounds.center().y()) <= tol) {
                 rows.last().append(item);
                 continue;
             }
@@ -271,8 +285,19 @@ void absorbRows(RawTable &table, const QList<ContentItem> &pool,
             const double gap = qMax(0.0, qMax(rowBounds.top() - table.bounds.bottom(),
                                               table.bounds.top() - rowBounds.bottom()));
 
+            // A single line right above or below the table can be the rest of a
+            // cell that wrapped, but it can just as well be the paragraph the
+            // table follows. A cell's leftover never grows much wider than the
+            // widest cell already in the table, while a paragraph spans the
+            // whole width, so that is what tells them apart. Without it the
+            // table swallows the text above it and every column with it.
+            double widest = 0.0;
+            for (const ContentItem &item : table.items)
+                widest = qMax(widest, item.bounds.width());
+
             const bool fullRow      = row.size() >= 2 && gap <= lineH * 2.8;
-            const bool continuation = row.size() == 1 && gap <= lineH * 0.6;
+            const bool continuation = row.size() == 1 && gap <= lineH * 0.6
+                                   && rowBounds.width() <= widest * 1.5;
             if (!fullRow && !continuation) continue;
 
             for (const ContentItem &c : row) {
@@ -341,11 +366,26 @@ DocxBlock buildTableBlock(const RawTable &raw, const Raster &erased, QRgb paper)
     for (const ContentItem &c : raw.items) sizes.append(fontSizeOf(c));
     const double fs = qMax(6.0, median(sizes));
 
+    // An underline that trails a row is not a line of text: counted as one it
+    // makes the row look fuller and reach further down, and the row below then
+    // looks like a wrapped remainder and gets merged into it.
+    const auto isRule = [fs](const ContentItem &c) {
+        return c.bounds.height() <= qMax(1.5, fs * 0.3);
+    };
+    const auto textCount = [&isRule](const QList<ContentItem> &row) {
+        int n = 0;
+        for (const ContentItem &c : row) if (!isRule(c)) ++n;
+        return n;
+    };
+
     for (int r = rows.size() - 1; r >= 1; --r) {
         QRectF above, here;
-        for (const ContentItem &c : rows[r - 1]) above = above.united(c.bounds);
-        for (const ContentItem &c : rows[r])     here  = here.united(c.bounds);
-        if (rows[r].size() >= rows[r - 1].size()) continue;
+        for (const ContentItem &c : rows[r - 1])
+            if (!isRule(c)) above = above.united(c.bounds);
+        for (const ContentItem &c : rows[r])
+            if (!isRule(c)) here = here.united(c.bounds);
+        if (above.isNull() || here.isNull()) continue;
+        if (textCount(rows[r]) >= textCount(rows[r - 1])) continue;
         if (here.top() - above.bottom() > fs * 0.6) continue;
         rows[r - 1].append(rows[r]);
         std::sort(rows[r - 1].begin(), rows[r - 1].end(),
@@ -503,6 +543,20 @@ QList<DocxBlock> buildParagraphs(const QList<ContentItem> &lines)
         return a.bounds.left() < b.bounds.left();
     });
 
+    // A line that opens with a bullet starts its own paragraph, whatever the
+    // spacing says. Without this a whole list reads as one run-on block.
+    const auto startsListItem = [](const ContentItem &line) {
+        const QString text = line.text.trimmed();
+        if (text.isEmpty()) return false;
+        const QChar first = text.at(0);
+        static const QString bullets =
+            QStringLiteral("\u2022\u2023\u2043\u2219\u25AA\u25CF\u25E6\u00B7");
+        if (bullets.contains(first)) return true;
+        // Symbol and Wingdings keep their bullets in the private use area.
+        const ushort code = first.unicode();
+        return code >= 0xF000 && code <= 0xF0FF;
+    };
+
     QList<DocxBlock> blocks;
     for (const ContentItem &line : sorted) {
         bool merged = false;
@@ -520,7 +574,7 @@ QList<DocxBlock> buildParagraphs(const QList<ContentItem> &lines)
             const double xOverlap = qMin(tail.bounds.right(), line.bounds.right())
                                   - qMax(tail.bounds.left(),  line.bounds.left());
             if (flows && (leftAligned || centred) && xOverlap > 1.0
-                    && sameTextStyle(tail, line)) {
+                    && sameTextStyle(tail, line) && !startsListItem(line)) {
                 prev.lines.append(line);
                 prev.bounds = prev.bounds.united(line.bounds);
                 merged = true;
@@ -690,15 +744,17 @@ QList<DocxBlock> buildDocxBlocks(const DocxLayoutInput &in, QMarginsF *marginsOu
     QList<bool> taken(text.size(), false);
     for (RawTable &t : raw) absorbRows(t, text, taken);
 
-    QList<QRectF>    claimed;
-    QList<QRectF>    tableAreas;
-    QList<DocxBlock> blocks;
+    QList<QRectF>          claimed;
+    QList<QRectF>          tableAreas;
+    QList<const RawTable *> tableSources;
+    QList<DocxBlock>       blocks;
     for (RawTable &t : raw) {
         DocxBlock block = buildTableBlock(t, erased, paper);
         if (block.table.colWidthsPt.isEmpty()) continue;
 
         blocks.append(block);
         tableAreas.append(block.bounds.united(t.bounds));
+        tableSources.append(&t);
     }
 
     for (const ContentItem &c : cells) {
@@ -742,13 +798,19 @@ QList<DocxBlock> buildDocxBlocks(const DocxLayoutInput &in, QMarginsF *marginsOu
                 droppedTables.insert(t);
                 if (!overlaidTables.contains(t) && t < blocks.size()) {
                     overlaidTables.insert(t);
-                    for (const DocxCell &cell : blocks[t].table.cells) {
-                        if (!boundsPt.contains(cell.item.bounds.center())) continue;
+                    // The pieces the table was built from, not the cells it was
+                    // built into: where the columns could not be told apart a
+                    // whole row ends up in one cell, and written into the box of
+                    // its first column the rest of the row reads as empty. The
+                    // raw pieces also still hold the heading and the header row,
+                    // which were absorbed into the table and exist nowhere else
+                    // by now. All of them are kept, not only the ones the
+                    // picture covers.
+                    for (const ContentItem &piece : tableSources[t]->items) {
                         DocxBlock label;
                         label.kind   = DocxBlock::Kind::TextBox;
-                        label.bounds = cell.item.bounds;
-                        label.lines  = { cell.item };
-                        label.align  = cell.align;
+                        label.bounds = piece.bounds;
+                        label.lines  = { piece };
                         pictures.append(label);
                     }
                 }

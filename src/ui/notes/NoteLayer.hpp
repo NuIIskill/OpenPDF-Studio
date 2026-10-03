@@ -7,6 +7,12 @@
 #include <QObject>
 #include <QString>
 
+#include <functional>
+
+#ifdef HAVE_PDF_RENDERING
+#  include "engine/document/PdfBackend.hpp"
+#endif
+
 QT_BEGIN_NAMESPACE
 class QFrame;
 class QPushButton;
@@ -29,7 +35,10 @@ public:
     void setSource(PdfBackend *backend, EditSession *session, QUndoStack *undo);
 #endif
 
-    void reload();
+#ifdef HAVE_PDF_RENDERING
+    void addPage(int page, const QList<PdfBackend::Note> &notes);
+#endif
+    void setBeforeChange(std::function<void()> hook) { m_beforeChange = std::move(hook); }
     void clear();
     void relayout();
     void setToolActive(bool active);
@@ -71,6 +80,7 @@ private:
     QString      m_activeId;
     QFrame      *m_popup { nullptr };
     bool         m_toolActive { false };
+    std::function<void()> m_beforeChange;
 
 #ifdef HAVE_PDF_RENDERING
     PdfBackend  *m_backend { nullptr };

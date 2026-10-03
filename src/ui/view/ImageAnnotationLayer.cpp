@@ -1,7 +1,7 @@
 #include "ui/view/ImageAnnotationLayer.hpp"
 #include "app/PdfPwStore.hpp"
 
-#include "ui/tools/ImageAnnotation.hpp"
+#include "ui/view/ImageAnnotation.hpp"
 
 #ifdef HAVE_PDF_RENDERING
 #  include "engine/edit/EditSession.hpp"

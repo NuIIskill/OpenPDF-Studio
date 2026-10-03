@@ -19,8 +19,13 @@ class QPrinter;
 #endif
 QT_END_NAMESPACE
 
+class DigitalSignatureLayer;
+struct SignatureAppearance;
 class ImageAnnotationLayer;
+class SignaturePlacement;
 class LinkAnnotationLayer;
+class AnnotationLoader;
+class LoadingSpinner;
 class NoteLayer;
 class DrawingLayer;
 class PageOverlay;
@@ -28,13 +33,15 @@ class PageLayoutEngine;
 class HoverHighlight;
 class FindController;
 class TextSelectionController;
+class SmoothScroll;
 class ZoomController;
 
-#include "engine/document/DocumentJournal.hpp"
+#include "engine/historymanager/DocumentJournal.hpp"
+#include "engine/sign/SignatureManager.hpp"
 #include "engine/document/PdfBookmark.hpp"
 #include "engine/document/DocumentSource.hpp"
 #include "ui/edit/EditController.hpp"
-#include "app/DocumentHistory.hpp"
+#include "engine/historymanager/DocumentHistory.hpp"
 #include "engine/ocr/OcrEngine.hpp"
 #include "engine/export/DocxExporter.hpp"
 #include "engine/export/DocumentExporter.hpp"
@@ -69,6 +76,7 @@ public:
                            const QString &suggestedPath = QString());
     void   clearDocument();
     void   setZoom(int percent);
+    void   zoomSharply(int percent);
     void   setZoomSettings(int step, bool ctrlWheel, bool toPointer,
                            const QString &wheelAction);
     void   setTool(Tool tool);
@@ -78,6 +86,8 @@ public:
     void   setViewMode(ViewMode mode);
     bool   saveToFile(const QString &path);
     bool   writeRecoveryCopy(const QString &path);
+    void   writeRecoveryCopyInBackground(const QString &path,
+                                         const std::function<void(bool)> &done);
     void   retranslateUi();
     void   refreshTheme();
 
@@ -98,17 +108,18 @@ public:
     void   setDrawTool(DrawTool tool);
     void   setDrawColor(const QColor &color);
     void   setDrawWidth(qreal widthPt);
+    void   placeSignature(const QImage &image);
+    void   placeSignatureField(const QImage &preview,
+                               std::function<void(int page, const QRectF &pdfBounds)> onPlaced);
+    void   addDigitalSignature(const SignRequest &request, const SignatureAppearance &appearance);
+    SignError signatureError() const;
 
-    QString     currentFile()      const
-    {
-        if (m_journal.workingCopyDirty && m_journal.targetPath.isEmpty()) return {};
-        return m_journal.targetPath.isEmpty() ? m_src->contentPath() : m_journal.targetPath;
-    }
+    QString     currentFile()      const { return m_journal.currentFile(); }
 
     QString     contentFile()      const { return m_src->contentPath(); }
 
     /// Where an imported document would be saved, empty for everything else.
-    QString     suggestedSavePath() const { return m_journal.suggestedPath; }
+    QString     suggestedSavePath() const { return m_journal.suggestedPath(); }
 
     /// What to call the document in the interface.
     QString     displayName() const;
@@ -129,11 +140,13 @@ public:
     QRectF editFrameRect() const;
     double editFontSizePt() const;
 
-    DocumentHistory *history()     const { return m_journal.history(); }
+    const DocumentHistory *history() const { return m_journal.history(); }
 
     bool        restoreHistoryState(int index);
-    bool        hasUnsavedEdits()  const
-    { return m_journal.hasUnsavedEdits() || m_bookmarksDirty; }
+    void        clearHistory();
+    bool        writeTimeline(const QString &path);
+    bool        adoptTimeline(const QString &path);
+    bool        hasUnsavedEdits()  const { return m_journal.hasUnsavedEdits(); }
     bool        pdfRenderingAvailable() const;
     QList<DocxPage> allPageContent(const QList<int> &pages = {});
     bool exportPagesToImages(const QString &outputPath, int quality = 85,
@@ -249,7 +262,11 @@ private:
     void reportCurrentPage();
     void scrollToPage(int page, bool allowRetry);
 
-    QList<DocumentHistory::ImageState> imageStates() const;
+    bool   openContent(const QString &path, const QString &suggestedPath,
+                       const DocumentHistory::Change &change);
+
+    DocumentHistory::DocumentState documentState() const;
+    void   applyState(const DocumentHistory::DocumentState &state);
 
     QWidget     *m_canvas    { nullptr };
     QVBoxLayout *m_layout    { nullptr };
@@ -259,8 +276,12 @@ private:
     PageLayoutEngine *m_layoutEngine { nullptr };
 
     ImageAnnotationLayer *m_imageLayer { nullptr };
+    SignaturePlacement   *m_signaturePlacement { nullptr };
+    DigitalSignatureLayer *m_signatureLayer { nullptr };
     LinkAnnotationLayer  *m_linkLayer  { nullptr };
     NoteLayer            *m_noteLayer  { nullptr };
+    AnnotationLoader     *m_annotations { nullptr };
+    LoadingSpinner       *m_spinner    { nullptr };
     DrawingLayer         *m_drawingLayer { nullptr };
 
     HoverHighlight *m_hover { nullptr };
@@ -282,6 +303,7 @@ private:
     bool    m_editMode  { false };
 
     ZoomController *m_zoomCtl { nullptr };
+    SmoothScroll   *m_smoothScroll { nullptr };
 
     QPoint m_panStart;
     QPoint m_panScrollOrigin;
@@ -305,8 +327,12 @@ private:
     void discardEditHistory();
 
     QString stageDocument(const QString &path);
+    bool    writeEditsAndWait(const QString &staging);
+    bool    finishStaging(const QString &staging);
 
     bool detachSourceFrom(const QString &saveTarget);
+    bool hasEditsBesideSignatures() const;
+    QString copyForSigning(const QString &path) const;
 
     EditSession  *m_session     { nullptr };
     TextBoxFrame *m_editorFrame { nullptr };

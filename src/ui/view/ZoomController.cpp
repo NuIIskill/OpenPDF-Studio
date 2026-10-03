@@ -11,6 +11,13 @@
 #include <QVBoxLayout>
 #include <QWheelEvent>
 
+namespace {
+
+constexpr int kWaitMs    = 60;
+constexpr int kCatchUpMs = 25;
+
+}
+
 ZoomController::ZoomController(QScrollArea *area, PageCanvas *canvas,
                                QVBoxLayout *canvasLayout, PageLayoutEngine *engine,
                                QObject *parent)
@@ -20,10 +27,84 @@ ZoomController::ZoomController(QScrollArea *area, PageCanvas *canvas,
     , m_layout(canvasLayout)
     , m_engine(engine)
 {
+    // A zoom step waits for its sharp picture only as long as no one notices;
+    // after that it is shown with what there is and sharpened when it arrives.
+    m_waitLimit = new QTimer(this);
+    m_waitLimit->setSingleShot(true);
+    m_waitLimit->setInterval(kWaitMs);
+    connect(m_waitLimit, &QTimer::timeout, this, [this] { stepTowardsWanted(true); });
+    // Steps already prepared follow each other like quick wheel steps, not at once.
+    m_stepPace = new QTimer(this);
+    m_stepPace->setSingleShot(true);
+    m_stepPace->setInterval(25);
+    connect(m_stepPace, &QTimer::timeout, this, &ZoomController::catchUp);
+    connect(m_engine, &PageLayoutEngine::zoomPrepared, this, &ZoomController::catchUp,
+            Qt::QueuedConnection);
+}
+
+void ZoomController::zoomSharply(int percent)
+{
+    QWidget *vp = m_area->viewport();
+    zoomSharply(percent, QPoint(vp->width() / 2, vp->height() / 2));
+}
+
+void ZoomController::zoomSharply(int percent, const QPoint &viewportAnchor)
+{
+    // Every step is shown only once a picture rendered for exactly that zoom
+    // covers what it brings into view; until then the current one stays.
+    m_wantedAnchor = viewportAnchor;
+    const bool waiting = m_wanted > 0;
+    m_wanted = percent;
+    if (waiting) {
+        m_engine->prepareZoom(m_wanted, canvasAnchor(m_wantedAnchor));
+        return;
+    }
+    m_waitLimit->start();
+    catchUp();
+}
+
+void ZoomController::catchUp()
+{
+    if (m_wanted <= 0 || m_stepPace->isActive()) return;
+    stepTowardsWanted(false);
+}
+
+void ZoomController::stepTowardsWanted(bool evenIfBlurry)
+{
+    if (m_wanted <= 0) return;
+    if (m_wanted == m_zoom) { finishWaiting(); return; }
+    const int step = qMax(1, m_zoomStep);
+    const int next = m_wanted > m_zoom ? qMin(m_zoom + step, m_wanted)
+                                       : qMax(m_zoom - step, m_wanted);
+    if (!evenIfBlurry && !m_engine->sharpAt(next, canvasAnchor(m_wantedAnchor))) {
+        m_engine->prepareZoom(m_wanted, canvasAnchor(m_wantedAnchor));
+        return;
+    }
+    applyZoom(next, m_wantedAnchor);
+    if (next == m_wanted) { finishWaiting(); return; }
+    m_engine->prepareZoom(m_wanted, canvasAnchor(m_wantedAnchor));
+    // Far behind the wheel, the steps catch up at the pace of quick wheel steps.
+    const bool behind = qAbs(m_wanted - next) > 2 * step;
+    m_waitLimit->start(behind ? kCatchUpMs : kWaitMs);
+    m_stepPace->start();
+}
+
+QPoint ZoomController::canvasAnchor(const QPoint &viewportAnchor) const
+{
+    return -m_canvas->canvasWidget()->pos() + viewportAnchor;
+}
+
+void ZoomController::finishWaiting()
+{
+    m_wanted = 0;
+    m_waitLimit->stop();
+    m_stepPace->stop();
+    m_engine->prepareZoom(0);
 }
 
 void ZoomController::setZoom(int percent)
 {
+    finishWaiting();
     QWidget *vp = m_area->viewport();
     applyZoom(percent, QPoint(vp->width() / 2, vp->height() / 2));
 }
@@ -105,14 +186,15 @@ bool ZoomController::handleWheel(QWheelEvent *e)
     if (delta == 0) return false;
 
     const int step = qMax(1, m_zoomStep);
-    const int next = delta > 0 ? qMin(m_zoom + step, 300)
-                               : qMax(m_zoom - step, 25);
+    const int from = m_wanted > 0 ? m_wanted : m_zoom;
+    const int next = delta > 0 ? qMin(from + step, 300)
+                               : qMax(from - step, 25);
 
     QWidget *vp = m_area->viewport();
     const QPoint anchor = m_zoomToPointer
                               ? vp->mapFromGlobal(e->globalPosition().toPoint())
                               : QPoint(vp->width() / 2, vp->height() / 2);
-    applyZoom(next, anchor);
+    zoomSharply(next, anchor);
 
     e->accept();
     return true;

@@ -24,7 +24,7 @@ CACHE="$ROOT/third_party/.cache"
 TOOLCHAIN="${TOOLCHAIN_FILE:-/usr/share/mingw/toolchain-mingw64.cmake}"
 SYSROOT="/usr/x86_64-w64-mingw32/sys-root/mingw"
 # qpdf sucht zlib und libjpeg über pkg-config. Das Host-pkg-config antwortet mit
-# /usr/include und /usr/lib64 — also den Linux-Headern —, und der Build bricht
+# /usr/include und /usr/lib64 (also den Linux-Headern), und der Build bricht
 # dann in <cstdint> ab, weil MinGW uintptr_t anders definiert als glibc. Dieselbe
 # Falle steht als Warnung im Root-CMakeLists.txt.
 export PKG_CONFIG_LIBDIR="$SYSROOT/lib/pkgconfig:$SYSROOT/share/pkgconfig"
@@ -99,7 +99,7 @@ cmake --install "$BUILD" --component dev
 
 # qpdf installiert die Bibliothek mit "TYPE LIBRARY". Auf Windows ist die DLL
 # aber ein RUNTIME- und die Import-Bibliothek ein ARCHIVE-Artefakt, und beide
-# fallen dadurch aus der Installation heraus — das exportierte CMake-Ziel zeigt
+# fallen dadurch aus der Installation heraus. Das exportierte CMake-Ziel zeigt
 # anschließend auf zwei Dateien, die nicht da sind. Also von Hand nachlegen,
 # genau dorthin, wo libqpdfTargets-release.cmake sie erwartet.
 DLL="$(ls "$BUILD"/libqpdf/qpdf*.dll 2>/dev/null | head -1)"

@@ -6,6 +6,7 @@
 
 QT_BEGIN_NAMESPACE
 class QScrollArea;
+class QTimer;
 class QVBoxLayout;
 class QWheelEvent;
 QT_END_NAMESPACE
@@ -27,6 +28,8 @@ public:
 
     void applyZoom(int percent, const QPoint &viewportAnchor);
 
+    void zoomSharply(int percent);
+
     void setSettings(int step, bool ctrlWheel, bool toPointer,
                      const QString &wheelAction);
 
@@ -43,6 +46,12 @@ Q_SIGNALS:
     void zoomApplied(int percent);
 
 private:
+    void zoomSharply(int percent, const QPoint &viewportAnchor);
+    void catchUp();
+    void stepTowardsWanted(bool evenIfBlurry);
+    void finishWaiting();
+    QPoint canvasAnchor(const QPoint &viewportAnchor) const;
+
     QScrollArea      *m_area   { nullptr };
     PageCanvas       *m_canvas { nullptr };
     QVBoxLayout      *m_layout { nullptr };
@@ -53,4 +62,9 @@ private:
     bool    m_ctrlWheelEnabled  { true };
     bool    m_zoomToPointer     { true };
     QString m_wheelAction       { QStringLiteral("scroll") };
+
+    int     m_wanted       { 0 };
+    QPoint  m_wantedAnchor;
+    QTimer *m_waitLimit    { nullptr };
+    QTimer *m_stepPace     { nullptr };
 };

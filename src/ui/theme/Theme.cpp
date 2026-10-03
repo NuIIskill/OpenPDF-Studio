@@ -21,6 +21,7 @@ QColor IconNormal   { "#374151" };
 QColor IconMuted    { "#6B7280" };
 QColor IconChecked  { "#2563EB" };
 QColor IconDisabled { "#D1D5DB" };
+QColor Success      { "#22C55E" };
 
 QString loadStyleSheet()
 {
@@ -104,11 +105,13 @@ void apply(const QString &mode)
         IconMuted    = QColor(QStringLiteral("#787878"));
         IconChecked  = QColor(QStringLiteral("#EEEEEE"));
         IconDisabled = QColor(QStringLiteral("#484848"));
+        Success      = QColor(QStringLiteral("#4ADE80"));
     } else {
         IconNormal   = QColor(QStringLiteral("#374151"));
         IconMuted    = QColor(QStringLiteral("#6B7280"));
         IconChecked  = QColor(QStringLiteral("#2563EB"));
         IconDisabled = QColor(QStringLiteral("#D1D5DB"));
+        Success      = QColor(QStringLiteral("#22C55E"));
     }
 
     QPalette p;

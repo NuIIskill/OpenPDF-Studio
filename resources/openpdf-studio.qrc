@@ -62,6 +62,11 @@
         <file>icons/volume-x.svg</file>
         <file>icons/sliders.svg</file>
         <file>icons/key.svg</file>
+        <file>icons/align-left.svg</file>
+        <file>icons/calendar.svg</file>
+        <file>icons/map-pin.svg</file>
+        <file>icons/copy.svg</file>
+        <file>icons/file-badge.svg</file>
         <file>icons/shield-check.svg</file>
         <file>icons/shield-alert.svg</file>
         <file>icons/folder-open.svg</file>
@@ -76,5 +81,10 @@
         <file>icons/export-pdf.svg</file>
         <file>icons/export-pdfa.svg</file>
         <file>icons/grip-vertical.svg</file>
+        <file>icons/check.svg</file>
+        <file>icons/signature.svg</file>
+        <file>icons/eye.svg</file>
+        <file>icons/eye-off.svg</file>
+        <file>icons/more-vertical.svg</file>
     </qresource>
 </RCC>

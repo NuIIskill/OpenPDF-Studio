@@ -1,11 +1,13 @@
 #include "ui/history/HistoryDialog.hpp"
 #include "ui/history/HistoryRow.hpp"
+#include "ui/DocumentView.hpp"
 #include "ui/theme/Theme.hpp"
 
 #include <QAction>
 #include <QApplication>
 #include <QClipboard>
 #include <QEvent>
+#include <QFileInfo>
 #include <QFrame>
 #include <QHBoxLayout>
 #include <QLabel>
@@ -15,18 +17,17 @@
 #include <QScrollArea>
 #include <QVBoxLayout>
 
-HistoryDialog::HistoryDialog(DocumentHistory *history, const QString &documentName,
+HistoryDialog::HistoryDialog(const DocumentHistory *history, const QString &documentName,
                              QWidget *parent)
     : QDialog(parent)
     , m_history(history)
     , m_documentName(documentName)
 {
-    setWindowTitle(tr("Change history — OpenPDF Studio"));
+    setWindowTitle(tr("Change history - OpenPDF Studio"));
     setMinimumSize(620, 520);
     resize(700, 620);
 
     buildUi();
-    applyStyle();
 
     if (m_history) {
         connect(m_history, &DocumentHistory::changed, this, [this]() {
@@ -34,6 +35,39 @@ HistoryDialog::HistoryDialog(DocumentHistory *history, const QString &documentNa
         });
     }
     rebuildList();
+}
+
+HistoryDialog *HistoryDialog::openFor(DocumentView *view, QWidget *parent)
+{
+    if (!view || view->contentFile().isEmpty()) {
+        QMessageBox::information(parent, tr("Change history") + QStringLiteral(" - OpenPDF Studio"),
+                                 tr("Open a document to see its change history."));
+        return nullptr;
+    }
+
+    auto *dlg = new HistoryDialog(view->history(),
+                                  QFileInfo(view->currentFile()).fileName(), parent);
+    dlg->setAttribute(Qt::WA_DeleteOnClose);
+
+    const auto syncButtons = [view, dlg]() {
+        const DocumentHistory *history = view->history();
+        dlg->setUndoRedoAvailable(history->canRestore(history->currentIndex() - 1),
+                                  history->canRestore(history->currentIndex() + 1));
+    };
+    syncButtons();
+    connect(view->history(), &DocumentHistory::changed, dlg, syncButtons);
+
+    connect(dlg, &HistoryDialog::undoRequested, view, &DocumentView::undo);
+    connect(dlg, &HistoryDialog::redoRequested, view, &DocumentView::redo);
+    connect(dlg, &HistoryDialog::clearRequested, view, &DocumentView::clearHistory);
+    connect(dlg, &HistoryDialog::restoreRequested, dlg, [view, dlg](int index) {
+        if (view->restoreHistoryState(index)) return;
+        QMessageBox::warning(dlg, tr("Change history") + QStringLiteral(" - OpenPDF Studio"),
+                             tr("This state could not be restored. The copy of "
+                                "the document it was kept in is no longer there."));
+    });
+    dlg->open();
+    return dlg;
 }
 
 void HistoryDialog::buildUi()
@@ -118,9 +152,9 @@ void HistoryDialog::buildUi()
     connect(m_clearBtn, &QPushButton::clicked, this, [this]() {
         if (!m_history || m_history->count() < 2) return;
         const auto answer = QMessageBox::question(
-            this, tr("Clear history"),
+            this, tr("Clear history") + QStringLiteral(" - OpenPDF Studio"),
             tr("Forget every recorded step except the one the document is at?\n\n"
-               "The document itself is not changed — only the list of states you "
+               "The document itself is not changed, only the list of states you "
                "can go back to."),
             QMessageBox::Yes | QMessageBox::No, QMessageBox::No);
         if (answer == QMessageBox::Yes) Q_EMIT clearRequested();
@@ -142,7 +176,7 @@ void HistoryDialog::buildUi()
 
 void HistoryDialog::retranslateUi()
 {
-    setWindowTitle(tr("Change history — OpenPDF Studio"));
+    setWindowTitle(tr("Change history - OpenPDF Studio"));
     m_title->setText(tr("Change history"));
     m_subtitle->setText(m_documentName.isEmpty()
         ? tr("Every change made to this document, newest first.")
@@ -219,9 +253,9 @@ void HistoryDialog::rebuildList()
                        && index < m_history->entries().size()) {
                 const DocumentHistory::Entry &entry = m_history->entries()[index];
                 QString line = entry.time.toString(QStringLiteral("HH:mm"))
-                             + QStringLiteral(" · ") + titleFor(entry);
+                             + QStringLiteral(" - ") + titleFor(entry);
                 const QString detail = detailFor(entry);
-                if (!detail.isEmpty()) line += QStringLiteral(" · ") + detail;
+                if (!detail.isEmpty()) line += QStringLiteral(" - ") + detail;
                 QApplication::clipboard()->setText(line);
             }
         });
@@ -269,7 +303,7 @@ void HistoryDialog::requestRestore(int index)
 
     if (m_history->restoringDropsEdits(index)) {
         const auto answer = QMessageBox::question(
-            this, tr("Go back to this state"),
+            this, tr("Go back to this state") + QStringLiteral(" - OpenPDF Studio"),
             tr("This state is part of an earlier version of the document, so it "
                "has to be loaded again.\n\n"
                "Text, image and drawing edits made since then are not part of any file "
@@ -297,6 +331,8 @@ QString HistoryDialog::titleFor(const DocumentHistory::Entry &e)
     case Kind::NoteRemoved:    return tr("Note removed");
     case Kind::DrawingAdded:   return tr("Drawing added");
     case Kind::DrawingRemoved: return tr("Drawing removed");
+    case Kind::BookmarksChanged: return tr("Bookmarks changed");
+    case Kind::OverlayChanged: return e.text.isEmpty() ? tr("Page content changed") : e.text;
     case Kind::PageRotated:    return e.count > 1 ? tr("Pages rotated")
                                                   : tr("Page rotated");
     case Kind::PageDeleted:    return e.count > 1 ? tr("Pages deleted")
@@ -334,12 +370,15 @@ QString HistoryDialog::detailFor(const DocumentHistory::Entry &e)
     case Kind::NoteRemoved:
     case Kind::DrawingAdded:
     case Kind::DrawingRemoved:
+    case Kind::OverlayChanged:
         return page;
+    case Kind::BookmarksChanged:
+        return {};
     case Kind::PageRotated: {
         const QString turn = e.value < 0 ? tr("%1° counter-clockwise").arg(-e.value)
                                          : tr("%1° clockwise").arg(e.value);
-        if (e.count > 1) return pages + QStringLiteral(" · ") + turn;
-        return page.isEmpty() ? turn : page + QStringLiteral(" · ") + turn;
+        if (e.count > 1) return pages + QStringLiteral(" - ") + turn;
+        return page.isEmpty() ? turn : page + QStringLiteral(" - ") + turn;
     }
     case Kind::PageDeleted:
     case Kind::PageAdded:
@@ -370,6 +409,8 @@ QString HistoryDialog::iconFor(DocumentHistory::Kind kind)
     case Kind::NoteRemoved:    return QStringLiteral("trash-2");
     case Kind::DrawingAdded:   return QStringLiteral("pencil");
     case Kind::DrawingRemoved: return QStringLiteral("trash-2");
+    case Kind::BookmarksChanged: return QStringLiteral("bookmark");
+    case Kind::OverlayChanged: return QStringLiteral("layers");
     case Kind::PageRotated:    return QStringLiteral("rotate-cw");
     case Kind::PageDeleted:    return QStringLiteral("trash-2");
     case Kind::PageAdded:      return QStringLiteral("file-plus");
@@ -381,108 +422,3 @@ QString HistoryDialog::iconFor(DocumentHistory::Kind kind)
     return QStringLiteral("file");
 }
 
-void HistoryDialog::applyStyle()
-{
-
-    setStyleSheet(Theme::DarkMode ? QStringLiteral(R"(
-QDialog { background: #2B2B2B; }
-QLabel#HistoryHeadline { color: #EEEEEE; font-size: 17px; font-weight: 700; }
-QLabel#HistorySubtitle { color: #9A9A9A; font-size: 13px; }
-QScrollArea#HistoryScroll { background: #2B2B2B; border: none; }
-QWidget#HistoryList { background: #2B2B2B; }
-QScrollArea#HistoryScroll > QWidget > QWidget { background: #2B2B2B; }
-QFrame#HistoryRow { background: transparent; border: none; border-radius: 10px; }
-QFrame#HistoryRow:hover { background: #353535; }
-QFrame#HistoryRow[selected="true"] { background: #1E3358; }
-QLabel#HistoryMarker {
-    background: #2B2B2B; border: 2px solid #4A4A4A; border-radius: 15px;
-    color: #9A9A9A; font-size: 12px; font-weight: 700;
-}
-QLabel#HistoryMarker[selected="true"] {
-    background: #2563EB; border-color: #2563EB; color: #FFFFFF;
-}
-QLabel#HistoryTime   { color: #9A9A9A; font-size: 12px; }
-QLabel#HistoryTitle  { color: #EEEEEE; font-size: 14px; font-weight: 600; }
-QLabel#HistoryDetail { color: #9A9A9A; font-size: 12px; }
-QToolButton#HistoryMenuBtn { background: transparent; border: none; border-radius: 6px; }
-QToolButton#HistoryMenuBtn:hover { background: #454545; }
-QPushButton#HistoryBtn {
-    background: #404040; border: 1px solid #505050; border-radius: 8px;
-    color: #D8D8D8; font-size: 13px; padding: 8px 12px; icon-size: 16px;
-}
-QPushButton#HistoryBtn:hover  { background: #4A4A4A; border-color: #606060; }
-QPushButton#HistoryBtn:pressed { background: #555555; }
-QPushButton#HistoryBtn:disabled { color: #6B6B6B; background: #3A3A3A; border-color: #484848; }
-QPushButton#HistoryClearBtn {
-    background: transparent; border: none; border-radius: 8px;
-    color: #F87171; font-size: 13px; padding: 8px 12px; icon-size: 16px;
-}
-QPushButton#HistoryClearBtn:hover { background: #4A2B2B; }
-QPushButton#HistoryClearBtn:disabled { color: #7F4A4A; }
-QPushButton#HistoryCloseBtn {
-    background: #2563EB; border: none; border-radius: 8px;
-    color: white; font-size: 13px; font-weight: 600; padding: 9px 26px;
-}
-QPushButton#HistoryCloseBtn:hover { background: #1D4ED8; }
-QPushButton#HistoryCloseBtn:pressed { background: #1E40AF; }
-QScrollArea#HistoryScroll QScrollBar:vertical {
-    background: transparent; width: 10px; margin: 0;
-}
-QScrollArea#HistoryScroll QScrollBar::handle:vertical {
-    background: #555555; border-radius: 5px; min-height: 32px;
-}
-QScrollArea#HistoryScroll QScrollBar::handle:vertical:hover { background: #666666; }
-QScrollArea#HistoryScroll QScrollBar::add-line:vertical,
-QScrollArea#HistoryScroll QScrollBar::sub-line:vertical { height: 0; }
-)") : QStringLiteral(R"(
-QDialog { background: #FFFFFF; }
-QLabel#HistoryHeadline { color: #111827; font-size: 17px; font-weight: 700; }
-QLabel#HistorySubtitle { color: #6B7280; font-size: 13px; }
-QScrollArea#HistoryScroll { background: #FFFFFF; border: none; }
-QWidget#HistoryList { background: #FFFFFF; }
-QScrollArea#HistoryScroll > QWidget > QWidget { background: #FFFFFF; }
-QFrame#HistoryRow { background: transparent; border: none; border-radius: 10px; }
-QFrame#HistoryRow:hover { background: #F9FAFB; }
-QFrame#HistoryRow[selected="true"] { background: #EFF6FF; }
-QLabel#HistoryMarker {
-    background: #FFFFFF; border: 2px solid #E5E7EB; border-radius: 15px;
-    color: #6B7280; font-size: 12px; font-weight: 700;
-}
-QLabel#HistoryMarker[selected="true"] {
-    background: #2563EB; border-color: #2563EB; color: #FFFFFF;
-}
-QLabel#HistoryTime   { color: #6B7280; font-size: 12px; }
-QLabel#HistoryTitle  { color: #111827; font-size: 14px; font-weight: 600; }
-QLabel#HistoryDetail { color: #6B7280; font-size: 12px; }
-QToolButton#HistoryMenuBtn { background: transparent; border: none; border-radius: 6px; }
-QToolButton#HistoryMenuBtn:hover { background: #F3F4F6; }
-QPushButton#HistoryBtn {
-    background: #FFFFFF; border: 1px solid #E5E7EB; border-radius: 8px;
-    color: #374151; font-size: 13px; padding: 8px 12px; icon-size: 16px;
-}
-QPushButton#HistoryBtn:hover  { background: #F9FAFB; border-color: #CBD5E1; }
-QPushButton#HistoryBtn:pressed { background: #F3F4F6; }
-QPushButton#HistoryBtn:disabled { color: #9CA3AF; background: #F9FAFB; border-color: #F3F4F6; }
-QPushButton#HistoryClearBtn {
-    background: transparent; border: none; border-radius: 8px;
-    color: #DC2626; font-size: 13px; padding: 8px 12px; icon-size: 16px;
-}
-QPushButton#HistoryClearBtn:hover { background: #FEF2F2; }
-QPushButton#HistoryClearBtn:disabled { color: #FCA5A5; }
-QPushButton#HistoryCloseBtn {
-    background: #2563EB; border: none; border-radius: 8px;
-    color: white; font-size: 13px; font-weight: 600; padding: 9px 26px;
-}
-QPushButton#HistoryCloseBtn:hover { background: #1D4ED8; }
-QPushButton#HistoryCloseBtn:pressed { background: #1E40AF; }
-QScrollArea#HistoryScroll QScrollBar:vertical {
-    background: transparent; width: 10px; margin: 0;
-}
-QScrollArea#HistoryScroll QScrollBar::handle:vertical {
-    background: #D1D5DB; border-radius: 5px; min-height: 32px;
-}
-QScrollArea#HistoryScroll QScrollBar::handle:vertical:hover { background: #9CA3AF; }
-QScrollArea#HistoryScroll QScrollBar::add-line:vertical,
-QScrollArea#HistoryScroll QScrollBar::sub-line:vertical { height: 0; }
-)"));
-}

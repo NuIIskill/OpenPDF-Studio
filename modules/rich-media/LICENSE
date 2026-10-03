@@ -8,7 +8,7 @@ Copyright (c) 2026 nullskill. All rights reserved.
 This license applies to the components of OpenPDF Studio that carry the
 identifier "LicenseRef-OpenPDF-Business", or that live in a directory holding a
 copy of this license ("the Module"). It applies to those components only. The
-OpenPDF Studio Core is licensed separately — see the LICENSE file in the
+OpenPDF Studio Core is licensed separately. See the LICENSE file in the
 repository root.
 
 The source code of the Module is published, and it is free for personal use.
@@ -74,7 +74,7 @@ and for what.
     (c) modified copies are clearly marked as modified, and the modifications
         are described in a way that does not suggest they come from the
         Licensor;
-    (d) the recipient's own use remains subject to this license — free for
+    (d) the recipient's own use remains subject to this license: free for
         Personal Use, requiring a Business License for Business Use;
     (e) You charge nothing for the Module itself.
 
@@ -114,7 +114,7 @@ and for what.
 
     The Module never restricts access to documents You created or edited with
     it. The end of an Evaluation Period or of a Business License affects Your
-    right to use the Module — never Your files, and never their readability
+    right to use the Module, never Your files, and never their readability
     with other software.
 
 

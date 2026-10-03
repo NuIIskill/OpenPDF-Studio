@@ -86,6 +86,8 @@ void MediaLayer::setDocument(const QString &path)
     clearSelection();
     clearFrames();
     m_session.clear();
+    m_stateCache.clear();
+    m_stateCached = true;
 
     if (!m_documentPath.isEmpty() && m_documentPath != path)
         MediaExtractor::clearCache(m_documentPath);
@@ -98,7 +100,12 @@ void MediaLayer::setDocument(const QString &path)
         return;
     }
 
-    const QList<MediaAsset> assets = MediaScanner::scan(path);
+    loadFrames();
+}
+
+void MediaLayer::loadFrames()
+{
+    const QList<MediaAsset> assets = MediaScanner::scan(m_documentPath);
     for (const MediaAsset &asset : assets) {
         Placed placed;
         placed.asset  = asset;
@@ -107,7 +114,69 @@ void MediaLayer::setDocument(const QString &path)
         addFrame(std::move(placed));
     }
     if (!assets.isEmpty())
-        qInfo() << "[rich-media] found" << assets.size() << "media in" << path;
+        qInfo() << "[rich-media] found" << assets.size() << "media in" << m_documentPath;
+
+    for (const MediaAsset &removal : m_session.removals())
+        for (Placed &placed : m_placed)
+            if (!placed.removed && placed.asset.annotObject == removal.annotObject)
+                markRemoved(placed, backgroundWithoutMedia(placed.asset));
+
+    for (const MediaSpec &spec : m_session.inserts()) {
+        Placed placed;
+        placed.pending = true;
+        placed.spec    = spec;
+        placed.page    = spec.page;
+        placed.bounds  = spec.bounds;
+        addFrame(std::move(placed));
+    }
+}
+
+QString MediaLayer::stateKey() const
+{
+    return kToolId;
+}
+
+QByteArray MediaLayer::state() const
+{
+    if (!m_stateCached) {
+        m_stateCache  = m_session.isEmpty() ? QByteArray() : m_session.toBytes();
+        m_stateCached = true;
+    }
+    return m_stateCache;
+}
+
+void MediaLayer::restoreState(const QByteArray &state)
+{
+    if (state == this->state() || m_documentPath.isEmpty()) return;
+
+    closePlayer();
+    cancelPlacement();
+    clearSelection();
+    clearFrames();
+    m_session     = state.isEmpty() ? MediaSession() : MediaSession::fromBytes(state);
+    m_stateCache  = state;
+    m_stateCached = true;
+    loadFrames();
+}
+
+void MediaLayer::noteChanged(const QString &title, int page)
+{
+    m_stateCached = false;
+    reportChange(title, page);
+}
+
+void MediaLayer::markRemoved(Placed &placed, const QImage &cleanBackground)
+{
+    delete placed.backgroundPatch;
+    placed.backgroundPatch = nullptr;
+    placed.pending = false;
+    placed.removed = true;
+    placed.page = placed.asset.page;
+    placed.bounds = placed.asset.bounds;
+    placed.frame->setInteractive(false);
+    placed.frame->setPoster(cleanBackground);
+    placed.frame->setMode(MediaFrame::Mode::Removed);
+    positionFrame(placed);
 }
 
 void MediaLayer::setActiveTool(const QString &toolId)
@@ -181,24 +250,18 @@ void MediaLayer::removeFrame(MediaFrame *frame)
                 m_selected = nullptr;
                 if (m_panel) m_panel->resetForInsert();
             }
-            delete placed.backgroundPatch;
-            placed.backgroundPatch = nullptr;
-            placed.pending = false;
-            placed.removed = true;
-            placed.page = placed.asset.page;
-            placed.bounds = placed.asset.bounds;
-            frame->setInteractive(false);
-            frame->setPoster(cleanBackground);
-            frame->setMode(MediaFrame::Mode::Removed);
-            positionFrame(placed);
+            markRemoved(placed, cleanBackground);
+            noteChanged(tr("Media removed"), placed.page);
             return;
         }
 
         if (placed.pending) {
+            const int page = placed.page;
             m_session.dropInsert(placed.spec);
             if (m_selected == frame) clearSelection();
             frame->deleteLater();
             m_placed.removeAt(i);
+            noteChanged(tr("Media removed"), page);
             return;
         }
     }
@@ -665,6 +728,7 @@ void MediaLayer::applyPanel(const MediaSpec &requested)
         placed.frame->setSelected(true);
         positionFrame(placed);
         if (m_panel) m_panel->editMedia(media);
+        noteChanged(tr("Media changed"), placed.page);
         return;
     }
 }
@@ -769,6 +833,7 @@ void MediaLayer::commitInsert(const MediaSpec &requested)
     addFrame(std::move(placed));
 
     cancelPlacement();
+    noteChanged(tr("Media inserted"), spec.page);
 }
 
 QString MediaLayer::playbackDiagnostics(const QString &filePath,
@@ -1054,6 +1119,7 @@ bool MediaLayer::handleDroppedFile(const QString &path, int page,
             addFrame(std::move(placed));
             if (m_toolActive && !m_placed.isEmpty())
                 selectFrame(m_placed.constLast().frame);
+            noteChanged(tr("Media inserted"), page);
             return true;
         }
     }

@@ -3,8 +3,10 @@
 #include "engine/edit/ContentMap.hpp"
 #include "engine/edit/TextBlock.hpp"
 #include "engine/edit/TextBoxProperties.hpp"
+#include "engine/edit/TextLayout.hpp"
 #include <QColor>
 #include <QList>
+#include <QPair>
 #include <QSet>
 #include <QImage>
 #include <QString>
@@ -93,6 +95,7 @@ public:
 
         QList<QRectF> eraseRects;
         TextBoxProperties box;
+        QList<TextLayout::OriginalLine> originalLines;
 
         bool operator==(const Edit &o) const {
             return page == o.page && pdfBounds == o.pdfBounds &&
@@ -108,7 +111,7 @@ public:
                    fontChanged == o.fontChanged &&
                    sizeChanged == o.sizeChanged &&
                    formField == o.formField && eraseRects == o.eraseRects &&
-                   box == o.box;
+                   box == o.box && originalLines == o.originalLines;
         }
         bool operator!=(const Edit &o) const { return !(*this == o); }
     };
@@ -125,7 +128,8 @@ public:
 
     void removeAllAt(int page, const QRectF &pdfBounds);
 
-    void suspendEditsAt(int page, const QRectF &pdfBounds);
+    void suspendEditsAt(int page, const QRectF &pdfBounds, int blankPage = -1,
+                        const QRectF &blankBounds = QRectF());
     void clearSuspended();
     void restoreSuspended();
 
@@ -189,7 +193,7 @@ private:
                                qreal scale);
 
     QList<Edit>       m_edits;
-    QList<Edit>       m_suspendedEdits;
+    QList<QPair<int, Edit>> m_suspendedEdits;
     QList<ImageEdit>  m_imageEdits;
     quint64           m_imageRevision { 0 };
     QList<DrawStroke> m_drawStrokes;

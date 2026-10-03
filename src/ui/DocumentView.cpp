@@ -6,16 +6,18 @@
 #include "engine/import/DocumentImport.hpp"
 #include "engine/import/ImageImport.hpp"
 #include "app/SafeWrite.hpp"
-#include "app/SessionStore.hpp"
-#include "ui/tools/ImageAnnotation.hpp"
+#include "ui/view/ImageAnnotation.hpp"
 #include "ui/view/ImageAnnotationLayer.hpp"
 #include "ui/view/LinkAnnotationLayer.hpp"
 #include "ui/notes/NoteLayer.hpp"
 #include "ui/draw/DrawingLayer.hpp"
 #include "ui/view/HoverHighlight.hpp"
+#include "ui/view/DigitalSignatureLayer.hpp"
+#include "ui/view/SignaturePlacement.hpp"
 #include "ui/view/FindController.hpp"
 #include "ui/view/PageLayoutEngine.hpp"
 #include "ui/view/PageOverlay.hpp"
+#include "ui/view/SmoothScroll.hpp"
 #include "ui/view/ZoomController.hpp"
 #include "ui/view/TextSelectionController.hpp"
 #include "ui/widgets/PasswordDialog.hpp"
@@ -68,15 +70,22 @@ void DocumentView::setZoom(int percent)
     m_zoomCtl->setZoom(percent);
 }
 
+void DocumentView::zoomSharply(int percent)
+{
+    m_zoomCtl->zoomSharply(percent);
+}
+
 void DocumentView::setZoomSettings(int step, bool ctrlWheel, bool toPointer,
                                    const QString &wheelAction)
 {
     m_zoomCtl->setSettings(step, ctrlWheel, toPointer, wheelAction);
+    m_layoutEngine->setZoomStep(step);
 }
 
 void DocumentView::wheelEvent(QWheelEvent *e)
 {
-    if (!m_zoomCtl->handleWheel(e)) QScrollArea::wheelEvent(e);
+    if (!m_zoomCtl->handleWheel(e) && !m_smoothScroll->handleWheel(e))
+        QScrollArea::wheelEvent(e);
 }
 
 void DocumentView::repositionForZoom()
@@ -111,6 +120,7 @@ void DocumentView::repositionEditorFrame()
         m_editorFrame->repositionForZoom(
             cb, qMax(1.0, m_edit.currentEditorRenderSizePt * scale),
             m_edit.currentBox, scale);
+        m_edit.syncBoundsFromFrame();
 
         m_edit.refreshLivePreview();
     });
@@ -374,6 +384,10 @@ QRect DocumentView::visibleCanvasRect() const
 
 void DocumentView::syncVisibleRect()
 {
+    if (m_viewMode == ViewMode::Grid) {
+        m_layoutEngine->setGridVisibleRect(QRect(-m_gridCanvas->pos(), viewport()->size()));
+        return;
+    }
     if (m_viewMode != ViewMode::Single) return;
     m_layoutEngine->setVisibleRect(visibleCanvasRect());
 }
@@ -393,9 +407,34 @@ void DocumentView::rerenderPage(int page)
     m_layoutEngine->rerenderPage(page);
 }
 
+void DocumentView::placeSignature(const QImage &image)
+{
+    setViewMode(ViewMode::Single);
+    m_signaturePlacement->start(image);
+}
+
+void DocumentView::addDigitalSignature(const SignRequest &request,
+                                       const SignatureAppearance &appearance)
+{
+    m_signatureLayer->add(request, appearance);
+}
+
+SignError DocumentView::signatureError() const
+{
+    return m_signatureLayer->lastError();
+}
+
+void DocumentView::placeSignatureField(const QImage &preview,
+                                       std::function<void(int, const QRectF &)> onPlaced)
+{
+    setViewMode(ViewMode::Single);
+    m_signaturePlacement->startField(preview, std::move(onPlaced));
+}
+
 void DocumentView::setViewMode(ViewMode mode)
 {
     if (m_viewMode == mode) return;
+    m_signaturePlacement->cancel();
     m_selection->clear();
     m_viewMode = mode;
 
@@ -409,6 +448,7 @@ void DocumentView::setViewMode(ViewMode mode)
 
         QMetaObject::invokeMethod(this, [this]() {
             m_layoutEngine->relayoutGrid(viewport()->width());
+            syncVisibleRect();
         }, Qt::QueuedConnection);
     } else {
         m_layoutEngine->clearGrid();
@@ -485,6 +525,7 @@ bool DocumentView::eventFilter(QObject *obj, QEvent *e)
                 if (m_editorFrame->isVisible() && m_editorFrame->geometry().contains(cvsPos))
                     return QScrollArea::eventFilter(obj, e);
 
+                if (!m_editorFrame->isVisible()) m_edit.lastCommittedPage = -1;
                 commitCurrentEdit(m_editorFrame->currentText());
 #endif
                 m_textDragStart = cvsPos;

@@ -78,6 +78,26 @@ FindController::FindController(PageCanvas *canvas, QWidget *viewport,
     m_timer->setSingleShot(true);
     m_timer->setInterval(180);
 
+    // Matches arrive page by page; the highlights follow a little behind.
+    m_overlayTimer = new QTimer(this);
+    m_overlayTimer->setSingleShot(true);
+    m_overlayTimer->setInterval(60);
+    connect(m_overlayTimer, &QTimer::timeout, this, &FindController::updateOverlays);
+
+#ifdef HAVE_PDF_RENDERING
+    if (DocumentWorker *worker = m_source ? m_source->worker() : nullptr) {
+        connect(worker, &DocumentWorker::textFound, this,
+                [this](int search, int page, const QList<PdfBackend::TextMatch> &matches) {
+            for (const PdfBackend::TextMatch &match : matches) addMatches(search, page, match.rects);
+        });
+        connect(worker, &DocumentWorker::searchDone, this, [this](int search) {
+            if (search != m_search) return;
+            m_searching = false;
+            updateCounter();
+        });
+    }
+#endif
+
     connect(m_edit, &QLineEdit::textChanged, this, &FindController::scheduleSearch);
     connect(m_timer, &QTimer::timeout, this, &FindController::performSearch);
     connect(m_previous, &QPushButton::clicked,
@@ -105,6 +125,7 @@ void FindController::open()
 void FindController::close()
 {
     m_timer->stop();
+    startSearch({});
     m_panel->hide();
     m_matches.clear();
     m_active = -1;
@@ -116,6 +137,7 @@ void FindController::close()
 void FindController::documentChanged()
 {
     m_timer->stop();
+    startSearch({});
     m_matches.clear();
     m_active = -1;
     updateCounter();
@@ -127,6 +149,7 @@ void FindController::documentChanged()
 void FindController::scheduleSearch()
 {
     m_timer->stop();
+    startSearch({});
     m_matches.clear();
     m_active = -1;
     updateCounter();
@@ -140,21 +163,37 @@ void FindController::performSearch()
     m_matches.clear();
     m_active = -1;
 
-#ifdef HAVE_PDF_RENDERING
-    const QString needle = m_edit->text().trimmed();
-    if (!needle.isEmpty() && m_source && m_source->backend()) {
-        const QList<PdfBackend::TextMatch> found = m_source->backend()->findText(needle);
-        m_matches.reserve(found.size());
-        for (const PdfBackend::TextMatch &match : found)
-            m_matches.append({ match.page, match.rects });
-    }
-#endif
+    // The worker searches page by page; the first match is shown as soon as
+    // it is found, the counter grows with the rest.
+    startSearch(m_edit->text().trimmed());
+    updateCounter();
+    updateOverlays();
+}
 
-    if (!m_matches.isEmpty()) activate(0);
-    else {
-        updateCounter();
-        updateOverlays();
+void FindController::startSearch(const QString &needle)
+{
+    ++m_search;
+    m_searching = false;
+#ifdef HAVE_PDF_RENDERING
+    if (DocumentWorker *worker = m_source ? m_source->worker() : nullptr) {
+        m_searching = !needle.isEmpty() && m_source->pageCount() > 0;
+        worker->findText(m_searching ? m_search : 0, m_searching ? needle : QString());
     }
+#else
+    Q_UNUSED(needle)
+#endif
+}
+
+void FindController::addMatches(int search, int page, const QList<QRectF> &rects)
+{
+    if (search != m_search) return;
+    m_matches.append({ page, rects });
+    if (m_active < 0) {
+        activate(0);
+        return;
+    }
+    updateCounter();
+    if (!m_overlayTimer->isActive()) m_overlayTimer->start();
 }
 
 void FindController::activateRelative(int delta)

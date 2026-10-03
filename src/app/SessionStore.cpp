@@ -37,6 +37,7 @@ QJsonObject toJson(const OpenDocument &doc)
     QJsonObject o;
     o[QStringLiteral("target")]  = doc.target;
     o[QStringLiteral("content")] = doc.content;
+    o[QStringLiteral("history")] = doc.history;
     o[QStringLiteral("page")]    = doc.page;
     o[QStringLiteral("dirty")]   = doc.dirty;
     return o;
@@ -47,6 +48,7 @@ OpenDocument fromJson(const QJsonObject &o)
     OpenDocument doc;
     doc.target  = o.value(QStringLiteral("target")).toString();
     doc.content = o.value(QStringLiteral("content")).toString();
+    doc.history = o.value(QStringLiteral("history")).toString();
     doc.page    = o.value(QStringLiteral("page")).toInt();
     doc.dirty   = o.value(QStringLiteral("dirty")).toBool();
     return doc;
@@ -75,7 +77,8 @@ QString snapshotDirectory()
     return dir.absolutePath();
 }
 
-static QString allocateIn(const QString &dir, const QString &sourcePath)
+static QString allocateIn(const QString &dir, const QString &sourcePath,
+                          const QString &suffix = QStringLiteral(".pdf"))
 {
     if (dir.isEmpty()) return {};
 
@@ -90,9 +93,9 @@ static QString allocateIn(const QString &dir, const QString &sourcePath)
     const qint64 pid = QCoreApplication::applicationPid();
 
     for (int n = 0; n < 1000; ++n) {
-        const QString suffix = n == 0 ? QString() : QStringLiteral("-%1").arg(n);
-        const QString path = QStringLiteral("%1/%2-%3-%4%5.pdf")
-                                 .arg(dir, stem, stamp, QString::number(pid), suffix);
+        const QString counter = n == 0 ? QString() : QStringLiteral("-%1").arg(n);
+        const QString path = QStringLiteral("%1/%2-%3-%4%5%6")
+                                 .arg(dir, stem, stamp, QString::number(pid), counter, suffix);
         if (!QFile::exists(path)) return path;
     }
     return {};
@@ -106,6 +109,11 @@ QString newWorkingFile(const QString &sourcePath)
 QString newSnapshotFile(const QString &sourcePath)
 {
     return allocateIn(snapshotDirectory(), sourcePath);
+}
+
+QString newArchiveFile(const QString &sourcePath)
+{
+    return allocateIn(snapshotDirectory(), sourcePath, QStringLiteral(".hist"));
 }
 
 static bool isIn(const QString &dir, const QString &path)
@@ -231,9 +239,15 @@ QList<OpenDocument> takeAbandonedDocuments()
                         && (!isWorkingFile(doc.content)
                             || !QFile::exists(doc.content)))
                     doc.content.clear();
+                if (!doc.history.isEmpty()
+                        && (!isSnapshotFile(doc.history)
+                            || !QFile::exists(doc.history)))
+                    doc.history.clear();
                 if (doc.content.isEmpty()
-                        && (doc.target.isEmpty() || !QFile::exists(doc.target)))
+                        && (doc.target.isEmpty() || !QFile::exists(doc.target))) {
+                    discardSnapshot(doc.history);
                     continue;
+                }
                 out.append(doc);
             }
         }

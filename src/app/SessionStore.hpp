@@ -10,6 +10,7 @@ namespace SessionStore {
 struct OpenDocument {
     QString target;
     QString content;
+    QString history;
     int     page  { 0 };
     bool    dirty { false };
 };
@@ -25,6 +26,8 @@ void discard(const QString &path);
 QString snapshotDirectory();
 
 QString newSnapshotFile(const QString &sourcePath);
+
+QString newArchiveFile(const QString &sourcePath);
 
 bool isSnapshotFile(const QString &path);
 

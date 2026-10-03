@@ -6,6 +6,7 @@
 #include <QPainter>
 #include <QPen>
 #include <QMouseEvent>
+#include <QMoveEvent>
 #include <QTimer>
 #include <QtMath>
 #include <QFontMetricsF>
@@ -25,7 +26,9 @@ TextBoxFrame::TextBoxFrame(QWidget *parent) : QWidget(parent)
     m_editor->setAutoFillBackground(false);
     m_editor->viewport()->setAutoFillBackground(false);
     m_editor->viewport()->setStyleSheet("background: transparent;");
-    connect(m_editor, &InlineEditor::committed, this, &TextBoxFrame::committed);
+    connect(m_editor, &InlineEditor::committed, this, [this](const QString &text) {
+        Q_EMIT committed(text.isNull() ? text : currentText());
+    });
     connect(m_editor, &InlineEditor::cancelled,  this, &TextBoxFrame::cancelled);
 
     connect(m_editor, &InlineEditor::changed, this, [this]() {
@@ -44,7 +47,9 @@ QRect TextBoxFrame::innerRect() const
 
 QRectF TextBoxFrame::innerCanvasRect() const
 {
-    return QRectF(innerRect()).translated(pos());
+    const QRectF inner = QRectF(innerRect()).translated(pos());
+    if (m_boxPt.isEmpty()) return inner;
+    return QRectF(m_hasInnerTopLeft ? m_innerTopLeft : inner.topLeft(), m_boxPt * m_scale);
 }
 
 void TextBoxFrame::setDecorations(bool on) { m_decorations = on; }
@@ -54,9 +59,21 @@ void TextBoxFrame::setStandardFace(bool on)
     m_editor->setStandardFace(on);
     if (isVisible()) { growToFitText(); layoutEditor(); }
 }
-void TextBoxFrame::setAdvanceMeasure(std::function<double(const QString &)> measure)
+void TextBoxFrame::setMetricsSource(std::function<TextLayout::Metrics(const QString &)> source)
 {
-    m_editor->setAdvanceMeasure(std::move(measure));
+    m_editor->setMetricsSource(std::move(source));
+    if (isVisible()) { growToFitText(); layoutEditor(); }
+}
+
+void TextBoxFrame::invalidateMetrics()
+{
+    m_editor->invalidateMetrics();
+    if (isVisible()) { growToFitText(); layoutEditor(); }
+}
+
+void TextBoxFrame::syncLayoutBox()
+{
+    m_editor->setLayoutBox(m_boxPt, !m_growHorizontal);
 }
 
 void TextBoxFrame::setLineSpacingPt(qreal pt)
@@ -94,43 +111,49 @@ void TextBoxFrame::setBoxProperties(const TextBoxProperties &properties, qreal s
 void TextBoxFrame::setGrowHorizontal(bool on)
 {
     m_growHorizontal = on;
-
-    m_editor->setLineWrapMode(on ? QTextEdit::NoWrap : QTextEdit::WidgetWidth);
+    syncLayoutBox();
 }
 
 void TextBoxFrame::growToFitText()
 {
 
-    if (m_boxPt.isEmpty() || m_drag != Handle::None) return;
+    if (!isVisible() || m_boxPt.isEmpty() || m_drag != Handle::None) return;
+    syncLayoutBox();
 
     const qreal fontPt = m_editor->fontPixelSizeF() / m_scale;
-    const int   lines  = qMax(1, m_editor->document()->blockCount());
-    const qreal stepPt = m_editor->lineSpacingPt() > 0.0 ? m_editor->lineSpacingPt()
-                                                         : fontPt * 1.2;
+    const bool engine = m_editor->usesEngineLayout();
     qreal brauchtW = m_boxPt.width();
     qreal brauchtH = m_boxPt.height();
 
     if (m_growHorizontal)
-        brauchtW = qMax(m_editor->contentWidthPt(), m_minInnerW / m_scale);
+        brauchtW = qMax(m_editor->contentWidthPt() + (engine ? 0.1 : 0.0),
+                        m_minInnerW / m_scale);
 
-    if (const qreal frei = freieBreitePt(); frei > 0.0 && brauchtW > frei) {
+    if (const qreal frei = freieBreitePt(); m_growHorizontal && frei > 0.0 && brauchtW > frei) {
         brauchtW = frei;
         if (m_growHorizontal) {
-            setGrowHorizontal(false);
-
-            m_editor->document()->setTextWidth(brauchtW * m_scale);
+            m_growHorizontal = false;
+            if (!engine) {
+                m_editor->setLineWrapMode(QTextEdit::WidgetWidth);
+                m_editor->document()->setTextWidth(brauchtW * m_scale);
+            }
         }
     }
 
     if (m_autoHeight) {
-
-        const int gemalt = m_growHorizontal
-            ? lines : m_editor->engineLineCount(textBreitePt(brauchtW));
-        brauchtH = gemalt > 0
-            ? (gemalt - 1) * stepPt + fontPt * 1.25
-            : m_editor->document()->size().height() / m_scale;
+        if (engine) {
+            m_editor->setLayoutBox(QSizeF(brauchtW, m_boxPt.height()), !m_growHorizontal);
+            brauchtH = m_editor->contentHeightPt();
+        } else {
+            const int lines = qMax(1, m_editor->document()->blockCount());
+            const qreal stepPt = m_editor->lineSpacingPt() > 0.0 ? m_editor->lineSpacingPt()
+                                                                 : fontPt * 1.2;
+            brauchtH = (lines - 1) * stepPt + fontPt * 1.25;
+        }
         brauchtH = qMax(brauchtH,
                         minInnerHeight(m_editor->fontPixelSizeF()) / m_scale);
+        if (const qreal frei = freieHoehePt(); frei > 0.0)
+            brauchtH = qMin(brauchtH, frei);
     }
 
     if (m_userSized) {
@@ -139,21 +162,16 @@ void TextBoxFrame::growToFitText()
     }
 
     if (qFuzzyCompare(brauchtW + 1.0, m_boxPt.width() + 1.0)
-            && qFuzzyCompare(brauchtH + 1.0, m_boxPt.height() + 1.0))
+            && qFuzzyCompare(brauchtH + 1.0, m_boxPt.height() + 1.0)) {
+        syncLayoutBox();
         return;
+    }
     m_boxPt = QSizeF(brauchtW, brauchtH);
+    syncLayoutBox();
+    const QSize before = size();
     applyBoxSize();
-}
-
-qreal TextBoxFrame::textBreitePt(qreal boxBreitePt) const
-{
-    qreal breite = boxBreitePt;
-    if (m_hasAnchor && qFuzzyIsNull(m_box.paddingPt)
-            && m_box.verticalAlign == TextBoxProperties::VerticalAlign::Top)
-        breite -= m_anchorPt.x();
-    else
-        breite -= 2 * m_box.paddingPt + m_box.indentLevel * 18.0;
-    return qMax(1.0, breite);
+    if (size() == before && !m_presenting)
+        Q_EMIT boundsChanged(innerCanvasRect());
 }
 
 qreal TextBoxFrame::freieBreitePt() const
@@ -161,7 +179,7 @@ qreal TextBoxFrame::freieBreitePt() const
     if (m_pageRect.isNull()) return 0.0;
     const int innen = m_pageRect.right() - x() + 1
                     - (m_decorations ? 2 * kPad : 0);
-    return innen > 0 ? innen / m_scale : 0.0;
+    return innen > 0 ? (innen + 1) / m_scale : 0.0;
 }
 
 void TextBoxFrame::applyBoxSize()
@@ -172,7 +190,18 @@ void TextBoxFrame::applyBoxSize()
         w = qMin(w, m_pageRect.right() - x() + 1);
         h = qMin(h, m_pageRect.bottom() - y() + 1);
     }
+    const int minimum = m_decorations ? 2 * kPad + 1 : 1;
+    w = qMax(w, minimum);
+    h = qMax(h, minimum);
     if (w != width() || h != height()) resize(w, h);
+}
+
+qreal TextBoxFrame::freieHoehePt() const
+{
+    if (m_pageRect.isNull()) return 0.0;
+    const int innen = m_pageRect.bottom() - y() + 1
+                    - (m_decorations ? 2 * kPad : 0);
+    return innen > 0 ? (innen + 1) / m_scale : 0.0;
 }
 
 int TextBoxFrame::minInnerHeight(qreal fontPixelSize)
@@ -190,6 +219,9 @@ void TextBoxFrame::repositionForZoom(const QRectF &canvasBounds, qreal px,
     m_editor->setBoxProperties(box, m_scale);
 
     m_boxPt = canvasBounds.size() / m_scale;
+    m_innerTopLeft = canvasBounds.topLeft();
+    m_hasInnerTopLeft = true;
+    syncLayoutBox();
     QRect outer = canvasBounds.toAlignedRect();
     if (m_decorations)
         outer = outer.adjusted(-kPad, -kPad, kPad, kPad);
@@ -197,6 +229,8 @@ void TextBoxFrame::repositionForZoom(const QRectF &canvasBounds, qreal px,
     setGeometry(outer);
     layoutEditor();
     m_editor->setFontSizeF(px);
+    growToFitText();
+    layoutEditor();
     m_presenting = false;
     if (isVisible() && !m_editor->hasFocus()) {
         m_editor->suppressNextFocusOut();
@@ -208,11 +242,17 @@ void TextBoxFrame::setTextAnchor(bool valid, const QPointF &penOffsetPt)
 {
     m_hasAnchor = valid;
     m_anchorPt  = penOffsetPt;
+    m_editor->setTextAnchor(valid, penOffsetPt);
 }
 
 void TextBoxFrame::layoutEditor()
 {
     QRect r = innerRect();
+    if (m_editor->usesEngineLayout()) {
+        m_editor->setGeometry(r);
+        m_editor->setPixelOffset(innerCanvasRect().topLeft() - QPointF(pos() + r.topLeft()));
+        return;
+    }
     if (m_hasAnchor && qFuzzyIsNull(m_box.paddingPt)
             && m_box.verticalAlign == TextBoxProperties::VerticalAlign::Top) {
         const int dx = qRound(m_anchorPt.x() * m_scale);
@@ -224,10 +264,23 @@ void TextBoxFrame::layoutEditor()
     m_editor->setGeometry(r);
 }
 
+void TextBoxFrame::keepInsidePage()
+{
+    const QRect inner = innerRect().translated(pos());
+    int dx = 0;
+    int dy = 0;
+    if (inner.right() > m_pageRect.right())   dx = m_pageRect.right() - inner.right();
+    if (inner.left() + dx < m_pageRect.left()) dx = m_pageRect.left() - inner.left();
+    if (inner.bottom() > m_pageRect.bottom()) dy = m_pageRect.bottom() - inner.bottom();
+    if (inner.top() + dy < m_pageRect.top())  dy = m_pageRect.top() - inner.top();
+    if (dx || dy) move(pos() + QPoint(dx, dy));
+}
+
 void TextBoxFrame::setForbiddenZones(const QList<QRect> &z) { m_forbidden = z; }
 void TextBoxFrame::setPageRect(const QRect &r) { m_pageRect = r; }
 void TextBoxFrame::resetCommitGuard()      { m_editor->resetCommitGuard(); }
 QString TextBoxFrame::currentText() const  { return m_editor->laidOutText(); }
+QString TextBoxFrame::plainText() const    { return m_editor->toPlainText(); }
 
 void TextBoxFrame::present(const QString &text, const QRectF &canvasBounds, qreal fontSize,
                            const QColor &color, const QString &fontFamily,
@@ -238,9 +291,10 @@ void TextBoxFrame::present(const QString &text, const QRectF &canvasBounds, qrea
 
     m_boxPt = canvasBounds.size() / m_scale;
     m_userSized = false;
-    QRect outer(canvasBounds.topLeft().toPoint(),
-                QSize(qCeil(m_boxPt.width() * m_scale),
-                      qCeil(m_boxPt.height() * m_scale)));
+    m_innerTopLeft = canvasBounds.topLeft();
+    m_hasInnerTopLeft = true;
+    syncLayoutBox();
+    QRect outer = canvasBounds.toAlignedRect();
     if (m_decorations)
         outer = outer.adjusted(-kPad, -kPad, kPad, kPad);
 
@@ -267,19 +321,22 @@ void TextBoxFrame::present(const QString &text, const QRectF &canvasBounds, qrea
 
 void TextBoxFrame::resizeEvent(QResizeEvent *)
 {
-    if (!m_presenting && m_scale > 0.0) {
+    if (!m_presenting && m_drag != Handle::None && m_drag != Handle::Move
+            && m_scale > 0.0) {
         const QRect in = innerRect();
         m_boxPt = QSizeF(in.width() / m_scale, in.height() / m_scale);
+        syncLayoutBox();
     }
     layoutEditor();
     if (isVisible() && !m_presenting)
-        Q_EMIT boundsChanged(QRectF(innerRect()).translated(pos()));
+        Q_EMIT boundsChanged(innerCanvasRect());
 }
 
-void TextBoxFrame::moveEvent(QMoveEvent *)
+void TextBoxFrame::moveEvent(QMoveEvent *e)
 {
+    if (!m_presenting && m_hasInnerTopLeft) m_innerTopLeft += QPointF(e->pos() - e->oldPos());
     if (isVisible() && !m_presenting)
-        Q_EMIT boundsChanged(QRectF(innerRect()).translated(pos()));
+        Q_EMIT boundsChanged(innerCanvasRect());
 }
 
 int TextBoxFrame::handleSize() const
@@ -392,13 +449,12 @@ void TextBoxFrame::mouseReleaseEvent(QMouseEvent *e)
                 && (geometry().topLeft() - m_dragStartGeo.topLeft())
                        .manhattanLength() <= 2)
             setGeometry(m_dragStartGeo);
+        else if (m_drag == Handle::Move && !m_pageRect.isNull())
+            keepInsidePage();
 
         else if (m_drag != Handle::Move && geometry() != m_dragStartGeo) {
             m_userSized = true;
-            if (m_growHorizontal) {
-                m_growHorizontal = false;
-                m_editor->setLineWrapMode(QTextEdit::WidgetWidth);
-            }
+            if (m_growHorizontal) setGrowHorizontal(false);
         }
         m_drag = Handle::None;
         unsetCursor();

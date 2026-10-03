@@ -4,6 +4,9 @@
 
 #include "app/PdfPwStore.hpp"
 #include "engine/document/PdfiumEdits.hpp"
+#include "engine/document/PdfiumFonts.hpp"
+#include "engine/document/PdfiumLock.hpp"
+#include "engine/document/Type3Text.hpp"
 #include "engine/edit/EditSession.hpp"
 
 #include "fpdf_annot.h"
@@ -20,6 +23,7 @@
 #include <QDebug>
 #include <QFile>
 #include <QHash>
+#include <QSet>
 
 #include <vector>
 
@@ -29,12 +33,15 @@ struct FileSink {
     FPDF_FILEWRITE writer {};
     QFile          file;
     bool           failed { false };
+    const std::function<bool()> *cancelled { nullptr };
 };
 
 int writeBlock(FPDF_FILEWRITE *self, const void *data, unsigned long size)
 {
     auto *sink = reinterpret_cast<FileSink *>(self);
+    if (*sink->cancelled && (*sink->cancelled)()) sink->failed = true;
     if (sink->failed) return 0;
+    PdfiumLock::yieldToOthers();
     const qint64 written = sink->file.write(static_cast<const char *>(data),
                                             static_cast<qint64>(size));
     if (written != static_cast<qint64>(size)) {
@@ -99,6 +106,7 @@ bool setFieldValue(FPDF_PAGE page, const QString &fieldName, const QString &valu
 
 bool isEncrypted(const QString &file, const QString &password)
 {
+    PdfiumLock lock;
     const QByteArray path = file.toUtf8();
     const QByteArray pw   = password.toUtf8();
     FPDF_DOCUMENT doc = FPDF_LoadDocument(path.constData(),
@@ -150,30 +158,67 @@ bool reapplyEncryption(const QString &file, const QString &password)
 
     Q_UNUSED(file)
     qWarning() << "[PdfiumWriter] ohne qpdf kann die Verschlüsselung nicht"
-               << "wiederhergestellt werden — Speichern abgebrochen";
+               << "wiederhergestellt werden, Speichern abgebrochen";
     return password.isEmpty();
 #endif
 }
 
+QList<FPDF_PAGEOBJECT> type3TextObjects(FPDF_PAGE page)
+{
+    QList<FPDF_PAGEOBJECT> out;
+    for (int i = 0, n = FPDFPage_CountObjects(page); i < n; ++i) {
+        FPDF_PAGEOBJECT obj = FPDFPage_GetObject(page, i);
+        if (obj && FPDFPageObj_GetType(obj) == FPDF_PAGEOBJ_TEXT
+                && PdfiumFonts::isType3(FPDFTextObj_GetFont(obj)))
+            out.append(obj);
+    }
+    return out;
 }
 
-bool PdfiumWriter::save(const QString &sourcePath, const QString &outputPath,
-                        const EditSession &session)
+QSet<FPDF_PAGEOBJECT> pageObjects(FPDF_PAGE page)
 {
-    if (sourcePath.isEmpty() || outputPath.isEmpty()) return false;
+    QSet<FPDF_PAGEOBJECT> out;
+    for (int i = 0, n = FPDFPage_CountObjects(page); i < n; ++i)
+        out.insert(FPDFPage_GetObject(page, i));
+    return out;
+}
 
+Type3Text::Kept takeType3Text(FPDF_PAGE page, const QList<FPDF_PAGEOBJECT> &type3,
+                              const QSet<FPDF_PAGEOBJECT> &before, bool modified)
+{
+    Type3Text::Kept kept;
+    const QSet<FPDF_PAGEOBJECT> now = pageObjects(page);
+    bool rewritten = modified;
+    for (FPDF_PAGEOBJECT obj : before)
+        if (!now.contains(obj)) { rewritten = true; break; }
+    if (!rewritten) return kept;
+
+    kept.total = type3.size();
+    for (int i = 0; i < type3.size(); ++i) {
+        if (!now.contains(type3.at(i))) continue;
+        kept.indices.insert(i);
+        if (FPDFPage_RemoveObject(page, type3.at(i))) FPDFPageObj_Destroy(type3.at(i));
+    }
+    return kept;
+}
+
+bool writeEdits(const QString &sourcePath, const QString &outputPath,
+                const EditSession &session, const std::function<bool()> &cancelled,
+                bool &wasEncrypted, QHash<int, Type3Text::Kept> &type3Pages)
+{
+    PdfiumLock lock;
     const QByteArray path = sourcePath.toUtf8();
     const QByteArray pw   = PdfPwStore::get(sourcePath).toUtf8();
 
     FPDF_DOCUMENT doc = FPDF_LoadDocument(path.constData(),
                                           pw.isEmpty() ? nullptr : pw.constData());
     if (!doc) {
-        qWarning() << "[PdfiumWriter] konnte" << sourcePath << "nicht öffnen —"
+        qWarning() << "[PdfiumWriter] konnte" << sourcePath << "nicht öffnen,"
                    << "Fehler" << FPDF_GetLastError();
         return false;
     }
 
-    const bool wasEncrypted = FPDF_GetSecurityHandlerRevision(doc) >= 0;
+    wasEncrypted = FPDF_GetSecurityHandlerRevision(doc) >= 0;
 
     QHash<int, QList<EditSession::Edit>> fieldsByPage;
     QList<int> touched;
@@ -200,10 +245,18 @@ bool PdfiumWriter::save(const QString &sourcePath, const QString &outputPath,
         FPDF_PAGE page = FPDF_LoadPage(doc, pageIndex);
         if (!page) continue;
 
+        const QList<FPDF_PAGEOBJECT> type3 = type3TextObjects(page);
+        const QSet<FPDF_PAGEOBJECT> before = type3.isEmpty() ? QSet<FPDF_PAGEOBJECT>()
+                                                             : pageObjects(page);
         PdfiumEdits::applyToPage(doc, page, pageIndex, session);
         PdfiumEdits::applyNoteEdits(page, pageIndex, session);
         for (const EditSession::Edit &edit : fieldsByPage.value(pageIndex))
             setFieldValue(page, edit.formField, edit.newText);
+        if (!type3.isEmpty()) {
+            const Type3Text::Kept kept = takeType3Text(
+                page, type3, before, session.hasLinkEditsOnPage(pageIndex));
+            if (!kept.indices.isEmpty()) type3Pages.insert(pageIndex, kept);
+        }
 
         FPDFPage_GenerateContent(page);
         FPDF_ClosePage(page);
@@ -212,8 +265,10 @@ bool PdfiumWriter::save(const QString &sourcePath, const QString &outputPath,
     FileSink sink;
     sink.writer.version    = 1;
     sink.writer.WriteBlock = &writeBlock;
+    sink.cancelled         = &cancelled;
     sink.file.setFileName(outputPath);
     if (!sink.file.open(QIODevice::WriteOnly | QIODevice::Truncate)) {
+        PdfiumFonts::releaseFonts(doc);
         FPDF_CloseDocument(doc);
         return false;
     }
@@ -221,6 +276,7 @@ bool PdfiumWriter::save(const QString &sourcePath, const QString &outputPath,
     const bool saved = FPDF_SaveWithVersion(doc, &sink.writer, FPDF_NO_INCREMENTAL, 17);
     const bool ok = saved && !sink.failed;
     sink.file.close();
+    PdfiumFonts::releaseFonts(doc);
     FPDF_CloseDocument(doc);
 
     if (!ok) {
@@ -228,6 +284,24 @@ bool PdfiumWriter::save(const QString &sourcePath, const QString &outputPath,
         qWarning() << "[PdfiumWriter] Schreiben nach" << outputPath << "fehlgeschlagen";
         return false;
     }
+    return true;
+}
+
+}
+
+bool PdfiumWriter::save(const QString &sourcePath, const QString &outputPath,
+                        const EditSession &session, const std::function<bool()> &cancelled)
+{
+    if (sourcePath.isEmpty() || outputPath.isEmpty()) return false;
+
+    bool wasEncrypted = false;
+    QHash<int, Type3Text::Kept> type3Pages;
+    if (!writeEdits(sourcePath, outputPath, session, cancelled, wasEncrypted, type3Pages))
+        return false;
+
+    if (!Type3Text::restore(sourcePath, outputPath, type3Pages))
+        qWarning() << "[PdfiumWriter] Type3-Text auf" << type3Pages.size()
+                   << "Seite(n) konnte nicht erhalten werden";
 
     const QString password = PdfPwStore::get(sourcePath);
     if (wasEncrypted && !isEncrypted(outputPath, password)) {

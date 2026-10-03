@@ -1,6 +1,6 @@
 #pragma once
 
-#include "app/DocumentHistory.hpp"
+#include "engine/historymanager/DocumentHistory.hpp"
 
 #include <QDialog>
 #include <QList>
@@ -13,6 +13,7 @@ class QVBoxLayout;
 class QWidget;
 QT_END_NAMESPACE
 
+class DocumentView;
 class HistoryRow;
 
 /// The change log of the open document, as a timeline the user can step back into.
@@ -21,8 +22,10 @@ class HistoryDialog : public QDialog
     Q_OBJECT
 
 public:
-    HistoryDialog(DocumentHistory *history, const QString &documentName,
+    HistoryDialog(const DocumentHistory *history, const QString &documentName,
                   QWidget *parent = nullptr);
+
+    static HistoryDialog *openFor(DocumentView *view, QWidget *parent);
 
     void retranslateUi();
 
@@ -47,13 +50,12 @@ private:
     void rebuildList();
     void updateButtons();
     void selectRow(int index);
-    void applyStyle();
 
     void requestRestore(int index);
 
     static QString iconFor(DocumentHistory::Kind kind);
 
-    DocumentHistory *m_history { nullptr };
+    const DocumentHistory *m_history { nullptr };
     QString          m_documentName;
     int              m_selected { -1 };
     bool             m_canUndo  { false };

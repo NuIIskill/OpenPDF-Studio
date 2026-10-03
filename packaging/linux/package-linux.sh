@@ -20,9 +20,9 @@ echo "==> OpenPDF Studio $VERSION (linux packages)"
 # ── Welche Generatoren sind verfügbar? ───────────────────────────────────────
 GENERATORS=()
 command -v rpmbuild >/dev/null 2>&1 && GENERATORS+=("RPM") \
-    || echo "==> WARN: rpmbuild fehlt — RPM wird übersprungen (dnf install rpm-build)"
+    || echo "==> WARN: rpmbuild fehlt, RPM wird übersprungen (dnf install rpm-build)"
 command -v dpkg-deb >/dev/null 2>&1 && GENERATORS+=("DEB") \
-    || echo "==> WARN: dpkg-deb fehlt — DEB wird übersprungen (dnf install dpkg)"
+    || echo "==> WARN: dpkg-deb fehlt, DEB wird übersprungen (dnf install dpkg)"
 [[ ${#GENERATORS[@]} -gt 0 ]] || { echo "ERROR: weder rpmbuild noch dpkg-deb gefunden"; exit 1; }
 
 # ── Build mit /usr-Prefix (separates Verzeichnis, stört build/ nicht) ────────
@@ -49,4 +49,4 @@ done
 shopt -u nullglob
 
 echo
-echo "Fertig — Artefakte in dist/"
+echo "Fertig. Artefakte in dist/"

@@ -14,6 +14,7 @@ extern QColor IconNormal;
 extern QColor IconMuted;
 extern QColor IconChecked;
 extern QColor IconDisabled;
+extern QColor Success;
 
 QString loadStyleSheet();
 

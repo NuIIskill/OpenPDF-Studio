@@ -297,7 +297,7 @@ void RichMediaPanel::applyStyle()
     };
     const Palette night {
         "#353535", "#E5E7EB", "#9CA3AF", "#484848", "#2C2C2C", "#565656",
-        "#3B82F6", "#24303F", "#FFFFFF", "#2C2C2C"
+        "#2563EB", "#24303F", "#FFFFFF", "#2C2C2C"
     };
     const Palette &p = dark ? night : light;
 

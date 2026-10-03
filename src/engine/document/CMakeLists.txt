@@ -1,10 +1,10 @@
 target_sources(OpenPDFStudio PRIVATE
     BookmarkWriter.cpp
     BookmarkWriter.hpp
-    DocumentJournal.cpp
-    DocumentJournal.hpp
     DocumentSource.cpp
     DocumentSource.hpp
+    DocumentWorker.cpp
+    DocumentWorker.hpp
     OrganizerDoc.hpp
     OrganizerWriter.cpp
     OrganizerWriter.hpp
@@ -13,13 +13,22 @@ target_sources(OpenPDFStudio PRIVATE
     PdfBookmark.hpp
     PdfiumBackend.cpp
     PdfiumBackend.hpp
+    PdfiumBackend_Render.cpp
     PdfiumContentProvider.cpp
     PdfiumContentProvider.hpp
     PdfiumEdits.cpp
     PdfiumEdits.hpp
     PdfiumFonts.cpp
     PdfiumFonts.hpp
+    PdfiumLock.cpp
+    PdfiumLock.hpp
     PdfiumTextRules.hpp
     PdfiumWriter.cpp
     PdfiumWriter.hpp
+    RenderPool.cpp
+    RenderPool.hpp
+    RenderServer.cpp
+    RenderServer.hpp
+    Type3Text.cpp
+    Type3Text.hpp
 )

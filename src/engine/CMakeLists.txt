@@ -1,6 +1,8 @@
 add_subdirectory(document)
 add_subdirectory(edit)
 add_subdirectory(export)
+add_subdirectory(historymanager)
 add_subdirectory(import)
 add_subdirectory(ocr)
 add_subdirectory(render)
+add_subdirectory(sign)

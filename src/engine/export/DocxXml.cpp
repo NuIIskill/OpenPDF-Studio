@@ -1,6 +1,7 @@
 #include "engine/export/DocxXml.hpp"
 
 #include <QBuffer>
+#include <QHash>
 #include <QFontMetricsF>
 #include <QPainter>
 #include <QtMath>
@@ -92,6 +93,47 @@ QString colorHex(const QColor &color)
                            : QStringLiteral("000000");
 }
 
+/// Text drawn in a symbol font arrives as private use codepoints: Symbol and
+/// Wingdings keep their glyphs in U+F020..U+F0FF. Written out unchanged they
+/// drag the whole run into that font, and every latin letter beside them comes
+/// out as Greek. Mapped to real characters they need no special font at all.
+QString withoutSymbolFont(const QString &text)
+{
+    static const QHash<ushort, ushort> known {
+        { 0xF0B7, 0x2022 },   // bullet
+        { 0xF0A7, 0x25AA },   // filled square
+        { 0xF0A8, 0x25C6 },   // diamond
+        { 0xF0D8, 0x27A2 },   // arrow head
+        { 0xF0E0, 0x2192 },   // right arrow
+        { 0xF0FC, 0x2713 },   // check mark
+        { 0xF0FE, 0x2611 },   // boxed check
+    };
+
+    QString out;
+    out.reserve(text.size());
+    for (const QChar ch : text) {
+        const ushort code = ch.unicode();
+        if (code < 0xF000 || code > 0xF0FF) { out += ch; continue; }
+        if (const ushort mapped = known.value(code, 0)) { out += QChar(mapped); continue; }
+        // The rest of the range is the font's own ASCII, offset by F000.
+        if (code >= 0xF020 && code <= 0xF07E) out += QChar(ushort(code - 0xF000));
+    }
+    return out;
+}
+
+/// A font whose letters are pictures. It must never end up on ordinary text.
+bool isSymbolFont(const QString &family)
+{
+    static const QStringList names {
+        QStringLiteral("Symbol"),   QStringLiteral("Wingdings"),
+        QStringLiteral("Webdings"), QStringLiteral("ZapfDingbats"),
+        QStringLiteral("Dingbats"),
+    };
+    for (const QString &name : names)
+        if (family.startsWith(name, Qt::CaseInsensitive)) return true;
+    return false;
+}
+
 double fontSizeOf_(const ContentItem &item)
 {
     return item.fontSizePt > 0.0 ? item.fontSizePt
@@ -103,9 +145,9 @@ QString textRuns(const ContentItem &item)
     QString x;
     const int halfPoints = qMax(2, qRound((item.fontSizePt > 0.0
                                            ? item.fontSizePt : 10.0) * 2.0));
-    const QString family = item.fontFamily.isEmpty()
+    const QString family = item.fontFamily.isEmpty() || isSymbolFont(item.fontFamily)
                                ? QStringLiteral("Arial") : item.fontFamily;
-    const QStringList lines = item.text.split(u'\n');
+    const QStringList lines = withoutSymbolFont(item.text).split(u'\n');
     for (int i = 0; i < lines.size(); ++i) {
         if (i > 0) x += QStringLiteral("<w:r><w:br/></w:r>");
         x += QStringLiteral("<w:r><w:rPr><w:rFonts w:ascii=\"")
@@ -151,7 +193,7 @@ QString paragraphText(const QList<ContentItem> &lines)
 {
     QString out;
     for (const ContentItem &line : lines) {
-        const QString t = line.text.trimmed();
+        const QString t = withoutSymbolFont(line.text).trimmed();
         if (t.isEmpty()) continue;
         if (out.isEmpty()) { out = t; continue; }
         if (out.endsWith(u'-') && t.at(0).isLower()) {
@@ -166,8 +208,8 @@ QString paragraphText(const QList<ContentItem> &lines)
 
 QString runProperties(const ContentItem &style)
 {
-    const QString family = style.fontFamily.isEmpty() ? QStringLiteral("Arial")
-                                                      : style.fontFamily;
+    const QString family = style.fontFamily.isEmpty() || isSymbolFont(style.fontFamily)
+                               ? QStringLiteral("Arial") : style.fontFamily;
     const int half = qMax(2, qRound((style.fontSizePt > 0.0 ? style.fontSizePt
                                                             : 10.0) * 2.0));
     QString x = QStringLiteral("<w:rPr><w:rFonts w:ascii=\"") + xmlEsc(family)
@@ -208,7 +250,16 @@ QString paragraphXml(const DocxBlock &block, double spaceBeforePt,
                             bool insideCell)
 {
     if (block.lines.isEmpty()) return {};
-    const ContentItem &style = block.lines.first();
+
+    // The first line decides the paragraph's look, but a line that begins with a
+    // bullet carries the bullet's font. Take the first one that does not.
+    const ContentItem *pick = &block.lines.first();
+    for (const ContentItem &line : block.lines) {
+        if (isSymbolFont(line.fontFamily)) continue;
+        pick = &line;
+        break;
+    }
+    const ContentItem &style = *pick;
 
     QString x = QStringLiteral("<w:p><w:pPr><w:spacing w:before=\"")
               + twips(qMax(0.0, spaceBeforePt))

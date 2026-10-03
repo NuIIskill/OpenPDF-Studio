@@ -25,6 +25,17 @@ QImage PdfBackend::renderPage(int page, qreal scale, const EditSession *session)
     return img;
 }
 
+PdfBackend::AreaRender PdfBackend::renderChanges(int page, qreal scale,
+                                                 const EditSession *session,
+                                                 const QRect &, bool) const
+{
+    AreaRender result;
+    result.image   = renderPage(page, scale, session);
+    result.pixels  = result.image.rect();
+    result.changed = result.image.rect();
+    return result;
+}
+
 QString PdfBackend::embeddedFontFamily(int, const QPointF &) const
 {
     return {};
@@ -44,6 +55,17 @@ double PdfBackend::standardTextWidthPt(const QString &, bool, bool,
 bool PdfBackend::canEmbedFont(const QString &, bool, bool) const
 {
     return false;
+}
+
+TextLayout::Metrics PdfBackend::editMetrics(const EditSession::Edit &) const
+{
+    return {};
+}
+
+QList<TextLayout::OriginalLine> PdfBackend::originalLines(int, const QRectF &,
+                                                          const QList<QRectF> &) const
+{
+    return {};
 }
 
 #endif

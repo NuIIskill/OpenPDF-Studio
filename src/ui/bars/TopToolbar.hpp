@@ -8,6 +8,7 @@ class QHBoxLayout;
 class QLabel;
 class QPushButton;
 class QScrollArea;
+class QTimer;
 QT_END_NAMESPACE
 
 class IconButton;
@@ -29,6 +30,7 @@ public:
     void setFileName(const QString &name);
     void setZoom(int percent);
     void setViewMode(bool gridView);
+    void flashSaved();
     void refreshTheme();
     void retranslateUi();
 
@@ -65,6 +67,7 @@ private:
     IconButton *m_zoomInBtn     { nullptr };
     IconButton *m_zoomOutBtn    { nullptr };
     IconButton *m_saveBtn       { nullptr };
+    QTimer     *m_saveFlash     { nullptr };
     IconButton *m_printBtn      { nullptr };
     IconButton *m_undoBtn       { nullptr };
     IconButton *m_redoBtn       { nullptr };

@@ -1,14 +1,12 @@
 #include "engine/document/DocumentSource.hpp"
 
-#ifdef HAVE_PDF_RENDERING
-#endif
-
 DocumentSource::DocumentSource()
 {
 #ifdef HAVE_PDF_RENDERING
     m_backend = PdfBackend::create();
 
     m_renderer = new PdfRenderer(m_backend.get());
+    m_worker   = std::make_unique<DocumentWorker>(m_backend.get());
 #endif
 }
 
@@ -16,6 +14,7 @@ DocumentSource::~DocumentSource()
 {
 #ifdef HAVE_PDF_RENDERING
 
+    m_worker.reset();
     m_contentProvider.reset();
     delete m_renderer;
     m_backend.reset();
@@ -26,18 +25,19 @@ DocumentSource::~DocumentSource()
 
 bool DocumentSource::open(const QString &path, const PasswordAsker &ask)
 {
-
+    m_worker->stop();
     m_contentProvider.reset();
     if (!m_backend || !m_backend->open(path, ask)) return false;
     m_contentPath = path;
     m_pageCount   = m_backend->pageCount();
+    m_worker->setDocument(path);
 
     return true;
 }
 
 void DocumentSource::close()
 {
-
+    m_worker->stop();
     m_contentProvider.reset();
     if (m_backend) m_backend->close();
     m_contentPath.clear();

@@ -6,6 +6,7 @@
 #include "engine/document/PdfiumContentProvider.hpp"
 #include "engine/document/PdfiumEdits.hpp"
 #include "engine/document/PdfiumFonts.hpp"
+#include "engine/document/PdfiumLock.hpp"
 #include "engine/document/PdfiumTextRules.hpp"
 #include "engine/document/PdfiumWriter.hpp"
 #include "engine/edit/ContentModel.hpp"
@@ -43,12 +44,17 @@ void releasePdfium()
     FPDF_DestroyLibrary();
 }
 
-FPDF_DOCUMENT loadWith(const QByteArray &utf8Path, const QString &password)
+FPDF_DOCUMENT loadWith(const QByteArray &utf8Path, const QString &password,
+                       unsigned long *error)
 {
+    PdfiumLock lock;
     const QByteArray pw = password.toUtf8();
-    return FPDF_LoadDocument(utf8Path.constData(),
-                             pw.isEmpty() ? nullptr : pw.constData());
+    FPDF_DOCUMENT doc = FPDF_LoadDocument(utf8Path.constData(),
+                                          pw.isEmpty() ? nullptr : pw.constData());
+    *error = doc ? FPDF_ERR_SUCCESS : FPDF_GetLastError();
+    return doc;
 }
+
 
 QString bookmarkTitle(FPDF_BOOKMARK bookmark)
 {
@@ -150,12 +156,23 @@ bool objectTouches(FPDF_PAGEOBJECT object, const QList<QRectF> &rects,
 
 PdfiumBackend::PdfiumBackend()
 {
+    PdfiumLock lock;
     retainPdfium();
 }
 
 PdfiumBackend::~PdfiumBackend()
 {
-    if (m_doc) FPDF_CloseDocument(m_doc);
+    PdfiumLock lock;
+    dropBackgroundPages();
+    dropReadPages();
+    {
+        std::lock_guard guard(m_metricsMutex);
+        m_metricsCache.clear();
+    }
+    if (m_doc) {
+        PdfiumFonts::releaseFonts(m_doc);
+        FPDF_CloseDocument(m_doc);
+    }
     releasePdfium();
 }
 
@@ -164,13 +181,14 @@ bool PdfiumBackend::open(const QString &path, const PasswordAsker &ask)
     if (path.isEmpty()) return false;
     const QByteArray utf8 = path.toUtf8();
 
-    FPDF_DOCUMENT opened = loadWith(utf8, PdfPwStore::get(path));
+    unsigned long error = FPDF_ERR_SUCCESS;
+    FPDF_DOCUMENT opened = loadWith(utf8, PdfPwStore::get(path), &error);
 
-    for (int attempt = 0; ask && !opened && FPDF_GetLastError() == FPDF_ERR_PASSWORD;
+    for (int attempt = 0; ask && !opened && error == FPDF_ERR_PASSWORD;
          ++attempt) {
         const std::optional<QString> entered = ask(path, attempt > 0);
         if (!entered) break;
-        opened = loadWith(utf8, *entered);
+        opened = loadWith(utf8, *entered, &error);
         if (opened) {
 
             PdfPwStore::set(path, *entered);
@@ -179,33 +197,55 @@ bool PdfiumBackend::open(const QString &path, const PasswordAsker &ask)
 
     if (!opened) {
         qWarning() << "PdfiumBackend: could not open" << path
-                   << "- error" << FPDF_GetLastError();
+                   << "- error" << error;
 
         return false;
     }
 
-    if (m_doc) FPDF_CloseDocument(m_doc);
+    PdfiumLock lock;
+    dropBackgroundPages();
+    dropReadPages();
+    if (m_doc) {
+        PdfiumFonts::releaseFonts(m_doc);
+        FPDF_CloseDocument(m_doc);
+    }
     m_doc  = opened;
     m_path = path;
+    m_pageSizes.clear();
+    for (int page = 0, count = FPDF_GetPageCount(m_doc); page < count; ++page) {
+        FS_SIZEF size {};
+        FPDF_GetPageSizeByIndexF(m_doc, page, &size);
+        m_pageSizes.push_back(QSizeF(size.width, size.height));
+    }
     return true;
 }
 
 void PdfiumBackend::close()
 {
+    PdfiumLock lock;
+    dropBackgroundPages();
+    dropReadPages();
+    {
+        std::lock_guard guard(m_metricsMutex);
+        m_metricsCache.clear();
+    }
     if (m_doc) {
+        PdfiumFonts::releaseFonts(m_doc);
         FPDF_CloseDocument(m_doc);
         m_doc = nullptr;
     }
     m_path.clear();
+    m_pageSizes.clear();
 }
 
 int PdfiumBackend::pageCount() const
 {
-    return m_doc ? FPDF_GetPageCount(m_doc) : 0;
+    return static_cast<int>(m_pageSizes.size());
 }
 
 QList<PdfBookmark> PdfiumBackend::bookmarks() const
 {
+    PdfiumLock lock;
     if (!m_doc) return {};
     int remaining = 10000;
     return bookmarkLevel(m_doc, nullptr, 0, remaining);
@@ -213,6 +253,7 @@ QList<PdfBookmark> PdfiumBackend::bookmarks() const
 
 QList<PdfBackend::Link> PdfiumBackend::pageLinks(int page) const
 {
+    PdfiumLock lock;
     QList<Link> result;
     if (!m_doc || page < 0 || page >= pageCount()) return result;
 
@@ -279,6 +320,7 @@ QList<PdfBackend::Link> PdfiumBackend::pageLinks(int page) const
 
 QList<PdfBackend::Note> PdfiumBackend::pageNotes(int page) const
 {
+    PdfiumLock lock;
     QList<Note> result;
     if (!m_doc || page < 0 || page >= pageCount()) return result;
 
@@ -311,10 +353,8 @@ QList<PdfBackend::Note> PdfiumBackend::pageNotes(int page) const
 
 QSizeF PdfiumBackend::pageSizePts(int page) const
 {
-    if (!m_doc) return {};
-    FS_SIZEF size {};
-    if (!FPDF_GetPageSizeByIndexF(m_doc, page, &size)) return {};
-    return QSizeF(size.width, size.height);
+    if (page < 0 || page >= pageCount()) return {};
+    return m_pageSizes[static_cast<size_t>(page)];
 }
 
 QSize PdfiumBackend::pixelSize(int page, qreal scale) const
@@ -324,57 +364,6 @@ QSize PdfiumBackend::pixelSize(int page, qreal scale) const
     return QSize(qRound(pts.width() * scale), qRound(pts.height() * scale));
 }
 
-QImage PdfiumBackend::renderPage(int page, qreal scale) const
-{
-    return renderPageInternal(page, scale, nullptr);
-}
-
-QImage PdfiumBackend::renderPage(int page, qreal scale,
-                                 const EditSession *session) const
-{
-    return renderPageInternal(page, scale, session);
-}
-
-QImage PdfiumBackend::renderPageInternal(int page, qreal scale,
-                                         const EditSession *session) const
-{
-    if (!m_doc) return {};
-    const QSize px = pixelSize(page, scale);
-    if (px.isEmpty()) return {};
-
-    if (session && !session->hasEditsOnPage(page)
-            && !session->hasImageEditsOnPage(page)
-            && !session->hasDrawEditsOnPage(page)
-            && !session->hasLinkEditsOnPage(page))
-        session = nullptr;
-
-    FPDF_PAGE pg = FPDF_LoadPage(m_doc, page);
-    if (!pg) return {};
-
-    if (session) PdfiumEdits::applyToPage(m_doc, pg, page, *session);
-
-    FPDF_BITMAP bmp = FPDFBitmap_Create(px.width(), px.height(), 0);
-    if (!bmp) { FPDF_ClosePage(pg); return {}; }
-    FPDFBitmap_FillRect(bmp, 0, 0, px.width(), px.height(), 0xFFFFFFFF);
-    FPDF_RenderPageBitmap(bmp, pg, 0, 0, px.width(), px.height(), 0, FPDF_ANNOT);
-
-    const auto *buffer = static_cast<const uchar *>(FPDFBitmap_GetBuffer(bmp));
-    QImage rendered;
-    if (buffer) {
-
-        rendered = QImage(buffer, px.width(), px.height(),
-                          FPDFBitmap_GetStride(bmp), QImage::Format_RGB32).copy();
-    }
-
-    FPDFBitmap_Destroy(bmp);
-    FPDF_ClosePage(pg);
-
-    if (session && !rendered.isNull())
-        session->applyToImage(page, rendered, scale, EditSession::Paint::FormFields);
-
-    return rendered;
-}
-
 std::unique_ptr<ContentProvider> PdfiumBackend::makeContentProvider() const
 {
     if (!m_doc) return nullptr;
@@ -382,23 +371,42 @@ std::unique_ptr<ContentProvider> PdfiumBackend::makeContentProvider() const
 }
 
 bool PdfiumBackend::saveWithEdits(const QString &outputPath,
-                                  const EditSession &session) const
+                                  const EditSession &session,
+                                  const std::function<bool()> &cancelled) const
 {
-    return PdfiumWriter::save(m_path, outputPath, session);
+    return PdfiumWriter::save(m_path, outputPath, session, cancelled);
 }
 
 struct PdfiumChar {
-    QRectF box;
-    QChar  ch;
+    QRectF  box;
+    QString ch;
     int    index { 0 };
     double fontSize { 0.0 };
 
     double baseline { 0.0 };
+    double originX  { 0.0 };
+    double endX     { 0.0 };
+    const void *object { nullptr };
 };
 
 struct PdfiumLine {
     QRectF  rect;
     QString text;
+    double  baseline { 0.0 };
+    QList<double> charX;
+    QList<bool>   objectStart;
+    double  endX { 0.0 };
+    const void *lastObject { nullptr };
+
+    void append(const PdfiumChar &c)
+    {
+        for (int k = 0; k < c.ch.size(); ++k) {
+            charX.append(c.originX);
+            objectStart.append(k == 0 && (charX.size() == 1 || c.object != lastObject));
+        }
+        lastObject = c.object;
+        text += c.ch;
+    }
 };
 
 namespace {
@@ -416,7 +424,8 @@ bool readingOrderLess(const PdfiumChar &a, const PdfiumChar &b)
     if (!PdfiumTextRules::sameLine(a.baseline, b.baseline,
                                   qMin(a.box.height(), b.box.height())))
         return a.baseline < b.baseline;
-    return a.box.left() < b.box.left();
+    if (a.box.left() != b.box.left()) return a.box.left() < b.box.left();
+    return a.index < b.index;
 }
 
 int anchorIndex(const std::vector<PdfiumChar> &chars, const QPointF &pt)
@@ -436,6 +445,47 @@ int anchorIndex(const std::vector<PdfiumChar> &chars, const QPointF &pt)
 
 }
 
+// Text queries of the editor read the same page many times per click; the
+// last pages read stay loaded with their text. They are never changed.
+FPDF_PAGE PdfiumBackend::readPage(int page) const
+{
+    constexpr size_t kKept = 2;
+    for (size_t i = 0; i < m_readPages.size(); ++i) {
+        if (m_readPages[i].index != page) continue;
+        const ReadPage hit = m_readPages[i];
+        m_readPages.erase(m_readPages.begin() + qsizetype(i));
+        m_readPages.insert(m_readPages.begin(), hit);
+        return hit.page;
+    }
+    if (!m_doc || page < 0 || page >= pageCount()) return nullptr;
+    FPDF_PAGE loaded = FPDF_LoadPage(m_doc, page);
+    if (!loaded) return nullptr;
+    m_readPages.insert(m_readPages.begin(), { page, loaded, nullptr });
+    while (m_readPages.size() > kKept) {
+        if (m_readPages.back().text) FPDFText_ClosePage(m_readPages.back().text);
+        FPDF_ClosePage(m_readPages.back().page);
+        m_readPages.pop_back();
+    }
+    return loaded;
+}
+
+FPDF_TEXTPAGE PdfiumBackend::readText(int page) const
+{
+    if (!readPage(page)) return nullptr;
+    ReadPage &front = m_readPages.front();
+    if (!front.text) front.text = FPDFText_LoadPage(front.page);
+    return front.text;
+}
+
+void PdfiumBackend::dropReadPages() const
+{
+    for (const ReadPage &kept : m_readPages) {
+        if (kept.text) FPDFText_ClosePage(kept.text);
+        FPDF_ClosePage(kept.page);
+    }
+    m_readPages.clear();
+}
+
 std::vector<PdfiumLine> PdfiumBackend::linesOfPage(int page,
                                                    const QList<QRectF> &exclude,
                                                    const std::optional<QPointF> &from,
@@ -445,10 +495,10 @@ std::vector<PdfiumLine> PdfiumBackend::linesOfPage(int page,
     std::vector<PdfiumLine> lines;
     if (!m_doc) return lines;
 
-    FPDF_PAGE pg = FPDF_LoadPage(m_doc, page);
+    FPDF_PAGE pg = readPage(page);
     if (!pg) return lines;
-    FPDF_TEXTPAGE tp = FPDFText_LoadPage(pg);
-    if (!tp) { FPDF_ClosePage(pg); return lines; }
+    FPDF_TEXTPAGE tp = readText(page);
+    if (!tp) return lines;
 
     const double pageHeight = FPDF_GetPageHeightF(pg);
     const int    total      = FPDFText_CountChars(tp);
@@ -459,19 +509,39 @@ std::vector<PdfiumLine> PdfiumBackend::linesOfPage(int page,
         double left = 0, right = 0, bottom = 0, top = 0;
         if (!FPDFText_GetCharBox(tp, i, &left, &right, &bottom, &top)) continue;
 
-        const QChar ch(static_cast<char16_t>(FPDFText_GetUnicode(tp, i)));
-        if (ch.isNull() || ch == QChar(u'\r') || ch == QChar(u'\n')) continue;
+        const char32_t cp = FPDFText_GetUnicode(tp, i);
+        if (cp == 0 || cp == u'\r' || cp == u'\n') continue;
+        const QString ch = QChar::requiresSurrogates(cp) ? QString::fromUcs4(&cp, 1)
+                                                         : QString(QChar(char16_t(cp)));
 
         double originX = 0, originY = 0;
         FPDFText_GetCharOrigin(tp, i, &originX, &originY);
 
-        const QRectF box(left, pageHeight - top, right - left, top - bottom);
+        QRectF box(left, pageHeight - top, right - left, top - bottom);
+        double baseline = pageHeight - originY;
+
+        // A space that the writer placed through the text matrix instead of a
+        // glyph comes back with an empty box at a meaningless spot; Qt's own PDF
+        // writer does exactly that. Sorted by that spot it ends up somewhere in
+        // the middle of another word, and every word on the page runs into the
+        // next. Anchored to the character before it, it lands where it belongs.
+        if (box.width() <= 0.0 && !chars.empty()) {
+            const PdfiumChar &previous = chars.back();
+            box      = QRectF(previous.box.right(), previous.box.top(),
+                              0.01, previous.box.height());
+            baseline = previous.baseline;
+        }
         if (box.width() <= 0.0 && box.height() <= 0.0) continue;
 
         if (centerInAny(box, exclude)) continue;
 
-        chars.push_back({ box, ch, i, FPDFText_GetFontSize(tp, i),
-                          pageHeight - originY });
+        FPDF_PAGEOBJECT object = FPDFText_GetTextObject(tp, i);
+        const double fontSize = PdfiumTextRules::effectiveFontSize(tp, i);
+        const double advance = object ? PdfiumFonts::glyphWidth(FPDFTextObj_GetFont(object),
+                                                               cp, fontSize)
+                                      : box.width();
+        chars.push_back({ box, ch, i, fontSize, baseline, originX,
+                          originX + (advance > 0.0 ? advance : box.width()), object });
     }
     std::sort(chars.begin(), chars.end(), readingOrderLess);
 
@@ -495,8 +565,6 @@ std::vector<PdfiumLine> PdfiumBackend::linesOfPage(int page,
     if (!chars.empty() && first >= 0 && last >= first)
         lines = buildLines(chars, first, last, split, textObjects);
 
-    FPDFText_ClosePage(tp);
-    FPDF_ClosePage(pg);
     return lines;
 }
 
@@ -516,16 +584,24 @@ std::vector<PdfiumLine> PdfiumBackend::buildLines(const std::vector<PdfiumChar> 
 
     for (int i = first; i <= last && i < static_cast<int>(chars.size()); ++i) {
         const PdfiumChar &c = chars[i];
-        const bool ink = !c.ch.isSpace();
+        const bool ink = !c.ch.at(0).isSpace();
 
         const bool newBaseline = lines.empty()
                           || !PdfiumTextRules::sameLine(c.baseline, baseline,
                                                         c.box.height());
-        if (newBaseline) {
-            if (!ink) continue;
-            lines.push_back({ c.box, QString(c.ch) });
+        const auto startLine = [&]() {
+            PdfiumLine line;
+            line.rect = c.box;
+            line.baseline = c.baseline;
+            line.append(c);
+            line.endX = c.endX;
+            lines.push_back(line);
             baseline = c.baseline;
             prev = i;
+        };
+        if (newBaseline) {
+            if (!ink) continue;
+            startLine();
             continue;
         }
         if (lines.empty()) continue;
@@ -536,9 +612,7 @@ std::vector<PdfiumLine> PdfiumBackend::buildLines(const std::vector<PdfiumChar> 
         if (ink && split == LineSplit::Blocks && prev >= 0
                 && PdfiumTextRules::separatesBlocks(chars[prev].box, c.box, fontSize)
                 && !sameObject(chars[prev].box, c.box)) {
-            lines.push_back({ c.box, QString(c.ch) });
-            baseline = c.baseline;
-            prev = i;
+            startLine();
             continue;
         }
 
@@ -547,18 +621,25 @@ std::vector<PdfiumLine> PdfiumBackend::buildLines(const std::vector<PdfiumChar> 
                 && PdfiumTextRules::sameGlyph(chars[prev].box, c.box))
             continue;
         if (ink && prev >= 0 && !line.text.endsWith(QLatin1Char(' '))
-                && PdfiumTextRules::separatesWords(chars[prev].box, c.box, fontSize))
+                && PdfiumTextRules::separatesWords(chars[prev].box, c.box, fontSize)) {
             line.text += QLatin1Char(' ');
-        line.text += c.ch;
+            line.charX.append(chars[prev].endX);
+            line.objectStart.append(false);
+        }
+        line.append(c);
         if (ink) {
             line.rect = line.rect.united(c.box);
+            line.endX = c.endX;
             prev = i;
         }
     }
 
     for (PdfiumLine &line : lines)
-        while (line.text.endsWith(QLatin1Char(' ')))
+        while (line.text.endsWith(QLatin1Char(' '))) {
             line.text.chop(1);
+            line.charX.removeLast();
+            line.objectStart.removeLast();
+        }
 
     return lines;
 }
@@ -566,6 +647,7 @@ std::vector<PdfiumLine> PdfiumBackend::buildLines(const std::vector<PdfiumChar> 
 TextBlock PdfiumBackend::textAt(int page, const QPointF &pdfPt,
                                 const QList<QRectF> &exclude) const
 {
+    PdfiumLock lock;
     const std::vector<PdfiumLine> lines =
         linesOfPage(page, exclude, {}, {}, LineSplit::Blocks);
 
@@ -592,6 +674,7 @@ TextBlock PdfiumBackend::textAt(int page, const QPointF &pdfPt,
 TextBlock PdfiumBackend::blockInRect(int page, const QRectF &rect,
                                      const QList<QRectF> &exclude) const
 {
+    PdfiumLock lock;
     QRectF  bounds;
     QString text;
     for (const PdfiumLine &line :
@@ -608,6 +691,7 @@ TextBlock PdfiumBackend::blockInRect(int page, const QRectF &rect,
 QList<QRectF> PdfiumBackend::glyphRects(int page, const QRectF &area,
                                         const QList<QRectF> &exclude) const
 {
+    PdfiumLock lock;
     QList<QRectF> out;
     for (const PdfiumLine &line :
              linesOfPage(page, exclude, {}, {}, LineSplit::Blocks))
@@ -615,15 +699,32 @@ QList<QRectF> PdfiumBackend::glyphRects(int page, const QRectF &area,
     return out;
 }
 
+QList<TextLayout::OriginalLine> PdfiumBackend::originalLines(
+    int page, const QRectF &area, const QList<QRectF> &exclude) const
+{
+    PdfiumLock lock;
+    QList<TextLayout::OriginalLine> out;
+    for (const PdfiumLine &line :
+             linesOfPage(page, exclude, {}, {}, LineSplit::Blocks)) {
+        if (!area.contains(line.rect.center())) continue;
+        TextLayout::OriginalLine o;
+        o.rect        = line.rect;
+        o.text        = line.text;
+        o.baseline    = line.baseline;
+        o.charX       = line.charX;
+        o.objectStart = line.objectStart;
+        o.endX        = line.endX;
+        out.append(o);
+    }
+    return out;
+}
+
 bool PdfiumBackend::hasSelectableText(int page) const
 {
+    PdfiumLock lock;
     if (!m_doc) return false;
-    FPDF_PAGE pg = FPDF_LoadPage(m_doc, page);
-    if (!pg) return false;
-    FPDF_TEXTPAGE tp = FPDFText_LoadPage(pg);
+    FPDF_TEXTPAGE tp = readText(page);
     const int chars = tp ? FPDFText_CountChars(tp) : 0;
-    if (tp) FPDFText_ClosePage(tp);
-    FPDF_ClosePage(pg);
 
     return chars >= 16;
 }
@@ -650,25 +751,39 @@ FPDF_FONT fontAtPoint(FPDF_PAGE pg, double pageHeight, const QPointF &pdfPt)
     return best;
 }
 
+double widthWithFallback(FPDF_DOCUMENT doc, FPDF_PAGE page, FPDF_FONT font,
+                         const QString &text, double sizePt)
+{
+    QList<uint> unverified;
+    for (const uint cp : text.toUcs4())
+        if (!QChar::isSpace(cp) && !unverified.contains(cp)
+                && PdfiumFonts::hasGlyph(font, cp))
+            unverified.append(cp);
+    const QSet<uint> decodable = PdfiumFonts::decodable(doc, page, font, unverified);
+    double width = 0.0;
+    for (const char32_t cp : text.toUcs4()) {
+        FPDF_FONT used = font;
+        const bool own = QChar::isSpace(cp)
+            || (PdfiumFonts::hasGlyph(font, cp) && decodable.contains(uint(cp)));
+        if (!own)
+            used = PdfiumFonts::fallbackFont(doc, font, cp);
+        if (used) width += PdfiumFonts::glyphWidth(used, cp, sizePt);
+    }
+    return width;
+}
+
 }
 
 double PdfiumBackend::textWidthPt(int page, const QPointF &pdfPt,
                                   const QString &text, double sizePt) const
 {
+    PdfiumLock lock;
     if (!m_doc || text.isEmpty() || sizePt <= 0.0) return text.isEmpty() ? 0.0 : -1.0;
-    FPDF_PAGE pg = FPDF_LoadPage(m_doc, page);
+    FPDF_PAGE pg = readPage(page);
     if (!pg) return -1.0;
     FPDF_FONT font = fontAtPoint(pg, FPDF_GetPageHeightF(pg), pdfPt);
-    double width = -1.0;
-    if (font) {
-        width = 0.0;
-        for (const uint cp : text.toUcs4()) {
-            float advance = 0.f;
-            if (FPDFFont_GetGlyphWidth(font, cp, static_cast<float>(sizePt), &advance))
-                width += advance;
-        }
-    }
-    FPDF_ClosePage(pg);
+    const double width = font && !PdfiumFonts::isType3(font)
+                             ? widthWithFallback(m_doc, pg, font, text, sizePt) : -1.0;
     return width;
 }
 
@@ -676,17 +791,13 @@ double PdfiumBackend::standardTextWidthPt(const QString &family, bool bold,
                                           bool italic, const QString &text,
                                           double sizePt) const
 {
+    PdfiumLock lock;
     if (!m_doc || sizePt <= 0.0) return -1.0;
     if (text.isEmpty()) return 0.0;
     FPDF_FONT font = FPDFText_LoadStandardFont(
         m_doc, PdfiumFonts::standardFontFor(family, bold, italic).constData());
     if (!font) return -1.0;
-    double width = 0.0;
-    for (const uint cp : text.toUcs4()) {
-        float advance = 0.f;
-        if (FPDFFont_GetGlyphWidth(font, cp, static_cast<float>(sizePt), &advance))
-            width += advance;
-    }
+    const double width = widthWithFallback(m_doc, nullptr, font, text, sizePt);
     FPDFFont_Close(font);
     return width;
 }
@@ -694,13 +805,44 @@ double PdfiumBackend::standardTextWidthPt(const QString &family, bool bold,
 bool PdfiumBackend::canEmbedFont(const QString &family, bool bold,
                                  bool italic) const
 {
+    PdfiumLock lock;
     return !PdfiumFonts::fontData(family, bold, italic).isEmpty();
+}
+
+TextLayout::Metrics PdfiumBackend::editMetrics(const EditSession::Edit &edit) const
+{
+    // The box's place only moves the result's origin, its height only counts
+    // without a font size and its shape not at all; the editor asks again on
+    // every zoom step, which must not wait for PDFium.
+    EditSession::Edit key = edit;
+    key.pdfBounds  = edit.fontSizePt > 0.0 ? QRectF() : QRectF(0, 0, 0, edit.pdfBounds.height());
+    key.box.bounds = QRectF();
+    {
+        std::lock_guard guard(m_metricsMutex);
+        for (const auto &[known, metrics] : m_metricsCache)
+            if (known == key) {
+                TextLayout::Metrics out = metrics;
+                out.boxTopLeft = edit.pdfBounds.topLeft();
+                return out;
+            }
+    }
+    PdfiumLock lock;
+    if (!m_doc || edit.page < 0) return {};
+    FPDF_PAGE pg = readPage(edit.page);
+    if (!pg) return {};
+    const TextLayout::Metrics metrics = PdfiumEdits::metrics(m_doc, pg, edit);
+    std::lock_guard guard(m_metricsMutex);
+    constexpr int kKept = 32;
+    m_metricsCache.prepend({ key, metrics });
+    if (m_metricsCache.size() > kKept) m_metricsCache.removeLast();
+    return metrics;
 }
 
 QString PdfiumBackend::embeddedFontFamily(int page, const QPointF &pdfPt) const
 {
+    PdfiumLock lock;
     if (!m_doc) return {};
-    FPDF_PAGE pg = FPDF_LoadPage(m_doc, page);
+    FPDF_PAGE pg = readPage(page);
     if (!pg) return {};
     const double pageHeight = FPDF_GetPageHeightF(pg);
 
@@ -721,7 +863,6 @@ QString PdfiumBackend::embeddedFontFamily(int page, const QPointF &pdfPt) const
     }
 
     const QString family = PdfiumFonts::registerWithQt(best);
-    FPDF_ClosePage(pg);
     return family;
 }
 
@@ -729,6 +870,7 @@ PdfBackend::Selection PdfiumBackend::selectPage(int page,
                                                 const std::optional<QPointF> &from,
                                                 const std::optional<QPointF> &to) const
 {
+    PdfiumLock lock;
     Selection out;
     for (const PdfiumLine &line :
              linesOfPage(page, {}, from, to, LineSplit::Baseline)) {
@@ -742,7 +884,15 @@ PdfBackend::Selection PdfiumBackend::selectPage(int page,
 QList<PdfBackend::TextMatch> PdfiumBackend::findText(const QString &text) const
 {
     QList<TextMatch> matches;
-    if (!m_doc || text.isEmpty()) return matches;
+    for (int page = 0; page < pageCount(); ++page) matches += findTextOnPage(page, text);
+    return matches;
+}
+
+QList<PdfBackend::TextMatch> PdfiumBackend::findTextOnPage(int page, const QString &text) const
+{
+    PdfiumLock lock;
+    QList<TextMatch> matches;
+    if (!m_doc || text.isEmpty() || page < 0 || page >= pageCount()) return matches;
 
     std::vector<unsigned short> needle;
     needle.reserve(static_cast<size_t>(text.size()) + 1);
@@ -750,38 +900,36 @@ QList<PdfBackend::TextMatch> PdfiumBackend::findText(const QString &text) const
         needle.push_back(ch.unicode());
     needle.push_back(0);
 
-    for (int page = 0; page < pageCount(); ++page) {
-        FPDF_PAGE pg = FPDF_LoadPage(m_doc, page);
-        if (!pg) continue;
-        FPDF_TEXTPAGE textPage = FPDFText_LoadPage(pg);
-        if (!textPage) {
-            FPDF_ClosePage(pg);
-            continue;
-        }
-
-        FPDF_SCHHANDLE search = FPDFText_FindStart(textPage, needle.data(), 0, 0);
-        const double pageHeight = FPDF_GetPageHeightF(pg);
-        while (search && FPDFText_FindNext(search)) {
-            const int start = FPDFText_GetSchResultIndex(search);
-            const int count = FPDFText_GetSchCount(search);
-            TextMatch match;
-            match.page = page;
-
-            const int rectCount = FPDFText_CountRects(textPage, start, count);
-            for (int i = 0; i < rectCount; ++i) {
-                double left = 0.0, top = 0.0, right = 0.0, bottom = 0.0;
-                if (!FPDFText_GetRect(textPage, i, &left, &top, &right, &bottom))
-                    continue;
-                match.rects.append(QRectF(left, pageHeight - top,
-                                           right - left, top - bottom));
-            }
-            if (!match.rects.isEmpty()) matches.append(std::move(match));
-        }
-
-        if (search) FPDFText_FindClose(search);
-        FPDFText_ClosePage(textPage);
+    FPDF_PAGE pg = FPDF_LoadPage(m_doc, page);
+    if (!pg) return matches;
+    FPDF_TEXTPAGE textPage = FPDFText_LoadPage(pg);
+    if (!textPage) {
         FPDF_ClosePage(pg);
+        return matches;
     }
+
+    FPDF_SCHHANDLE search = FPDFText_FindStart(textPage, needle.data(), 0, 0);
+    const double pageHeight = FPDF_GetPageHeightF(pg);
+    while (search && FPDFText_FindNext(search)) {
+        const int start = FPDFText_GetSchResultIndex(search);
+        const int count = FPDFText_GetSchCount(search);
+        TextMatch match;
+        match.page = page;
+
+        const int rectCount = FPDFText_CountRects(textPage, start, count);
+        for (int i = 0; i < rectCount; ++i) {
+            double left = 0.0, top = 0.0, right = 0.0, bottom = 0.0;
+            if (!FPDFText_GetRect(textPage, i, &left, &top, &right, &bottom))
+                continue;
+            match.rects.append(QRectF(left, pageHeight - top,
+                                       right - left, top - bottom));
+        }
+        if (!match.rects.isEmpty()) matches.append(std::move(match));
+    }
+
+    if (search) FPDFText_FindClose(search);
+    FPDFText_ClosePage(textPage);
+    FPDF_ClosePage(pg);
     return matches;
 }
 
