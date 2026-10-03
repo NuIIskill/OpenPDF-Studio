@@ -1,8 +1,8 @@
 # OpenPDF Studio
 
 A native Qt 6 PDF viewer and editor for Linux and Windows: read a document,
-edit the text that is already in it, reorder its pages, annotate it, play and
-embed media, and export it to PDF, Word or PNG. Word, OpenDocument and image
+edit the text that is already in it, reorder its pages, annotate and sign it,
+play and embed media, and export it to PDF, Word or PNG. Word, OpenDocument and image
 files open as well, converted in process. One application, no web stack.
 
 Current version: **0.3.0**, alpha. Work on copies of important documents
@@ -35,6 +35,9 @@ so nothing in the dependency stack forces the GPL onto a distribution.
 * Bookmark panel: the document's outline, searchable, click to jump
 * Zoom via toolbar or Ctrl + mouse wheel. Step size, zoom towards the pointer
   and the wheel action without a modifier are configurable
+* Large documents stay responsive: pages render in the background, and a
+  heavy document is rendered by helper processes in parallel on a machine
+  with several cores. Mouse wheel scrolling glides instead of jumping
 * Text search with `Ctrl+F`: a bar over the page with a hit counter, Enter and
   Shift+Enter step through the matches
 * Password-protected documents: the password is asked once and kept in memory
@@ -62,6 +65,8 @@ so nothing in the dependency stack forces the GPL onto a distribution.
 
 * Inline text editing: click a text run, type, and the change is written back
   into the page's content stream as vector text (needs qpdf)
+* Text in any script: characters the original font cannot write fall back to
+  a font that has them
 * New text: drag a box with the Text tool and type into it
 * Scanned pages fall back to OCR (needs Tesseract), so text can be edited there
   too
@@ -77,9 +82,24 @@ so nothing in the dependency stack forces the GPL onto a distribution.
 * Text selection with the Select tool, hover highlighting of what is editable
 * Page organizer: reorder by drag & drop, rotate, delete, insert blank pages
   and merge further PDFs. Works on encrypted files as well
-* Change history per document, with restore to an earlier state
+* Change history per document, bookmarks and media included, with undo, redo
+  and restore to an earlier state
 * Edits to page structure go to a session working file; the file you opened is
   untouched until you save. Saving is atomic.
+* Crash recovery: after a crash the next start offers the open documents back,
+  with their unsaved changes and history
+
+**Signing**
+
+* Handwritten signature: draw it, type it or import an image, keep it as a
+  template and place it on the page
+* Digital signatures, visible with a stamp (name, date, reason, location,
+  logo) from reusable profiles, or invisible. They are written on save as an
+  incremental update, so earlier signatures stay valid
+* Certificates from PKCS#11 tokens through p11-kit on Linux and from the
+  Windows certificate store; a self-signed certificate can be created in the
+  dialog
+* Needs qpdf, and on Linux GnuTLS and p11-kit
 
 **Rich media** (`modules/rich-media/`, Business License)
 
@@ -117,15 +137,16 @@ so nothing in the dependency stack forces the GPL onto a distribution.
 
 * Real PDF/A conformance. The PDF/A card in the export dialog currently
   produces an ordinary PDF
-* Form editing, redaction, digital signatures
+* Form editing, redaction
+* On the signing side: timestamps, locking the document after signing, and
+  checking the signatures a document already has
 * Opening Word or OpenDocument files drops headers and footers, footnotes,
   fields such as page numbers or a table of contents, multi-column layout and
   tracked changes. A document whose text reflows differently than Word laid it
   out can show its fixed boxes a few points off. Legacy `.doc`, `.rtf`, `.xlsx`
   and `.pptx` are not read at all
 * On the media side: playback in presentation mode, moving or resizing a medium
-  already in the document, an export option to keep or drop media, and undo and
-  change history for any of it
+  already in the document, and an export option to keep or drop media
 
 ## Install
 
@@ -149,8 +170,8 @@ chmod +x OpenPDF_Studio-0.3.0-x86_64.AppImage
 
 Run `OpenPDF-Studio-0.3.0-Setup.exe`, or unpack
 `OpenPDF-Studio-0.3.0-win64-portable.zip` and start `OpenPDFStudio.exe`.
-The Windows build carries PDFium and qpdf, so editing, export options and rich
-media all work. Tesseract is not in it, so scanned pages cannot be OCR'd.
+The Windows build carries PDFium and qpdf, so editing, export options, digital
+signatures and rich media all work. Tesseract is not in it, so scanned pages cannot be OCR'd.
 
 ## Build from source
 
@@ -176,7 +197,8 @@ behind each `HAVE_*` define still builds when the dependency is missing:
 | Dependency | Enables | Fedora package |
 | --- | --- | --- |
 | PDFium | the PDF engine: rendering, text, saving (`HAVE_PDFIUM`) | none, run `packaging/fetch-pdfium.sh` |
-| qpdf | PDF export options, organizer save, bookmarks, media (`HAVE_QPDF`) | `qpdf-devel` |
+| qpdf | PDF export options, organizer save, bookmarks, media, signing (`HAVE_QPDF`) | `qpdf-devel` |
+| GnuTLS, p11-kit | digital signatures on Linux, with qpdf (`HAVE_DIGITAL_SIGNATURE`) | `gnutls-devel`, `p11-kit-devel` |
 | Qt Multimedia | media playback and posters, with qpdf (`HAVE_RICH_MEDIA`) | `qt6-qtmultimedia-devel` |
 | zlib | opening `.docx` and `.odt` (`HAVE_ZLIB`) | `zlib-devel` |
 | Tesseract | OCR on scanned pages (`HAVE_TESSERACT`) | `tesseract-devel`, `tesseract-langpack-deu` |
@@ -238,21 +260,22 @@ rather than declaring one.
 
 ```
 src/
+  cli/        command-line modes
   app/        infrastructure: config.ini, settings, safe writes, session,
-              history, passwords
+              passwords, update check
   drm/        business licence: state, settings page, the two notices
-  engine/     document logic, no widgets: document/, edit/, export/, import/,
-              ocr/, render/
-  ui/         everything that is a widget: bars/, panels/, tools/, theme/,
-              view/, edit/, draw/, notes/, settings/, organizer/, history/,
-              session/, export/, bookmarks/, widgets/
+  engine/     document logic, no widgets: document/, edit/, export/,
+              historymanager/, import/, ocr/, render/, sign/
+  ui/         everything that is a widget: bars/, panels/, theme/, view/,
+              edit/, draw/, notes/, bookmarks/, settings/, organizer/,
+              history/, session/, export/, sign/, widgets/
   3rdparty/   vendored (nanosvg)
 modules/
   rich-media/ source-available module, Business License
 ```
 
 `engine/` never includes `ui/` and never touches QWidget; `app/` never includes
-`ui/`; `src/` never includes `modules/`, the module registers itself with the
+`engine/` or `ui/`; `src/` never includes `modules/`, the module registers itself with the
 Core through three small registers instead. Every folder under `ui/` names a
 task rather than a shape. Includes are root-relative to `src/`, and each source
 folder carries its own `CMakeLists.txt`. A new file is registered where it is
