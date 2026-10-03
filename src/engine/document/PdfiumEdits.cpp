@@ -4,7 +4,7 @@
 
 #include "engine/document/PdfiumFonts.hpp"
 #include "engine/edit/EditSession.hpp"
-#include "engine/edit/TextWrap.hpp"
+#include "engine/edit/TextLayout.hpp"
 
 #include "fpdf_annot.h"
 #include "fpdf_doc.h"
@@ -12,12 +12,16 @@
 #include "fpdf_text.h"
 
 #include <QByteArray>
+#include <QHash>
 #include <QList>
+#include <QPair>
 #include <QSet>
 #include <QString>
 #include <QtMath>
 
 #include <cmath>
+#include <limits>
+#include <memory>
 #include <vector>
 
 namespace {
@@ -60,31 +64,60 @@ double effectiveFontSize(FPDF_PAGEOBJECT obj)
     return scale > 0.0 ? size * scale : size;
 }
 
-void removeTextIn(FPDF_PAGE page, const QList<QRectF> &areas, double pageHeight,
-                  Replaced &out)
+QString objectText(FPDF_PAGEOBJECT obj, FPDF_TEXTPAGE textPage)
 {
+    if (!textPage) return {};
+    const unsigned long bytes = FPDFTextObj_GetText(obj, textPage, nullptr, 0);
+    if (bytes <= 2) return {};
+    std::vector<unsigned short> buffer(bytes / 2 + 1, 0);
+    FPDFTextObj_GetText(obj, textPage, buffer.data(), bytes);
+    return QString::fromUtf16(reinterpret_cast<const char16_t *>(buffer.data()));
+}
+
+QList<FPDF_PAGEOBJECT> textObjectsIn(FPDF_PAGE page, const QList<QRectF> &areas,
+                                     double pageHeight)
+{
+    QList<FPDF_PAGEOBJECT> out;
     const int count = FPDFPage_CountObjects(page);
-    std::vector<FPDF_PAGEOBJECT> doomed;
     for (int i = 0; i < count; ++i) {
         FPDF_PAGEOBJECT obj = FPDFPage_GetObject(page, i);
         if (!obj || FPDFPageObj_GetType(obj) != FPDF_PAGEOBJ_TEXT) continue;
-
         const QRectF bounds = objectBoundsQt(obj, pageHeight);
         if (bounds.isEmpty()) continue;
-
-        bool covered = false;
-        for (const QRectF &area : areas) {
-            if (area.contains(bounds.center())) { covered = true; break; }
-        }
-        if (!covered) continue;
-
-        if (!out.font) {
-            out.font   = FPDFTextObj_GetFont(obj);
-            out.sizePt = effectiveFontSize(obj);
-        }
-        doomed.push_back(obj);
+        for (const QRectF &area : areas)
+            if (area.contains(bounds.center())) { out.append(obj); break; }
     }
+    return out;
+}
 
+void takeOriginFont(const QList<FPDF_PAGEOBJECT> &objects, FPDF_TEXTPAGE textPage,
+                    Replaced &out)
+{
+    QList<FPDF_FONT> fonts;
+    QHash<FPDF_FONT, int> weight;
+    QHash<FPDF_FONT, QString> written;
+    for (FPDF_PAGEOBJECT obj : objects) {
+        FPDF_FONT font = FPDFTextObj_GetFont(obj);
+        if (!fonts.contains(font)) fonts.append(font);
+        const QString text = objectText(obj, textPage);
+        weight[font] += qMax<int>(1, text.trimmed().size());
+        written[font] += text;
+    }
+    FPDF_FONT best = nullptr;
+    for (FPDF_FONT font : std::as_const(fonts))
+        if (!best || weight.value(font) > weight.value(best)) best = font;
+    if (!best) return;
+    out.font = best;
+    out.text = written.value(best);
+    for (FPDF_PAGEOBJECT obj : objects)
+        if (FPDFTextObj_GetFont(obj) == best) { out.sizePt = effectiveFontSize(obj); break; }
+}
+
+void removeTextIn(FPDF_PAGE page, const QList<QRectF> &areas, double pageHeight,
+                  FPDF_TEXTPAGE textPage, Replaced &out)
+{
+    const QList<FPDF_PAGEOBJECT> doomed = textObjectsIn(page, areas, pageHeight);
+    takeOriginFont(doomed, textPage, out);
     for (FPDF_PAGEOBJECT obj : doomed)
         if (FPDFPage_RemoveObject(page, obj))
             out.removed.push_back(obj);
@@ -107,23 +140,97 @@ const Replaced *originOf(const QList<Replaced> &all, const EditSession::Edit &ed
     return best;
 }
 
-bool fontCanRender(FPDF_FONT font, const QString &text, const QString &original)
+bool fontCanRender(FPDF_DOCUMENT doc, FPDF_PAGE page, FPDF_FONT font,
+                   const QString &text, const QString &original)
 {
-    if (!font) return false;
+    if (!font || PdfiumFonts::isType3(font)) return false;
     QSet<uint> known;
     for (const uint cp : original.toUcs4()) known.insert(cp);
 
+    QList<uint> unverified;
     for (const uint cp : text.toUcs4()) {
         if (QChar::isSpace(cp) || known.contains(cp)) continue;
-        float width = 0.f;
-        if (!FPDFFont_GetGlyphWidth(font, cp, 12.f, &width) || width <= 0.f)
-            return false;
-        FPDF_GLYPHPATH path = FPDFFont_GetGlyphPath(font, cp, 12.f);
-        if (!path || FPDFGlyphPath_CountGlyphSegments(path) <= 0)
-            return false;
+        if (!PdfiumFonts::hasGlyph(font, cp)) return false;
+        if (!unverified.contains(cp)) unverified.append(cp);
     }
-    return true;
+    return PdfiumFonts::decodable(doc, page, font, unverified).size() == unverified.size();
 }
+
+class FontChoice
+{
+public:
+    FontChoice(FPDF_DOCUMENT doc, FPDF_PAGE page, FPDF_FONT primary, const QString &known)
+        : m_doc(doc), m_page(page), m_primary(primary)
+    {
+        for (const uint cp : known.toUcs4()) m_known.insert(cp);
+    }
+
+    void prepare(const QString &text)
+    {
+        QList<uint> unverified;
+        for (const uint cp : text.toUcs4())
+            if (!QChar::isSpace(cp) && !m_known.contains(cp) && !unverified.contains(cp)
+                    && PdfiumFonts::hasGlyph(m_primary, cp))
+                unverified.append(cp);
+        m_decodable += PdfiumFonts::decodable(m_doc, m_page, m_primary, unverified);
+        m_verified += QSet<uint>(unverified.cbegin(), unverified.cend());
+    }
+
+    FPDF_FONT fontFor(char32_t cp)
+    {
+        const auto cached = m_fonts.constFind(uint(cp));
+        if (cached != m_fonts.cend()) return *cached;
+        if (!m_verified.contains(uint(cp))) prepare(QString::fromUcs4(&cp, 1));
+        const bool primary = QChar::isSpace(cp) || m_known.contains(uint(cp))
+            || (PdfiumFonts::hasGlyph(m_primary, cp) && m_decodable.contains(uint(cp)));
+        FPDF_FONT font = primary ? m_primary
+                                 : PdfiumFonts::fallbackFont(m_doc, m_primary, cp);
+        m_fonts.insert(uint(cp), font);
+        return font;
+    }
+
+    double advance(char32_t cp, double size)
+    {
+        FPDF_FONT font = fontFor(cp);
+        return font ? PdfiumFonts::glyphWidth(font, cp, size) : 0.0;
+    }
+
+    double width(const QString &text, double size, double charSpacing)
+    {
+        double total = 0.0;
+        int glyphs = 0;
+        for (const char32_t cp : text.toUcs4()) {
+            total += advance(cp, size);
+            ++glyphs;
+        }
+        if (!qFuzzyIsNull(charSpacing) && glyphs > 1)
+            total += charSpacing * (glyphs - 1);
+        return total;
+    }
+
+    QList<QPair<FPDF_FONT, QString>> runs(const QString &line)
+    {
+        QList<QPair<FPDF_FONT, QString>> out;
+        for (const char32_t cp : line.toUcs4()) {
+            const QString ch = QString::fromUcs4(&cp, 1);
+            FPDF_FONT font = QChar::isSpace(cp) && !out.isEmpty() ? out.last().first
+                                                                  : fontFor(cp);
+            if (!font) continue;
+            if (out.isEmpty() || out.last().first != font) out.append({ font, ch });
+            else out.last().second += ch;
+        }
+        return out;
+    }
+
+private:
+    FPDF_DOCUMENT             m_doc;
+    FPDF_PAGE                 m_page;
+    FPDF_FONT                 m_primary;
+    QSet<uint>                m_known;
+    QSet<uint>                m_verified;
+    QSet<uint>                m_decodable;
+    QHash<uint, FPDF_FONT>    m_fonts;
+};
 
 QByteArray standardFontLike(FPDF_FONT font, const EditSession::Edit &edit)
 {
@@ -142,48 +249,6 @@ QByteArray standardFontLike(FPDF_FONT font, const EditSession::Edit &edit)
         italic = italic || (FPDFFont_GetItalicAngle(font, &angle) && angle != 0);
     }
     return PdfiumFonts::standardFontFor(family, bold, italic);
-}
-
-double lineWidthPt(FPDF_FONT font, const QString &line, double size,
-                   double charSpacing)
-{
-    double width = 0.0;
-    int glyphs = 0;
-    for (const uint cp : line.toUcs4()) {
-        float advance = 0.f;
-        if (FPDFFont_GetGlyphWidth(font, cp, static_cast<float>(size), &advance))
-            width += advance;
-        ++glyphs;
-    }
-    if (!qFuzzyIsNull(charSpacing) && glyphs > 1)
-        width += charSpacing * (glyphs - 1);
-    return width;
-}
-
-QPointF firstBaseline(const EditSession::Edit &edit, double fontSize,
-                      double pageHeight, int lineCount)
-{
-    const bool customInset = edit.box.paddingPt > 0.0
-                          || edit.box.verticalAlign != TextBoxProperties::VerticalAlign::Top;
-    if (edit.hasTextOrigin && !customInset) {
-        const QPointF qt = edit.pdfBounds.topLeft() + edit.textOriginOffset;
-        return QPointF(qt.x(), toPdfY(qt.y(), pageHeight));
-    }
-    const int lines = qMax(1, lineCount);
-    const double step = edit.lineSpacingPt > 0.0 ? edit.lineSpacingPt : fontSize * 1.2;
-    const double contentHeight = fontSize + (lines - 1)
-                               * (step + edit.box.paragraphSpacingPt);
-    const double innerHeight = qMax(0.0, edit.pdfBounds.height() - 2 * edit.box.paddingPt);
-    double offset = 0.0;
-    if (edit.box.verticalAlign == TextBoxProperties::VerticalAlign::Center)
-        offset = qMax(0.0, (innerHeight - contentHeight) / 2.0);
-    else if (edit.box.verticalAlign == TextBoxProperties::VerticalAlign::Bottom)
-        offset = qMax(0.0, innerHeight - contentHeight);
-    const double baselineQt = edit.pdfBounds.top() + edit.box.paddingPt
-                            + offset + fontSize * 0.8;
-    return QPointF(edit.pdfBounds.left() + edit.box.paddingPt
-                       + edit.box.indentLevel * 18.0,
-                   toPdfY(baselineQt, pageHeight));
 }
 
 void rotateObject(FPDF_PAGEOBJECT object, const EditSession::Edit &edit,
@@ -255,16 +320,120 @@ void insertBoxDecoration(FPDF_PAGE page, const EditSession::Edit &edit,
     }
 }
 
-QStringList replacementLines(const EditSession::Edit &edit)
+QString writableText(const QString &text)
 {
-    QStringList lines = edit.newText.split(QLatin1Char('\n'));
-    for (int i = 0; i < lines.size(); ++i) {
-        if (edit.box.listStyle == TextBoxProperties::ListStyle::Bullets)
-            lines[i].prepend(QStringLiteral("• "));
-        else if (edit.box.listStyle == TextBoxProperties::ListStyle::Numbered)
-            lines[i].prepend(QString::number(i + 1) + QStringLiteral(". "));
+    QString out;
+    out.reserve(text.size());
+    for (int i = 0; i < text.size(); ++i) {
+        const QChar c = text.at(i);
+        if (c.isHighSurrogate() && i + 1 < text.size() && text.at(i + 1).isLowSurrogate()) {
+            out += c;
+            out += text.at(++i);
+        } else if (c == u'\t') {
+            out += u' ';
+        } else if (c == u'\n' || (c.unicode() >= 0x20 && !c.isSurrogate())) {
+            out += c;
+        }
     }
-    return lines;
+    return out;
+}
+
+struct FontSetup {
+    FPDF_FONT primary { nullptr };
+    bool      owns    { false };
+    double    size    { 0.0 };
+    QString   known;
+};
+
+FontSetup chooseFonts(FPDF_DOCUMENT doc, FPDF_PAGE page, const EditSession::Edit &edit,
+                      const Replaced *origin, const QString &measured)
+{
+    FontSetup setup;
+    setup.size = edit.fontSizePt > 0.0 ? edit.fontSizePt
+                                       : qMax(6.0, edit.pdfBounds.height() * 0.8);
+    if (!edit.sizeChanged && origin && origin->sizePt > 0.0)
+        setup.size = origin->sizePt;
+
+    const QString original = origin ? origin->text : QString();
+    if (!edit.fontChanged && origin && origin->font
+            && fontCanRender(doc, page, origin->font, measured, original)) {
+        setup.primary = origin->font;
+        setup.known   = original;
+        return setup;
+    }
+    if (edit.fontChanged)
+        setup.primary = PdfiumFonts::loadFont(doc, edit.fontFamily, edit.bold, edit.italic);
+    if (!setup.primary) {
+        setup.primary = FPDFText_LoadStandardFont(
+            doc, standardFontLike(origin ? origin->font : nullptr, edit).constData());
+        setup.owns = true;
+    }
+    return setup;
+}
+
+struct Typeset {
+    FontSetup                     setup;
+    std::unique_ptr<FontChoice>   fonts;
+    QString                       text;
+    TextLayout::Result            layout;
+
+    Typeset() = default;
+    Typeset(const Typeset &) = delete;
+    Typeset &operator=(const Typeset &) = delete;
+    ~Typeset() { if (setup.owns && setup.primary) FPDFFont_Close(setup.primary); }
+};
+
+std::unique_ptr<Typeset> typeset(FPDF_DOCUMENT doc, FPDF_PAGE page,
+                                 const EditSession::Edit &edit, const Replaced *origin)
+{
+    auto t = std::make_unique<Typeset>();
+    t->text = writableText(edit.newText);
+    const QString measured = TextLayout::measuredCharacters(t->text, edit.box.listStyle);
+    t->setup = chooseFonts(doc, page, edit, origin, measured);
+    if (!t->setup.primary) return nullptr;
+    t->fonts = std::make_unique<FontChoice>(doc, page, t->setup.primary, t->setup.known);
+    t->fonts->prepare(measured);
+
+    const double size = t->setup.size;
+    TextLayout::Params params;
+    params.lineStepPt         = TextLayout::lineStep(size, edit.lineSpacingPt);
+    params.paragraphSpacingPt = edit.box.paragraphSpacingPt;
+    params.charSpacingPt      = edit.box.characterSpacingPt;
+    params.list               = edit.box.listStyle;
+    params.align              = edit.box.horizontalAlign;
+    FontChoice *fonts = t->fonts.get();
+    t->layout = TextLayout::layout(t->text, params, edit.box, edit.pdfBounds, size, true,
+                                   edit.hasTextOrigin, edit.textOriginOffset,
+                                   edit.originalLines,
+                                   [fonts, size](char32_t cp) { return fonts->advance(cp, size); });
+    return t;
+}
+
+QList<FPDF_PAGEOBJECT> objectsToReplace(const QList<FPDF_PAGEOBJECT> &all,
+                                        const EditSession::Edit &edit,
+                                        const TextLayout::Result &layout,
+                                        double pageHeight)
+{
+    const QList<TextLayout::OriginalLine> &originals = edit.originalLines;
+    QList<double> restartAt(originals.size(), -1.0);
+    for (const TextLayout::Line &line : layout.lines) {
+        if (line.original < 0 || line.original >= originals.size()) continue;
+        restartAt[line.original] = line.keep
+            ? std::numeric_limits<double>::max()
+            : TextLayout::restartX(originals.at(line.original), line.keptCount);
+    }
+    QList<FPDF_PAGEOBJECT> out;
+    for (FPDF_PAGEOBJECT obj : all) {
+        const QRectF bounds = objectBoundsQt(obj, pageHeight);
+        for (int j = 0; j < originals.size(); ++j) {
+            if (!originals.at(j).rect.adjusted(-0.5, -0.5, 0.5, 0.5).contains(bounds.center()))
+                continue;
+            const double restart = restartAt.at(j) < 0.0 ? -1e9 : restartAt.at(j);
+            if (bounds.right() > restart + 0.25) out.append(obj);
+            break;
+        }
+    }
+    return out;
 }
 
 void insertReplacement(FPDF_DOCUMENT doc, FPDF_PAGE page,
@@ -272,110 +441,90 @@ void insertReplacement(FPDF_DOCUMENT doc, FPDF_PAGE page,
                        double pageHeight)
 {
     if (edit.newText.isEmpty()) return;
-
-    const QStringList lines = replacementLines(edit);
-
-    double size = edit.fontSizePt > 0.0 ? edit.fontSizePt
-                                        : qMax(6.0, edit.pdfBounds.height() * 0.8);
-    if (!edit.sizeChanged && origin && origin->sizePt > 0.0)
-        size = origin->sizePt;
-
-    FPDF_FONT font = nullptr;
-    bool ownsFont = false;
-    if (!edit.fontChanged && origin && origin->font
-            && fontCanRender(origin->font, lines.join(QChar(u' ')),
-                             origin->text.isEmpty() ? edit.originalText
-                                                    : origin->text)) {
-        font = origin->font;
-    } else {
-
-        if (edit.fontChanged) {
-            const QByteArray daten =
-                PdfiumFonts::fontData(edit.fontFamily, edit.bold, edit.italic);
-            if (!daten.isEmpty())
-                font = FPDFText_LoadFont(
-                    doc, reinterpret_cast<const uint8_t *>(daten.constData()),
-                    static_cast<uint32_t>(daten.size()), FPDF_FONT_TRUETYPE, 1);
-        }
-        if (!font)
-            font = FPDFText_LoadStandardFont(
-                doc, standardFontLike(origin ? origin->font : nullptr,
-                                      edit).constData());
-        ownsFont = true;
-    }
-    if (!font) return;
-
+    const std::unique_ptr<Typeset> t = typeset(doc, page, edit, origin);
+    if (!t) return;
+    FontChoice &fonts = *t->fonts;
+    const QString &text = t->text;
+    const double size = t->setup.size;
     insertBoxDecoration(page, edit, pageHeight);
 
-    const double links = firstBaseline(edit, size, pageHeight, 1).x();
-    const double availableWidth = qMax(
-        0.0, edit.pdfBounds.right() - edit.box.paddingPt - links);
-    const auto glyphBreite = [font, size](QChar ch) {
-        float advance = 0.f;
-        if (ch.isLowSurrogate()
-                || !FPDFFont_GetGlyphWidth(font, ch.unicode(),
-                                           static_cast<float>(size), &advance))
-            return 0.0;
-        return double(advance);
-    };
-    QStringList umbrochen;
-    for (const QString &line : lines)
-        umbrochen.append(TextWrap::lines(line, availableWidth, glyphBreite,
-                                         edit.box.characterSpacingPt));
-
-    const QPointF start = firstBaseline(edit, size, pageHeight, umbrochen.size());
-    const double  step  = (edit.lineSpacingPt > 0.0 ? edit.lineSpacingPt : size * 1.2)
-                        + edit.box.paragraphSpacingPt;
-
-    for (int i = 0; i < umbrochen.size(); ++i) {
-        const QString &line = umbrochen.at(i);
-        if (line.isEmpty()) continue;
-        const QColor color = edit.textColor.isValid() ? edit.textColor : QColor(Qt::black);
-        const auto insertObject = [&](const QString &text, double x) {
-            FPDF_PAGEOBJECT obj=FPDFPageObj_CreateTextObj(doc,font,static_cast<float>(size));
-            if(!obj)return;
-            const std::u16string utf16=text.toStdU16String();
-            FPDFText_SetText(obj,reinterpret_cast<FPDF_WIDESTRING>(utf16.c_str()));
-            FPDFPageObj_SetFillColor(obj,color.red(),color.green(),color.blue(),
-                                     qRound(color.alpha()*qBound(0.0,edit.box.opacity,1.0)));
-            FPDFPageObj_Transform(obj,1,0,0,1,x,start.y()-step*i);
-            rotateObject(obj,edit,pageHeight); FPDFPage_InsertObject(page,obj);
+    const QRectF &bounds = edit.pdfBounds;
+    const QPointF base = t->layout.firstBaseline;
+    const QColor color = edit.textColor.isValid() ? edit.textColor : QColor(Qt::black);
+    const int alpha = qRound(color.alpha() * qBound(0.0, edit.box.opacity, 1.0));
+    for (const TextLayout::Line &line : t->layout.lines) {
+        if (line.keep) continue;
+        const double baseline = toPdfY(bounds.top() + base.y() + line.y, pageHeight);
+        const int    fixed    = line.fixedX.isEmpty() ? 0 : line.fixedCount;
+        const double textX    = bounds.left() + base.x() + line.x
+                              + (line.fixedX.isEmpty() ? 0.0 : line.fixedX.last());
+        const auto insertObject = [&](FPDF_FONT runFont, const QString &part, double x) {
+            FPDF_PAGEOBJECT obj = FPDFPageObj_CreateTextObj(doc, runFont, static_cast<float>(size));
+            if (!obj) return;
+            PdfiumFonts::setText(obj, runFont, part);
+            FPDFPageObj_SetFillColor(obj, color.red(), color.green(), color.blue(), alpha);
+            FPDFPageObj_Transform(obj, 1, 0, 0, 1, x, baseline);
+            rotateObject(obj, edit, pageHeight);
+            FPDFPage_InsertObject(page, obj);
         };
-        double lineX = start.x();
-        if (edit.box.horizontalAlign != TextBoxProperties::HorizontalAlign::Left) {
-            const double w = lineWidthPt(font, line, size, edit.box.characterSpacingPt);
-            if (edit.box.horizontalAlign == TextBoxProperties::HorizontalAlign::Center)
-                lineX += qMax(0.0, (availableWidth - w) / 2.0);
-            else if (edit.box.horizontalAlign == TextBoxProperties::HorizontalAlign::Right)
-                lineX += qMax(0.0, availableWidth - w);
-        }
-        if (qFuzzyIsNull(edit.box.characterSpacingPt)) {
-            insertObject(line,lineX);
-        } else {
-            double x=lineX;
-            for (const QChar ch : line) {
-                insertObject(QString(ch),x);
-                x += lineWidthPt(font, QString(ch), size, 0.0)
-                   + edit.box.characterSpacingPt;
+        const auto insertText = [&](const QString &part, double x) {
+            if (qFuzzyIsNull(edit.box.characterSpacingPt)) {
+                for (const auto &run : fonts.runs(part)) {
+                    insertObject(run.first, run.second, x);
+                    x += fonts.width(run.second, size, 0.0);
+                }
+                return;
             }
+            const QList<uint> points = part.toUcs4();
+            for (int i = 0; i < points.size();) {
+                const char32_t cp = points.at(i);
+                QString glyph = QString::fromUcs4(&cp, 1);
+                double step = fonts.advance(cp, size) + edit.box.characterSpacingPt;
+                int next = i + 1;
+                while (!QChar::isSpace(cp) && next < points.size()
+                       && QChar::isSpace(points.at(next))) {
+                    const char32_t space = points.at(next);
+                    glyph += QString::fromUcs4(&space, 1);
+                    step  += fonts.advance(space, size) + edit.box.characterSpacingPt;
+                    ++next;
+                }
+                if (FPDF_FONT glyphFont = fonts.fontFor(cp))
+                    insertObject(glyphFont, glyph, x);
+                x += step;
+                i = next;
+            }
+        };
+        if (!line.prefix.isEmpty())
+            insertText(line.prefix, bounds.left() + base.x() + line.x - line.prefixWidth);
+        const double lineX = bounds.left() + base.x() + line.x;
+        for (int i = line.keptCount; i < fixed;) {
+            const int len = text.at(line.start + i).isHighSurrogate() && i + 1 < fixed ? 2 : 1;
+            int next = i + len;
+            while (next < fixed && text.at(line.start + next).isSpace()) ++next;
+            const QString glyph = text.mid(line.start + i, next - i);
+            if (!glyph.trimmed().isEmpty()) {
+                const char32_t cp = glyph.toUcs4().value(0);
+                if (FPDF_FONT glyphFont = fonts.fontFor(cp))
+                    insertObject(glyphFont, glyph, lineX + line.fixedX.at(i));
+            }
+            i = next;
         }
+        const QString part = text.mid(line.start + fixed, line.length - fixed);
+        if (part.trimmed().isEmpty()) continue;
+        insertText(part, textX);
         if (!edit.underline) continue;
 
-        const double breite = lineWidthPt(font, line, size,
-                                          edit.box.characterSpacingPt);
-        const double dicke  = qMax(0.3, size * 0.06);
-        const double y      = start.y() - step * i - size * 0.12;
-        FPDF_PAGEOBJECT rule = FPDFPageObj_CreateNewRect(lineX, y, breite, dicke);
+        const double thickness = qMax(0.3, size * 0.06);
+        FPDF_PAGEOBJECT rule = FPDFPageObj_CreateNewRect(textX, baseline - size * 0.12,
+                                                         fonts.width(part.trimmed(), size,
+                                                                     edit.box.characterSpacingPt),
+                                                         thickness);
         if (!rule) continue;
-        FPDFPageObj_SetFillColor(rule, color.red(), color.green(), color.blue(),
-                                 qRound(color.alpha()
-                                        * qBound(0.0, edit.box.opacity, 1.0)));
+        FPDFPageObj_SetFillColor(rule, color.red(), color.green(), color.blue(), alpha);
         FPDFPath_SetDrawMode(rule, FPDF_FILLMODE_WINDING, false);
         rotateObject(rule, edit, pageHeight);
         FPDFPage_InsertObject(page, rule);
     }
-
-    if (ownsFont) FPDFFont_Close(font);
 }
 
 void insertImage(FPDF_DOCUMENT doc, FPDF_PAGE page,
@@ -681,15 +830,37 @@ void PdfiumEdits::applyToPage(FPDF_DOCUMENT doc, FPDF_PAGE page, int pageIndex,
     const QList<EditSession::Edit> &edits = session.edits();
 
     QList<Replaced> replaced;
+    FPDF_TEXTPAGE textPage = nullptr;
     for (const EditSession::Edit &e : edits) {
         if (e.page != pageIndex || !e.formField.isEmpty()) continue;
         if (!removesOriginal(e)) continue;
+        if (!textPage) textPage = FPDFText_LoadPage(page);
         Replaced r;
         r.area = e.pdfBounds;
-        r.text = e.originalText;
-        removeTextIn(page, eraseAreas(e), pageHeight, r);
+        const EditSession::Edit *text = nullptr;
+        for (const EditSession::Edit &t : edits)
+            if (t.page == pageIndex && !t.newText.isNull() && t.formField.isEmpty()
+                    && !t.originalLines.isEmpty() && t.sourceRect == e.pdfBounds)
+                text = &t;
+        bool anchored = false;
+        if (text) {
+            const QList<FPDF_PAGEOBJECT> all = textObjectsIn(page, eraseAreas(e), pageHeight);
+            takeOriginFont(all, textPage, r);
+            const std::unique_ptr<Typeset> plan = typeset(doc, page, *text, r.font ? &r : nullptr);
+            if (plan && plan->layout.anchored) {
+                anchored = true;
+                for (FPDF_PAGEOBJECT obj : objectsToReplace(all, *text, plan->layout, pageHeight))
+                    if (FPDFPage_RemoveObject(page, obj)) r.removed.push_back(obj);
+            }
+        }
+        if (!anchored) {
+            r = Replaced();
+            r.area = e.pdfBounds;
+            removeTextIn(page, eraseAreas(e), pageHeight, textPage, r);
+        }
         replaced.append(std::move(r));
     }
+    if (textPage) FPDFText_ClosePage(textPage);
 
     for (const EditSession::Edit &e : edits) {
         if (e.page != pageIndex || !e.formField.isEmpty()) continue;
@@ -758,6 +929,43 @@ bool sameNoteBounds(const QRectF &a, const QRectF &b)
         && qAbs(a.height() - b.height()) < 0.5;
 }
 
+}
+
+TextLayout::Metrics PdfiumEdits::metrics(FPDF_DOCUMENT doc, FPDF_PAGE page,
+                                         const EditSession::Edit &edit)
+{
+    TextLayout::Metrics out;
+    if (!doc || !page) return out;
+    const double pageHeight = FPDF_GetPageHeightF(page);
+
+    Replaced origin;
+    if (!edit.sourceRect.isNull()) {
+        const QList<QRectF> areas = edit.eraseRects.isEmpty() ? QList<QRectF>{ edit.sourceRect }
+                                                              : edit.eraseRects;
+        const QList<FPDF_PAGEOBJECT> covered = textObjectsIn(page, areas, pageHeight);
+        if (!covered.isEmpty()) {
+            FPDF_TEXTPAGE textPage = FPDFText_LoadPage(page);
+            takeOriginFont(covered, textPage, origin);
+            if (textPage) FPDFText_ClosePage(textPage);
+        }
+    }
+
+    const QString text = writableText(edit.newText);
+    const QString measured = TextLayout::measuredCharacters(text, edit.box.listStyle)
+                           + QLatin1Char(' ');
+    const FontSetup setup = chooseFonts(doc, page, edit, origin.font ? &origin : nullptr,
+                                        measured);
+    if (!setup.primary) return out;
+    FontChoice fonts(doc, page, setup.primary, setup.known);
+    fonts.prepare(measured);
+    out.sizePt     = setup.size;
+    out.originals  = edit.originalLines;
+    out.boxTopLeft = edit.pdfBounds.topLeft();
+    for (const char32_t cp : measured.toUcs4())
+        out.advances.insert(uint(cp), fonts.advance(cp, setup.size));
+    out.advances.insert(uint(u'\t'), out.advances.value(uint(u' ')));
+    if (setup.owns) FPDFFont_Close(setup.primary);
+    return out;
 }
 
 void PdfiumEdits::applyNoteEdits(FPDF_PAGE page, int pageIndex,

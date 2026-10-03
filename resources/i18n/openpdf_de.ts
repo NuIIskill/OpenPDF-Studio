@@ -168,144 +168,141 @@
     </message>
     <message>
         <location filename="../../src/ui/sign/DigitalSignPage.cpp" line="112"/>
-        <location filename="../../src/ui/sign/DigitalSignPage.cpp" line="317"/>
+        <location filename="../../src/ui/sign/DigitalSignPage.cpp" line="329"/>
         <source>Please select a certificate...</source>
         <translation>Bitte Zertifikat auswählen...</translation>
     </message>
     <message>
-        <location filename="../../src/ui/sign/DigitalSignPage.cpp" line="145"/>
+        <location filename="../../src/ui/sign/DigitalSignPage.cpp" line="149"/>
         <source>Advanced</source>
         <translation>Erweitert</translation>
     </message>
     <message>
-        <location filename="../../src/ui/sign/DigitalSignPage.cpp" line="147"/>
+        <location filename="../../src/ui/sign/DigitalSignPage.cpp" line="151"/>
         <source>Additional signing options.</source>
         <translation>Weitere Signaturoptionen.</translation>
     </message>
     <message>
-        <location filename="../../src/ui/sign/DigitalSignPage.cpp" line="175"/>
+        <location filename="../../src/ui/sign/DigitalSignPage.cpp" line="179"/>
         <source>Not available yet</source>
         <translation>Noch nicht verfügbar</translation>
     </message>
     <message>
-        <location filename="../../src/ui/sign/DigitalSignPage.cpp" line="177"/>
+        <location filename="../../src/ui/sign/DigitalSignPage.cpp" line="181"/>
         <source>Add timestamp</source>
         <translation>Zeitstempel hinzufügen</translation>
     </message>
     <message>
-        <location filename="../../src/ui/sign/DigitalSignPage.cpp" line="178"/>
+        <location filename="../../src/ui/sign/DigitalSignPage.cpp" line="182"/>
         <source>Include a trusted timestamp in the signature.</source>
         <translation>Einen vertrauenswürdigen Zeitstempel in die Signatur aufnehmen.</translation>
     </message>
     <message>
-        <location filename="../../src/ui/sign/DigitalSignPage.cpp" line="179"/>
+        <location filename="../../src/ui/sign/DigitalSignPage.cpp" line="183"/>
         <source>Lock document after signing</source>
         <translation>Dokument nach dem Signieren sperren</translation>
     </message>
     <message>
-        <location filename="../../src/ui/sign/DigitalSignPage.cpp" line="180"/>
+        <location filename="../../src/ui/sign/DigitalSignPage.cpp" line="184"/>
         <source>Prevent further changes to the PDF.</source>
         <translation>Weitere Änderungen am PDF verhindern.</translation>
     </message>
     <message>
-        <location filename="../../src/ui/sign/DigitalSignPage.cpp" line="185"/>
+        <location filename="../../src/ui/sign/DigitalSignPage.cpp" line="189"/>
         <source>Invisible signature</source>
         <translation>Unsichtbare Signatur</translation>
     </message>
     <message>
-        <location filename="../../src/ui/sign/DigitalSignPage.cpp" line="186"/>
+        <location filename="../../src/ui/sign/DigitalSignPage.cpp" line="190"/>
         <source>Sign the document without a visible signature.</source>
         <translation>Das Dokument ohne sichtbare Signatur signieren.</translation>
     </message>
     <message>
-        <location filename="../../src/ui/sign/DigitalSignPage.cpp" line="208"/>
-        <source>Signature appearance</source>
-        <translation>Aussehen der Signatur</translation>
-    </message>
-    <message>
-        <location filename="../../src/ui/sign/DigitalSignPage.cpp" line="216"/>
+        <location filename="../../src/ui/sign/DigitalSignPage.cpp" line="211"/>
         <source>Profile</source>
         <translation>Profil</translation>
     </message>
     <message>
-        <location filename="../../src/ui/sign/DigitalSignPage.cpp" line="220"/>
-        <source>Customize appearance...</source>
-        <translation>Aussehen anpassen...</translation>
-    </message>
-    <message>
-        <location filename="../../src/ui/sign/DigitalSignPage.cpp" line="232"/>
-        <source>Customize how the signature looks in the document.</source>
-        <translation>Legen Sie fest, wie die Signatur im Dokument aussieht.</translation>
-    </message>
-    <message>
-        <location filename="../../src/ui/sign/DigitalSignPage.cpp" line="241"/>
-        <source>Standard</source>
+        <location filename="../../src/ui/sign/DigitalSignPage.cpp" line="227"/>
+        <source>Default</source>
         <translation>Standard</translation>
     </message>
     <message>
-        <location filename="../../src/ui/sign/DigitalSignPage.cpp" line="241"/>
+        <location filename="../../src/ui/sign/DigitalSignPage.cpp" line="227"/>
         <source>Unnamed profile</source>
         <translation>Unbenanntes Profil</translation>
     </message>
     <message>
-        <location filename="../../src/ui/sign/DigitalSignPage.cpp" line="255"/>
-        <source>New profile...</source>
-        <translation>Neues Profil...</translation>
-    </message>
-    <message>
-        <location filename="../../src/ui/sign/DigitalSignPage.cpp" line="276"/>
+        <location filename="../../src/ui/sign/DigitalSignPage.cpp" line="269"/>
         <source>Profile %1</source>
         <translation>Profil %1</translation>
     </message>
     <message>
-        <location filename="../../src/ui/sign/DigitalSignPage.cpp" line="304"/>
-        <location filename="../../src/ui/sign/DigitalSignPage.cpp" line="371"/>
+        <location filename="../../src/ui/sign/DigitalSignPage.cpp" line="278"/>
+        <source>%1 (copy)</source>
+        <translation>%1 (Kopie)</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/sign/DigitalSignPage.cpp" line="285"/>
+        <source>Delete profile</source>
+        <translation>Profil löschen</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/sign/DigitalSignPage.cpp" line="286"/>
+        <source>Delete the profile &quot;%1&quot;?</source>
+        <translation>Profil „%1“ löschen?</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/sign/DigitalSignPage.cpp" line="316"/>
+        <location filename="../../src/ui/sign/DigitalSignPage.cpp" line="381"/>
         <source>Unnamed certificate</source>
         <translation>Unbenanntes Zertifikat</translation>
     </message>
     <message>
-        <location filename="../../src/ui/sign/DigitalSignPage.cpp" line="306"/>
+        <location filename="../../src/ui/sign/DigitalSignPage.cpp" line="318"/>
         <source>%1, expired</source>
         <translation>%1, abgelaufen</translation>
     </message>
     <message>
-        <location filename="../../src/ui/sign/DigitalSignPage.cpp" line="311"/>
+        <location filename="../../src/ui/sign/DigitalSignPage.cpp" line="323"/>
         <source>Valid until %1</source>
         <translation>Gültig bis %1</translation>
     </message>
     <message>
-        <location filename="../../src/ui/sign/DigitalSignPage.cpp" line="315"/>
+        <location filename="../../src/ui/sign/DigitalSignPage.cpp" line="327"/>
         <source>New certificate...</source>
         <translation>Neues Zertifikat...</translation>
     </message>
     <message>
-        <location filename="../../src/ui/sign/DigitalSignPage.cpp" line="316"/>
+        <location filename="../../src/ui/sign/DigitalSignPage.cpp" line="328"/>
         <source>No certificates found</source>
         <translation>Keine Zertifikate gefunden</translation>
     </message>
     <message>
-        <location filename="../../src/ui/sign/DigitalSignPage.cpp" line="364"/>
+        <location filename="../../src/ui/sign/DigitalSignPage.cpp" line="357"/>
         <source>Delete certificate...</source>
         <translation>Zertifikat löschen...</translation>
     </message>
     <message>
-        <location filename="../../src/ui/sign/DigitalSignPage.cpp" line="367"/>
+        <location filename="../../src/ui/sign/DigitalSignPage.cpp" line="360"/>
+        <location filename="../../src/ui/sign/DigitalSignPage.cpp" line="374"/>
         <source>Only certificates created in OpenPDF Studio can be deleted.</source>
         <translation>Nur in OpenPDF Studio erstellte Zertifikate können gelöscht werden.</translation>
     </message>
     <message>
-        <location filename="../../src/ui/sign/DigitalSignPage.cpp" line="372"/>
-        <location filename="../../src/ui/sign/DigitalSignPage.cpp" line="379"/>
+        <location filename="../../src/ui/sign/DigitalSignPage.cpp" line="373"/>
+        <location filename="../../src/ui/sign/DigitalSignPage.cpp" line="382"/>
+        <location filename="../../src/ui/sign/DigitalSignPage.cpp" line="389"/>
         <source>Delete certificate</source>
         <translation>Zertifikat löschen</translation>
     </message>
     <message>
-        <location filename="../../src/ui/sign/DigitalSignPage.cpp" line="373"/>
+        <location filename="../../src/ui/sign/DigitalSignPage.cpp" line="383"/>
         <source>Delete the certificate &quot;%1&quot;? Its private key is deleted as well, so it can no longer sign. Signatures already made with it stay valid.</source>
         <translation>Das Zertifikat „%1“ löschen? Sein privater Schlüssel wird ebenfalls gelöscht, damit kann nicht mehr signiert werden. Bereits erstellte Signaturen bleiben gültig.</translation>
     </message>
     <message>
-        <location filename="../../src/ui/sign/DigitalSignPage.cpp" line="380"/>
+        <location filename="../../src/ui/sign/DigitalSignPage.cpp" line="390"/>
         <source>The certificate could not be deleted.</source>
         <translation>Das Zertifikat konnte nicht gelöscht werden.</translation>
     </message>
@@ -1610,6 +1607,29 @@ Enter the password to open it:</source>
     </message>
 </context>
 <context>
+    <name>ProfileCombo</name>
+    <message>
+        <location filename="../../src/ui/sign/ProfileCombo.cpp" line="148"/>
+        <source>New profile...</source>
+        <translation>Neues Profil...</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/sign/ProfileCombo.cpp" line="149"/>
+        <source>Edit profile...</source>
+        <translation>Profil bearbeiten...</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/sign/ProfileCombo.cpp" line="150"/>
+        <source>Duplicate profile</source>
+        <translation>Profil duplizieren</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/sign/ProfileCombo.cpp" line="152"/>
+        <source>Delete profile</source>
+        <translation>Profil löschen</translation>
+    </message>
+</context>
+<context>
     <name>RightSidebar</name>
     <message>
         <location filename="../../src/ui/panels/RightSidebar.cpp" line="22"/>
@@ -2059,138 +2079,133 @@ Enter the password to open it:</source>
 <context>
     <name>SignatureAppearanceDialog</name>
     <message>
-        <location filename="../../src/ui/sign/SignatureAppearanceDialog.cpp" line="42"/>
+        <location filename="../../src/ui/sign/SignatureAppearanceDialog.cpp" line="41"/>
         <source>Document approved</source>
         <translation>Dokument genehmigt</translation>
     </message>
     <message>
-        <location filename="../../src/ui/sign/SignatureAppearanceDialog.cpp" line="42"/>
+        <location filename="../../src/ui/sign/SignatureAppearanceDialog.cpp" line="41"/>
         <source>I am the author of this document</source>
         <translation>Ich bin der Verfasser dieses Dokuments</translation>
     </message>
     <message>
-        <location filename="../../src/ui/sign/SignatureAppearanceDialog.cpp" line="43"/>
+        <location filename="../../src/ui/sign/SignatureAppearanceDialog.cpp" line="42"/>
         <source>I have reviewed this document</source>
         <translation>Ich habe dieses Dokument geprüft</translation>
     </message>
     <message>
-        <location filename="../../src/ui/sign/SignatureAppearanceDialog.cpp" line="43"/>
+        <location filename="../../src/ui/sign/SignatureAppearanceDialog.cpp" line="42"/>
         <source>I agree to the terms</source>
         <translation>Ich stimme den Bedingungen zu</translation>
     </message>
     <message>
-        <location filename="../../src/ui/sign/SignatureAppearanceDialog.cpp" line="55"/>
-        <source>Signature appearance - OpenPDF Studio</source>
-        <translation>Aussehen der Signatur - OpenPDF Studio</translation>
+        <location filename="../../src/ui/sign/SignatureAppearanceDialog.cpp" line="54"/>
+        <source>New profile - OpenPDF Studio</source>
+        <translation>Neues Profil - OpenPDF Studio</translation>
     </message>
     <message>
-        <location filename="../../src/ui/sign/SignatureAppearanceDialog.cpp" line="65"/>
-        <location filename="../../src/ui/sign/SignatureAppearanceDialog.cpp" line="69"/>
+        <location filename="../../src/ui/sign/SignatureAppearanceDialog.cpp" line="54"/>
+        <source>Edit profile - OpenPDF Studio</source>
+        <translation>Profil bearbeiten - OpenPDF Studio</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/sign/SignatureAppearanceDialog.cpp" line="64"/>
+        <location filename="../../src/ui/sign/SignatureAppearanceDialog.cpp" line="68"/>
         <source>Profile name</source>
         <translation>Profilname</translation>
     </message>
     <message>
-        <location filename="../../src/ui/sign/SignatureAppearanceDialog.cpp" line="75"/>
-        <source>Show in signature appearance</source>
-        <translation>Im Signaturbild anzeigen</translation>
+        <location filename="../../src/ui/sign/SignatureAppearanceDialog.cpp" line="74"/>
+        <source>Show in signature</source>
+        <translation>In der Signatur anzeigen</translation>
     </message>
     <message>
-        <location filename="../../src/ui/sign/SignatureAppearanceDialog.cpp" line="79"/>
+        <location filename="../../src/ui/sign/SignatureAppearanceDialog.cpp" line="78"/>
         <source>Preview</source>
         <translation>Vorschau</translation>
     </message>
     <message>
-        <location filename="../../src/ui/sign/SignatureAppearanceDialog.cpp" line="89"/>
+        <location filename="../../src/ui/sign/SignatureAppearanceDialog.cpp" line="91"/>
         <source>Your name</source>
         <translation>Ihr Name</translation>
     </message>
     <message>
-        <location filename="../../src/ui/sign/SignatureAppearanceDialog.cpp" line="96"/>
+        <location filename="../../src/ui/sign/SignatureAppearanceDialog.cpp" line="98"/>
         <source>City</source>
         <translation>Stadt</translation>
     </message>
     <message>
-        <location filename="../../src/ui/sign/SignatureAppearanceDialog.cpp" line="107"/>
+        <location filename="../../src/ui/sign/SignatureAppearanceDialog.cpp" line="109"/>
         <source>Name</source>
         <translation>Name</translation>
     </message>
     <message>
-        <location filename="../../src/ui/sign/SignatureAppearanceDialog.cpp" line="108"/>
+        <location filename="../../src/ui/sign/SignatureAppearanceDialog.cpp" line="110"/>
         <source>Reason</source>
         <translation>Grund</translation>
     </message>
     <message>
-        <location filename="../../src/ui/sign/SignatureAppearanceDialog.cpp" line="109"/>
+        <location filename="../../src/ui/sign/SignatureAppearanceDialog.cpp" line="111"/>
         <source>Location</source>
         <translation>Ort</translation>
     </message>
     <message>
-        <location filename="../../src/ui/sign/SignatureAppearanceDialog.cpp" line="137"/>
+        <location filename="../../src/ui/sign/SignatureAppearanceDialog.cpp" line="139"/>
         <source>Show signer name</source>
         <translation>Namen anzeigen</translation>
     </message>
     <message>
-        <location filename="../../src/ui/sign/SignatureAppearanceDialog.cpp" line="138"/>
+        <location filename="../../src/ui/sign/SignatureAppearanceDialog.cpp" line="140"/>
         <source>Show date</source>
         <translation>Datum anzeigen</translation>
     </message>
     <message>
-        <location filename="../../src/ui/sign/SignatureAppearanceDialog.cpp" line="139"/>
+        <location filename="../../src/ui/sign/SignatureAppearanceDialog.cpp" line="141"/>
         <source>Show reason</source>
         <translation>Grund anzeigen</translation>
     </message>
     <message>
-        <location filename="../../src/ui/sign/SignatureAppearanceDialog.cpp" line="140"/>
+        <location filename="../../src/ui/sign/SignatureAppearanceDialog.cpp" line="142"/>
         <source>Show location</source>
         <translation>Ort anzeigen</translation>
     </message>
     <message>
-        <location filename="../../src/ui/sign/SignatureAppearanceDialog.cpp" line="141"/>
+        <location filename="../../src/ui/sign/SignatureAppearanceDialog.cpp" line="143"/>
         <source>Show PNG logo</source>
         <translation>PNG-Logo anzeigen</translation>
     </message>
     <message>
-        <location filename="../../src/ui/sign/SignatureAppearanceDialog.cpp" line="168"/>
+        <location filename="../../src/ui/sign/SignatureAppearanceDialog.cpp" line="170"/>
         <source>No logo chosen</source>
         <translation>Kein Logo gewählt</translation>
     </message>
     <message>
-        <location filename="../../src/ui/sign/SignatureAppearanceDialog.cpp" line="172"/>
+        <location filename="../../src/ui/sign/SignatureAppearanceDialog.cpp" line="174"/>
         <source>Choose PNG...</source>
         <translation>PNG wählen...</translation>
     </message>
     <message>
-        <location filename="../../src/ui/sign/SignatureAppearanceDialog.cpp" line="179"/>
+        <location filename="../../src/ui/sign/SignatureAppearanceDialog.cpp" line="181"/>
         <source>PNG logo</source>
         <translation>PNG-Logo</translation>
     </message>
     <message>
-        <location filename="../../src/ui/sign/SignatureAppearanceDialog.cpp" line="206"/>
-        <source>Delete profile</source>
-        <translation>Profil löschen</translation>
-    </message>
-    <message>
-        <location filename="../../src/ui/sign/SignatureAppearanceDialog.cpp" line="216"/>
+        <location filename="../../src/ui/sign/SignatureAppearanceDialog.cpp" line="208"/>
         <source>Cancel</source>
         <translation>Abbrechen</translation>
     </message>
     <message>
-        <location filename="../../src/ui/sign/SignatureAppearanceDialog.cpp" line="218"/>
+        <location filename="../../src/ui/sign/SignatureAppearanceDialog.cpp" line="210"/>
         <source>Apply</source>
         <translation>Übernehmen</translation>
     </message>
     <message>
-        <location filename="../../src/ui/sign/SignatureAppearanceDialog.cpp" line="235"/>
-        <source>Delete the profile &quot;%1&quot;?</source>
-        <translation>Profil „%1“ löschen?</translation>
-    </message>
-    <message>
-        <location filename="../../src/ui/sign/SignatureAppearanceDialog.cpp" line="247"/>
+        <location filename="../../src/ui/sign/SignatureAppearanceDialog.cpp" line="230"/>
         <source>Choose logo</source>
         <translation>Logo wählen</translation>
     </message>
     <message>
-        <location filename="../../src/ui/sign/SignatureAppearanceDialog.cpp" line="248"/>
+        <location filename="../../src/ui/sign/SignatureAppearanceDialog.cpp" line="231"/>
         <source>PNG images (*.png)</source>
         <translation>PNG-Bilder (*.png)</translation>
     </message>

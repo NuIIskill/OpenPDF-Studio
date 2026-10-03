@@ -688,7 +688,7 @@ void MainWindow::onZoomIn()
     m_zoom = qMin(m_zoom + 10, 300);
     m_topToolbar->setZoom(m_zoom);
     if (DocumentView *dv = currentDocView())
-        dv->setZoom(m_zoom);
+        dv->zoomSharply(m_zoom);
 }
 
 void MainWindow::onZoomOut()
@@ -696,7 +696,7 @@ void MainWindow::onZoomOut()
     m_zoom = qMax(m_zoom - 10, 25);
     m_topToolbar->setZoom(m_zoom);
     if (DocumentView *dv = currentDocView())
-        dv->setZoom(m_zoom);
+        dv->zoomSharply(m_zoom);
 }
 
 void MainWindow::loadShortcuts()

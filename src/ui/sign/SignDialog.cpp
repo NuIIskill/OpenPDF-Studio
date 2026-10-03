@@ -623,25 +623,6 @@ void SignDialog::applyDialogStyle()
             border-radius: 8px;
             background: palette(base);
         }
-        QPushButton#SAppearance {
-            border: 1px solid palette(mid);
-            border-radius: 6px;
-            padding: 0 14px;
-            background: palette(base);
-            color: palette(text);
-            text-align: left;
-        }
-        QPushButton#SAppearance:hover { background: palette(alternate-base); }
-        QPushButton#SAppearance:disabled { color: palette(placeholder-text); }
-        QPushButton#SDanger {
-            border: 1px solid rgba(220, 38, 38, 0.35);
-            border-radius: 6px;
-            padding: 0 14px;
-            background: palette(base);
-            color: #DC2626;
-            font-weight: 600;
-        }
-        QPushButton#SDanger:hover { background: rgba(220, 38, 38, 0.08); }
         QFrame#SChip { background: rgba(37, 99, 235, 0.08); border-radius: 8px; }
         QFrame#SLogoField {
             border: 1px solid palette(mid);

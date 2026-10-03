@@ -58,36 +58,32 @@ void NoteLayer::setSource(PdfBackend *backend, EditSession *session, QUndoStack 
 }
 #endif
 
-void NoteLayer::reload()
-{
-    clear();
 #ifdef HAVE_PDF_RENDERING
-    if (!m_backend) return;
-    for (int page = 0; page < m_canvas->pageCount(); ++page) {
-        const QList<PdfBackend::Note> source = m_backend->pageNotes(page);
-        for (const PdfBackend::Note &item : source) {
-            NoteData note;
-            note.id = item.id.isEmpty()
-                ? QUuid::createUuid().toString(QUuid::WithoutBraces) : item.id;
-            note.title          = item.title;
-            note.text           = item.text;
-            note.page           = page;
-            note.pdfBounds      = item.bounds;
-            note.modified       = QDateTime::currentDateTime();
-            note.existing       = true;
-            note.originalId     = item.id;
-            note.originalTitle  = item.title;
-            note.originalText   = item.text;
-            note.originalBounds = item.bounds;
-            note.pinned          = item.pinned;
-            note.originalPinned  = item.pinned;
-            addEntry(std::move(note), false);
-        }
+void NoteLayer::addPage(int page, const QList<PdfBackend::Note> &notes)
+{
+    for (const PdfBackend::Note &item : notes) {
+        NoteData note;
+        note.id = item.id.isEmpty()
+            ? QUuid::createUuid().toString(QUuid::WithoutBraces) : item.id;
+        note.title          = item.title;
+        note.text           = item.text;
+        note.page           = page;
+        note.pdfBounds      = item.bounds;
+        note.modified       = QDateTime::currentDateTime();
+        note.existing       = true;
+        note.originalId     = item.id;
+        note.originalTitle  = item.title;
+        note.originalText   = item.text;
+        note.originalBounds = item.bounds;
+        note.pinned          = item.pinned;
+        note.originalPinned  = item.pinned;
+        addEntry(std::move(note), false);
     }
+    if (notes.isEmpty()) return;
     relayout();
-#endif
     notifyChanged();
 }
+#endif
 
 void NoteLayer::clear()
 {
@@ -129,6 +125,8 @@ void NoteLayer::addAt(const QPoint &canvasPos)
 #endif
     auto [page, label] = m_canvas->pageAtCanvasPos(canvasPos);
     if (page < 0 || !label) return;
+
+    if (m_beforeChange) m_beforeChange();
 
     const QList<NoteData> before = state();
     const qreal scale = m_canvas->screenScale();
@@ -178,6 +176,7 @@ void NoteLayer::update(const QString &id, const QString &title, const QString &t
 {
     const int index = indexOf(id);
     if (index < 0) return;
+    if (m_beforeChange) m_beforeChange();
     const QList<NoteData> before = state();
     NoteData &note = m_entries[index].data;
     const QString effectiveTitle = title.isEmpty() ? tr("Untitled note") : title;
@@ -197,6 +196,7 @@ void NoteLayer::remove(const QString &id)
 {
     const int index = indexOf(id);
     if (index < 0) return;
+    if (m_beforeChange) m_beforeChange();
     const QList<NoteData> before = state();
     const int page = m_entries.at(index).data.page;
     if (m_entries.at(index).data.existing) {
@@ -220,6 +220,7 @@ void NoteLayer::setPinned(const QString &id, bool pinned)
 {
     const int index = indexOf(id);
     if (index < 0 || m_entries.at(index).data.pinned == pinned) return;
+    if (m_beforeChange) m_beforeChange();
     const QList<NoteData> before = state();
     m_entries[index].data.pinned = pinned;
     m_entries[index].data.modified = QDateTime::currentDateTime();

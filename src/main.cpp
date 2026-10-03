@@ -5,6 +5,11 @@
 #include "ui/MainWindow.hpp"
 #include "ui/theme/Theme.hpp"
 
+#ifdef HAVE_PDF_RENDERING
+#  include "engine/document/RenderPool.hpp"
+#  include "engine/document/RenderServer.hpp"
+#endif
+
 #include <QApplication>
 #include <QFileInfo>
 #include <QFontDatabase>
@@ -45,6 +50,14 @@ int main(int argc, char *argv[])
 #ifdef DEFAULT_QPA_PLATFORM
     if (qgetenv("QT_QPA_PLATFORM").isEmpty())
         qputenv("QT_QPA_PLATFORM", "wayland");
+#endif
+
+#ifdef HAVE_PDF_RENDERING
+    // A helper that renders pages for the application, see RenderPool.
+    if (argc >= 3 && qstrcmp(argv[1], "--render-server") == 0) {
+        QCoreApplication helper(argc, argv);
+        return RenderServer::run(QString::fromLocal8Bit(argv[2]));
+    }
 #endif
 
     QApplication::setHighDpiScaleFactorRoundingPolicy(
@@ -99,6 +112,11 @@ int main(int argc, char *argv[])
         return *rc;
 
     const QStringList args = qapp.arguments();
+
+#ifdef HAVE_PDF_RENDERING
+    // The window renders with helper processes; command-line modes do not need them.
+    RenderPool::setHelper(QCoreApplication::applicationFilePath());
+#endif
 
     App app;
     app.startup();

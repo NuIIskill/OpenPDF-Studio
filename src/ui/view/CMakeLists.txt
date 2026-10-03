@@ -1,4 +1,6 @@
 target_sources(OpenPDFStudio PRIVATE
+    AnnotationLoader.cpp
+    AnnotationLoader.hpp
     DigitalSignatureLayer.cpp
     DigitalSignatureLayer.hpp
     FindController.cpp
@@ -11,12 +13,24 @@ target_sources(OpenPDFStudio PRIVATE
     ImageAnnotationLayer.hpp
     LinkAnnotationLayer.cpp
     LinkAnnotationLayer.hpp
+    LoadingSpinner.cpp
+    LoadingSpinner.hpp
     PageCanvas.hpp
     PageLayoutEngine.cpp
+    PageLayoutEngine_Edit.cpp
+    PageLayoutEngine_Grid.cpp
+    PageLayoutEngine_Tiles.cpp
+    PageLayoutEngine_Zoom.cpp
     PageLayoutEngine.hpp
     PageOverlay.cpp
     PageOverlay.hpp
+    PageTiles.cpp
+    PageView.cpp
+    PageView.hpp
+    PageTiles.hpp
     SignaturePlacement.cpp
+    SmoothScroll.cpp
+    SmoothScroll.hpp
     SignaturePlacement.hpp
     TextSelectionController.cpp
     TextSelectionController.hpp

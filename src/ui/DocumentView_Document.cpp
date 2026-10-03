@@ -8,6 +8,7 @@
 #include "engine/edit/InkMetrics.hpp"
 #include "app/SafeWrite.hpp"
 #include "app/SessionStore.hpp"
+#include "ui/view/AnnotationLoader.hpp"
 #include "ui/view/ImageAnnotation.hpp"
 #include "ui/view/ImageAnnotationLayer.hpp"
 #include "ui/view/LinkAnnotationLayer.hpp"
@@ -16,6 +17,7 @@
 #include "ui/view/FindController.hpp"
 #include "ui/view/PageOverlay.hpp"
 #include "ui/view/HoverHighlight.hpp"
+#include "ui/view/LoadingSpinner.hpp"
 #include "ui/view/DigitalSignatureLayer.hpp"
 #include "ui/view/SignaturePlacement.hpp"
 #include "ui/view/PageLayoutEngine.hpp"
@@ -24,6 +26,7 @@
 #include "ui/widgets/PasswordDialog.hpp"
 
 #include <QFile>
+#include <QEventLoop>
 #include <QFileInfo>
 
 #ifdef HAVE_QPDF
@@ -117,8 +120,7 @@ void DocumentView::clearDocument()
     m_layoutEngine->clearPages();
 
     m_imageLayer->clear();
-    m_linkLayer->clear();
-    m_noteLayer->clear();
+    m_annotations->start(0);
     m_drawingLayer->clear();
     for (PageOverlay *overlay : std::as_const(m_overlays))
         overlay->setDocument(QString());
@@ -146,7 +148,11 @@ bool DocumentView::openContent(const QString &path, const QString &suggestedPath
         setViewMode(ViewMode::Single);
 
 #ifdef HAVE_PDF_RENDERING
-    if (!m_src->open(path, askPassword())) return false;
+    m_spinner->showNow();
+    if (!m_src->open(path, askPassword())) {
+        m_spinner->setBusy(m_layoutEngine->busy());
+        return false;
+    }
 
     discardEditHistory();
 
@@ -164,8 +170,7 @@ bool DocumentView::openContent(const QString &path, const QString &suggestedPath
     m_dropHint->hide();
     m_layoutEngine->buildPages();
     m_find->documentChanged();
-    m_linkLayer->reload();
-    m_noteLayer->reload();
+    m_annotations->start(m_src->pageCount());
 
     QMetaObject::invokeMethod(this, [this]() { syncVisibleRect(); },
                               Qt::QueuedConnection);
@@ -262,8 +267,7 @@ bool DocumentView::saveToFile(const QString &path)
         m_src->open(reopenPath, nullptr);
     }
     resetContentProvider();
-    m_linkLayer->reload();
-    m_noteLayer->reload();
+    m_annotations->start(m_src->pageCount());
 
     for (PageOverlay *overlay : std::as_const(m_overlays))
         overlay->setDocument(m_src->contentPath());
@@ -303,24 +307,39 @@ QString DocumentView::stageDocument(const QString &path)
     const QString staging = SafeWrite::stagingPath(path);
     if (staging.isEmpty()) return {};
 
-    if (!backend->saveWithEdits(staging, *m_session)) {
-        SafeWrite::discard(staging);
-        return {};
-    }
-
-    for (PageOverlay *overlay : std::as_const(m_overlays)) {
-        if (overlay->writeTo(staging)) continue;
-        SafeWrite::discard(staging);
-        return {};
-    }
-
-    if (m_bookmarksDirty
-            && !BookmarkWriter::write(staging, m_bookmarks,
-                                      PdfPwStore::get(m_src->contentPath()))) {
+    if (!writeEditsAndWait(staging) || !finishStaging(staging)) {
         SafeWrite::discard(staging);
         return {};
     }
     return staging;
+}
+
+bool DocumentView::writeEditsAndWait(const QString &staging)
+{
+    // The worker writes while this loop keeps painting, so the spinner turns
+    // instead of the window freezing; input waits until the file is written.
+    bool written = false;
+    QEventLoop loop;
+    connect(m_src->worker(), &DocumentWorker::copyWritten, &loop,
+            [&](const QString &output, bool ok) {
+        if (output != staging) return;
+        written = ok;
+        loop.quit();
+    });
+    m_spinner->showNow();
+    m_src->worker()->writeCopy(staging, std::make_shared<EditSession>(*m_session));
+    loop.exec(QEventLoop::ExcludeUserInputEvents);
+    m_spinner->setBusy(m_layoutEngine->busy());
+    return written;
+}
+
+bool DocumentView::finishStaging(const QString &staging)
+{
+    for (PageOverlay *overlay : std::as_const(m_overlays))
+        if (!overlay->writeTo(staging)) return false;
+
+    return !m_bookmarksDirty
+        || BookmarkWriter::write(staging, m_bookmarks, PdfPwStore::get(m_src->contentPath()));
 }
 #endif
 
@@ -335,6 +354,34 @@ bool DocumentView::writeRecoveryCopy(const QString &path)
 #else
     Q_UNUSED(path)
     return false;
+#endif
+}
+
+void DocumentView::writeRecoveryCopyInBackground(const QString &path,
+                                                 const std::function<void(bool)> &done)
+{
+#ifdef HAVE_PDF_RENDERING
+    const bool usable = !path.isEmpty() && path != m_src->contentPath()
+                     && m_src->backend() && m_src->pageCount() > 0;
+    const QString staging = usable ? SafeWrite::stagingPath(path) : QString();
+    if (staging.isEmpty()) {
+        done(false);
+        return;
+    }
+
+    auto connection = std::make_shared<QMetaObject::Connection>();
+    *connection = connect(m_src->worker(), &DocumentWorker::copyWritten, this,
+                          [this, connection, path, staging, done](const QString &output, bool ok) {
+        if (output != staging) return;
+        disconnect(*connection);
+        ok = ok && finishStaging(staging);
+        if (!ok) SafeWrite::discard(staging);
+        done(ok && SafeWrite::commit(staging, path));
+    });
+    m_src->worker()->writeCopy(staging, std::make_shared<EditSession>(*m_session));
+#else
+    Q_UNUSED(path)
+    done(false);
 #endif
 }
 

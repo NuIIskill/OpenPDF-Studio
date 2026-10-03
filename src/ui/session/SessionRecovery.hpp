@@ -38,12 +38,16 @@ private:
         bool    stale     { false };
         qint64  changedAt { 0 };
         qint64  writtenAt { 0 };
+        QString writing;
     };
 
     void tick();
     void noteChange(DocumentView *view);
     void dropCopy(DocumentView *view);
-    bool writeContent(DocumentView *view, Copy &copy);
+    void writeContent(DocumentView *view, Copy &copy);
+    void contentWritten(DocumentView *view, const QString &path, bool fresh,
+                        qint64 changedAt, bool ok);
+    void writeRest(DocumentView *view, Copy &copy, qint64 changedAt);
     bool writeArchive(DocumentView *view, Copy &copy);
     void syncManifest();
 

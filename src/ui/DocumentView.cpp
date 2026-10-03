@@ -17,6 +17,7 @@
 #include "ui/view/FindController.hpp"
 #include "ui/view/PageLayoutEngine.hpp"
 #include "ui/view/PageOverlay.hpp"
+#include "ui/view/SmoothScroll.hpp"
 #include "ui/view/ZoomController.hpp"
 #include "ui/view/TextSelectionController.hpp"
 #include "ui/widgets/PasswordDialog.hpp"
@@ -69,15 +70,22 @@ void DocumentView::setZoom(int percent)
     m_zoomCtl->setZoom(percent);
 }
 
+void DocumentView::zoomSharply(int percent)
+{
+    m_zoomCtl->zoomSharply(percent);
+}
+
 void DocumentView::setZoomSettings(int step, bool ctrlWheel, bool toPointer,
                                    const QString &wheelAction)
 {
     m_zoomCtl->setSettings(step, ctrlWheel, toPointer, wheelAction);
+    m_layoutEngine->setZoomStep(step);
 }
 
 void DocumentView::wheelEvent(QWheelEvent *e)
 {
-    if (!m_zoomCtl->handleWheel(e)) QScrollArea::wheelEvent(e);
+    if (!m_zoomCtl->handleWheel(e) && !m_smoothScroll->handleWheel(e))
+        QScrollArea::wheelEvent(e);
 }
 
 void DocumentView::repositionForZoom()
@@ -112,6 +120,7 @@ void DocumentView::repositionEditorFrame()
         m_editorFrame->repositionForZoom(
             cb, qMax(1.0, m_edit.currentEditorRenderSizePt * scale),
             m_edit.currentBox, scale);
+        m_edit.syncBoundsFromFrame();
 
         m_edit.refreshLivePreview();
     });
@@ -375,6 +384,10 @@ QRect DocumentView::visibleCanvasRect() const
 
 void DocumentView::syncVisibleRect()
 {
+    if (m_viewMode == ViewMode::Grid) {
+        m_layoutEngine->setGridVisibleRect(QRect(-m_gridCanvas->pos(), viewport()->size()));
+        return;
+    }
     if (m_viewMode != ViewMode::Single) return;
     m_layoutEngine->setVisibleRect(visibleCanvasRect());
 }
@@ -435,6 +448,7 @@ void DocumentView::setViewMode(ViewMode mode)
 
         QMetaObject::invokeMethod(this, [this]() {
             m_layoutEngine->relayoutGrid(viewport()->width());
+            syncVisibleRect();
         }, Qt::QueuedConnection);
     } else {
         m_layoutEngine->clearGrid();
@@ -511,6 +525,7 @@ bool DocumentView::eventFilter(QObject *obj, QEvent *e)
                 if (m_editorFrame->isVisible() && m_editorFrame->geometry().contains(cvsPos))
                     return QScrollArea::eventFilter(obj, e);
 
+                if (!m_editorFrame->isVisible()) m_edit.lastCommittedPage = -1;
                 commitCurrentEdit(m_editorFrame->currentText());
 #endif
                 m_textDragStart = cvsPos;

@@ -35,14 +35,19 @@ void EditSession::removeAllAt(int page, const QRectF &pdfBounds)
     });
 }
 
-void EditSession::suspendEditsAt(int page, const QRectF &pdfBounds)
+void EditSession::suspendEditsAt(int page, const QRectF &pdfBounds, int blankPage,
+                                 const QRectF &blankBounds)
 {
     m_suspendedEdits.clear();
 
     QList<Edit> remaining;
-    for (const Edit &e : m_edits) {
-        if (e.page == page && e.pdfBounds == pdfBounds)
-            m_suspendedEdits.append(e);
+    for (int i = 0; i < m_edits.size(); ++i) {
+        const Edit &e = m_edits.at(i);
+        const bool edit  = e.page == page && e.pdfBounds == pdfBounds;
+        const bool blank = e.newText.isNull() && e.page == blankPage
+                        && e.pdfBounds == blankBounds;
+        if (edit || blank)
+            m_suspendedEdits.append({ i, e });
         else
             remaining.append(e);
     }
@@ -120,7 +125,8 @@ void EditSession::clearSuspended()
 void EditSession::restoreSuspended()
 {
 
-    m_edits = m_suspendedEdits + m_edits;
+    for (const auto &suspended : std::as_const(m_suspendedEdits))
+        m_edits.insert(qMin(suspended.first, int(m_edits.size())), suspended.second);
     m_suspendedEdits.clear();
 }
 

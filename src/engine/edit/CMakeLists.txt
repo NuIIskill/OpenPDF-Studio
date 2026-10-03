@@ -11,6 +11,6 @@ target_sources(OpenPDFStudio PRIVATE
     StandardFont.hpp
     TextBlock.hpp
     TextBoxProperties.hpp
-    TextWrap.cpp
-    TextWrap.hpp
+    TextLayout.cpp
+    TextLayout.hpp
 )

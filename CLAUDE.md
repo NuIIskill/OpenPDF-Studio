@@ -3,11 +3,14 @@
 Native Qt6 PDF viewer and editor: inline text editing, page organizer,
 annotations, OCR, export to PDF/DOCX/images.
 
+How the parts work together (startup, rendering, saving, crash recovery,
+modules) is described in [docs/architecture.md](docs/architecture.md). Keep it
+in step when one of those flows changes.
+
 ## Build
 
 ```bash
 ./build.sh                 # Release → build/OpenPDFStudio
-cd build && ctest          # unit tests
 ```
 
 PDFium is the PDF engine - the same build on Linux and Windows, fetched by
@@ -60,7 +63,7 @@ src/
     organizer/    the page organizer and the widgets only it uses
     history/      the change-log timeline
     session/      crash recovery: what was open and how to get it back
-    export/       the export dialog
+    export/       the export dialog, running an export, printing
     sign/         signing: the sign dialog and the digital signing flow
     widgets/      shared widgets only - see the rule below
   3rdparty/       vendored (nanosvg)
@@ -171,8 +174,5 @@ Every change must be recorded in `.claude/changes.txt`.
 
 ## Testing
 
-**Nothing test-related is committed.** `tests/` is gitignored, and the root
-`CMakeLists.txt` only builds it when it happens to be present locally. Test
-fixtures, sample documents, harness scripts and their output belong in
-`.claude/testing/` - also ignored. If you think a fixture needs to be
-versioned, ask first.
+Agents keep their tests, fixtures and output in `.claude/testing/`, which is
+ignored. If you think a fixture needs to be versioned, ask first.

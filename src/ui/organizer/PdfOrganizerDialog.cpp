@@ -34,7 +34,6 @@
 #include <algorithm>
 #include <memory>
 
-#include "ui/theme/Theme.hpp"
 #include "app/SafeWrite.hpp"
 #include "app/SessionStore.hpp"
 
@@ -102,114 +101,6 @@ void PdfOrganizerDialog::buildUi()
     root->addWidget(m_scroll, 1);
 
     root->addWidget(buildFooter());
-
-    setStyleSheet(Theme::DarkMode ? QStringLiteral(R"(
-QDialog { background: #2B2B2B; }
-QWidget#OrganizerGrid  { background: #2B2B2B; }
-QScrollArea#OrganizerScroll { background: #2B2B2B; border: none; }
-QScrollArea#OrganizerScroll > QWidget > QWidget { background: #2B2B2B; }
-QWidget#OrgToolbar  { background: #353535; border-bottom: 1px solid #484848; }
-QWidget#OrgInfoBar  { background: #1E3358; border-bottom: 1px solid #2B4870; }
-QWidget#OrgFooter   { background: #353535; border-top: 1px solid #484848; }
-QPushButton#OrgBtn  {
-    background: #404040; border: 1px solid #505050; border-radius: 6px;
-    color: #D8D8D8; font-size: 13px; padding: 3px 10px; icon-size: 16px;
-}
-QPushButton#OrgBtn:hover  { background: #4A4A4A; border-color: #606060; }
-QPushButton#OrgBtn:pressed { background: #555555; }
-QPushButton#OrgBtn:disabled { color: #6B6B6B; background: #3A3A3A; border-color: #484848; }
-QToolButton#OrgAddBtn {
-    background: #1E3358; border: 1px solid #2B4870; border-radius: 6px;
-    color: #93C5FD; font-size: 13px; font-weight: 600; padding: 3px 10px;
-    icon-size: 16px;
-}
-QToolButton#OrgAddBtn:hover { background: #24406B; border-color: #3B82F6; }
-QToolButton#OrgAddBtn:pressed { background: #2B4870; }
-QToolButton#OrgAddBtn::menu-button {
-    border-left: 1px solid #2B4870; width: 16px; border-radius: 0 6px 6px 0;
-}
-QToolButton#OrgAddBtn::menu-indicator {
-    width: 7px; height: 7px;
-    subcontrol-origin: padding; subcontrol-position: right center;
-}
-QPushButton#OrgDeleteBtn {
-    background: transparent; border: none; border-radius: 6px;
-    color: #F87171; font-size: 13px; padding: 3px 10px; icon-size: 16px;
-}
-QPushButton#OrgDeleteBtn:hover { background: #4A2B2B; }
-QPushButton#OrgDeleteBtn:pressed { background: #5A3030; }
-QPushButton#OrgDeleteBtn:disabled { color: #7F4A4A; }
-QPushButton#OrgSaveBtn {
-    background: #2563EB; border: none; border-radius: 6px;
-    color: white; font-size: 13px; font-weight: 600; padding: 4px 18px;
-}
-QPushButton#OrgSaveBtn:hover { background: #1D4ED8; }
-QPushButton#OrgSaveBtn:pressed { background: #1E40AF; }
-QScrollArea#OrganizerScroll QScrollBar:vertical {
-    background: transparent; width: 10px; margin: 0;
-}
-QScrollArea#OrganizerScroll QScrollBar::handle:vertical {
-    background: #555555; border-radius: 5px; min-height: 32px;
-}
-QScrollArea#OrganizerScroll QScrollBar::handle:vertical:hover { background: #666666; }
-QScrollArea#OrganizerScroll QScrollBar::add-line:vertical,
-QScrollArea#OrganizerScroll QScrollBar::sub-line:vertical { height: 0; }
-QScrollArea#OrganizerScroll QScrollBar::add-page:vertical,
-QScrollArea#OrganizerScroll QScrollBar::sub-page:vertical { background: transparent; }
-)") : QStringLiteral(R"(
-QDialog { background: #F8FAFC; }
-QWidget#OrganizerGrid  { background: #F8FAFC; }
-QScrollArea#OrganizerScroll { background: #F8FAFC; border: none; }
-QScrollArea#OrganizerScroll > QWidget > QWidget { background: #F8FAFC; }
-QWidget#OrgToolbar  { background: #FFFFFF; border-bottom: 1px solid #E5E7EB; }
-QWidget#OrgInfoBar  { background: #EFF6FF; border-bottom: 1px solid #BFDBFE; }
-QWidget#OrgFooter   { background: #FFFFFF; border-top: 1px solid #E5E7EB; }
-QPushButton#OrgBtn  {
-    background: #F9FAFB; border: 1px solid #E5E7EB; border-radius: 6px;
-    color: #374151; font-size: 13px; padding: 3px 10px; icon-size: 16px;
-}
-QPushButton#OrgBtn:hover  { background: #F3F4F6; border-color: #D1D5DB; }
-QPushButton#OrgBtn:pressed { background: #E5E7EB; }
-QPushButton#OrgBtn:disabled { color: #9CA3AF; background: #F9FAFB; border-color: #E5E7EB; }
-QToolButton#OrgAddBtn {
-    background: #EFF6FF; border: 1px solid #BFDBFE; border-radius: 6px;
-    color: #1D4ED8; font-size: 13px; font-weight: 600; padding: 3px 10px;
-    icon-size: 16px;
-}
-QToolButton#OrgAddBtn:hover { background: #DBEAFE; border-color: #93C5FD; }
-QToolButton#OrgAddBtn:pressed { background: #BFDBFE; }
-QToolButton#OrgAddBtn::menu-button {
-    border-left: 1px solid #BFDBFE; width: 16px; border-radius: 0 6px 6px 0;
-}
-QToolButton#OrgAddBtn::menu-indicator {
-    width: 7px; height: 7px;
-    subcontrol-origin: padding; subcontrol-position: right center;
-}
-QPushButton#OrgDeleteBtn {
-    background: transparent; border: none; border-radius: 6px;
-    color: #DC2626; font-size: 13px; padding: 3px 10px; icon-size: 16px;
-}
-QPushButton#OrgDeleteBtn:hover { background: #FEF2F2; }
-QPushButton#OrgDeleteBtn:pressed { background: #FEE2E2; }
-QPushButton#OrgDeleteBtn:disabled { color: #FCA5A5; }
-QPushButton#OrgSaveBtn {
-    background: #2563EB; border: none; border-radius: 6px;
-    color: white; font-size: 13px; font-weight: 600; padding: 4px 18px;
-}
-QPushButton#OrgSaveBtn:hover { background: #1D4ED8; }
-QPushButton#OrgSaveBtn:pressed { background: #1E40AF; }
-QScrollArea#OrganizerScroll QScrollBar:vertical {
-    background: transparent; width: 10px; margin: 0;
-}
-QScrollArea#OrganizerScroll QScrollBar::handle:vertical {
-    background: #CBD5E1; border-radius: 5px; min-height: 32px;
-}
-QScrollArea#OrganizerScroll QScrollBar::handle:vertical:hover { background: #94A3B8; }
-QScrollArea#OrganizerScroll QScrollBar::add-line:vertical,
-QScrollArea#OrganizerScroll QScrollBar::sub-line:vertical { height: 0; }
-QScrollArea#OrganizerScroll QScrollBar::add-page:vertical,
-QScrollArea#OrganizerScroll QScrollBar::sub-page:vertical { background: transparent; }
-)"));
 }
 
 QWidget *PdfOrganizerDialog::buildToolbar()
@@ -256,8 +147,7 @@ QWidget *PdfOrganizerDialog::buildToolbar()
         h->addSpacing(2);
         auto *s = new QWidget(bar);
         s->setFixedSize(1, 20);
-        s->setStyleSheet(Theme::DarkMode ? QStringLiteral("background:#484848;")
-                                         : QStringLiteral("background:#E5E7EB;"));
+        s->setObjectName(QStringLiteral("OrgSeparator"));
         h->addWidget(s, 0, Qt::AlignVCenter);
         h->addSpacing(2);
     };
@@ -319,25 +209,17 @@ QWidget *PdfOrganizerDialog::buildInfoBar()
     h->setContentsMargins(16, 0, 12, 0);
     h->setSpacing(8);
 
-    const bool dk = Theme::DarkMode;
-
     auto *ico = new QLabel(QStringLiteral("ℹ"), m_infoBar);
-    ico->setStyleSheet(QStringLiteral("color:%1; font-size:16px;")
-                           .arg(dk ? QLatin1String("#60A5FA") : QLatin1String("#2563EB")));
+    ico->setObjectName(QStringLiteral("OrgInfoIcon"));
     h->addWidget(ico);
 
     auto *txt = new QLabel(tr("Drag & drop pages to reorder"), m_infoBar);
-    txt->setStyleSheet(QStringLiteral("color:%1; font-size:13px;")
-                           .arg(dk ? QLatin1String("#93C5FD") : QLatin1String("#1D4ED8")));
+    txt->setObjectName(QStringLiteral("OrgInfoText"));
     h->addWidget(txt, 1);
 
     auto *close = new QPushButton(QStringLiteral("✕"), m_infoBar);
     close->setFixedSize(24, 24);
-    close->setStyleSheet(QStringLiteral(
-        "QPushButton { background:transparent; border:none; color:%1; font-size:12px; }"
-        "QPushButton:hover { color:%2; }")
-        .arg(dk ? QLatin1String("#60A5FA") : QLatin1String("#3B82F6"),
-             dk ? QLatin1String("#BFDBFE") : QLatin1String("#1D4ED8")));
+    close->setObjectName(QStringLiteral("OrgInfoClose"));
     connect(close, &QPushButton::clicked, m_infoBar, &QWidget::hide);
     h->addWidget(close);
 
@@ -355,8 +237,7 @@ QWidget *PdfOrganizerDialog::buildFooter()
     h->setSpacing(8);
 
     m_countLabel = new QLabel(QStringLiteral("📄 0 ") + tr("Pages"), footer);
-    m_countLabel->setStyleSheet(QStringLiteral("color:%1; font-size:13px;")
-        .arg(Theme::DarkMode ? QLatin1String("#D8D8D8") : QLatin1String("#374151")));
+    m_countLabel->setObjectName(QStringLiteral("OrgCountLabel"));
     h->addWidget(m_countLabel);
     h->addStretch(1);
 

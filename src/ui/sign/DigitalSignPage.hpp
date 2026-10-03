@@ -2,6 +2,7 @@
 
 #include "engine/sign/SignatureManager.hpp"
 #include "app/SignatureProfileStore.hpp"
+#include "ui/sign/ProfileCombo.hpp"
 #include "ui/sign/SignatureAppearanceDialog.hpp"
 
 #include <QWidget>
@@ -12,7 +13,6 @@ class QPushButton;
 QT_END_NAMESPACE
 
 class CertificateCombo;
-class ProfileCombo;
 class SignOption;
 
 /// The "Sign digitally" page: the certificate, the signing options and how the signature looks.
@@ -36,11 +36,13 @@ private:
     QWidget *buildCertificateRow();
     QWidget *buildAdvancedHeader();
     QWidget *buildAdvancedCard();
-    QWidget *buildAppearanceSection();
+    QWidget *buildProfileSection();
 
     void    loadProfiles(const QString &selectId);
-    void    onProfileActivated(int index);
+    void    selectProfile(const QString &id);
+    void    onProfileCommand(ProfileCombo::Command command);
     QString profileName(const SignatureProfileStore::Profile &profile) const;
+    SignatureProfileStore::Profile currentProfile() const;
 
     void    loadCertificates();
     void    loadCertificates(const QString &selectId);
@@ -48,13 +50,11 @@ private:
     void    showCertificateMenu(int index, const QPoint &globalPos);
     void    deleteCertificate(int index);
     void    updateDeleteButton();
-    void    configureAppearance();
     QString certificateName() const;
 
     QList<Certificate> m_certs;
     bool               m_loaded { false };
     QList<SignatureProfileStore::Profile> m_profiles;
-    int                m_currentProfile { 0 };
     int                m_currentCert { -1 };
 
     CertificateCombo *m_certCombo     { nullptr };
@@ -63,5 +63,4 @@ private:
     QWidget          *m_advancedCard  { nullptr };
     QLabel           *m_chevron       { nullptr };
     SignOption       *m_invisible     { nullptr };
-    QPushButton      *m_appearanceBtn { nullptr };
 };

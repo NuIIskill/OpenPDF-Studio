@@ -180,7 +180,6 @@ QFrame *FormatBar::makeSep(QWidget *parent)
     sep->setFrameShape(QFrame::VLine);
     sep->setFixedSize(1, 32);
     sep->setObjectName(QStringLiteral("FormatBarSeparator"));
-    sep->setStyleSheet(QStringLiteral("background:#E5E7EB; border:none;"));
     return sep;
 }
 
@@ -193,10 +192,6 @@ QPushButton *FormatBar::makeFmtBtn(const QIcon &icon, QWidget *parent)
     btn->setIcon(icon);
     btn->setIconSize({16, 16});
     btn->setProperty("formatButton", true);
-    btn->setStyleSheet(QStringLiteral(
-        "QPushButton { background:#FFFFFF; border:1px solid #D1D5DB; border-radius:5px; }"
-        "QPushButton:checked { background:#EFF6FF; border-color:#BFDBFE; }"
-        "QPushButton:hover:!checked { background:#F3F4F6; }"));
     return btn;
 }
 
@@ -210,10 +205,6 @@ QPushButton *FormatBar::makeAlignBtn(const QString & , const QString & ,
     btn->setToolTip(tip);
     btn->setIconSize({16, 16});
     btn->setProperty("alignButton", true);
-    btn->setStyleSheet(QStringLiteral(
-        "QPushButton { background:transparent; border:none; border-radius:5px; }"
-        "QPushButton:checked { background:#EFF6FF; }"
-        "QPushButton:hover:!checked { background:#F3F4F6; }"));
     return btn;
 }
 
@@ -229,9 +220,6 @@ static QWidget *makeGroup(const QString &label, QLayout *controls, QWidget *pare
     lbl->setProperty("formatLabel", true);
     lbl->setMinimumHeight(13);
     lbl->setMaximumHeight(18);
-    lbl->setStyleSheet(QStringLiteral(
-        "font-size:9px; font-weight:600; color:#9CA3AF;"
-        " letter-spacing:0.2px; padding:0 0 1px 0;"));
     vl->addWidget(lbl);
     if (outLabel) *outLabel = lbl;
 
@@ -248,8 +236,6 @@ FormatBar::FormatBar(QWidget *parent) : QFrame(parent)
     setObjectName(QStringLiteral("FormatBar"));
     setFixedHeight(60);
     setFrameShape(QFrame::NoFrame);
-    setStyleSheet(QStringLiteral(
-        "QFrame#FormatBar { background:#FFFFFF; border-bottom:1px solid #E5E7EB; }"));
 
     auto *h = new QHBoxLayout(this);
     h->setContentsMargins(16, 6, 16, 6);
@@ -263,13 +249,6 @@ FormatBar::FormatBar(QWidget *parent) : QFrame(parent)
         m_fontFamily->setCurrentFont(QFont(QStringLiteral("Noto Sans")));
         m_fontFamily->setFixedWidth(192);
         m_fontFamily->setFixedHeight(30);
-        m_fontFamily->setStyleSheet(QStringLiteral(
-            "QFontComboBox { border:1px solid #D1D5DB; border-radius:6px;"
-            "  padding-left:8px; padding-right:0px; font-size:12px; background:white; color:#111827; }"
-            "QFontComboBox::drop-down { border-left:1px solid #D1D5DB; width:24px;"
-            "  subcontrol-origin:border; subcontrol-position:right center; background:transparent; }"
-            "QFontComboBox::down-arrow { image:url(:/icons/chevron-down.svg); width:12px; height:12px; }"
-            "QFontComboBox:focus { border-color:#6366F1; outline:none; }"));
         connect(m_fontFamily, &QFontComboBox::currentFontChanged, this,
                 [this](const QFont &f) { Q_EMIT fontFamilyChanged(f.family()); });
         auto *hl = new QHBoxLayout();
@@ -289,13 +268,6 @@ FormatBar::FormatBar(QWidget *parent) : QFrame(parent)
         m_fontSize->setEditable(true);
         m_fontSize->setFixedWidth(66);
         m_fontSize->setFixedHeight(30);
-        m_fontSize->setStyleSheet(QStringLiteral(
-            "QComboBox { border:1px solid #D1D5DB; border-radius:6px;"
-            "  padding-left:6px; padding-right:0px; font-size:12px; background:white; color:#111827; }"
-            "QComboBox::drop-down { border-left:1px solid #D1D5DB; width:22px;"
-            "  subcontrol-origin:border; subcontrol-position:right center; background:transparent; }"
-            "QComboBox::down-arrow { image:url(:/icons/chevron-down.svg); width:12px; height:12px; }"
-            "QComboBox:focus { border-color:#6366F1; }"));
         connect(m_fontSize, &QComboBox::currentTextChanged, this, [this](const QString &t) {
             bool ok; const int pt = t.toInt(&ok);
             if (ok && pt >= 4 && pt <= 400) {
@@ -349,10 +321,6 @@ FormatBar::FormatBar(QWidget *parent) : QFrame(parent)
         m_color->setFlat(true);
         m_color->setFixedSize(44, 30);
         m_color->setToolTip(tr("Color"));
-        m_color->setStyleSheet(QStringLiteral(
-            "QPushButton { background:transparent; border:none; border-radius:5px;"
-            "  font-size:12px; color:#111827; }"
-            "QPushButton:hover { background:#F3F4F6; }"));
         updateColorSwatch(Qt::black);
         connect(m_color, &QPushButton::clicked, this, [this]() {
             const QColor c = QColorDialog::getColor(m_currentColor, this, tr("Choose text color"));
@@ -412,12 +380,6 @@ FormatBar::FormatBar(QWidget *parent) : QFrame(parent)
     h->addSpacing(10);
 
     {
-        const QString btnStyle = QStringLiteral(
-            "QPushButton { background:transparent; border:1px solid #D1D5DB;"
-            "  border-radius:5px; color:#374151; font-size:11px; padding:0 4px; }"
-            "QPushButton:hover { background:#F3F4F6; border-color:#9CA3AF; }"
-            "QPushButton:pressed { background:#E5E7EB; }");
-
         m_list = new QPushButton(this);
         m_list->setFixedSize(36, 30);
         m_list->setToolTip(tr("List"));
@@ -425,7 +387,6 @@ FormatBar::FormatBar(QWidget *parent) : QFrame(parent)
         m_list->setIconSize({14, 14});
         m_list->setText(QStringLiteral(" ▾"));
         m_list->setProperty("menuButton", true);
-        m_list->setStyleSheet(btnStyle);
 
         m_indent = new QPushButton(this);
         m_indent->setFixedSize(36, 30);
@@ -434,7 +395,6 @@ FormatBar::FormatBar(QWidget *parent) : QFrame(parent)
         m_indent->setIconSize({14, 14});
         m_indent->setText(QStringLiteral(" ▾"));
         m_indent->setProperty("menuButton", true);
-        m_indent->setStyleSheet(btnStyle);
 
         auto *listMenu = new QMenu(m_list);
         listMenu->setObjectName(QStringLiteral("FormatBarMenu"));
@@ -475,12 +435,6 @@ FormatBar::FormatBar(QWidget *parent) : QFrame(parent)
         m_spacing->setCurrentIndex(2);
         m_spacing->setFixedWidth(68);
         m_spacing->setFixedHeight(30);
-        m_spacing->setStyleSheet(QStringLiteral(
-            "QComboBox { border:1px solid #D1D5DB; border-radius:6px;"
-            "  padding-left:6px; padding-right:0px; font-size:12px; background:white; color:#111827; }"
-            "QComboBox::drop-down { border-left:1px solid #D1D5DB; width:22px;"
-            "  subcontrol-origin:border; subcontrol-position:right center; background:transparent; }"
-            "QComboBox::down-arrow { image:url(:/icons/chevron-down.svg); width:12px; height:12px; }"));
         connect(m_spacing, &QComboBox::currentIndexChanged, this, [this](int index) {
             static constexpr double values[] = {1.0, 1.15, 1.5, 2.0};
             if (index >= 0 && index < 4) Q_EMIT lineSpacingChanged(values[index]);
@@ -512,9 +466,6 @@ FormatBar::FormatBar(QWidget *parent) : QFrame(parent)
 
     h->addStretch(1);
 
-    setStyleSheet({});
-    for (QWidget *child : findChildren<QWidget *>())
-        child->setStyleSheet({});
     refreshTheme();
 }
 

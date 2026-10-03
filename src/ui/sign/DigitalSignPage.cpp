@@ -92,7 +92,7 @@ DigitalSignPage::DigitalSignPage(QWidget *parent)
     vl->addWidget(buildCertificateRow());
     vl->addSpacing(2);
     vl->addWidget(divider());
-    vl->addWidget(buildAppearanceSection());
+    vl->addWidget(buildProfileSection());
     vl->addSpacing(2);
     vl->addWidget(divider());
     vl->addWidget(buildAdvancedHeader());
@@ -190,7 +190,6 @@ QWidget *DigitalSignPage::buildAdvancedCard()
                                  tr("Sign the document without a visible signature."));
     connect(m_invisible, &SignOption::toggled, this, [this](bool invisible) {
         m_profileCombo->setEnabled(!invisible);
-        m_appearanceBtn->setEnabled(!invisible);
         Q_EMIT changed();
     });
 
@@ -202,38 +201,21 @@ QWidget *DigitalSignPage::buildAdvancedCard()
     return card;
 }
 
-QWidget *DigitalSignPage::buildAppearanceSection()
+QWidget *DigitalSignPage::buildProfileSection()
 {
     auto *section = new QWidget;
     auto *vl = new QVBoxLayout(section);
-    vl->setContentsMargins(0, 4, 0, 0);
+    vl->setContentsMargins(0, 4, 0, 4);
     vl->setSpacing(8);
 
-    auto *title = new QLabel(tr("Signature appearance"));
+    auto *title = new QLabel(tr("Profile"));
     title->setObjectName(QStringLiteral("SAdvTitle"));
     vl->addWidget(title);
 
     m_profileCombo = new ProfileCombo;
-    connect(m_profileCombo, &QComboBox::activated, this, &DigitalSignPage::onProfileActivated);
-    auto *profileRow = new QHBoxLayout;
-    profileRow->setSpacing(16);
-    profileRow->addWidget(new QLabel(tr("Profile")));
-    profileRow->addWidget(m_profileCombo, 1);
-    vl->addLayout(profileRow);
-
-    m_appearanceBtn = new QPushButton(tr("Customize appearance..."));
-    m_appearanceBtn->setObjectName(QStringLiteral("SAppearance"));
-    m_appearanceBtn->setCursor(Qt::PointingHandCursor);
-    m_appearanceBtn->setFixedHeight(40);
-    m_appearanceBtn->setIcon(Theme::makeIcon(QStringLiteral("pencil"), Theme::IconNormal,
-                                             Theme::IconNormal, Theme::IconDisabled, 18));
-    m_appearanceBtn->setIconSize(QSize(18, 18));
-    connect(m_appearanceBtn, &QPushButton::clicked, this, &DigitalSignPage::configureAppearance);
-    auto *buttonRow = new QHBoxLayout;
-    buttonRow->addWidget(m_appearanceBtn, 2);
-    buttonRow->addStretch(1);
-    vl->addLayout(buttonRow);
-    vl->addWidget(mutedLabel(tr("Customize how the signature looks in the document.")));
+    connect(m_profileCombo, &ProfileCombo::profileChosen, this, &DigitalSignPage::selectProfile);
+    connect(m_profileCombo, &ProfileCombo::commandChosen, this, &DigitalSignPage::onProfileCommand);
+    vl->addWidget(m_profileCombo);
 
     loadProfiles(SignatureProfileStore::selected());
     return section;
@@ -242,46 +224,72 @@ QWidget *DigitalSignPage::buildAppearanceSection()
 QString DigitalSignPage::profileName(const SignatureProfileStore::Profile &profile) const
 {
     if (!profile.name.isEmpty()) return profile.name;
-    return profile.id == SignatureProfileStore::kStandardId ? tr("Standard") : tr("Unnamed profile");
+    return profile.id == SignatureProfileStore::kStandardId ? tr("Default") : tr("Unnamed profile");
 }
 
 void DigitalSignPage::loadProfiles(const QString &selectId)
 {
     m_profiles = SignatureProfileStore::list();
-    const QSignalBlocker block(m_profileCombo);
-    m_profileCombo->clear();
-    int select = 0;
-    for (int i = 0; i < m_profiles.size(); ++i) {
-        m_profileCombo->addProfile(m_profiles[i].id, profileName(m_profiles[i]),
-                                   m_profiles[i].showLogo ? m_profiles[i].logo : QImage());
-        if (m_profiles[i].id == selectId) select = i;
+    QList<ProfileCombo::Entry> entries;
+    QString current = SignatureProfileStore::kStandardId;
+    for (const SignatureProfileStore::Profile &p : std::as_const(m_profiles)) {
+        entries.append({ p.id, profileName(p), p.showLogo ? p.logo : QImage() });
+        if (p.id == selectId) current = p.id;
     }
-    m_profileCombo->addNewEntry(tr("New profile..."));
-    m_profileCombo->setCurrentIndex(select);
-    m_currentProfile = select;
+    m_profileCombo->setProfiles(entries, current, current != SignatureProfileStore::kStandardId);
 }
 
-void DigitalSignPage::onProfileActivated(int index)
+SignatureProfileStore::Profile DigitalSignPage::currentProfile() const
 {
-    if (!m_profileCombo->isNewEntry(index)) {
-        m_currentProfile = index;
-        SignatureProfileStore::setSelected(m_profiles[index].id);
-        return;
-    }
-    {
-        const QSignalBlocker block(m_profileCombo);
-        m_profileCombo->setCurrentIndex(m_currentProfile);
-    }
-    SignatureProfileStore::Profile profile;
-    SignatureAppearanceDialog dlg(toAppearance(profile), QString(), certificateName(), false, this);
-    if (dlg.exec() != QDialog::Accepted) return;
-    applyAppearance(profile, dlg.appearance());
-    profile.name = dlg.profileName().isEmpty()
-        ? tr("Profile %1").arg(m_profiles.size() + 1) : dlg.profileName();
-    const QString id = SignatureProfileStore::save(profile);
-    if (id.isEmpty()) return;
+    const QString id = m_profileCombo->currentId();
+    for (const SignatureProfileStore::Profile &p : m_profiles)
+        if (p.id == id) return p;
+    return m_profiles.value(0);
+}
+
+void DigitalSignPage::selectProfile(const QString &id)
+{
     SignatureProfileStore::setSelected(id);
     loadProfiles(id);
+}
+
+void DigitalSignPage::onProfileCommand(ProfileCombo::Command command)
+{
+    SignatureProfileStore::Profile profile = currentProfile();
+    switch (command) {
+    case ProfileCombo::Command::New:
+    case ProfileCombo::Command::Edit: {
+        const bool isNew = command == ProfileCombo::Command::New;
+        if (isNew) profile = {};
+        SignatureAppearanceDialog dlg(toAppearance(profile), isNew ? QString() : profileName(profile),
+                                      certificateName(), isNew, this);
+        if (dlg.exec() != QDialog::Accepted) return;
+        applyAppearance(profile, dlg.appearance());
+        profile.name = dlg.profileName();
+        if (profile.name.isEmpty() && isNew) profile.name = tr("Profile %1").arg(m_profiles.size() + 1);
+        const QString id = SignatureProfileStore::save(profile);
+        if (!id.isEmpty()) selectProfile(id);
+        break;
+    }
+    case ProfileCombo::Command::Duplicate: {
+        const QString name = profileName(profile);
+        profile.id.clear();
+        profile.created = {};
+        profile.name = tr("%1 (copy)").arg(name);
+        const QString id = SignatureProfileStore::save(profile);
+        if (!id.isEmpty()) selectProfile(id);
+        break;
+    }
+    case ProfileCombo::Command::Delete:
+        if (profile.id == SignatureProfileStore::kStandardId) return;
+        if (QMessageBox::question(this, tr("Delete profile"),
+                                  tr("Delete the profile \"%1\"?").arg(profileName(profile)))
+                != QMessageBox::Yes)
+            return;
+        SignatureProfileStore::remove(profile.id);
+        selectProfile(SignatureProfileStore::kStandardId);
+        break;
+    }
 }
 
 void DigitalSignPage::loadCertificatesOnce()
@@ -331,26 +339,6 @@ QString DigitalSignPage::certificateName() const
 {
     const int index = m_certCombo->currentIndex();
     return index >= 0 && index < m_certs.size() ? m_certs[index].subject : QString();
-}
-
-void DigitalSignPage::configureAppearance()
-{
-    SignatureProfileStore::Profile profile = m_profiles.value(m_currentProfile);
-    const bool deletable = profile.id != SignatureProfileStore::kStandardId;
-    SignatureAppearanceDialog dlg(toAppearance(profile), profileName(profile), certificateName(),
-                                  deletable, this);
-    const int result = dlg.exec();
-    if (result == SignatureAppearanceDialog::Deleted) {
-        SignatureProfileStore::remove(profile.id);
-        SignatureProfileStore::setSelected(SignatureProfileStore::kStandardId);
-        loadProfiles(SignatureProfileStore::kStandardId);
-        return;
-    }
-    if (result != QDialog::Accepted) return;
-    applyAppearance(profile, dlg.appearance());
-    profile.name = dlg.profileName();
-    const QString id = SignatureProfileStore::save(profile);
-    if (!id.isEmpty()) loadProfiles(id);
 }
 
 bool DigitalSignPage::isReady() const
@@ -443,7 +431,7 @@ SignRequest DigitalSignPage::signRequest() const
 
 SignatureAppearance DigitalSignPage::appearance() const
 {
-    SignatureAppearance look = toAppearance(m_profiles.value(m_currentProfile));
+    SignatureAppearance look = toAppearance(currentProfile());
     if (look.name.isEmpty())   look.name = certificateName();
     if (look.reason.isEmpty()) look.reason = SignatureAppearanceDialog::reasons().first();
     return look;

@@ -53,6 +53,8 @@ private:
     void updateCounter();
     void updateOverlays();
     void positionPanel();
+    void startSearch(const QString &needle);
+    void addMatches(int search, int page, const QList<QRectF> &rects);
 
     PageCanvas    *m_canvas   { nullptr };
     QWidget       *m_viewport { nullptr };
@@ -66,6 +68,9 @@ private:
     IconButton    *m_next     { nullptr };
     IconButton    *m_close    { nullptr };
     QTimer        *m_timer    { nullptr };
+    QTimer        *m_overlayTimer { nullptr };
+    int            m_search { 0 };
+    bool           m_searching { false };
 
     QList<Match>   m_matches;
     QList<QWidget *> m_overlays;

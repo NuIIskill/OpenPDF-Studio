@@ -1,14 +1,16 @@
 #include "ui/edit/InlineEditor.hpp"
 
 #include "engine/edit/StandardFont.hpp"
-#include "engine/edit/TextWrap.hpp"
 
 #include <QApplication>
 #include <QDebug>
 #include <QPainter>
 #include <QAbstractTextDocumentLayout>
+#include <QFontMetricsF>
 #include <QKeyEvent>
 #include <QFocusEvent>
+#include <QScrollBar>
+#include <QSet>
 #include <QWheelEvent>
 #include <QTextBlock>
 #include <QTextLayout>
@@ -19,6 +21,8 @@
 #include <QGraphicsOpacityEffect>
 #include <QTimer>
 
+#include <cmath>
+#include <limits>
 #include <utility>
 
 InlineEditor::InlineEditor(QWidget *parent)
@@ -44,6 +48,10 @@ InlineEditor::InlineEditor(QWidget *parent)
         viewport()->update();
     });
     m_caretTimer->start();
+    for (QScrollBar *bar : { horizontalScrollBar(), verticalScrollBar() })
+        connect(bar, &QScrollBar::valueChanged, this, [this, bar](int value) {
+            if (value != 0 && usesEngineLayout()) bar->setValue(0);
+        });
     connect(this, &QTextEdit::textChanged, this, [this]() {
         const QString jetzt = toPlainText();
         if (jetzt != m_lastText && !m_caretPinned) {
@@ -51,9 +59,18 @@ InlineEditor::InlineEditor(QWidget *parent)
             m_caretTimer->start();
         }
         m_lastText = jetzt;
+        relayout();
         Q_EMIT changed(jetzt);
         QTimer::singleShot(0, this, &InlineEditor::updateVerticalAlignment);
     });
+    connect(this, &QTextEdit::cursorPositionChanged, this, [this]() {
+        if (usesEngineLayout()) viewport()->update();
+    });
+}
+
+bool InlineEditor::usesEngineLayout() const
+{
+    return !m_glyphs && m_source;
 }
 
 void InlineEditor::applyStyle()
@@ -68,7 +85,7 @@ void InlineEditor::applyStyle()
     for (const QString &k : std::as_const(kandidaten))
         zitiert << QStringLiteral("'%1'").arg(k);
     const QString familyList = zitiert.join(QStringLiteral(", "));
-    const qreal pad = qMax(0.0, m_box.paddingPt * m_scale);
+    const qreal pad = usesEngineLayout() ? 0.0 : qMax(0.0, m_box.paddingPt * m_scale);
     const qreal tracking = m_box.characterSpacingPt * m_scale;
     QFont doc = styledFont(m_currentFontPx);
     if (!qFuzzyIsNull(tracking))
@@ -106,6 +123,7 @@ void InlineEditor::applyStyle()
 
 void InlineEditor::applyParagraphSpacing()
 {
+    if (usesEngineLayout()) return;
     const qreal spacing = qMax(0.0, m_box.paragraphSpacingPt * m_scale);
     QTextCursor cursor(document());
     cursor.beginEditBlock();
@@ -154,13 +172,14 @@ void InlineEditor::setBoxProperties(const TextBoxProperties &properties, qreal s
     applyParagraphSpacing();
     if (auto *effect = qobject_cast<QGraphicsOpacityEffect *>(graphicsEffect()))
         effect->setOpacity(qBound(0.0, m_box.opacity, 1.0));
+    relayout();
     QTimer::singleShot(0, this, &InlineEditor::updateVerticalAlignment);
 }
 
 void InlineEditor::updateVerticalAlignment()
 {
     int extra = 0;
-    if (m_box.verticalAlign != TextBoxProperties::VerticalAlign::Top) {
+    if (!usesEngineLayout() && m_box.verticalAlign != TextBoxProperties::VerticalAlign::Top) {
         const int content = qCeil(document()->documentLayout()->documentSize().height());
         const int free = qMax(0, height() - content);
         extra = m_box.verticalAlign == TextBoxProperties::VerticalAlign::Center
@@ -173,6 +192,12 @@ void InlineEditor::resizeEvent(QResizeEvent *e)
 {
     QTextEdit::resizeEvent(e);
     QTimer::singleShot(0, this, &InlineEditor::updateVerticalAlignment);
+}
+
+void InlineEditor::scrollContentsBy(int dx, int dy)
+{
+    if (usesEngineLayout()) return;
+    QTextEdit::scrollContentsBy(dx, dy);
 }
 
 QFont InlineEditor::styledFont(qreal pixelFontSize) const
@@ -196,37 +221,178 @@ QFont InlineEditor::styledFont(qreal pixelFontSize) const
     return f;
 }
 
+void InlineEditor::refreshMetrics()
+{
+    const QString text = plainText();
+    if (!m_metricsStale && text == m_metricsText) return;
+    const QList<uint> points = text.toUcs4();
+    QSet<uint> characters(points.cbegin(), points.cend());
+    if (m_metricsStale || characters != m_metricsCharacters)
+        m_metrics = m_source ? m_source(text) : TextLayout::Metrics();
+    m_metricsText       = text;
+    m_metricsCharacters = std::move(characters);
+    m_metricsStale      = false;
+}
+
+void InlineEditor::relayout()
+{
+    m_lines.clear();
+    if (!usesEngineLayout()) return;
+    refreshMetrics();
+    if (!m_metrics.isValid()) return;
+
+    const double size = m_metrics.sizePt;
+    TextLayout::Params params;
+    params.lineStepPt         = TextLayout::lineStep(size, m_lineSpacingPt);
+    params.paragraphSpacingPt = m_box.paragraphSpacingPt;
+    params.charSpacingPt      = m_box.characterSpacingPt;
+    params.list               = m_box.listStyle;
+    params.align              = m_box.horizontalAlign;
+    const TextLayout::Result result = TextLayout::layout(
+        m_metricsText, params, m_box, QRectF(m_metrics.boxTopLeft, m_boundsPt), size,
+        m_wraps, m_hasAnchor, m_anchorPt, m_metrics.originals,
+        [this](char32_t cp) { return m_metrics.advance(cp); });
+    m_lines  = result.lines;
+    m_origin = result.firstBaseline;
+    viewport()->update();
+}
+
+void InlineEditor::setMetricsSource(MetricsSource source)
+{
+    m_source = std::move(source);
+    m_metricsStale = true;
+    if (usesEngineLayout()) setLineWrapMode(QTextEdit::NoWrap);
+    applyStyle();
+    relayout();
+}
+
+void InlineEditor::invalidateMetrics()
+{
+    m_metricsStale = true;
+    relayout();
+}
+
+void InlineEditor::setLayoutBox(const QSizeF &boundsPt, bool wraps)
+{
+    m_boundsPt = boundsPt;
+    m_wraps    = wraps;
+    if (usesEngineLayout()) setLineWrapMode(QTextEdit::NoWrap);
+    else setLineWrapMode(wraps ? QTextEdit::WidgetWidth : QTextEdit::NoWrap);
+    relayout();
+}
+
+void InlineEditor::setPixelOffset(const QPointF &offset)
+{
+    if (offset == m_pixelOffset) return;
+    m_pixelOffset = offset;
+    viewport()->update();
+}
+
+void InlineEditor::setTextAnchor(bool valid, const QPointF &penOffsetPt)
+{
+    m_hasAnchor = valid;
+    m_anchorPt  = penOffsetPt;
+    relayout();
+}
+
+int InlineEditor::lineOf(int position) const
+{
+    int best = 0;
+    for (int i = 0; i < m_lines.size(); ++i) {
+        if (m_lines.at(i).start > position) break;
+        best = i;
+    }
+    return best;
+}
+
+double InlineEditor::advanceTo(const TextLayout::Line &line, int position) const
+{
+    return TextLayout::xAt(line, m_metricsText, position, m_box.characterSpacingPt,
+                           [this](char32_t cp) { return m_metrics.advance(cp); });
+}
+
+QPointF InlineEditor::caretPointPt(int position) const
+{
+    if (m_lines.isEmpty()) return m_origin;
+    const TextLayout::Line &line = m_lines.at(lineOf(position));
+    return QPointF(m_origin.x() + line.x + advanceTo(line, position),
+                   m_origin.y() + line.y);
+}
+
+QRectF InlineEditor::caretRectPx(int position) const
+{
+    const QPointF p = caretPointPt(position) * m_scale + m_pixelOffset;
+    const double sizePx = m_metrics.sizePt * m_scale;
+    return QRectF(p.x(), p.y() - sizePx * 0.85, qMax(1.0, sizePx / 11.0), sizePx * 1.1);
+}
+
+int InlineEditor::positionOnLine(int lineIndex, double xPt) const
+{
+    if (lineIndex < 0 || lineIndex >= m_lines.size()) return textCursor().position();
+    const TextLayout::Line &line = m_lines.at(lineIndex);
+    const int end = line.start + line.length;
+    int best = line.start;
+    double bestDistance = std::abs(xPt);
+    for (int i = line.start; i < end;) {
+        i += m_metricsText.at(i).isHighSurrogate() && i + 1 < end ? 2 : 1;
+        const double d = std::abs(advanceTo(line, i) - xPt);
+        if (d < bestDistance) { bestDistance = d; best = i; }
+    }
+    return best;
+}
+
+int InlineEditor::positionAt(const QPoint &viewportPos) const
+{
+    if (m_lines.isEmpty()) return textCursor().position();
+    const double yPt = (viewportPos.y() - m_pixelOffset.y()) / m_scale;
+    const double size = m_metrics.sizePt;
+    int lineIndex = 0;
+    double bestDistance = std::numeric_limits<double>::max();
+    for (int i = 0; i < m_lines.size(); ++i) {
+        const double d = std::abs(yPt - (m_origin.y() + m_lines.at(i).y - size * 0.3));
+        if (d < bestDistance) { bestDistance = d; lineIndex = i; }
+    }
+    const TextLayout::Line &line = m_lines.at(lineIndex);
+    return positionOnLine(lineIndex, (viewportPos.x() - m_pixelOffset.x()) / m_scale
+                                         - m_origin.x() - line.x);
+}
+
+void InlineEditor::moveCursorTo(int position, bool keepAnchor)
+{
+    QTextCursor c = textCursor();
+    c.setPosition(qBound(0, position, document()->characterCount() - 1),
+                  keepAnchor ? QTextCursor::KeepAnchor : QTextCursor::MoveAnchor);
+    setTextCursor(c);
+    m_caretOn = true;
+    if (!m_caretPinned) m_caretTimer->start();
+    viewport()->update();
+}
+
 void InlineEditor::paintEvent(QPaintEvent *e)
 {
     QTextEdit::paintEvent(e);
-    if (!m_glyphs && m_advance) {
-        QPainter auswahl(viewport());
-        paintSelection(auswahl);
-    }
-
-    if (m_glyphs || !m_caretOn || (!hasFocus() && !m_caretPinned)) return;
-
-    QRect caret = cursorRect();
-
-    const QTextCursor c = textCursor();
-    const QTextBlock blk = c.block();
-    if (const QTextLayout *layout = blk.layout()) {
-        const QTextLine line = layout->lineForTextPosition(c.positionInBlock());
-        if (line.isValid()) {
-            const qreal x = engineX(blk, line, c.positionInBlock());
-            if (x >= 0.0) caret.moveLeft(qRound(x));
-        }
-    }
-    caret.setWidth(qMax(1, qRound(m_currentFontPx / 11.0)));
-
-    caret.moveLeft(qBound(0, caret.left(),
-                          qMax(0, viewport()->width() - caret.width())));
+    if (!usesEngineLayout() || m_lines.isEmpty()) return;
     QPainter p(viewport());
-    p.fillRect(caret, m_currentColor.isValid() ? m_currentColor : QColor(Qt::black));
+    paintSelection(p);
+    if (m_caretOn && (hasFocus() || m_caretPinned)) paintCaret(p);
+}
+
+void InlineEditor::paintCaret(QPainter &p) const
+{
+    p.fillRect(caretRectPx(textCursor().position()),
+               m_currentColor.isValid() ? m_currentColor : QColor(Qt::black));
+}
+
+QString InlineEditor::plainText() const
+{
+    return toPlainText();
 }
 
 QString InlineEditor::laidOutText() const
 {
+    if (usesEngineLayout())
+        return m_lines.isEmpty() ? plainText()
+                                 : TextLayout::withSoftBreaks(plainText(), m_lines);
 
     (void)document()->size();
     QString out;
@@ -248,12 +414,41 @@ QString InlineEditor::laidOutText() const
 
 qreal InlineEditor::firstBaselineOffset() const
 {
+    if (usesEngineLayout() && m_metrics.isValid()) return m_origin.y() * m_scale;
     const QTextBlock block = document()->firstBlock();
     if (block.isValid() && block.layout() && block.layout()->lineCount() > 0) {
         const QTextLine line = block.layout()->lineAt(0);
         return block.layout()->position().y() + line.y() + line.ascent();
     }
     return QFontMetricsF(styledFont(m_currentFontPx)).ascent();
+}
+
+double InlineEditor::contentWidthPt() const
+{
+    if (usesEngineLayout() && m_metrics.isValid()) {
+        double width = 0.0;
+        for (const TextLayout::Line &line : m_lines)
+            width = qMax(width, m_origin.x() + line.x + line.width);
+        return width + m_box.paddingPt;
+    }
+    qreal breit = 0.0;
+    const QFontMetricsF fm(styledFont(m_currentFontPx));
+    for (QTextBlock b = document()->begin(); b.isValid(); b = b.next())
+        breit = qMax(breit, fm.horizontalAdvance(b.text()) / qMax(0.01, m_scale));
+    return breit;
+}
+
+double InlineEditor::contentHeightPt() const
+{
+    if (usesEngineLayout() && m_metrics.isValid()) {
+        const double size = m_metrics.sizePt;
+        const bool anchored = m_hasAnchor && qFuzzyIsNull(m_box.paddingPt)
+                           && m_box.verticalAlign == TextBoxProperties::VerticalAlign::Top;
+        const double first = anchored ? m_anchorPt.y() : m_box.paddingPt + size * 0.8;
+        const double last  = m_lines.isEmpty() ? 0.0 : m_lines.constLast().y;
+        return first + last + size * 0.3 + m_box.paddingPt;
+    }
+    return document()->size().height() / qMax(0.01, m_scale);
 }
 
 void InlineEditor::present(const QString &text, qreal pixelFontSize, const QColor &color,
@@ -266,10 +461,13 @@ void InlineEditor::present(const QString &text, qreal pixelFontSize, const QColo
     m_bold          = bold;
     m_italic        = italic;
     m_underline     = underline;
+    m_metricsStale  = true;
+    m_goalXPt       = -1.0;
     applyStyle();
-    setPlainText(text);
+    setPlainText(TextLayout::withoutSoftBreaks(text));
     applyParagraphSpacing();
     moveCursor(QTextCursor::End);
+    relayout();
     show();
 }
 
@@ -284,19 +482,6 @@ void InlineEditor::setFontSizeF(qreal pixelFontSize)
     applyStyle();
 }
 
-qreal InlineEditor::engineX(const QTextBlock &block, const QTextLine &line,
-                            int posInBlock) const
-{
-    if (!m_advance) return -1.0;
-    QTextCursor anfang(document());
-    anfang.setPosition(block.position() + line.textStart());
-    const double breite = advancePt(
-        QStringView(block.text()).mid(line.textStart(),
-                                      posInBlock - line.textStart()));
-    if (breite < 0.0) return -1.0;
-    return cursorRect(anfang).left() + breite * m_scale;
-}
-
 void InlineEditor::paintSelection(QPainter &p) const
 {
     const QTextCursor c = textCursor();
@@ -305,24 +490,15 @@ void InlineEditor::paintSelection(QPainter &p) const
     const int bis = qMax(c.anchor(), c.position());
     p.setPen(Qt::NoPen);
     p.setBrush(QColor(59, 130, 246, 38));
-    for (QTextBlock block = document()->findBlock(von);
-         block.isValid() && block.position() <= bis; block = block.next()) {
-        const QTextLayout *layout = block.layout();
-        if (!layout) continue;
-        for (int i = 0; i < layout->lineCount(); ++i) {
-            const QTextLine line = layout->lineAt(i);
-            const int start = block.position() + line.textStart();
-            const int ende  = start + line.textLength();
-            const int a = qMax(von, start), b = qMin(bis, ende);
-            if (a >= b) continue;
-            const qreal x0 = engineX(block, line, a - block.position());
-            const qreal x1 = engineX(block, line, b - block.position());
-            if (x0 < 0.0 || x1 <= x0) continue;
-            QTextCursor at(document());
-            at.setPosition(start);
-            const QRect zeile = cursorRect(at);
-            p.drawRect(QRectF(x0, zeile.top(), x1 - x0, zeile.height()));
-        }
+    const double sizePx = m_metrics.sizePt * m_scale;
+    for (const TextLayout::Line &line : m_lines) {
+        const int a = qMax(von, line.start);
+        const int b = qMin(bis, line.start + line.length);
+        if (a >= b) continue;
+        const double x0 = (m_origin.x() + line.x + advanceTo(line, a)) * m_scale + m_pixelOffset.x();
+        const double x1 = (m_origin.x() + line.x + advanceTo(line, b)) * m_scale + m_pixelOffset.x();
+        const double baseline = (m_origin.y() + line.y) * m_scale + m_pixelOffset.y();
+        p.drawRect(QRectF(x0, baseline - sizePx * 0.85, x1 - x0, sizePx * 1.1));
     }
 }
 
@@ -330,66 +506,6 @@ qreal InlineEditor::screenDpi() const
 {
     const qreal dpi = logicalDpiY();
     return dpi > 1.0 ? dpi : 96.0;
-}
-
-qreal InlineEditor::contentWidthPt() const
-{
-    qreal breit = 0.0;
-    for (QTextBlock b = document()->begin(); b.isValid(); b = b.next()) {
-        const QString zeile = b.text();
-        if (zeile.isEmpty()) continue;
-        double w = advancePt(zeile);
-        if (w < 0.0) {
-            w = QFontMetricsF(styledFont(m_currentFontPx)).horizontalAdvance(zeile)
-                / qMax(0.01, m_scale);
-        }
-        breit = qMax(breit, w);
-    }
-    return breit;
-}
-
-void InlineEditor::setAdvanceMeasure(std::function<double(const QString &)> measure)
-{
-    m_advance = std::move(measure);
-    m_charWidth.clear();
-    viewport()->update();
-}
-
-double InlineEditor::advancePt(QStringView text) const
-{
-    if (!m_advance) return -1.0;
-    double breite = 0.0;
-    for (const QChar ch : text) {
-        const double w = charWidth(ch);
-        if (w < 0.0) return -1.0;
-        breite += w;
-    }
-    return breite;
-}
-
-double InlineEditor::charWidth(QChar ch) const
-{
-    if (!m_advance) return -1.0;
-    const uint cp = ch.unicode();
-    auto it = m_charWidth.constFind(cp);
-    if (it == m_charWidth.cend())
-        it = m_charWidth.insert(cp, m_advance(QString(ch)));
-    return *it;
-}
-
-int InlineEditor::engineLineCount(qreal widthPt) const
-{
-    if (!m_advance || widthPt <= 0.0) return -1;
-    int zeilen = 0;
-    for (QTextBlock block = document()->begin(); block.isValid();
-         block = block.next()) {
-        const QString text = block.text();
-        if (advancePt(text) < 0.0) return -1;
-        zeilen += TextWrap::lines(text, widthPt,
-                                  [this](QChar ch) { return charWidth(ch); },
-                                  m_box.characterSpacingPt).size();
-    }
-    return qMax(1, zeilen);
 }
 
 void InlineEditor::setCaretVisible(bool on)
@@ -405,6 +521,7 @@ void InlineEditor::setLineSpacingPt(qreal pt)
     if (qFuzzyCompare(m_lineSpacingPt + 1.0, pt + 1.0)) return;
     m_lineSpacingPt = qMax(0.0, pt);
     applyParagraphSpacing();
+    relayout();
 }
 
 void InlineEditor::setGlyphsVisible(bool on)
@@ -412,6 +529,7 @@ void InlineEditor::setGlyphsVisible(bool on)
     if (m_glyphs == on) return;
     m_glyphs = on;
     applyStyle();
+    relayout();
 }
 
 void InlineEditor::setColor(const QColor &color)
@@ -438,52 +556,40 @@ void InlineEditor::setTextFont(const QString &family, bool bold, bool italic,
     applyStyle();
 }
 
-int InlineEditor::positionAt(const QPoint &viewportPos) const
-{
-    const QTextCursor grob = cursorForPosition(viewportPos);
-    const QTextBlock blk = grob.block();
-    const QTextLayout *layout = blk.layout();
-    if (!m_advance || !layout) return grob.position();
-    const QTextLine line = layout->lineForTextPosition(grob.positionInBlock());
-    if (!line.isValid()) return grob.position();
-
-    QTextCursor anfang(document());
-    anfang.setPosition(blk.position() + line.textStart());
-    const double x0 = cursorRect(anfang).left();
-
-    const QStringView zeile = QStringView(blk.text())
-                                  .mid(line.textStart(), line.textLength());
-    int    beste   = 0;
-    double abstand = qAbs(x0 - viewportPos.x());
-    double breite  = 0.0;
-    for (int i = 0; i < zeile.size(); ++i) {
-        const double w = advancePt(zeile.mid(i, 1));
-        if (w < 0.0) return grob.position();
-        breite += w;
-        const double d = qAbs(x0 + breite * m_scale - viewportPos.x());
-        if (d < abstand) { abstand = d; beste = i + 1; }
-    }
-    return blk.position() + line.textStart() + beste;
-}
-
 void InlineEditor::mousePressEvent(QMouseEvent *e)
 {
     QTextEdit::mousePressEvent(e);
-    if (m_glyphs || !m_advance || e->button() != Qt::LeftButton) return;
-    QTextCursor c = textCursor();
-    c.setPosition(positionAt(e->position().toPoint()),
-                  e->modifiers() & Qt::ShiftModifier ? QTextCursor::KeepAnchor
-                                                     : QTextCursor::MoveAnchor);
-    setTextCursor(c);
+    if (!usesEngineLayout() || e->button() != Qt::LeftButton) return;
+    m_goalXPt = -1.0;
+    moveCursorTo(positionAt(e->position().toPoint()),
+                 e->modifiers() & Qt::ShiftModifier);
 }
 
 void InlineEditor::mouseMoveEvent(QMouseEvent *e)
 {
     QTextEdit::mouseMoveEvent(e);
-    if (m_glyphs || !m_advance || !(e->buttons() & Qt::LeftButton)) return;
-    QTextCursor c = textCursor();
-    c.setPosition(positionAt(e->position().toPoint()), QTextCursor::KeepAnchor);
+    if (!usesEngineLayout() || !(e->buttons() & Qt::LeftButton)) return;
+    moveCursorTo(positionAt(e->position().toPoint()), true);
+}
+
+void InlineEditor::mouseDoubleClickEvent(QMouseEvent *e)
+{
+    if (!usesEngineLayout() || e->button() != Qt::LeftButton) {
+        QTextEdit::mouseDoubleClickEvent(e);
+        return;
+    }
+    QTextCursor c(document());
+    c.setPosition(positionAt(e->position().toPoint()));
+    c.select(QTextCursor::WordUnderCursor);
     setTextCursor(c);
+    viewport()->update();
+}
+
+QVariant InlineEditor::inputMethodQuery(Qt::InputMethodQuery query) const
+{
+    if (usesEngineLayout() && query == Qt::ImCursorRectangle)
+        return caretRectPx(textCursor().position()).translated(viewport()->pos());
+    return QTextEdit::inputMethodQuery(query);
 }
 
 void InlineEditor::keyPressEvent(QKeyEvent *e)
@@ -505,6 +611,41 @@ void InlineEditor::keyPressEvent(QKeyEvent *e)
             return;
         }
     }
+
+    const bool plainMove = !(e->modifiers() & ~(Qt::ShiftModifier | Qt::KeypadModifier));
+    if (usesEngineLayout() && !m_lines.isEmpty() && plainMove) {
+        const bool keep = e->modifiers() & Qt::ShiftModifier;
+        const int position = textCursor().position();
+        const int lineIndex = lineOf(position);
+        const TextLayout::Line line = m_lines.at(lineIndex);
+        switch (e->key()) {
+        case Qt::Key_Up:
+        case Qt::Key_Down: {
+            if (m_goalXPt < 0.0) m_goalXPt = caretPointPt(position).x();
+            const double goal = m_goalXPt;
+            const int target = lineIndex + (e->key() == Qt::Key_Up ? -1 : 1);
+            if (target < 0) moveCursorTo(0, keep);
+            else if (target >= m_lines.size())
+                moveCursorTo(document()->characterCount() - 1, keep);
+            else
+                moveCursorTo(positionOnLine(target, goal - m_origin.x() - m_lines.at(target).x),
+                             keep);
+            m_goalXPt = goal;
+            return;
+        }
+        case Qt::Key_Home:
+            m_goalXPt = -1.0;
+            moveCursorTo(line.start, keep);
+            return;
+        case Qt::Key_End:
+            m_goalXPt = -1.0;
+            moveCursorTo(line.start + line.length, keep);
+            return;
+        default:
+            break;
+        }
+    }
+    m_goalXPt = -1.0;
     QTextEdit::keyPressEvent(e);
 }
 

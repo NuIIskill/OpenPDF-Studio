@@ -5,7 +5,7 @@ edit the text that is already in it, reorder its pages, annotate it, play and
 embed media, and export it to PDF, Word or PNG. Word, OpenDocument and image
 files open as well, converted in process. One application, no web stack.
 
-Current version: **0.2.9**, early alpha. Work on copies of important documents
+Current version: **0.2.9**, alpha. Work on copies of important documents
 and check exported files with a second PDF viewer.
 
 ## Licensing

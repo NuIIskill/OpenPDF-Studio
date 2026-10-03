@@ -12,8 +12,6 @@ project(OpenPDFStudio
     LANGUAGES CXX
 )
 
-include(CTest)
-
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
@@ -318,12 +316,6 @@ install(FILES resources/icons/openpdf-studio.png
     DESTINATION share/icons/hicolor/256x256/apps
     OPTIONAL
 )
-
-# tests/ is not part of the repository. Built only when it happens to be
-# present locally, so a clone without it still configures.
-if(BUILD_TESTING AND EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/tests/CMakeLists.txt")
-    add_subdirectory(tests)
-endif()
 
 install(FILES packaging/appimage/README.md
     DESTINATION share/doc/OpenPDFStudio

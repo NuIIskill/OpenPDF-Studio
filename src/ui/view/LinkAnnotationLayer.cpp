@@ -64,28 +64,24 @@ void LinkAnnotationLayer::setSource(PdfBackend *backend, EditSession *session,
 }
 #endif
 
-void LinkAnnotationLayer::reload()
-{
-    clear();
 #ifdef HAVE_PDF_RENDERING
-    if (!m_backend) return;
-    for (int page = 0; page < m_canvas->pageCount(); ++page) {
-        for (const PdfBackend::Link &link : m_backend->pageLinks(page)) {
-            Entry entry;
-            entry.page           = page;
-            entry.originalBounds = link.bounds;
-            entry.bounds         = link.bounds;
-            entry.originalUrl    = link.url;
-            entry.url            = link.url;
-            entry.textRects      = link.textRects;
-            entry.existing       = true;
-            entry.colorText      = link.styledByOpenPdf;
-            addEntry(std::move(entry), false);
-        }
+void LinkAnnotationLayer::addPage(int page, const QList<PdfBackend::Link> &links)
+{
+    for (const PdfBackend::Link &link : links) {
+        Entry entry;
+        entry.page           = page;
+        entry.originalBounds = link.bounds;
+        entry.bounds         = link.bounds;
+        entry.originalUrl    = link.url;
+        entry.url            = link.url;
+        entry.textRects      = link.textRects;
+        entry.existing       = true;
+        entry.colorText      = link.styledByOpenPdf;
+        addEntry(std::move(entry), false);
     }
-    relayout();
-#endif
+    if (!links.isEmpty()) relayout();
 }
+#endif
 
 void LinkAnnotationLayer::clear()
 {
@@ -218,6 +214,7 @@ void LinkAnnotationLayer::showContextMenu(QFrame *widget, const QPoint &globalPo
     if (chosen == edit) {
         const QString url = askForUrl(m_entries.at(index).url);
         if (url.isEmpty()) return;
+        if (m_beforeChange) m_beforeChange();
         const QList<State> before = state();
         const int page = m_entries.at(index).page;
         m_entries[index].url = url;
@@ -228,6 +225,7 @@ void LinkAnnotationLayer::showContextMenu(QFrame *widget, const QPoint &globalPo
         return;
     }
     if (chosen == remove) {
+        if (m_beforeChange) m_beforeChange();
         const QList<State> before = state();
         const int page = m_entries.at(index).page;
         const bool recolor = m_entries.at(index).colorText;
@@ -267,6 +265,7 @@ bool LinkAnnotationLayer::addSelection(
     if (!m_session) return false;
     const QString url = askForUrl();
     if (url.isEmpty()) return false;
+    if (m_beforeChange) m_beforeChange();
     const QList<State> before = state();
 
     QList<int> pages;
@@ -319,6 +318,7 @@ void LinkAnnotationLayer::addInRect(const QRect &canvasRect)
 
     const QRect rect = canvasRect.normalized().intersected(label->geometry());
     if (rect.width() < 10 || rect.height() < 8) return;
+    if (m_beforeChange) m_beforeChange();
     const QList<State> before = state();
     const qreal scale = m_canvas->screenScale();
 

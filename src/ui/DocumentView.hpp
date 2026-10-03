@@ -24,6 +24,8 @@ struct SignatureAppearance;
 class ImageAnnotationLayer;
 class SignaturePlacement;
 class LinkAnnotationLayer;
+class AnnotationLoader;
+class LoadingSpinner;
 class NoteLayer;
 class DrawingLayer;
 class PageOverlay;
@@ -31,6 +33,7 @@ class PageLayoutEngine;
 class HoverHighlight;
 class FindController;
 class TextSelectionController;
+class SmoothScroll;
 class ZoomController;
 
 #include "engine/historymanager/DocumentJournal.hpp"
@@ -73,6 +76,7 @@ public:
                            const QString &suggestedPath = QString());
     void   clearDocument();
     void   setZoom(int percent);
+    void   zoomSharply(int percent);
     void   setZoomSettings(int step, bool ctrlWheel, bool toPointer,
                            const QString &wheelAction);
     void   setTool(Tool tool);
@@ -82,6 +86,8 @@ public:
     void   setViewMode(ViewMode mode);
     bool   saveToFile(const QString &path);
     bool   writeRecoveryCopy(const QString &path);
+    void   writeRecoveryCopyInBackground(const QString &path,
+                                         const std::function<void(bool)> &done);
     void   retranslateUi();
     void   refreshTheme();
 
@@ -274,6 +280,8 @@ private:
     DigitalSignatureLayer *m_signatureLayer { nullptr };
     LinkAnnotationLayer  *m_linkLayer  { nullptr };
     NoteLayer            *m_noteLayer  { nullptr };
+    AnnotationLoader     *m_annotations { nullptr };
+    LoadingSpinner       *m_spinner    { nullptr };
     DrawingLayer         *m_drawingLayer { nullptr };
 
     HoverHighlight *m_hover { nullptr };
@@ -295,6 +303,7 @@ private:
     bool    m_editMode  { false };
 
     ZoomController *m_zoomCtl { nullptr };
+    SmoothScroll   *m_smoothScroll { nullptr };
 
     QPoint m_panStart;
     QPoint m_panScrollOrigin;
@@ -318,6 +327,8 @@ private:
     void discardEditHistory();
 
     QString stageDocument(const QString &path);
+    bool    writeEditsAndWait(const QString &staging);
+    bool    finishStaging(const QString &staging);
 
     bool detachSourceFrom(const QString &saveTarget);
     bool hasEditsBesideSignatures() const;

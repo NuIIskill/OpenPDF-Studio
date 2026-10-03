@@ -9,6 +9,7 @@
 #include <QString>
 
 #include "engine/edit/TextBoxProperties.hpp"
+#include "engine/edit/TextLayout.hpp"
 
 class DocumentSource;
 class QUndoStack;
@@ -68,6 +69,7 @@ public:
     void setLineSpacing(double multiplier);
 
     void clampToPdfPage(int page, QRectF &r) const;
+    bool styleUnchanged(int page) const;
 
 #ifdef HAVE_PDF_RENDERING
 
@@ -109,9 +111,17 @@ public:
 
     bool    activeEditInPlace { false };
     QString activeEditOriginalText;
+    QString activeEditOriginalPlain;
+    QList<TextLayout::OriginalLine> activeEditOriginalLines;
+    bool    activeEditMovedByUser { false };
 
     QString activeEditPdfText;
 
+    int     activeEditPresentedPage { -1 };
+    QString activeEditPresentedFamily;
+    bool    activeEditPresentedBold      { false };
+    bool    activeEditPresentedItalic    { false };
+    bool    activeEditPresentedUnderline { false };
     QRectF  activeEditPresentedBounds;
     double  activeEditPresentedFontSizePt { 0.0 };
     QColor  activeEditPresentedColor;
@@ -148,6 +158,9 @@ public:
 #endif
 
 private:
+    int    m_metricsPage { -1 };
+    QRectF m_metricsBounds;
+    bool   m_refreshingMetrics { false };
 #ifdef HAVE_PDF_RENDERING
 
     struct EditOpen;

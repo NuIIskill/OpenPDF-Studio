@@ -12,18 +12,16 @@ QT_END_NAMESPACE
 
 class SignOption;
 
-/// Edits what a visible digital signature shows, with a preview of the stamp.
+/// Creates or edits a signature profile: what the visible signature shows, with a preview.
 class SignatureAppearanceDialog : public QDialog
 {
     Q_OBJECT
 
 public:
-    static constexpr int Deleted = 2;
-
     static QStringList reasons();
 
     SignatureAppearanceDialog(const SignatureAppearance &appearance, const QString &profileName,
-                              const QString &defaultName, bool deletable,
+                              const QString &defaultName, bool isNew,
                               QWidget *parent = nullptr);
 
     SignatureAppearance appearance() const;
@@ -34,8 +32,7 @@ private:
     QWidget *buildOptions(const SignatureAppearance &appearance);
     QWidget *buildLogoRow();
     QWidget *buildPreview();
-    QWidget *buildButtons(bool deletable);
-    void confirmDelete();
+    QWidget *buildButtons();
 
     void chooseLogo();
     void updatePreview();

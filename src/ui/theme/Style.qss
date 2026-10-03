@@ -818,13 +818,14 @@ QFrame#TextPanel QSlider::handle:horizontal { background:#3B82F6; width:14px; he
 
 /* ── Text FormatBar ─────────────────────────────────────── */
 QFrame#FormatBar { background:#FFFFFF; border-bottom:1px solid #E5E7EB; }
-QFrame#FormatBar QLabel[formatLabel="true"] { color:#9CA3AF; font-size:9px; font-weight:600; padding-bottom:1px; }
+QFrame#FormatBar QLabel[formatLabel="true"] { color:#9CA3AF; font-size:9px; font-weight:600; letter-spacing:0.2px; padding-bottom:1px; }
 QFrame#FormatBar QFrame#FormatBarSeparator { background:#E5E7EB; border:none; }
 QFrame#FormatBar QComboBox#FormatBarCombo,
 QFrame#FormatBar QFontComboBox#FormatBarCombo {
     background:#FFFFFF; color:#111827; border:1px solid #D1D5DB;
     border-radius:6px; padding-left:8px;
 }
+QFrame#FormatBar QComboBox#FormatBarCombo:!editable { font-size:12px; }
 QFrame#FormatBar QComboBox#FormatBarCombo:hover,
 QFrame#FormatBar QFontComboBox#FormatBarCombo:hover { border-color:#9CA3AF; }
 QFrame#FormatBar QComboBox#FormatBarCombo:focus,
@@ -870,3 +871,116 @@ QFrame#DrawBar QPushButton[drawChoice="true"]:checked {
 QFrame#DrawBar QPushButton[drawColor="true"]:checked {
     background:#EFF6FF; border:2px solid #2563EB; border-radius:9px;
 }
+
+/* ── History dialog ────────────────────────────────────── */
+HistoryDialog,
+HistoryDialog QDialog { background: #FFFFFF; }
+QLabel#HistoryHeadline { color: #111827; font-size: 17px; font-weight: 700; }
+QLabel#HistorySubtitle { color: #6B7280; font-size: 13px; }
+QScrollArea#HistoryScroll { background: #FFFFFF; border: none; }
+QWidget#HistoryList { background: #FFFFFF; }
+QScrollArea#HistoryScroll > QWidget > QWidget { background: #FFFFFF; }
+QFrame#HistoryRow { background: transparent; border: none; border-radius: 10px; }
+QFrame#HistoryRow:hover { background: #F9FAFB; }
+QFrame#HistoryRow[selected="true"] { background: #EFF6FF; }
+QLabel#HistoryMarker {
+    background: #FFFFFF; border: 2px solid #E5E7EB; border-radius: 15px;
+    color: #6B7280; font-size: 12px; font-weight: 700;
+}
+QLabel#HistoryMarker[selected="true"] {
+    background: #2563EB; border-color: #2563EB; color: #FFFFFF;
+}
+QLabel#HistoryTime   { color: #6B7280; font-size: 12px; }
+QLabel#HistoryTitle  { color: #111827; font-size: 14px; font-weight: 600; }
+QLabel#HistoryDetail { color: #6B7280; font-size: 12px; }
+QToolButton#HistoryMenuBtn { background: transparent; border: none; border-radius: 6px; }
+QToolButton#HistoryMenuBtn:hover { background: #F3F4F6; }
+QPushButton#HistoryBtn {
+    background: #FFFFFF; border: 1px solid #E5E7EB; border-radius: 8px;
+    color: #374151; font-size: 13px; padding: 8px 12px; icon-size: 16px;
+}
+QPushButton#HistoryBtn:hover  { background: #F9FAFB; border-color: #CBD5E1; }
+QPushButton#HistoryBtn:pressed { background: #F3F4F6; }
+QPushButton#HistoryBtn:disabled { color: #9CA3AF; background: #F9FAFB; border-color: #F3F4F6; }
+QPushButton#HistoryClearBtn {
+    background: transparent; border: none; border-radius: 8px;
+    color: #DC2626; font-size: 13px; padding: 8px 12px; icon-size: 16px;
+}
+QPushButton#HistoryClearBtn:hover { background: #FEF2F2; }
+QPushButton#HistoryClearBtn:disabled { color: #FCA5A5; }
+QPushButton#HistoryCloseBtn {
+    background: #2563EB; border: none; border-radius: 8px;
+    color: white; font-size: 13px; font-weight: 600; padding: 9px 26px;
+}
+QPushButton#HistoryCloseBtn:hover { background: #1D4ED8; }
+QPushButton#HistoryCloseBtn:pressed { background: #1E40AF; }
+QScrollArea#HistoryScroll QScrollBar:vertical {
+    background: transparent; width: 10px; margin: 0;
+}
+QScrollArea#HistoryScroll QScrollBar::handle:vertical {
+    background: #D1D5DB; border-radius: 5px; min-height: 32px;
+}
+QScrollArea#HistoryScroll QScrollBar::handle:vertical:hover { background: #9CA3AF; }
+QScrollArea#HistoryScroll QScrollBar::add-line:vertical,
+QScrollArea#HistoryScroll QScrollBar::sub-line:vertical { height: 0; }
+
+/* ── Page organizer ────────────────────────────────────── */
+PdfOrganizerDialog,
+PdfOrganizerDialog QDialog { background: #F8FAFC; }
+QWidget#OrganizerGrid  { background: #F8FAFC; }
+QScrollArea#OrganizerScroll { background: #F8FAFC; border: none; }
+QScrollArea#OrganizerScroll > QWidget > QWidget { background: #F8FAFC; }
+QWidget#OrgToolbar  { background: #FFFFFF; border-bottom: 1px solid #E5E7EB; }
+QWidget#OrgInfoBar  { background: #EFF6FF; border-bottom: 1px solid #BFDBFE; }
+QWidget#OrgFooter   { background: #FFFFFF; border-top: 1px solid #E5E7EB; }
+QPushButton#OrgBtn  {
+    background: #F9FAFB; border: 1px solid #E5E7EB; border-radius: 6px;
+    color: #374151; font-size: 13px; padding: 3px 10px; icon-size: 16px;
+}
+QPushButton#OrgBtn:hover  { background: #F3F4F6; border-color: #D1D5DB; }
+QPushButton#OrgBtn:pressed { background: #E5E7EB; }
+QPushButton#OrgBtn:disabled { color: #9CA3AF; background: #F9FAFB; border-color: #E5E7EB; }
+QToolButton#OrgAddBtn {
+    background: #EFF6FF; border: 1px solid #BFDBFE; border-radius: 6px;
+    color: #1D4ED8; font-size: 13px; font-weight: 600; padding: 3px 10px;
+    icon-size: 16px;
+}
+QToolButton#OrgAddBtn:hover { background: #DBEAFE; border-color: #93C5FD; }
+QToolButton#OrgAddBtn:pressed { background: #BFDBFE; }
+QToolButton#OrgAddBtn::menu-button {
+    border-left: 1px solid #BFDBFE; width: 16px; border-radius: 0 6px 6px 0;
+}
+QToolButton#OrgAddBtn::menu-indicator {
+    width: 7px; height: 7px;
+    subcontrol-origin: padding; subcontrol-position: right center;
+}
+QPushButton#OrgDeleteBtn {
+    background: transparent; border: none; border-radius: 6px;
+    color: #DC2626; font-size: 13px; padding: 3px 10px; icon-size: 16px;
+}
+QPushButton#OrgDeleteBtn:hover { background: #FEF2F2; }
+QPushButton#OrgDeleteBtn:pressed { background: #FEE2E2; }
+QPushButton#OrgDeleteBtn:disabled { color: #FCA5A5; }
+QPushButton#OrgSaveBtn {
+    background: #2563EB; border: none; border-radius: 6px;
+    color: white; font-size: 13px; font-weight: 600; padding: 4px 18px;
+}
+QPushButton#OrgSaveBtn:hover { background: #1D4ED8; }
+QPushButton#OrgSaveBtn:pressed { background: #1E40AF; }
+QScrollArea#OrganizerScroll QScrollBar:vertical {
+    background: transparent; width: 10px; margin: 0;
+}
+QScrollArea#OrganizerScroll QScrollBar::handle:vertical {
+    background: #CBD5E1; border-radius: 5px; min-height: 32px;
+}
+QScrollArea#OrganizerScroll QScrollBar::handle:vertical:hover { background: #94A3B8; }
+QScrollArea#OrganizerScroll QScrollBar::add-line:vertical,
+QScrollArea#OrganizerScroll QScrollBar::sub-line:vertical { height: 0; }
+QScrollArea#OrganizerScroll QScrollBar::add-page:vertical,
+QScrollArea#OrganizerScroll QScrollBar::sub-page:vertical { background: transparent; }
+QWidget#OrgSeparator { background:#E5E7EB; }
+QLabel#OrgInfoIcon { color:#2563EB; font-size:16px; }
+QLabel#OrgInfoText { color:#1D4ED8; font-size:13px; }
+QPushButton#OrgInfoClose { background:transparent; border:none; color:#3B82F6; font-size:12px; }
+QPushButton#OrgInfoClose:hover { color:#1D4ED8; }
+QLabel#OrgCountLabel { color:#374151; font-size:13px; }

@@ -27,6 +27,7 @@ public:
     QSize  pageDisplaySize(int page, int zoomPercent) const;
     QImage renderPage(int page, qreal scale,
                       const EditSession *session = nullptr) const;
+    PdfBackend *backend() const { return m_backend; }
 
 private:
     PdfBackend *m_backend;

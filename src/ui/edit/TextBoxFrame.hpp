@@ -11,6 +11,7 @@ class QTimer;
 QT_END_NAMESPACE
 
 #include "engine/edit/TextBoxProperties.hpp"
+#include "engine/edit/TextLayout.hpp"
 
 class InlineEditor;
 
@@ -25,7 +26,8 @@ public:
     void setGlyphsVisible(bool on);
     void setStandardFace(bool on);
     void setLineSpacingPt(qreal pt);
-    void setAdvanceMeasure(std::function<double(const QString &)> measure);
+    void setMetricsSource(std::function<TextLayout::Metrics(const QString &)> source);
+    void invalidateMetrics();
     void present(const QString &text, const QRectF &canvasBounds, qreal fontSize,
                  const QColor &color = QColor(0x11, 0x11, 0x11),
                  const QString &fontFamily = QString(),
@@ -45,6 +47,7 @@ public:
     void setPageRect(const QRect &pageRect);
     void resetCommitGuard();
     QString currentText() const;
+    QString plainText() const;
 
     QRectF innerCanvasRect() const;
 
@@ -67,7 +70,7 @@ protected:
     void mouseMoveEvent(QMouseEvent *) override;
     void mouseReleaseEvent(QMouseEvent *) override;
     void resizeEvent(QResizeEvent *) override;
-    void moveEvent(QMoveEvent *) override;
+    void moveEvent(QMoveEvent *e) override;
 
 private:
     static constexpr int kH   = 8;
@@ -81,10 +84,12 @@ private:
     int    handleSize() const;
     void   layoutEditor();
     void   applyBoxSize();
+    void   keepInsidePage();
 
     qreal  freieBreitePt() const;
+    qreal  freieHoehePt() const;
 
-    qreal  textBreitePt(qreal boxBreitePt) const;
+    void   syncLayoutBox();
 
     static int minInnerHeight(qreal fontPixelSize);
 
@@ -101,6 +106,8 @@ private:
     TextBoxProperties m_box;
     qreal         m_scale { 1.0 };
     QSizeF        m_boxPt;
+    QPointF       m_innerTopLeft;
+    bool          m_hasInnerTopLeft { false };
 
     bool          m_userSized { false };
     QPointF       m_anchorPt;

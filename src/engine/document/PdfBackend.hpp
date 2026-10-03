@@ -3,11 +3,14 @@
 #ifdef HAVE_PDF_RENDERING
 
 #include "engine/document/PdfBookmark.hpp"
+#include "engine/edit/EditSession.hpp"
 #include "engine/edit/TextBlock.hpp"
+#include "engine/edit/TextLayout.hpp"
 
 #include <QImage>
 #include <QList>
 #include <QPointF>
+#include <QRect>
 #include <QRectF>
 #include <QSize>
 #include <QSizeF>
@@ -18,7 +21,6 @@
 #include <optional>
 
 class ContentProvider;
-class EditSession;
 
 /// Defines document operations for one open PDF.
 class PdfBackend
@@ -73,10 +75,29 @@ public:
     virtual QImage renderPage(int page, qreal scale,
                               const EditSession *session) const;
 
+    virtual QImage renderPageInBackground(int page, qreal scale, const EditSession *session,
+                                          const std::function<bool()> &cancelled,
+                                          const QRect &area = {}, quint64 state = 0) const
+    {
+        Q_UNUSED(cancelled) Q_UNUSED(state)
+        const QImage image = renderPage(page, scale, session);
+        return area.isEmpty() ? image : image.copy(area);
+    }
+
+    /// A render of the part of a page that differs from the unedited page.
+    struct AreaRender {
+        QImage image;
+        QRect  pixels;
+        QRect  changed;
+    };
+
+    virtual AreaRender renderChanges(int page, qreal scale, const EditSession *session,
+                                     const QRect &include, bool wholePage) const;
+
     virtual std::unique_ptr<ContentProvider> makeContentProvider() const = 0;
 
-    virtual bool saveWithEdits(const QString &outputPath,
-                               const EditSession &session) const = 0;
+    virtual bool saveWithEdits(const QString &outputPath, const EditSession &session,
+                               const std::function<bool()> &cancelled = {}) const = 0;
 
     virtual TextBlock textAt(int page, const QPointF &pdfPt,
                              const QList<QRectF> &exclude = {}) const = 0;
@@ -95,6 +116,7 @@ public:
     };
 
     virtual QList<TextMatch> findText(const QString &text) const = 0;
+    virtual QList<TextMatch> findTextOnPage(int page, const QString &text) const = 0;
 
     virtual Selection selectPage(int page,
                                  const std::optional<QPointF> &from,
@@ -113,6 +135,11 @@ public:
 
     virtual bool canEmbedFont(const QString &family, bool bold,
                               bool italic) const;
+
+    virtual TextLayout::Metrics editMetrics(const EditSession::Edit &edit) const;
+
+    virtual QList<TextLayout::OriginalLine> originalLines(int page, const QRectF &area,
+                                                          const QList<QRectF> &exclude) const;
 
     virtual QList<QRectF> glyphRects(int page, const QRectF &area,
                                      const QList<QRectF> &exclude = {}) const = 0;

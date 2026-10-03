@@ -5,6 +5,7 @@
 #include <memory>
 
 #ifdef HAVE_PDF_RENDERING
+#  include "engine/document/DocumentWorker.hpp"
 #  include "engine/document/PdfBackend.hpp"
 #  include "engine/edit/ContentModel.hpp"
 #  include "engine/render/PdfRenderer.hpp"
@@ -50,6 +51,7 @@ public:
 
     PdfBackend  *backend()  const { return m_backend.get(); }
     PdfRenderer *renderer() const { return m_renderer; }
+    DocumentWorker *worker() const { return m_worker.get(); }
 
     ContentProvider *contentProvider() const { return m_contentProvider.get(); }
     void setContentProvider(std::unique_ptr<ContentProvider> provider)
@@ -69,5 +71,6 @@ private:
     std::unique_ptr<ContentProvider> m_contentProvider;
     PdfRenderer                     *m_renderer { nullptr };
     std::unique_ptr<PdfBackend>      m_backend;
+    std::unique_ptr<DocumentWorker>  m_worker;
 #endif
 };

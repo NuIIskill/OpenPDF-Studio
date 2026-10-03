@@ -2,6 +2,7 @@
 
 #if defined(HAVE_PDF_RENDERING) && defined(HAVE_PDFIUM)
 
+#include "engine/document/PdfiumLock.hpp"
 #include "engine/document/PdfiumTextRules.hpp"
 #include "engine/edit/ContentMap.hpp"
 
@@ -93,6 +94,7 @@ QList<ContentItem> PdfiumContentProvider::pageItemsForExport(int page)
 QList<ContentItem> PdfiumContentProvider::buildPageItems(int page,
                                                         bool mergeVertical)
 {
+    PdfiumLock lock;
     if (!m_doc) return {};
     FPDF_PAGE pg = FPDF_LoadPage(m_doc, page);
     if (!pg) return {};

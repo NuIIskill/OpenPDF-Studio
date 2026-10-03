@@ -11,7 +11,6 @@
 #include <QImageReader>
 #include <QLabel>
 #include <QLineEdit>
-#include <QMessageBox>
 #include <QPushButton>
 #include <QVBoxLayout>
 
@@ -45,14 +44,14 @@ QStringList SignatureAppearanceDialog::reasons()
 
 SignatureAppearanceDialog::SignatureAppearanceDialog(const SignatureAppearance &appearance,
                                                      const QString &profileName,
-                                                     const QString &defaultName, bool deletable,
+                                                     const QString &defaultName, bool isNew,
                                                      QWidget *parent)
     : QDialog(parent)
     , m_defaultName(defaultName)
     , m_logo(appearance.logo)
     , m_logoName(appearance.logoName)
 {
-    setWindowTitle(tr("Signature appearance - OpenPDF Studio"));
+    setWindowTitle(isNew ? tr("New profile - OpenPDF Studio") : tr("Edit profile - OpenPDF Studio"));
     setModal(true);
     setMinimumWidth(860);
 
@@ -72,14 +71,17 @@ SignatureAppearanceDialog::SignatureAppearanceDialog(const SignatureAppearance &
     root->addLayout(profileRow);
     root->addWidget(buildFields(appearance));
     root->addWidget(divider());
-    root->addWidget(fieldLabel(tr("Show in signature appearance")));
+    root->addWidget(fieldLabel(tr("Show in signature")));
     root->addWidget(buildOptions(appearance));
     root->addWidget(buildLogoRow());
     root->addWidget(divider());
     root->addWidget(fieldLabel(tr("Preview")));
     root->addWidget(buildPreview());
-    root->addWidget(buildButtons(deletable));
+    root->addWidget(buildButtons());
     updatePreview();
+    adjustSize();
+    setFixedSize(size());
+    setWindowFlag(Qt::WindowMaximizeButtonHint, false);
 }
 
 QWidget *SignatureAppearanceDialog::buildFields(const SignatureAppearance &appearance)
@@ -197,21 +199,11 @@ QWidget *SignatureAppearanceDialog::buildPreview()
     return frame;
 }
 
-QWidget *SignatureAppearanceDialog::buildButtons(bool deletable)
+QWidget *SignatureAppearanceDialog::buildButtons()
 {
     auto *row = new QWidget;
     auto *hl = new QHBoxLayout(row);
     hl->setContentsMargins(0, 4, 0, 0);
-    if (deletable) {
-        auto *remove = new QPushButton(tr("Delete profile"));
-        remove->setObjectName(QStringLiteral("SDanger"));
-        remove->setIcon(Theme::renderSvg(QStringLiteral("trash-2"), QColor(0xDC, 0x26, 0x26), 16));
-        remove->setIconSize(QSize(16, 16));
-        remove->setFixedHeight(40);
-        remove->setCursor(Qt::PointingHandCursor);
-        connect(remove, &QPushButton::clicked, this, &SignatureAppearanceDialog::confirmDelete);
-        hl->addWidget(remove);
-    }
     hl->addStretch(1);
     auto *cancel = new QPushButton(tr("Cancel"));
     cancel->setObjectName(QStringLiteral("SCancel"));
@@ -226,15 +218,6 @@ QWidget *SignatureAppearanceDialog::buildButtons(bool deletable)
     connect(cancel, &QPushButton::clicked, this, &QDialog::reject);
     connect(apply, &QPushButton::clicked, this, &QDialog::accept);
     return row;
-}
-
-void SignatureAppearanceDialog::confirmDelete()
-{
-    const QString name = m_profileName->text().trimmed();
-    if (QMessageBox::question(this, windowTitle(),
-                              tr("Delete the profile \"%1\"?").arg(name))
-            == QMessageBox::Yes)
-        done(Deleted);
 }
 
 QString SignatureAppearanceDialog::profileName() const

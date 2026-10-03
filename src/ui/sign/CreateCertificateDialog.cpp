@@ -99,6 +99,10 @@ CreateCertificateDialog::CreateCertificateDialog(QWidget *parent)
     root->addSpacing(4);
     root->addLayout(buttons);
 
+    adjustSize();
+    setFixedSize(size());
+    setWindowFlag(Qt::WindowMaximizeButtonHint, false);
+
     connect(cancel, &QPushButton::clicked, this, &QDialog::reject);
     connect(m_createBtn, &QPushButton::clicked, this, &CreateCertificateDialog::create);
     connect(m_name, &QLineEdit::textChanged, this, [this](const QString &text) {

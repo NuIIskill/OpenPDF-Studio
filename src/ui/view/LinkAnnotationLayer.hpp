@@ -10,6 +10,12 @@
 #include <QRectF>
 #include <QString>
 
+#include <functional>
+
+#ifdef HAVE_PDF_RENDERING
+#  include "engine/document/PdfBackend.hpp"
+#endif
+
 QT_BEGIN_NAMESPACE
 class QFrame;
 class QUndoStack;
@@ -31,7 +37,10 @@ public:
     void setSource(PdfBackend *backend, EditSession *session, QUndoStack *undo);
 #endif
 
-    void reload();
+#ifdef HAVE_PDF_RENDERING
+    void addPage(int page, const QList<PdfBackend::Link> &links);
+#endif
+    void setBeforeChange(std::function<void()> hook) { m_beforeChange = std::move(hook); }
     void clear();
     void setToolActive(bool active);
     void relayout();
@@ -95,6 +104,7 @@ private:
     QList<Entry> m_entries;
     QFrame      *m_pressedLink { nullptr };
     QPoint       m_pressGlobal;
+    std::function<void()> m_beforeChange;
 
 #ifdef HAVE_PDF_RENDERING
     PdfBackend  *m_backend { nullptr };

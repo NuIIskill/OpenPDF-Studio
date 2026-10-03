@@ -176,6 +176,7 @@ void EditController::setTextColor(const QColor &color)
     currentEditorColor = color;
     if (activeEditPage >= 0 && m_frame->isVisible()) {
         m_frame->setTextColor(color);
+        refreshAdvanceMeasure();
         refreshLivePreview();
     }
 #else
@@ -194,48 +195,22 @@ void EditController::refreshAdvanceMeasure()
 {
 #ifdef HAVE_PDF_RENDERING
     auto *backend = m_src->backend();
-    if (!backend) { m_frame->setAdvanceMeasure({}); return; }
-
-    const bool    eigene = editorFontChangedByUser || activeEditPdfText.isEmpty();
-    const int     page   = activeEditSourcePage >= 0 ? activeEditSourcePage
-                                                     : activeEditPage;
-    QPointF at           = activeEditPdfPt;
-    const double  size   = currentEditorFontSizePt;
-    const QString family = currentEditorFontFamily;
-    const bool    bold   = currentEditorBold;
-    const bool    italic = currentEditorItalic;
-
-    if (!eigene && backend->textWidthPt(page, at, QStringLiteral("M"), size) < 0.0
-            && !activeEditOriginalBounds.isEmpty())
-        at = activeEditOriginalBounds.center();
-    if (eigene && backend->canEmbedFont(family, bold, italic)) {
-
-        m_frame->setStandardFace(false);
-        QFont gewaehlt(family);
-        gewaehlt.setBold(bold);
-        gewaehlt.setItalic(italic);
-        gewaehlt.setStyleStrategy(QFont::NoFontMerging);
-        QRawFont roh = QRawFont::fromFont(gewaehlt);
-        roh.setPixelSize(1000.0);
-        m_frame->setAdvanceMeasure([roh, size](const QString &text) -> double {
-            if (!roh.isValid()) return -1.0;
-            const QList<quint32> glyphen = roh.glyphIndexesForString(text);
-            if (glyphen.isEmpty()) return -1.0;
-            double breite = 0.0;
-            for (const QPointF &a : roh.advancesForGlyphIndexes(
-                     glyphen, QRawFont::UseDesignMetrics))
-                breite += a.x();
-            return breite * size / 1000.0;
-        });
-        return;
-    }
-    m_frame->setStandardFace(eigene);
-    m_frame->setAdvanceMeasure(
-        [backend, eigene, page, at, size, family, bold, italic](const QString &text) {
-            return eigene
-                ? backend->standardTextWidthPt(family, bold, italic, text, size)
-                : backend->textWidthPt(page, at, text, size);
-        });
+    const bool eigene = editorFontChangedByUser || activeEditPdfText.isEmpty();
+    m_frame->setStandardFace(eigene && !(backend && backend->canEmbedFont(
+        currentEditorFontFamily, currentEditorBold, currentEditorItalic)));
+    if (!backend) { m_frame->setMetricsSource({}); return; }
+    m_frame->setMetricsSource([this, backend](const QString &text) {
+        if (activeEditPage < 0) return TextLayout::Metrics();
+        const QRectF eraseAt = activeEditEraseBounds.isNull() ? activeEditOriginalBounds
+                                                              : activeEditEraseBounds;
+        m_metricsPage   = activeEditPage;
+        m_metricsBounds = activeEditBounds;
+        EditSession::Edit edit = makeSessionEdit(activeEditPage, activeEditBounds,
+                                                 eraseAt, text);
+        if (activeEditSourcePage >= 0 && activeEditSourcePage != activeEditPage)
+            edit.sourceRect = QRectF();
+        return backend->editMetrics(edit);
+    });
 #endif
 }
 
@@ -266,6 +241,14 @@ void EditController::refreshLivePreview()
 #ifdef HAVE_PDF_RENDERING
     if (activeEditPage < 0) { Q_EMIT livePreviewChanged(-1, {}); return; }
 
+    for (int i = 0; i < 4 && m_frame->isVisible() && !m_refreshingMetrics
+                    && (m_metricsPage != activeEditPage || m_metricsBounds != activeEditBounds); ++i) {
+        m_refreshingMetrics = true;
+        m_metricsPage   = activeEditPage;
+        m_metricsBounds = activeEditBounds;
+        m_frame->invalidateMetrics();
+        m_refreshingMetrics = false;
+    }
     const QString text = m_frame->currentText();
     QList<EditSession::Edit> edits;
     if (activeEditFieldName.isEmpty() && !text.isEmpty()) {
@@ -288,6 +271,7 @@ void EditController::setTextBoxProperties(const TextBoxProperties &properties)
         return;
     }
     currentBox = properties;
+    refreshAdvanceMeasure();
     activeEditBounds = properties.bounds.normalized();
     if (activeEditBounds.width() < 1.0) activeEditBounds.setWidth(1.0);
     if (activeEditBounds.height() < 1.0) activeEditBounds.setHeight(1.0);
@@ -340,6 +324,7 @@ void EditController::setLineSpacing(double multiplier)
     TextBoxProperties p = activeEditPage >= 0 ? textBoxProperties() : defaultBox;
     p.lineSpacingMultiplier = qBound(0.5, multiplier, 4.0);
     activeEditLineSpacingPt = currentEditorFontSizePt * p.lineSpacingMultiplier;
+    if (activeEditPage >= 0) m_frame->setLineSpacingPt(activeEditLineSpacingPt);
     setTextBoxProperties(p);
 }
 
@@ -349,6 +334,7 @@ void EditController::clampToPdfPage(int page, QRectF &r) const
     if (!m_src->renderer() || page < 0) return;
     const QSizeF ps = m_src->renderer()->pageSizePts(page);
 
+    r = r.normalized();
     if (r.width()  > ps.width())  r.setWidth(ps.width());
     if (r.height() > ps.height()) r.setHeight(ps.height());
 
@@ -377,6 +363,7 @@ struct EditController::EditOpen
 
     bool              isSessionEdit { false };
     EditSession::Edit sessionEdit;
+    int               blankPage { -1 };
     TextBlock         block;
     ContentItem       contentItem;
     QString           displayText;
@@ -389,14 +376,64 @@ struct EditController::EditOpen
 
     PdfRenderer *renderer { nullptr };
 
-    const QImage &sampleImage()
+    bool canSample() const { return renderer && renderer->backend() && block.page >= 0; }
+
+    QColor sampleTextColor(const QRectF &pt)
     {
-        if (m_samp.isNull()) m_samp = renderer->renderPage(block.page, kSampleScale);
-        return m_samp;
+        const QRect px = pixelsOf(pt);
+        return cover(px) ? InkMetrics::sampleTextColor(m_samp, px.translated(-m_area.topLeft()))
+                         : InkMetrics::sampleTextColor(QImage(), px);
+    }
+
+    QColor sampleBackgroundColor(const QRectF &pt)
+    {
+        const QRect px = pixelsOf(pt);
+        return cover(px) ? InkMetrics::sampleBackgroundColor(m_samp,
+                                                             px.translated(-m_area.topLeft()))
+                         : QColor();
+    }
+
+    InkMetrics::MeasuredInk measuredInk(const QRectF &pt)
+    {
+        const qreal pad = qMax(4.0, pt.height());
+        if (!cover(pixelsOf(pt.adjusted(-pad, -pad, pad, pad)))) return {};
+        const QPointF origin = QPointF(m_area.topLeft()) / kSampleScale;
+        InkMetrics::MeasuredInk ink =
+            InkMetrics::measuredInkPt(m_samp, pt.translated(-origin), kSampleScale);
+        if (ink.height > 0.0) {
+            ink.top  += origin.y();
+            ink.left += origin.x();
+        }
+        return ink;
     }
 
 private:
+    static QRect pixelsOf(const QRectF &pt)
+    {
+        return QRectF(pt.topLeft() * kSampleScale, pt.size() * kSampleScale).toAlignedRect();
+    }
+
+    // Renders the unedited page around the parts that are sampled instead of
+    // the whole page at sample scale, which on heavy pages took a second.
+    bool cover(const QRect &px)
+    {
+        if (!canSample()) return false;
+        const QRect pageRect(QPoint(), renderer->backend()->pixelSize(block.page, kSampleScale));
+        const QRect need = px.intersected(pageRect);
+        if (need.isEmpty() || (!m_samp.isNull() && m_area.contains(need))) return !m_samp.isNull();
+        const int margin = qRound(24 * kSampleScale);
+        const QRect area = (m_samp.isNull() ? need : m_area.united(need))
+                               .adjusted(-margin, -margin, margin, margin).intersected(pageRect);
+        const PdfBackend::AreaRender render =
+            renderer->backend()->renderChanges(block.page, kSampleScale, nullptr, area, false);
+        if (render.image.isNull()) return false;
+        m_samp = render.image;
+        m_area = render.pixels;
+        return true;
+    }
+
     QImage m_samp;
+    QRect  m_area;
 };
 
 bool EditController::resolveEditTarget(const QPoint &canvasPos, EditOpen &o)
@@ -479,6 +516,17 @@ bool EditController::resolveEditTarget(const QPoint &canvasPos, EditOpen &o)
                                                            o.block.pdfBounds)))
         return false;
 
+    if (o.isSessionEdit) {
+        o.pdfPt = o.block.pdfBounds.center();
+    } else if (!o.contentItem.isFormField()) {
+        o.pdfPt = o.block.pdfBounds.center();
+        if (m_src->contentProvider()) {
+            const ContentItem atBlock =
+                m_src->contentProvider()->itemAt(o.block.page, o.pdfPt);
+            o.contentItem = atBlock.isFormField() ? ContentItem{} : atBlock;
+        }
+    }
+
     if (o.contentItem.isValid() && !o.contentItem.isFormField()
             && !o.contentItem.bounds.intersects(o.block.pdfBounds))
         o.contentItem = ContentItem{};
@@ -500,6 +548,13 @@ void EditController::applyEditTargetBounds(EditOpen &o)
         activeEditNeedsBlank  = !o.sessionEdit.eraseRects.isEmpty();
         activeEditEraseBounds = o.sessionEdit.sourceRect.isNull()
                                     ? activeEditBounds : o.sessionEdit.sourceRect;
+        for (const EditSession::Edit &e : m_session->edits()) {
+            if (!e.newText.isNull() || e.pdfBounds != activeEditEraseBounds
+                    || e.formField != o.sessionEdit.formField)
+                continue;
+            if (o.blankPage < 0 || e.page == o.block.page) o.blankPage = e.page;
+        }
+        if (o.blankPage >= 0) activeEditSourcePage = o.blankPage;
     }
     currentBox = o.isSessionEdit ? o.sessionEdit.box : TextBoxProperties{};
     activeEditFieldName.clear();
@@ -622,11 +677,10 @@ void EditController::chooseEditorFont(EditOpen &o)
 
     currentEditorRenderSizePt = currentEditorFontSizePt;
     o.measurable = !sizeIsExact && !o.isSessionEdit && !o.contentItem.isFormField()
-                && !o.displayText.isEmpty() && !o.sampleImage().isNull();
+                && !o.displayText.isEmpty() && o.canSample();
     if (!o.measurable) return;
 
-    const InkMetrics::MeasuredInk origInk =
-        InkMetrics::measuredInkPt(o.sampleImage(), activeEditBounds, kSampleScale);
+    const InkMetrics::MeasuredInk origInk = o.measuredInk(activeEditBounds);
     QFont probe(currentEditorFontFamily.isEmpty()
                     ? QStringLiteral("Helvetica") : currentEditorFontFamily);
     probe.setStyleHint(QFont::SansSerif);
@@ -665,13 +719,11 @@ void EditController::anchorEditOrigin(EditOpen &o)
         activeEditHasOrigin = true;
         o.textOrigin = o.contentItem.textOrigin;
     } else if (o.measurable && o.probeInk.risePerPt > 0.05) {
-        const InkMetrics::MeasuredInk first = InkMetrics::measuredInkPt(
-            o.sampleImage(),
+        const InkMetrics::MeasuredInk first = o.measuredInk(
             QRectF(activeEditBounds.left(), activeEditBounds.top(),
                    activeEditBounds.width(),
                    qMin(activeEditBounds.height(),
-                        currentEditorRenderSizePt * 1.5)),
-            kSampleScale);
+                        currentEditorRenderSizePt * 1.5)));
         if (first.height > 1.0) {
             activeEditHasOrigin = true;
             o.textOrigin = QPointF(
@@ -724,11 +776,8 @@ void EditController::sampleEditColors(EditOpen &o)
     } else if (!o.isSessionEdit && o.contentItem.isValid()
                && o.contentItem.textColor.isValid()) {
         currentEditorColor = o.contentItem.textColor;
-    } else if (!o.sampleImage().isNull()) {
-        const QRectF px(o.block.pdfBounds.topLeft() * kSampleScale,
-                        o.block.pdfBounds.size() * kSampleScale);
-        currentEditorColor = InkMetrics::sampleTextColor(o.sampleImage(),
-                                                           px.toAlignedRect());
+    } else if (o.canSample()) {
+        currentEditorColor = o.sampleTextColor(o.block.pdfBounds);
     }
 
     currentBgColor = Qt::white;
@@ -743,11 +792,8 @@ void EditController::sampleEditColors(EditOpen &o)
                          + 0.114 * c.blueF();
         if (lum >= 0.70) bg = c;
     }
-    if (!bg.isValid() && !o.sampleImage().isNull()) {
-        const QRectF px(activeEditBounds.topLeft() * kSampleScale,
-                        activeEditBounds.size() * kSampleScale);
-        bg = InkMetrics::sampleBackgroundColor(o.sampleImage(), px.toAlignedRect());
-    }
+    if (!bg.isValid() && o.canSample())
+        bg = o.sampleBackgroundColor(activeEditBounds);
     if (bg.isValid()) currentBgColor = bg;
 }
 
@@ -795,6 +841,19 @@ void EditController::presentEditor(EditOpen &o)
         }
         activeEditEraseBounds = activeEditOriginalBounds;
     }
+    activeEditOriginalLines.clear();
+    if (o.isSessionEdit) {
+        activeEditOriginalLines = o.sessionEdit.originalLines;
+    } else if (activeEditNeedsBlank && activeEditFieldName.isEmpty()) {
+        if (auto *backend = m_src->backend()) {
+            const QList<TextLayout::OriginalLine> lines = backend->originalLines(
+                o.block.page, activeEditOriginalBounds, o.erasedZones);
+            QStringList texts;
+            for (const TextLayout::OriginalLine &line : lines) texts << line.text;
+            if (!lines.isEmpty() && texts.join(QLatin1Char('\n')) == o.displayText)
+                activeEditOriginalLines = lines;
+        }
+    }
 
     const QRectF canvasBounds(
         activeEditBounds.topLeft() * o.scale + QPointF(o.label->pos()),
@@ -809,14 +868,17 @@ void EditController::presentEditor(EditOpen &o)
     m_frame->setTextAnchor(activeEditHasOrigin, activeEditOriginOffset);
     m_frame->setForbiddenZones({});
     m_frame->setPageRect(o.label->geometry());
-    m_frame->setGrowHorizontal(true);
+    m_frame->setGrowHorizontal(!o.isSessionEdit
+                               || (!o.sessionEdit.originalLines.isEmpty()
+                                   && !o.sessionEdit.newText.contains(QChar(TextLayout::kSoftBreak))));
     currentBox.bounds = activeEditBounds;
     m_frame->setBoxProperties(currentBox, o.scale);
     m_frame->resetCommitGuard();
     undoSnapBefore = m_session->snapshotEdits();
-    m_session->suspendEditsAt(o.block.page, o.block.pdfBounds);
+    m_session->suspendEditsAt(o.block.page, o.block.pdfBounds,
+                              o.blankPage, activeEditEraseBounds);
     if (activeEditNeedsBlank)
-        Q_EMIT pageNeedsBlank(activeEditPage, activeEditBounds);
+        Q_EMIT pageNeedsBlank(activeEditPage, activeEditEraseBounds);
     else
         Q_EMIT pageNeedsRerender(activeEditPage);
     m_frame->present(o.displayText, canvasBounds, fontSize,
@@ -825,14 +887,37 @@ void EditController::presentEditor(EditOpen &o)
                            currentEditorUnderline);
 
     activeEditOriginalText        = m_frame->currentText();
+    activeEditOriginalPlain       = m_frame->plainText();
+    activeEditMovedByUser         = false;
     refreshLivePreview();
     activeEditInPlace             = true;
+    activeEditPresentedPage       = activeEditPage;
+    activeEditPresentedFamily     = currentEditorFontFamily;
+    activeEditPresentedBold       = currentEditorBold;
+    activeEditPresentedItalic     = currentEditorItalic;
+    activeEditPresentedUnderline  = currentEditorUnderline;
     activeEditPresentedBounds     = activeEditBounds;
     activeEditPresentedFontSizePt = currentEditorFontSizePt;
     activeEditPresentedColor      = currentEditorColor;
     presentedBox                  = textBoxProperties();
+    refreshAdvanceMeasure();
+    refreshLivePreview();
     Q_EMIT textBoxPropertiesChanged(presentedBox);
     Q_EMIT textBoxEditingChanged(true);
+}
+
+bool EditController::styleUnchanged(int page) const
+{
+    TextBoxProperties box = currentBox;
+    box.bounds = presentedBox.bounds;
+    return !activeEditMovedByUser && page == activeEditPresentedPage
+        && currentEditorFontFamily == activeEditPresentedFamily
+        && currentEditorBold       == activeEditPresentedBold
+        && currentEditorItalic     == activeEditPresentedItalic
+        && currentEditorUnderline  == activeEditPresentedUnderline
+        && qFuzzyCompare(currentEditorFontSizePt + 1.0, activeEditPresentedFontSizePt + 1.0)
+        && currentEditorColor      == activeEditPresentedColor
+        && box == presentedBox;
 }
 
 void EditController::handleClick(const QPoint &canvasPos)
@@ -851,10 +936,10 @@ void EditController::handleClick(const QPoint &canvasPos)
                              currentEditorBold, currentEditorItalic,
                              currentEditorUnderline);
 
-    fitEditHeight(o);
+    if (!o.isSessionEdit) fitEditHeight(o);
 
     sampleEditColors(o);
-    fitEditWidth(o);
+    if (!o.isSessionEdit) fitEditWidth(o);
 
     presentEditor(o);
 }
@@ -866,7 +951,7 @@ EditSession::Edit EditController::makeSessionEdit(int page, const QRectF &bounds
     EditSession::Edit e;
     e.page        = page;
     e.pdfBounds   = bounds;
-    e.sourceRect  = sourceRect;
+    e.sourceRect  = activeEditNeedsBlank ? sourceRect : QRectF();
     e.newText     = text;
     e.fontSizePt  = currentEditorFontSizePt;
     e.renderSizePt = currentEditorRenderSizePt;
@@ -884,6 +969,7 @@ EditSession::Edit EditController::makeSessionEdit(int page, const QRectF &bounds
     e.sizeChanged = editorSizeChangedByUser;
     e.formField   = activeEditFieldName;
     if (activeEditNeedsBlank) e.eraseRects = activeEditEraseRects;
+    if (activeEditNeedsBlank && styleUnchanged(page)) e.originalLines = activeEditOriginalLines;
     e.box         = currentBox;
     e.box.bounds  = bounds;
     return e;
@@ -918,21 +1004,30 @@ void EditController::commit(const QString &newText)
                 && std::abs(a.width()  - b.width())  < tol
                 && std::abs(a.height() - b.height()) < tol;
         };
+        const bool textUntouched = newText.isNull()
+            ? activeEditOriginalPlain.trimmed().isEmpty()
+            : m_frame->plainText() == activeEditOriginalPlain;
         const bool untouched =
-               page == srcPage
-            && trimNew == activeEditOriginalText.trimmed()
-            && nearly(bounds, activeEditPresentedBounds)
-            && !editorFontChangedByUser
+               page == activeEditPresentedPage
+            && textUntouched
+            && (!activeEditMovedByUser || nearly(bounds, activeEditPresentedBounds))
+            && currentEditorFontFamily == activeEditPresentedFamily
+            && currentEditorBold       == activeEditPresentedBold
+            && currentEditorItalic     == activeEditPresentedItalic
+            && currentEditorUnderline  == activeEditPresentedUnderline
             && qFuzzyCompare(currentEditorFontSizePt + 1.0,
                              activeEditPresentedFontSizePt + 1.0)
             && currentEditorColor      == activeEditPresentedColor;
-        const bool boxUntouched = textBoxProperties() == presentedBox;
+        TextBoxProperties box = textBoxProperties();
+        box.bounds = presentedBox.bounds;
+        const bool boxUntouched = box == presentedBox;
         if (untouched && boxUntouched) {
             activeEditInPlace = false;
             activeEditFieldName.clear();
             m_session->restoreSuspended();
             lastCommittedPage = -1;
             Q_EMIT pageNeedsRerender(srcPage);
+            if (page != srcPage) Q_EMIT pageNeedsRerender(page);
             return;
         }
     }
@@ -974,10 +1069,7 @@ void EditController::commit(const QString &newText)
     lastCommittedPage       = srcPage;
     lastCommittedOrigBounds = origBounds;
 
-    if (needBlank)
-        Q_EMIT pageNeedsBlank(srcPage, origBounds);
-    else
-        Q_EMIT pageNeedsRerender(srcPage);
+    Q_EMIT pageNeedsRerender(srcPage);
     if (page != srcPage)
         Q_EMIT pageNeedsRerender(page);
 #else
@@ -1053,17 +1145,22 @@ void EditController::createTextFrame(const QRect &viewportDragRect)
     Q_EMIT fontChanged(QStringLiteral("Helvetica"), false, false, false);
 
     m_hover->hide();
-    const int fontSize = qMax(8, qRound(12.0 * scale));
+    const qreal fontSize = qMax(1.0, currentEditorRenderSizePt * scale);
     m_frame->setDecorations(true);
     m_frame->setGlyphsVisible(false);
     m_frame->setGrowHorizontal(false);
+    m_frame->setTextAnchor(false, QPointF());
+    m_frame->setLineSpacingPt(activeEditLineSpacingPt);
     activeEditPdfPt = activeEditBounds.topLeft();
     refreshAdvanceMeasure();
     m_frame->setBoxProperties(currentBox, scale);
     m_frame->setPageRect(pageLbl->geometry());
     m_frame->setForbiddenZones({});
     m_frame->resetCommitGuard();
-    m_frame->present(QString(), QRectF(canvasRect), fontSize, currentEditorColor);
+    m_frame->present(QString(),
+                     QRectF(activeEditBounds.topLeft() * scale + QPointF(pageLbl->pos()),
+                            activeEditBounds.size() * scale),
+                     fontSize, currentEditorColor);
     presentedBox = textBoxProperties();
     Q_EMIT textBoxPropertiesChanged(presentedBox);
     Q_EMIT textBoxEditingChanged(true);

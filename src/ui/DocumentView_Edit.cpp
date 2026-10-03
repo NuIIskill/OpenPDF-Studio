@@ -7,8 +7,10 @@
 #include "engine/edit/InkMetrics.hpp"
 #include "app/SafeWrite.hpp"
 #include "ui/view/ImageAnnotation.hpp"
+#include "ui/view/AnnotationLoader.hpp"
 #include "ui/view/ImageAnnotationLayer.hpp"
 #include "ui/view/LinkAnnotationLayer.hpp"
+#include "ui/view/LoadingSpinner.hpp"
 #include "ui/notes/NoteLayer.hpp"
 #include "ui/draw/DrawingLayer.hpp"
 #include "ui/view/HoverHighlight.hpp"
@@ -17,6 +19,7 @@
 #include "ui/view/PageOverlay.hpp"
 #include "ui/view/DigitalSignatureLayer.hpp"
 #include "ui/view/SignaturePlacement.hpp"
+#include "ui/view/SmoothScroll.hpp"
 #include "ui/view/ZoomController.hpp"
 #include "ui/view/TextSelectionController.hpp"
 #include "ui/widgets/PasswordDialog.hpp"
@@ -76,6 +79,9 @@ DocumentView::DocumentView(QWidget *parent)
 
     m_canvas = new QWidget(this);
     m_canvas->setObjectName(QStringLiteral("DocumentCanvas"));
+    // Filling its own background makes the canvas opaque, so scrolling moves
+    // what is on screen and paints only the strip that comes into view.
+    m_canvas->setAutoFillBackground(true);
 
     m_layout = new QVBoxLayout(m_canvas);
     m_layout->setAlignment(Qt::AlignHCenter | Qt::AlignTop);
@@ -175,6 +181,10 @@ DocumentView::DocumentView(QWidget *parent)
             [this] { m_journal.undoStackChanged(); });
 
     m_layoutEngine = new PageLayoutEngine(m_canvas, m_layout, m_gridCanvas, this);
+    m_annotations  = new AnnotationLoader(m_linkLayer, m_noteLayer, this);
+    m_spinner      = new LoadingSpinner(viewport());
+    connect(m_layoutEngine, &PageLayoutEngine::busyChanged,
+            m_spinner, &LoadingSpinner::setBusy);
 
     m_zoomCtl = new ZoomController(this, this, m_layout, m_layoutEngine, this);
     connect(m_zoomCtl, &ZoomController::zoomChanged,
@@ -184,6 +194,7 @@ DocumentView::DocumentView(QWidget *parent)
     connect(m_zoomCtl, &ZoomController::zoomApplied,
             this, &DocumentView::repositionForZoom);
 
+    m_smoothScroll = new SmoothScroll(this, this);
     m_hover = new HoverHighlight(this, this);
 
     m_overlays = PageOverlays::createAll(this, this);
@@ -219,9 +230,15 @@ DocumentView::DocumentView(QWidget *parent)
     });
 
     connect(m_editorFrame, &TextBoxFrame::dragEnded, this, [this]() {
+        m_edit.activeEditMovedByUser = true;
+        m_edit.refreshAdvanceMeasure();
+        repositionEditorFrame();
 
         if (m_edit.activeEditSourcePage >= 0 && m_edit.activeEditNeedsBlank)
-            rerenderPageWithBlank(m_edit.activeEditSourcePage, m_edit.activeEditOriginalBounds);
+            rerenderPageWithBlank(m_edit.activeEditSourcePage,
+                                  m_edit.activeEditEraseBounds.isNull()
+                                      ? m_edit.activeEditOriginalBounds
+                                      : m_edit.activeEditEraseBounds);
     });
     connect(m_editorFrame, &TextBoxFrame::boundsChanged, this, [this](const QRectF &inner) {
         if (m_edit.activeEditPage < 0) return;
@@ -250,7 +267,8 @@ DocumentView::DocumentView(QWidget *parent)
     m_hover->setEditorFrame(m_editorFrame);
 
     m_selection->setSource(m_src->renderer(), m_src.get());
-    m_layoutEngine->setSource(m_src->renderer(), m_session);
+    m_layoutEngine->setSource(m_src->renderer(), m_session, m_src->worker());
+    m_annotations->setSource(m_src->backend(), m_src->worker());
     m_linkLayer->setSource(m_src->backend(), m_session, m_undoStack);
     m_noteLayer->setSource(m_src->backend(), m_session, m_undoStack);
     m_drawingLayer->setSource(m_session, m_undoStack);
@@ -309,6 +327,7 @@ void DocumentView::setEditMode(bool on)
 #endif
     m_hover->hide();
     m_editMode = on;
+    m_layoutEngine->setEditMode(on);
     if (!on) setTool(m_tool);
 }
 

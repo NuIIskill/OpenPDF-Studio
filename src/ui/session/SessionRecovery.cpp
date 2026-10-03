@@ -8,6 +8,7 @@
 #include <QDebug>
 #include <QFileInfo>
 #include <QMessageBox>
+#include <QPointer>
 #include <QPushButton>
 #include <QStringList>
 #include <QTimer>
@@ -117,6 +118,7 @@ void SessionRecovery::finish()
     m_timer->stop();
     for (auto it = m_copies.cbegin(); it != m_copies.cend(); ++it) {
         SessionStore::discard(it.value().path);
+        SessionStore::discard(it.value().writing);
         SessionStore::discardSnapshot(it.value().archive);
     }
     m_copies.clear();
@@ -136,6 +138,7 @@ void SessionRecovery::dropCopy(DocumentView *view)
     const auto it = m_copies.constFind(view);
     if (it == m_copies.cend()) return;
     SessionStore::discard(it.value().path);
+    SessionStore::discard(it.value().writing);
     SessionStore::discardSnapshot(it.value().archive);
     m_copies.erase(it);
 }
@@ -154,47 +157,72 @@ void SessionRecovery::tick()
 
         auto it = m_copies.find(view);
         if (it == m_copies.end())
-            it = m_copies.insert(view, Copy { QString(), QString(), true, now, 0 });
-        if (!it->stale) continue;
+            it = m_copies.insert(view, Copy { QString(), QString(), true, now, 0, QString() });
+        if (!it->stale || !it->writing.isEmpty()) continue;
         if (now - it->changedAt < kSettleMs) continue;
         if (it->writtenAt != 0 && now - it->writtenAt < kMinApartMs) continue;
 
         Copy &copy = *it;
         copy.writtenAt = now;
         if (dirty) {
-            if (!writeContent(view, copy)) continue;
-        } else {
-            SessionStore::discard(copy.path);
-            copy.path.clear();
+            writeContent(view, copy);
+            continue;
         }
-        if (timeline) {
-            if (!writeArchive(view, copy)) continue;
-        } else {
-            SessionStore::discardSnapshot(copy.archive);
-            copy.archive.clear();
-        }
-        copy.stale = false;
+        SessionStore::discard(copy.path);
+        copy.path.clear();
+        writeRest(view, copy, copy.changedAt);
     }
 
     syncManifest();
 }
 
-bool SessionRecovery::writeContent(DocumentView *view, Copy &copy)
+void SessionRecovery::writeContent(DocumentView *view, Copy &copy)
 {
     const bool fresh = copy.path.isEmpty();
     const QString path = fresh
         ? SessionStore::newWorkingFile(view->currentFile().isEmpty() ? view->contentFile()
                                                                      : view->currentFile())
         : copy.path;
-    if (path.isEmpty()) return false;
+    if (path.isEmpty()) return;
 
-    if (!view->writeRecoveryCopy(path)) {
+    // Writing a large document takes seconds, so it runs on the view's worker
+    // and the rest of the copy follows when it is done.
+    copy.writing = path;
+    const qint64 changedAt = copy.changedAt;
+    const QPointer<SessionRecovery> self(this);
+    view->writeRecoveryCopyInBackground(path, [self, view, path, fresh, changedAt](bool ok) {
+        if (self) self->contentWritten(view, path, fresh, changedAt, ok);
+    });
+}
+
+void SessionRecovery::contentWritten(DocumentView *view, const QString &path, bool fresh,
+                                     qint64 changedAt, bool ok)
+{
+    const auto it = m_copies.find(view);
+    if (it == m_copies.end() || it->writing != path) {
+        SessionStore::discard(path);
+        return;
+    }
+    it->writing.clear();
+    if (!ok) {
         qWarning() << "SessionRecovery: could not write" << path;
         if (fresh) SessionStore::discard(path);
-        return false;
+        return;
     }
-    copy.path = path;
-    return true;
+    it->path = path;
+    writeRest(view, *it, changedAt);
+    syncManifest();
+}
+
+void SessionRecovery::writeRest(DocumentView *view, Copy &copy, qint64 changedAt)
+{
+    if (view->history()->count() > 1) {
+        if (!writeArchive(view, copy)) return;
+    } else {
+        SessionStore::discardSnapshot(copy.archive);
+        copy.archive.clear();
+    }
+    copy.stale = copy.changedAt != changedAt;
 }
 
 bool SessionRecovery::writeArchive(DocumentView *view, Copy &copy)

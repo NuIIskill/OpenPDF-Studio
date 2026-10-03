@@ -13,6 +13,8 @@ target_sources(OpenPDFStudio PRIVATE
     SignatureStore.hpp
     SessionStore.cpp
     SessionStore.hpp
+    SystemMemory.cpp
+    SystemMemory.hpp
     UpdateChecker.cpp
     UpdateChecker.hpp
 )

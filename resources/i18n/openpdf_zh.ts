@@ -168,144 +168,141 @@
     </message>
     <message>
         <location filename="../../src/ui/sign/DigitalSignPage.cpp" line="112"/>
-        <location filename="../../src/ui/sign/DigitalSignPage.cpp" line="317"/>
+        <location filename="../../src/ui/sign/DigitalSignPage.cpp" line="329"/>
         <source>Please select a certificate...</source>
         <translation>请选择证书...</translation>
     </message>
     <message>
-        <location filename="../../src/ui/sign/DigitalSignPage.cpp" line="145"/>
+        <location filename="../../src/ui/sign/DigitalSignPage.cpp" line="149"/>
         <source>Advanced</source>
         <translation>高级</translation>
     </message>
     <message>
-        <location filename="../../src/ui/sign/DigitalSignPage.cpp" line="147"/>
+        <location filename="../../src/ui/sign/DigitalSignPage.cpp" line="151"/>
         <source>Additional signing options.</source>
         <translation>其他签名选项。</translation>
     </message>
     <message>
-        <location filename="../../src/ui/sign/DigitalSignPage.cpp" line="175"/>
+        <location filename="../../src/ui/sign/DigitalSignPage.cpp" line="179"/>
         <source>Not available yet</source>
         <translation>暂不可用</translation>
     </message>
     <message>
-        <location filename="../../src/ui/sign/DigitalSignPage.cpp" line="177"/>
+        <location filename="../../src/ui/sign/DigitalSignPage.cpp" line="181"/>
         <source>Add timestamp</source>
         <translation>添加时间戳</translation>
     </message>
     <message>
-        <location filename="../../src/ui/sign/DigitalSignPage.cpp" line="178"/>
+        <location filename="../../src/ui/sign/DigitalSignPage.cpp" line="182"/>
         <source>Include a trusted timestamp in the signature.</source>
         <translation>在签名中包含受信任的时间戳。</translation>
     </message>
     <message>
-        <location filename="../../src/ui/sign/DigitalSignPage.cpp" line="179"/>
+        <location filename="../../src/ui/sign/DigitalSignPage.cpp" line="183"/>
         <source>Lock document after signing</source>
         <translation>签名后锁定文档</translation>
     </message>
     <message>
-        <location filename="../../src/ui/sign/DigitalSignPage.cpp" line="180"/>
+        <location filename="../../src/ui/sign/DigitalSignPage.cpp" line="184"/>
         <source>Prevent further changes to the PDF.</source>
         <translation>防止对 PDF 进行进一步更改。</translation>
     </message>
     <message>
-        <location filename="../../src/ui/sign/DigitalSignPage.cpp" line="185"/>
+        <location filename="../../src/ui/sign/DigitalSignPage.cpp" line="189"/>
         <source>Invisible signature</source>
         <translation>不可见签名</translation>
     </message>
     <message>
-        <location filename="../../src/ui/sign/DigitalSignPage.cpp" line="186"/>
+        <location filename="../../src/ui/sign/DigitalSignPage.cpp" line="190"/>
         <source>Sign the document without a visible signature.</source>
         <translation>签署文档而不显示可见签名。</translation>
     </message>
     <message>
-        <location filename="../../src/ui/sign/DigitalSignPage.cpp" line="208"/>
-        <source>Signature appearance</source>
-        <translation>签名外观</translation>
-    </message>
-    <message>
-        <location filename="../../src/ui/sign/DigitalSignPage.cpp" line="216"/>
+        <location filename="../../src/ui/sign/DigitalSignPage.cpp" line="211"/>
         <source>Profile</source>
         <translation>配置文件</translation>
     </message>
     <message>
-        <location filename="../../src/ui/sign/DigitalSignPage.cpp" line="220"/>
-        <source>Customize appearance...</source>
-        <translation>自定义外观...</translation>
+        <location filename="../../src/ui/sign/DigitalSignPage.cpp" line="227"/>
+        <source>Default</source>
+        <translation>默认</translation>
     </message>
     <message>
-        <location filename="../../src/ui/sign/DigitalSignPage.cpp" line="232"/>
-        <source>Customize how the signature looks in the document.</source>
-        <translation>自定义签名在文档中的显示方式。</translation>
-    </message>
-    <message>
-        <location filename="../../src/ui/sign/DigitalSignPage.cpp" line="241"/>
-        <source>Standard</source>
-        <translation>标准</translation>
-    </message>
-    <message>
-        <location filename="../../src/ui/sign/DigitalSignPage.cpp" line="241"/>
+        <location filename="../../src/ui/sign/DigitalSignPage.cpp" line="227"/>
         <source>Unnamed profile</source>
         <translation>未命名的配置文件</translation>
     </message>
     <message>
-        <location filename="../../src/ui/sign/DigitalSignPage.cpp" line="255"/>
-        <source>New profile...</source>
-        <translation>新建配置文件...</translation>
-    </message>
-    <message>
-        <location filename="../../src/ui/sign/DigitalSignPage.cpp" line="276"/>
+        <location filename="../../src/ui/sign/DigitalSignPage.cpp" line="269"/>
         <source>Profile %1</source>
         <translation>配置文件 %1</translation>
     </message>
     <message>
-        <location filename="../../src/ui/sign/DigitalSignPage.cpp" line="304"/>
-        <location filename="../../src/ui/sign/DigitalSignPage.cpp" line="371"/>
+        <location filename="../../src/ui/sign/DigitalSignPage.cpp" line="278"/>
+        <source>%1 (copy)</source>
+        <translation>%1 (副本)</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/sign/DigitalSignPage.cpp" line="285"/>
+        <source>Delete profile</source>
+        <translation>删除配置文件</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/sign/DigitalSignPage.cpp" line="286"/>
+        <source>Delete the profile &quot;%1&quot;?</source>
+        <translation>删除配置文件“%1”?</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/sign/DigitalSignPage.cpp" line="316"/>
+        <location filename="../../src/ui/sign/DigitalSignPage.cpp" line="381"/>
         <source>Unnamed certificate</source>
         <translation>未命名的证书</translation>
     </message>
     <message>
-        <location filename="../../src/ui/sign/DigitalSignPage.cpp" line="306"/>
+        <location filename="../../src/ui/sign/DigitalSignPage.cpp" line="318"/>
         <source>%1, expired</source>
         <translation>%1（已过期）</translation>
     </message>
     <message>
-        <location filename="../../src/ui/sign/DigitalSignPage.cpp" line="311"/>
+        <location filename="../../src/ui/sign/DigitalSignPage.cpp" line="323"/>
         <source>Valid until %1</source>
         <translation>有效期至 %1</translation>
     </message>
     <message>
-        <location filename="../../src/ui/sign/DigitalSignPage.cpp" line="315"/>
+        <location filename="../../src/ui/sign/DigitalSignPage.cpp" line="327"/>
         <source>New certificate...</source>
         <translation>新建证书...</translation>
     </message>
     <message>
-        <location filename="../../src/ui/sign/DigitalSignPage.cpp" line="316"/>
+        <location filename="../../src/ui/sign/DigitalSignPage.cpp" line="328"/>
         <source>No certificates found</source>
         <translation>未找到证书</translation>
     </message>
     <message>
-        <location filename="../../src/ui/sign/DigitalSignPage.cpp" line="364"/>
+        <location filename="../../src/ui/sign/DigitalSignPage.cpp" line="357"/>
         <source>Delete certificate...</source>
         <translation>删除证书...</translation>
     </message>
     <message>
-        <location filename="../../src/ui/sign/DigitalSignPage.cpp" line="367"/>
+        <location filename="../../src/ui/sign/DigitalSignPage.cpp" line="360"/>
+        <location filename="../../src/ui/sign/DigitalSignPage.cpp" line="374"/>
         <source>Only certificates created in OpenPDF Studio can be deleted.</source>
         <translation>只能删除在 OpenPDF Studio 中创建的证书。</translation>
     </message>
     <message>
-        <location filename="../../src/ui/sign/DigitalSignPage.cpp" line="372"/>
-        <location filename="../../src/ui/sign/DigitalSignPage.cpp" line="379"/>
+        <location filename="../../src/ui/sign/DigitalSignPage.cpp" line="373"/>
+        <location filename="../../src/ui/sign/DigitalSignPage.cpp" line="382"/>
+        <location filename="../../src/ui/sign/DigitalSignPage.cpp" line="389"/>
         <source>Delete certificate</source>
         <translation>删除证书</translation>
     </message>
     <message>
-        <location filename="../../src/ui/sign/DigitalSignPage.cpp" line="373"/>
+        <location filename="../../src/ui/sign/DigitalSignPage.cpp" line="383"/>
         <source>Delete the certificate &quot;%1&quot;? Its private key is deleted as well, so it can no longer sign. Signatures already made with it stay valid.</source>
         <translation>删除证书“%1”?其私钥也将被删除，因此将无法再用它签名。已创建的签名仍然有效。</translation>
     </message>
     <message>
-        <location filename="../../src/ui/sign/DigitalSignPage.cpp" line="380"/>
+        <location filename="../../src/ui/sign/DigitalSignPage.cpp" line="390"/>
         <source>The certificate could not be deleted.</source>
         <translation>无法删除证书。</translation>
     </message>
@@ -678,6 +675,29 @@ Please use a build that includes Qt6::Pdf support.
     </message>
 </context>
 <context>
+    <name>ProfileCombo</name>
+    <message>
+        <location filename="../../src/ui/sign/ProfileCombo.cpp" line="148"/>
+        <source>New profile...</source>
+        <translation>新建配置文件...</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/sign/ProfileCombo.cpp" line="149"/>
+        <source>Edit profile...</source>
+        <translation>编辑配置文件...</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/sign/ProfileCombo.cpp" line="150"/>
+        <source>Duplicate profile</source>
+        <translation>复制配置文件</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/sign/ProfileCombo.cpp" line="152"/>
+        <source>Delete profile</source>
+        <translation>删除配置文件</translation>
+    </message>
+</context>
+<context>
     <name>RightSidebar</name>
     <message>
         <location filename="../../src/ui/RightSidebar.cpp" line="22"/>
@@ -897,138 +917,133 @@ Please use a build that includes Qt6::Pdf support.
 <context>
     <name>SignatureAppearanceDialog</name>
     <message>
-        <location filename="../../src/ui/sign/SignatureAppearanceDialog.cpp" line="42"/>
+        <location filename="../../src/ui/sign/SignatureAppearanceDialog.cpp" line="41"/>
         <source>Document approved</source>
         <translation>文档已批准</translation>
     </message>
     <message>
-        <location filename="../../src/ui/sign/SignatureAppearanceDialog.cpp" line="42"/>
+        <location filename="../../src/ui/sign/SignatureAppearanceDialog.cpp" line="41"/>
         <source>I am the author of this document</source>
         <translation>我是本文档的作者</translation>
     </message>
     <message>
-        <location filename="../../src/ui/sign/SignatureAppearanceDialog.cpp" line="43"/>
+        <location filename="../../src/ui/sign/SignatureAppearanceDialog.cpp" line="42"/>
         <source>I have reviewed this document</source>
         <translation>我已审阅本文档</translation>
     </message>
     <message>
-        <location filename="../../src/ui/sign/SignatureAppearanceDialog.cpp" line="43"/>
+        <location filename="../../src/ui/sign/SignatureAppearanceDialog.cpp" line="42"/>
         <source>I agree to the terms</source>
         <translation>我同意这些条款</translation>
     </message>
     <message>
-        <location filename="../../src/ui/sign/SignatureAppearanceDialog.cpp" line="55"/>
-        <source>Signature appearance - OpenPDF Studio</source>
-        <translation>签名外观 - OpenPDF Studio</translation>
+        <location filename="../../src/ui/sign/SignatureAppearanceDialog.cpp" line="54"/>
+        <source>New profile - OpenPDF Studio</source>
+        <translation>新建配置文件 - OpenPDF Studio</translation>
     </message>
     <message>
-        <location filename="../../src/ui/sign/SignatureAppearanceDialog.cpp" line="65"/>
-        <location filename="../../src/ui/sign/SignatureAppearanceDialog.cpp" line="69"/>
+        <location filename="../../src/ui/sign/SignatureAppearanceDialog.cpp" line="54"/>
+        <source>Edit profile - OpenPDF Studio</source>
+        <translation>编辑配置文件 - OpenPDF Studio</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/sign/SignatureAppearanceDialog.cpp" line="64"/>
+        <location filename="../../src/ui/sign/SignatureAppearanceDialog.cpp" line="68"/>
         <source>Profile name</source>
         <translation>配置文件名称</translation>
     </message>
     <message>
-        <location filename="../../src/ui/sign/SignatureAppearanceDialog.cpp" line="75"/>
-        <source>Show in signature appearance</source>
-        <translation>在签名外观中显示</translation>
+        <location filename="../../src/ui/sign/SignatureAppearanceDialog.cpp" line="74"/>
+        <source>Show in signature</source>
+        <translation>在签名中显示</translation>
     </message>
     <message>
-        <location filename="../../src/ui/sign/SignatureAppearanceDialog.cpp" line="79"/>
+        <location filename="../../src/ui/sign/SignatureAppearanceDialog.cpp" line="78"/>
         <source>Preview</source>
         <translation>预览</translation>
     </message>
     <message>
-        <location filename="../../src/ui/sign/SignatureAppearanceDialog.cpp" line="89"/>
+        <location filename="../../src/ui/sign/SignatureAppearanceDialog.cpp" line="91"/>
         <source>Your name</source>
         <translation>您的姓名</translation>
     </message>
     <message>
-        <location filename="../../src/ui/sign/SignatureAppearanceDialog.cpp" line="96"/>
+        <location filename="../../src/ui/sign/SignatureAppearanceDialog.cpp" line="98"/>
         <source>City</source>
         <translation>城市</translation>
     </message>
     <message>
-        <location filename="../../src/ui/sign/SignatureAppearanceDialog.cpp" line="107"/>
+        <location filename="../../src/ui/sign/SignatureAppearanceDialog.cpp" line="109"/>
         <source>Name</source>
         <translation>姓名</translation>
     </message>
     <message>
-        <location filename="../../src/ui/sign/SignatureAppearanceDialog.cpp" line="108"/>
+        <location filename="../../src/ui/sign/SignatureAppearanceDialog.cpp" line="110"/>
         <source>Reason</source>
         <translation>原因</translation>
     </message>
     <message>
-        <location filename="../../src/ui/sign/SignatureAppearanceDialog.cpp" line="109"/>
+        <location filename="../../src/ui/sign/SignatureAppearanceDialog.cpp" line="111"/>
         <source>Location</source>
         <translation>地点</translation>
     </message>
     <message>
-        <location filename="../../src/ui/sign/SignatureAppearanceDialog.cpp" line="137"/>
+        <location filename="../../src/ui/sign/SignatureAppearanceDialog.cpp" line="139"/>
         <source>Show signer name</source>
         <translation>显示签名人姓名</translation>
     </message>
     <message>
-        <location filename="../../src/ui/sign/SignatureAppearanceDialog.cpp" line="138"/>
+        <location filename="../../src/ui/sign/SignatureAppearanceDialog.cpp" line="140"/>
         <source>Show date</source>
         <translation>显示日期</translation>
     </message>
     <message>
-        <location filename="../../src/ui/sign/SignatureAppearanceDialog.cpp" line="139"/>
+        <location filename="../../src/ui/sign/SignatureAppearanceDialog.cpp" line="141"/>
         <source>Show reason</source>
         <translation>显示原因</translation>
     </message>
     <message>
-        <location filename="../../src/ui/sign/SignatureAppearanceDialog.cpp" line="140"/>
+        <location filename="../../src/ui/sign/SignatureAppearanceDialog.cpp" line="142"/>
         <source>Show location</source>
         <translation>显示地点</translation>
     </message>
     <message>
-        <location filename="../../src/ui/sign/SignatureAppearanceDialog.cpp" line="141"/>
+        <location filename="../../src/ui/sign/SignatureAppearanceDialog.cpp" line="143"/>
         <source>Show PNG logo</source>
         <translation>显示 PNG 徽标</translation>
     </message>
     <message>
-        <location filename="../../src/ui/sign/SignatureAppearanceDialog.cpp" line="168"/>
+        <location filename="../../src/ui/sign/SignatureAppearanceDialog.cpp" line="170"/>
         <source>No logo chosen</source>
         <translation>未选择徽标</translation>
     </message>
     <message>
-        <location filename="../../src/ui/sign/SignatureAppearanceDialog.cpp" line="172"/>
+        <location filename="../../src/ui/sign/SignatureAppearanceDialog.cpp" line="174"/>
         <source>Choose PNG...</source>
         <translation>选择 PNG...</translation>
     </message>
     <message>
-        <location filename="../../src/ui/sign/SignatureAppearanceDialog.cpp" line="179"/>
+        <location filename="../../src/ui/sign/SignatureAppearanceDialog.cpp" line="181"/>
         <source>PNG logo</source>
         <translation>PNG 徽标</translation>
     </message>
     <message>
-        <location filename="../../src/ui/sign/SignatureAppearanceDialog.cpp" line="206"/>
-        <source>Delete profile</source>
-        <translation>删除配置文件</translation>
-    </message>
-    <message>
-        <location filename="../../src/ui/sign/SignatureAppearanceDialog.cpp" line="216"/>
+        <location filename="../../src/ui/sign/SignatureAppearanceDialog.cpp" line="208"/>
         <source>Cancel</source>
         <translation>取消</translation>
     </message>
     <message>
-        <location filename="../../src/ui/sign/SignatureAppearanceDialog.cpp" line="218"/>
+        <location filename="../../src/ui/sign/SignatureAppearanceDialog.cpp" line="210"/>
         <source>Apply</source>
         <translation>应用</translation>
     </message>
     <message>
-        <location filename="../../src/ui/sign/SignatureAppearanceDialog.cpp" line="235"/>
-        <source>Delete the profile &quot;%1&quot;?</source>
-        <translation>删除配置文件“%1”?</translation>
-    </message>
-    <message>
-        <location filename="../../src/ui/sign/SignatureAppearanceDialog.cpp" line="247"/>
+        <location filename="../../src/ui/sign/SignatureAppearanceDialog.cpp" line="230"/>
         <source>Choose logo</source>
         <translation>选择徽标</translation>
     </message>
     <message>
-        <location filename="../../src/ui/sign/SignatureAppearanceDialog.cpp" line="248"/>
+        <location filename="../../src/ui/sign/SignatureAppearanceDialog.cpp" line="231"/>
         <source>PNG images (*.png)</source>
         <translation>PNG 图片 (*.png)</translation>
     </message>

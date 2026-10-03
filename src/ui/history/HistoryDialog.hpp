@@ -50,7 +50,6 @@ private:
     void rebuildList();
     void updateButtons();
     void selectRow(int index);
-    void applyStyle();
 
     void requestRestore(int index);
 
