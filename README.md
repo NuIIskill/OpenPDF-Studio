@@ -5,7 +5,7 @@ edit the text that is already in it, reorder its pages, annotate and sign it,
 play and embed media, and export it to PDF, Word or PNG. Word, OpenDocument and image
 files open as well, converted in process. One application, no web stack.
 
-Current version: **0.3.0**, alpha. Work on copies of important documents
+Current version: **0.3.1**, alpha. Work on copies of important documents
 and check exported files with a second PDF viewer.
 
 ## Licensing
@@ -43,13 +43,16 @@ so nothing in the dependency stack forces the GPL onto a distribution.
   Shift+Enter step through the matches
 * Password-protected documents: the password is asked once and kept in memory
   for the renderer, editor and exporters; it is never written to disk
+* Document information from the status bar: file, security and permissions,
+  signatures, form fields, attachments and PDF/A, with a shield for the state
+  of the signatures and a lock for encrypted files
 * Printing (needs `Qt6::PrintSupport`)
 
 **Opening other formats**
 
 * Word `.docx`, OpenDocument `.odt` and images open like a PDF, by dropping
   them onto the window or through Open
-* Converted in process, with no external converter and nothing sent anywhere:
+* Converted in the background, with no external converter and nothing sent anywhere:
   the container and its XML are read directly, so the result is real vector
   text that can be selected, searched and edited like any other document
 * Paragraph and character formatting, headings, lists, tables with their
@@ -66,13 +69,18 @@ so nothing in the dependency stack forces the GPL onto a distribution.
 
 * Inline text editing: click a text run, type, and the change is written back
   into the page's content stream as vector text (needs qpdf)
-* Text in any script: characters the original font cannot write fall back to
-  a font that has them
+* Every character keeps the font, size, colour and style of the one it
+  replaces; text in any script falls back to a font that can write it
+* Shift + drag marks exactly the characters to change, also where the
+  paragraph was detected wrongly
+* A short note says when an edit cannot match the page exactly, on a scan or
+  in a font that cannot be written
 * New text: drag a box with the Text tool and type into it
 * Scanned pages fall back to OCR (needs Tesseract), so text can be edited there
   too
-* Images: place a new one, move and scale it, or click an image already in the
-  page to take it out of the content stream and treat it the same way
+* Images: place a new one, or move, scale, rotate, replace, copy, paste and
+  delete images already in the page. They are changed in place, so text
+  above an image stays above it
 * Links: the *Attachment* tool puts a link area over selected text or a drawn
   rectangle, and edits or removes the ones already there
 * Bookmarks: add one for the current page, rename, delete and reorder, written
@@ -100,7 +108,17 @@ so nothing in the dependency stack forces the GPL onto a distribution.
 * Certificates from PKCS#11 tokens through p11-kit on Linux and from the
   Windows certificate store; a self-signed certificate can be created in the
   dialog
+* Signatures already in a document are verified. A signer the system does
+  not trust can be trusted on this computer, by its certificate's fingerprint
+* A signature can be removed again, together with everything signed after it
 * Needs qpdf, and on Linux GnuTLS and p11-kit
+
+**Protecting**
+
+* Open password with AES-256, AES-128 or RC4, or the protection removed
+* Permissions: printing, changing content, copying, comments, forms,
+  assembling pages, accessibility, with their own password
+* Applied on the next save and kept in the change history (needs qpdf)
 
 **Rich media** (`modules/rich-media/`, Business License)
 
@@ -116,8 +134,8 @@ so nothing in the dependency stack forces the GPL onto a distribution.
 
 **Export**
 
-* PDF: page ranges, user password, and switches for comments, form fields,
-  embedded fonts and image compression (honouring them needs qpdf)
+* PDF: page ranges, and switches for comments, form fields, embedded fonts
+  and image compression (honouring them needs qpdf)
 * Word `.docx`: text, layout and images
 * PNG: one file per page, adjustable quality
 * Estimated output size before you export
@@ -136,11 +154,9 @@ so nothing in the dependency stack forces the GPL onto a distribution.
 
 ## Not there yet
 
-* Real PDF/A conformance. The PDF/A card in the export dialog currently
-  produces an ordinary PDF
+* PDF/A export. The format is shown in the export dialog but greyed out
 * Form editing, redaction
-* On the signing side: timestamps, locking the document after signing, and
-  checking the signatures a document already has
+* On the signing side: timestamps and locking the document after signing
 * Opening Word or OpenDocument files drops headers and footers, footnotes,
   fields such as page numbers or a table of contents, multi-column layout and
   tracked changes. A document whose text reflows differently than Word laid it
@@ -156,21 +172,21 @@ so nothing in the dependency stack forces the GPL onto a distribution.
 Grab a package from the Releases page:
 
 ```bash
-sudo dnf install openpdf-studio-0.3.0-1.x86_64.rpm      # Fedora / RHEL / openSUSE
-sudo apt install ./openpdf-studio_0.3.0_amd64.deb       # Debian / Ubuntu
+sudo dnf install openpdf-studio-0.3.1-1.x86_64.rpm      # Fedora / RHEL / openSUSE
+sudo apt install ./openpdf-studio_0.3.1_amd64.deb       # Debian / Ubuntu
 ```
 
 Or use the AppImage, which needs nothing installed:
 
 ```bash
-chmod +x OpenPDF_Studio-0.3.0-x86_64.AppImage
-./OpenPDF_Studio-0.3.0-x86_64.AppImage
+chmod +x OpenPDF_Studio-0.3.1-x86_64.AppImage
+./OpenPDF_Studio-0.3.1-x86_64.AppImage
 ```
 
 ### Windows
 
-Run `OpenPDF-Studio-0.3.0-Setup.exe`, or unpack
-`OpenPDF-Studio-0.3.0-win64-portable.zip` and start `OpenPDFStudio.exe`.
+Run `OpenPDF-Studio-0.3.1-Setup.exe`, or unpack
+`OpenPDF-Studio-0.3.1-win64-portable.zip` and start `OpenPDFStudio.exe`.
 The Windows build carries PDFium and qpdf, so editing, export options, digital
 signatures and rich media all work. Tesseract is not in it, so scanned pages cannot be OCR'd.
 
@@ -242,7 +258,7 @@ OpenPDFStudio --organize-save in.pdf out.pdf
 OpenPDFStudio --shot-window          out.png in.pdf [dark] [edit=x,y]
 OpenPDFStudio --shot-organizer       out.png in.pdf [dark]
 OpenPDFStudio --shot-presentation    out.png in.pdf [page=N]
-OpenPDFStudio --shot-export-dialog   out.png [word|image]
+OpenPDFStudio --shot-export-dialog   out.png [word|image] [empty] [dark|light]
 OpenPDFStudio --shot-history-dialog  out.png [dark]
 OpenPDFStudio --shot-settings        out.png ["License Key"] [dark|light]
 OpenPDFStudio --shot-license-notice  out.png [dark|light]
@@ -269,7 +285,8 @@ src/
               historymanager/, import/, ocr/, render/, sign/
   ui/         everything that is a widget: bars/, panels/, theme/, view/,
               edit/, draw/, notes/, bookmarks/, settings/, organizer/,
-              history/, session/, export/, sign/, widgets/
+              history/, info/, protect/, session/, export/, import/, sign/,
+              widgets/
   3rdparty/   vendored (nanosvg)
 modules/
   rich-media/ source-available module, Business License
