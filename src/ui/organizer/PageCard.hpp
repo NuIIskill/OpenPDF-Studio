@@ -8,6 +8,7 @@
 #include <QMouseEvent>
 #include <QPainter>
 #include <QPushButton>
+#include <QStyle>
 #include <QVBoxLayout>
 #include <QWidget>
 
@@ -97,7 +98,7 @@ public:
         m_pageLabel->setAlignment(Qt::AlignCenter);
         root->addWidget(m_pageLabel, 1, Qt::AlignHCenter | Qt::AlignBottom);
 
-        applyStyle(false);
+        applyStyle();
 
         connect(m_check, &QPushButton::toggled, this, &PageCard::checkToggled);
     }
@@ -108,7 +109,9 @@ public:
     {
         if (m_selected == s) return;
         m_selected = s;
-        applyStyle(s);
+        setProperty("selected", s);
+        style()->unpolish(this);
+        style()->polish(this);
         QSignalBlocker blk(m_check);
         m_check->setChecked(s);
     }
@@ -166,7 +169,7 @@ private:
                  dk ? QLatin1String("#D8D8D8") : QLatin1String("#111827"));
     }
 
-    void applyStyle(bool selected)
+    void applyStyle()
     {
         const bool dk = Theme::DarkMode;
         const QString bg     = dk ? QStringLiteral("#3A3A3A") : QStringLiteral("#FFFFFF");
@@ -174,18 +177,12 @@ private:
         const QString hover  = dk ? QStringLiteral("#606060") : QStringLiteral("#CBD5E1");
         const QString sel    = dk ? QStringLiteral("#3B82F6") : QStringLiteral("#2563EB");
 
-        if (selected) {
-            setStyleSheet(QStringLiteral(
-                "QFrame#PageCard { background:%1; border:2px solid %2; border-radius:10px; }")
-                .arg(bg, sel)
-                + childStyles());
-        } else {
-            setStyleSheet(QStringLiteral(
-                "QFrame#PageCard { background:%1; border:1px solid %2; border-radius:10px; }"
-                "QFrame#PageCard:hover { border:1px solid %3; }")
-                .arg(bg, border, hover)
-                + childStyles());
-        }
+        setStyleSheet(QStringLiteral(
+            "QFrame#PageCard { background:%1; border:1px solid %2; border-radius:10px; }"
+            "QFrame#PageCard:hover { border:1px solid %3; }"
+            "QFrame#PageCard[selected=\"true\"] { border:2px solid %4; }")
+            .arg(bg, border, hover, sel)
+            + childStyles());
     }
 
     int        m_index;

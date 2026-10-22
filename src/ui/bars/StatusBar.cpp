@@ -1,4 +1,6 @@
 #include "ui/bars/StatusBar.hpp"
+#include "engine/document/DocumentInfo.hpp"
+#include "ui/info/InfoText.hpp"
 #include "ui/widgets/IconButton.hpp"
 #include "ui/theme/Theme.hpp"
 
@@ -6,6 +8,13 @@
 #include <QLineEdit>
 #include <QHBoxLayout>
 #include <QIntValidator>
+#include <QPushButton>
+
+namespace {
+
+constexpr int kSideWidth = 160;
+
+}
 
 StatusBar::StatusBar(QWidget *parent)
     : QWidget(parent)
@@ -16,7 +25,10 @@ StatusBar::StatusBar(QWidget *parent)
     setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Fixed);
     buildLayout();
     setPageInfo(1, 1);
+    setDocumentInfo(false, nullptr);
 }
+
+StatusBar::~StatusBar() = default;
 
 void StatusBar::setPageInfo(int current, int total)
 {
@@ -30,6 +42,39 @@ void StatusBar::setPageInfo(int current, int total)
 
     m_prevBtn->setEnabled(m_currentPage > 1);
     m_nextBtn->setEnabled(m_currentPage < m_totalPages);
+}
+
+void StatusBar::setDocumentInfo(bool open, const DocumentInfo *info)
+{
+    m_infoOpen = open;
+    m_info = open && info ? std::make_unique<DocumentInfo>(*info) : nullptr;
+    refreshInfoBadges();
+}
+
+void StatusBar::setHint(const QString &text)
+{
+    m_hintLabel->setText(text);
+}
+
+void StatusBar::refreshInfoBadges()
+{
+    m_infoBtn->setVisible(m_infoOpen);
+    const bool signatures = m_info && m_info->signatureCount() > 0;
+    m_signatureBadge->setVisible(signatures);
+    if (signatures) {
+        const QColor tint = InfoText::signatureColor(*m_info);
+        m_signatureBadge->setIcon(Theme::makeIcon(InfoText::signatureIcon(*m_info), tint, tint,
+                                                  tint, 18));
+        m_signatureBadge->setText(QString::number(m_info->signatureCount()));
+        m_signatureBadge->setToolTip(InfoText::signatureSummary(*m_info));
+    }
+    const bool encrypted = m_info && m_info->encrypted;
+    m_lockBadge->setVisible(encrypted);
+    if (encrypted) {
+        m_lockBadge->setIcon(Theme::makeIcon(QStringLiteral("lock"), Theme::Primary,
+                                             Theme::Primary, Theme::Primary, 18));
+        m_lockBadge->setToolTip(InfoText::encryptionSummary(*m_info));
+    }
 }
 
 void StatusBar::commitPageInput()
@@ -53,6 +98,8 @@ void StatusBar::refreshTheme()
     m_nextBtn->setIconName(m_nextBtn->iconName(), mc);
     if (m_panelBtn)
         m_panelBtn->setIconName(m_panelBtn->iconName(), mc);
+    m_infoBtn->setIconName(m_infoBtn->iconName(), mc);
+    refreshInfoBadges();
 }
 
 void StatusBar::retranslateUi()
@@ -62,6 +109,38 @@ void StatusBar::retranslateUi()
     m_pageInput->setToolTip(tr("Go to page"));
     if (m_panelBtn)
         m_panelBtn->setToolTip(tr("Toggle Panel"));
+    m_infoBtn->setToolTip(tr("Document information"));
+    refreshInfoBadges();
+}
+
+void StatusBar::buildInfoGroup(QHBoxLayout *layout)
+{
+    m_infoGroup = new QWidget(this);
+    m_infoGroup->setFixedWidth(kSideWidth);
+    auto *row = new QHBoxLayout(m_infoGroup);
+    row->setContentsMargins(0, 0, 0, 0);
+    row->setSpacing(2);
+
+    m_infoBtn = new IconButton(m_infoGroup);
+    m_infoBtn->setIconName(QStringLiteral("info"), Theme::IconMuted);
+    m_infoBtn->setToolTip(tr("Document information"));
+    connect(m_infoBtn, &QPushButton::clicked, this, &StatusBar::infoRequested);
+    row->addWidget(m_infoBtn);
+
+    m_signatureBadge = new QPushButton(m_infoGroup);
+    m_lockBadge = new QPushButton(m_infoGroup);
+    for (QPushButton *badge : { m_signatureBadge, m_lockBadge }) {
+        badge->setObjectName(QStringLiteral("StatusBadge"));
+        badge->setFlat(true);
+        badge->setCursor(Qt::PointingHandCursor);
+        badge->setIconSize(QSize(18, 18));
+        badge->setFixedHeight(32);
+        row->addWidget(badge);
+    }
+    connect(m_signatureBadge, &QPushButton::clicked, this, &StatusBar::signaturesRequested);
+    connect(m_lockBadge, &QPushButton::clicked, this, &StatusBar::protectionRequested);
+    row->addStretch(1);
+    layout->addWidget(m_infoGroup);
 }
 
 void StatusBar::buildLayout()
@@ -70,7 +149,12 @@ void StatusBar::buildLayout()
     layout->setContentsMargins(12, 0, 12, 0);
     layout->setSpacing(0);
 
-    layout->addStretch(1);
+    buildInfoGroup(layout);
+
+    m_hintLabel = new QLabel(this);
+    m_hintLabel->setObjectName(QStringLiteral("StatusHint"));
+    m_hintLabel->setSizePolicy(QSizePolicy::Ignored, QSizePolicy::Preferred);
+    layout->addWidget(m_hintLabel, 1);
 
     m_prevBtn = new IconButton(this);
     m_prevBtn->setIconName(QStringLiteral("chevron-left"), Theme::IconMuted);
@@ -108,9 +192,15 @@ void StatusBar::buildLayout()
 
     layout->addStretch(1);
 
-    m_panelBtn = new IconButton(this);
+    auto *right = new QWidget(this);
+    right->setFixedWidth(kSideWidth);
+    auto *rightRow = new QHBoxLayout(right);
+    rightRow->setContentsMargins(0, 0, 0, 0);
+    rightRow->addStretch(1);
+    m_panelBtn = new IconButton(right);
     m_panelBtn->setIconName(QStringLiteral("panel-right"), Theme::IconMuted);
     m_panelBtn->setToolTip(tr("Toggle Panel"));
     connect(m_panelBtn, &QPushButton::clicked, this, &StatusBar::panelToggleRequested);
-    layout->addWidget(m_panelBtn);
+    rightRow->addWidget(m_panelBtn);
+    layout->addWidget(right);
 }

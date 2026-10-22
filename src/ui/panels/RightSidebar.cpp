@@ -21,6 +21,7 @@ RightSidebar::RightSidebar(QWidget *parent)
     const ModeItem modes[] = {
         { "pencil",    QT_TR_NOOP("Edit"),     "edit"     },
         { "signature", QT_TR_NOOP("Sign"),     "sign"     },
+        { "lock",      QT_TR_NOOP("Protect"),  "protect"  },
         { "upload",    QT_TR_NOOP("Export"),   "export"   },
         { "layers",    QT_TR_NOOP("Organize"), "organize" },
         { "history",   QT_TR_NOOP("History"),  "history"  },

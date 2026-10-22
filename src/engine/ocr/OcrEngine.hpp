@@ -56,9 +56,7 @@ public:
 
     QString recognizeImage(const QImage &image) const;
 
-    QList<QRectF> detectImageRegions(const QImage &pageImage,
-                                      const QSizeF  &pageSizePts,
-                                      qreal          renderScale) const;
+    QString recognizeLine(const QImage &image, int dpi) const;
 
     static Block blockAt(const QList<Block> &blocks,
                           const QPointF      &pdfPt,

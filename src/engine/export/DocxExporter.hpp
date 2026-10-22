@@ -2,11 +2,19 @@
 
 #include "engine/edit/ContentMap.hpp"
 
-#include <QImage>
+#include <QByteArray>
 #include <QList>
 #include <QMarginsF>
 #include <QSizeF>
 #include <QString>
+
+/// Holds a picture already compressed for its media part.
+struct DocxImage {
+    QByteArray data;
+    QString    ext;
+
+    bool isNull() const { return data.isEmpty(); }
+};
 
 /// Stores one block in the generated WordprocessingML document.
 struct DocxCell {
@@ -39,7 +47,7 @@ struct DocxBlock {
 
     DocxTable table;
 
-    QImage picture;
+    DocxImage picture;
 
     QColor fillColor;
     QColor strokeColor;
@@ -49,7 +57,7 @@ struct DocxBlock {
 struct DocxPage {
     QSizeF           pageSizePt;
     QList<ContentItem> items;
-    QImage           background;
+    DocxImage        background;
     QList<DocxBlock> blocks;
     QMarginsF        marginsPt { 56.0, 45.0, 56.0, 45.0 };
 };
@@ -66,8 +74,7 @@ class DocxExporter
 public:
     static bool exportToDocx(const QString &outputPath,
                              const QList<DocxPage> &pages,
-                             const QString &title = {},
-                             const DocxExportOptions &options = {});
+                             const QString &title = {});
 
     static bool exportToDocx(const QString       &outputPath,
                              const QList<QString> &pageTexts,

@@ -1,5 +1,6 @@
 #pragma once
 
+#include "engine/document/DocumentWorker.hpp"
 #include "engine/document/PdfBackend.hpp"
 #include "engine/render/PdfRenderer.hpp"
 
@@ -33,12 +34,13 @@ public:
             if (needsPassword) *needsPassword = asked;
             return nullptr;
         }
-        return new OrganizerDoc(std::move(backend));
+        return new OrganizerDoc(std::move(backend), path);
     }
 
     ~OrganizerDoc()
     {
 
+        m_worker.reset();
         m_renderer.reset();
         m_backend.reset();
     }
@@ -48,11 +50,23 @@ public:
 
     QImage render(int page, qreal scale) const { return m_renderer->renderPage(page, scale); }
 
-private:
-    explicit OrganizerDoc(std::unique_ptr<PdfBackend> backend)
-        : m_backend(std::move(backend))
-        , m_renderer(std::make_unique<PdfRenderer>(m_backend.get())) {}
+    DocumentWorker *worker()
+    {
+        if (!m_worker) {
+            m_worker = std::make_unique<DocumentWorker>(m_backend.get());
+            m_worker->setDocument(m_path);
+        }
+        return m_worker.get();
+    }
 
-    std::unique_ptr<PdfBackend>  m_backend;
-    std::unique_ptr<PdfRenderer> m_renderer;
+private:
+    OrganizerDoc(std::unique_ptr<PdfBackend> backend, const QString &path)
+        : m_backend(std::move(backend))
+        , m_renderer(std::make_unique<PdfRenderer>(m_backend.get()))
+        , m_path(path) {}
+
+    std::unique_ptr<PdfBackend>     m_backend;
+    std::unique_ptr<PdfRenderer>    m_renderer;
+    std::unique_ptr<DocumentWorker> m_worker;
+    QString                         m_path;
 };

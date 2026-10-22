@@ -7,6 +7,7 @@
 #include <QRectF>
 #include <QString>
 
+#include "engine/edit/TextLayout.hpp"
 #include "ui/view/PageCanvas.hpp"
 
 #ifdef HAVE_PDF_RENDERING
@@ -36,7 +37,7 @@ public:
     void setSource(PdfRenderer *renderer, const DocumentSource *source);
 #endif
 
-    void handlePress(const QPoint &canvasPos);
+    void handlePress(const QPoint &canvasPos, bool extend = false);
     bool handleMove(const QPoint &canvasPos);
     bool handleRelease();
 
@@ -57,19 +58,23 @@ private:
         int           page;
         QList<QRectF> rects;
         QString       text;
+        QList<TextLayout::Source> sources;
+        QList<TextLayout::OriginalLine> lines;
     };
 
     bool anchorAt(const QPoint &canvasPos, int *page, QPointF *pdfPt) const;
-    void updateSelection(const QPoint &canvasFrom, const QPoint &canvasTo);
+    void updateSelection(const QPoint &canvasTo);
     void updateOverlays();
     PageCanvas *m_canvas { nullptr };
 
     QList<Part>       m_parts;
     QList<QWidget *>  m_overlays;
 
-    bool   m_tracking { false };
-    bool   m_dragging { false };
-    QPoint m_dragStart;
+    bool    m_tracking   { false };
+    bool    m_dragging   { false };
+    QPoint  m_dragStart;
+    int     m_anchorPage { -1 };
+    QPointF m_anchorPt;
 
 #ifdef HAVE_PDF_RENDERING
     PdfRenderer          *m_renderer { nullptr };

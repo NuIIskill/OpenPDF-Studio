@@ -7,6 +7,8 @@
 #include <QPen>
 #include <QMouseEvent>
 #include <QMoveEvent>
+#include <QTextCursor>
+#include <QTextDocument>
 #include <QTimer>
 #include <QtMath>
 #include <QFontMetricsF>
@@ -30,6 +32,7 @@ TextBoxFrame::TextBoxFrame(QWidget *parent) : QWidget(parent)
         Q_EMIT committed(text.isNull() ? text : currentText());
     });
     connect(m_editor, &InlineEditor::cancelled,  this, &TextBoxFrame::cancelled);
+    connect(m_editor, &InlineEditor::lookChanged, this, &TextBoxFrame::lookChanged);
 
     connect(m_editor, &InlineEditor::changed, this, [this]() {
         if (isVisible()) {
@@ -111,6 +114,7 @@ void TextBoxFrame::setBoxProperties(const TextBoxProperties &properties, qreal s
 void TextBoxFrame::setGrowHorizontal(bool on)
 {
     m_growHorizontal = on;
+    m_growClamped = false;
     syncLayoutBox();
 }
 
@@ -127,12 +131,27 @@ void TextBoxFrame::growToFitText()
 
     if (m_growHorizontal)
         brauchtW = qMax(m_editor->contentWidthPt() + (engine ? 0.1 : 0.0),
-                        m_minInnerW / m_scale);
+                        m_minInnerWPt);
+
+    if (m_growClamped && engine && !m_userSized
+            && m_editor->plainText().size() * fontPt * 0.15 <= freieBreitePt()) {
+        // Growth stopped at the page edge while the text was still being
+        // measured; once the unbroken text fits again it grows as before.
+        m_editor->setLayoutBox(QSizeF(1e6, m_boxPt.height()), false);
+        const qreal unbroken = m_editor->contentWidthPt() + 0.1;
+        if (const qreal frei = freieBreitePt(); frei > 0.0 && unbroken <= frei) {
+            m_growHorizontal = true;
+            m_growClamped = false;
+            brauchtW = qMax(unbroken, m_minInnerWPt);
+        }
+        syncLayoutBox();
+    }
 
     if (const qreal frei = freieBreitePt(); m_growHorizontal && frei > 0.0 && brauchtW > frei) {
         brauchtW = frei;
         if (m_growHorizontal) {
             m_growHorizontal = false;
+            m_growClamped = true;
             if (!engine) {
                 m_editor->setLineWrapMode(QTextEdit::WidgetWidth);
                 m_editor->document()->setTextWidth(brauchtW * m_scale);
@@ -150,10 +169,13 @@ void TextBoxFrame::growToFitText()
                                                                  : fontPt * 1.2;
             brauchtH = (lines - 1) * stepPt + fontPt * 1.25;
         }
-        brauchtH = qMax(brauchtH,
-                        minInnerHeight(m_editor->fontPixelSizeF()) / m_scale);
-        if (const qreal frei = freieHoehePt(); frei > 0.0)
+        const qreal floor = minInnerHeight(m_editor->fontPixelSizeF()) / m_scale;
+        brauchtH = qMax(brauchtH, floor);
+        if (!m_pageRect.isNull()) {
+            const qreal frei = qMax(freieHoehePt(), floor);
+            setOverflow(brauchtH > frei + 0.5);
             brauchtH = qMin(brauchtH, frei);
+        }
     }
 
     if (m_userSized) {
@@ -174,9 +196,19 @@ void TextBoxFrame::growToFitText()
         Q_EMIT boundsChanged(innerCanvasRect());
 }
 
+void TextBoxFrame::setOverflow(bool overflow)
+{
+    if (overflow == m_overflow) return;
+    m_overflow = overflow;
+    update();
+}
+
 qreal TextBoxFrame::freieBreitePt() const
 {
     if (m_pageRect.isNull()) return 0.0;
+    // In points, so the room to the page edge does not change with the zoom.
+    if (!m_pageSizePt.isEmpty() && m_hasInnerTopLeft)
+        return qMax(0.0, m_pageSizePt.width() - (m_innerTopLeft.x() - m_pageRect.left()) / m_scale);
     const int innen = m_pageRect.right() - x() + 1
                     - (m_decorations ? 2 * kPad : 0);
     return innen > 0 ? (innen + 1) / m_scale : 0.0;
@@ -199,6 +231,8 @@ void TextBoxFrame::applyBoxSize()
 qreal TextBoxFrame::freieHoehePt() const
 {
     if (m_pageRect.isNull()) return 0.0;
+    if (!m_pageSizePt.isEmpty() && m_hasInnerTopLeft)
+        return qMax(0.0, m_pageSizePt.height() - (m_innerTopLeft.y() - m_pageRect.top()) / m_scale);
     const int innen = m_pageRect.bottom() - y() + 1
                     - (m_decorations ? 2 * kPad : 0);
     return innen > 0 ? (innen + 1) / m_scale : 0.0;
@@ -232,12 +266,31 @@ void TextBoxFrame::repositionForZoom(const QRectF &canvasBounds, qreal px,
     growToFitText();
     layoutEditor();
     m_presenting = false;
-    if (isVisible() && !m_editor->hasFocus()) {
+    // A box being moved stays held at the same spot under the cursor, and
+    // any drag carries on from here in the pixels of the new zoom.
+    if (m_drag == Handle::Move && m_zoomPending) keepHeldUnderCursor();
+    if (m_drag != Handle::None) {
+        m_dragStartGeo = geometry();
+        m_dragOrigin   = m_dragAt;
+    }
+    m_zoomPending = false;
+    if (isVisible() && !m_editor->hasFocus() && !InlineEditor::focusInFormatting()) {
         m_editor->suppressNextFocusOut();
         m_editor->setFocus();
     }
     update();
 }
+void TextBoxFrame::holdDragForZoom()
+{
+    if (m_drag != Handle::None) m_zoomPending = true;
+}
+
+void TextBoxFrame::keepHeldUnderCursor()
+{
+    const QPointF held = QPointF(parentWidget()->mapFromGlobal(m_dragAt)) - m_heldPt * m_scale;
+    move(pos() + (held - innerCanvasRect().topLeft()).toPoint());
+}
+
 void TextBoxFrame::setTextAnchor(bool valid, const QPointF &penOffsetPt)
 {
     m_hasAnchor = valid;
@@ -266,28 +319,67 @@ void TextBoxFrame::layoutEditor()
 
 void TextBoxFrame::keepInsidePage()
 {
-    const QRect inner = innerRect().translated(pos());
+    // Measured on the exact box and page edge, so a box put back inside still
+    // has room for its whole width and keeps its line breaks.
+    const QRectF inner = innerCanvasRect();
+    const QRectF page = m_pageSizePt.isEmpty()
+        ? QRectF(m_pageRect) : QRectF(QPointF(m_pageRect.topLeft()), m_pageSizePt * m_scale);
     int dx = 0;
     int dy = 0;
-    if (inner.right() > m_pageRect.right())   dx = m_pageRect.right() - inner.right();
-    if (inner.left() + dx < m_pageRect.left()) dx = m_pageRect.left() - inner.left();
-    if (inner.bottom() > m_pageRect.bottom()) dy = m_pageRect.bottom() - inner.bottom();
-    if (inner.top() + dy < m_pageRect.top())  dy = m_pageRect.top() - inner.top();
+    if (inner.right() > page.right())    dx = qFloor(page.right() - inner.right());
+    if (inner.left() + dx < page.left()) dx = qCeil(page.left() - inner.left());
+    if (inner.bottom() > page.bottom())  dy = qFloor(page.bottom() - inner.bottom());
+    if (inner.top() + dy < page.top())   dy = qCeil(page.top() - inner.top());
     if (dx || dy) move(pos() + QPoint(dx, dy));
 }
 
 void TextBoxFrame::setForbiddenZones(const QList<QRect> &z) { m_forbidden = z; }
-void TextBoxFrame::setPageRect(const QRect &r) { m_pageRect = r; }
+void TextBoxFrame::setPageRect(const QRect &r, const QSizeF &pageSizePt)
+{
+    m_pageRect   = r;
+    m_pageSizePt = pageSizePt;
+}
 void TextBoxFrame::resetCommitGuard()      { m_editor->resetCommitGuard(); }
 QString TextBoxFrame::currentText() const  { return m_editor->laidOutText(); }
 QString TextBoxFrame::plainText() const    { return m_editor->toPlainText(); }
+
+QList<TextLayout::Source> TextBoxFrame::charSources() const { return m_editor->charSources(); }
+QList<QList<double>> TextBoxFrame::paragraphCharXPt() const { return m_editor->paragraphCharXPt(); }
+void TextBoxFrame::setCharSources(const QList<TextLayout::Source> &sources)
+{
+    m_editor->setCharSources(sources);
+    growToFitText();
+    layoutEditor();
+}
+void TextBoxFrame::setDocumentKey(const QString &key) { m_editor->setDocumentKey(key); }
+
+void TextBoxFrame::copyAll() { m_editor->copyAll(); }
+void TextBoxFrame::paste() { m_editor->paste(); }
+
+void TextBoxFrame::showLookAt(const QPoint &canvasPos)
+{
+    m_editor->setLookAt(m_editor->charAt(m_editor->viewport()->mapFrom(parentWidget(), canvasPos)));
+}
+
+TextLayout::Appearance TextBoxFrame::look() const { return m_editor->look(); }
+QList<TextLayout::Appearance> TextBoxFrame::appearances() const { return m_editor->appearances(); }
+
+void TextBoxFrame::selectRange(int start, int end)
+{
+    const int length = m_editor->document()->characterCount() - 1;
+    QTextCursor cursor = m_editor->textCursor();
+    cursor.setPosition(qBound(0, start, length));
+    cursor.setPosition(qBound(0, end, length), QTextCursor::KeepAnchor);
+    m_editor->setTextCursor(cursor);
+}
 
 void TextBoxFrame::present(const QString &text, const QRectF &canvasBounds, qreal fontSize,
                            const QColor &color, const QString &fontFamily,
                            bool bold, bool italic, bool underline)
 {
 
-    m_minInnerW = text.trimmed().isEmpty() ? 120 : 24;
+    m_minInnerW   = text.isEmpty() ? 120 : 24;
+    m_minInnerWPt = m_minInnerW / m_scale;
 
     m_boxPt = canvasBounds.size() / m_scale;
     m_userSized = false;
@@ -392,11 +484,18 @@ void TextBoxFrame::mousePressEvent(QMouseEvent *e)
         if (h != Handle::None) {
             m_drag           = h;
             m_dragOrigin     = e->globalPosition().toPoint();
+            m_dragAt         = m_dragOrigin;
             m_dragStartGeo   = geometry();
+            m_zoomPending    = false;
+            // The spot of the box under the cursor, in points: a moved box
+            // stays held there, also when the zoom changes on the way.
+            m_heldPt = (QPointF(parentWidget()->mapFromGlobal(m_dragAt))
+                        - innerCanvasRect().topLeft()) / m_scale;
             applyCursor(h);
             m_editor->setDragMode(true);
             m_editor->suppressNextFocusOut();
             e->accept();
+            if (h == Handle::Move) Q_EMIT moveStarted();
             return;
         }
     }
@@ -411,27 +510,34 @@ void TextBoxFrame::mouseMoveEvent(QMouseEvent *e)
         return;
     }
 
-    const QPoint d  = e->globalPosition().toPoint() - m_dragOrigin;
+    // Between a zoom and the frame placed for it, its pixels are those of the
+    // zoom before; the drag goes on once it is placed.
+    m_dragAt = e->globalPosition().toPoint();
+    if (m_zoomPending) {
+        e->accept();
+        return;
+    }
+    if (m_drag == Handle::Move) {
+        keepHeldUnderCursor();
+        e->accept();
+        return;
+    }
+    const QPoint d  = m_dragAt - m_dragOrigin;
     QRect geo       = m_dragStartGeo;
     const int minW  = m_minInnerW + 2 * kPad;
     const int minH  = minInnerHeight(m_editor->fontPixelSizeF()) + 2 * kPad;
 
-    if (m_drag == Handle::Move) {
-        geo.translate(d);
-    } else {
+    if (m_drag == Handle::W || m_drag == Handle::NW || m_drag == Handle::SW)
+        geo.setLeft(qMin(geo.left() + d.x(), geo.right() - minW));
+    if (m_drag == Handle::E || m_drag == Handle::NE || m_drag == Handle::SE)
+        geo.setRight(qMax(geo.right() + d.x(), geo.left() + minW));
 
-        if (m_drag == Handle::W || m_drag == Handle::NW || m_drag == Handle::SW)
-            geo.setLeft(qMin(geo.left() + d.x(), geo.right() - minW));
-        if (m_drag == Handle::E || m_drag == Handle::NE || m_drag == Handle::SE)
-            geo.setRight(qMax(geo.right() + d.x(), geo.left() + minW));
+    if (m_drag == Handle::N || m_drag == Handle::NW || m_drag == Handle::NE)
+        geo.setTop(qMin(geo.top() + d.y(), geo.bottom() - minH));
+    if (m_drag == Handle::S || m_drag == Handle::SW || m_drag == Handle::SE)
+        geo.setBottom(qMax(geo.bottom() + d.y(), geo.top() + minH));
 
-        if (m_drag == Handle::N || m_drag == Handle::NW || m_drag == Handle::NE)
-            geo.setTop(qMin(geo.top() + d.y(), geo.bottom() - minH));
-        if (m_drag == Handle::S || m_drag == Handle::SW || m_drag == Handle::SE)
-            geo.setBottom(qMax(geo.bottom() + d.y(), geo.top() + minH));
-    }
-
-    if (!m_pageRect.isNull() && m_drag != Handle::Move) {
+    if (!m_pageRect.isNull()) {
         geo = geo.intersected(m_pageRect).normalized();
         if (geo.width() < minW || geo.height() < minH)
             geo = m_dragStartGeo;
@@ -445,7 +551,9 @@ void TextBoxFrame::mouseReleaseEvent(QMouseEvent *e)
 {
     if (e->button() == Qt::LeftButton && m_drag != Handle::None) {
 
-        if (m_drag == Handle::Move
+        if (m_zoomPending) {
+            // The frame is placed for the new zoom right after.
+        } else if (m_drag == Handle::Move
                 && (geometry().topLeft() - m_dragStartGeo.topLeft())
                        .manhattanLength() <= 2)
             setGeometry(m_dragStartGeo);
@@ -560,4 +668,14 @@ void TextBoxFrame::paintEvent(QPaintEvent *)
     for (const QPoint &at : std::as_const(ecken))
         p.drawRect(QRect(at, QSize(hw, hw)));
 
+    if (m_overflow) {
+        // The text runs past the page: the part below it is not visible.
+        const int s = qMax(9, hw + 4);
+        const QRect mark(ring.right() - s - 2, ring.bottom() - s - 2, s, s);
+        p.setPen(QPen(QColor(0xDC, 0x26, 0x26), 1));
+        p.setBrush(Qt::white);
+        p.drawRect(mark);
+        p.drawLine(mark.center().x(), mark.top() + 2, mark.center().x(), mark.bottom() - 2);
+        p.drawLine(mark.left() + 2, mark.center().y(), mark.right() - 2, mark.center().y());
+    }
 }

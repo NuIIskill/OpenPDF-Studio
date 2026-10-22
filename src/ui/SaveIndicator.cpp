@@ -15,6 +15,7 @@ namespace {
 
 constexpr int HoldMs = 1600;
 constexpr int FadeMs = 260;
+constexpr int ProgressDropPx = 48;
 
 }
 
@@ -63,10 +64,16 @@ SaveIndicator::SaveIndicator(QWidget *parent)
 
 void SaveIndicator::flash(const QString &fileName)
 {
-    m_text->setText(fileName.isEmpty() ? tr("Saved")
-                                       : tr("Saved \"%1\"").arg(fileName));
+    showDone(fileName.isEmpty() ? tr("Saved") : tr("Saved \"%1\"").arg(fileName));
+}
+
+void SaveIndicator::showDone(const QString &text)
+{
+    m_progress = false;
+    m_text->setText(text);
     m_icon->setPixmap(Theme::renderSvg(QStringLiteral("check"), Theme::Success,
                                        18, devicePixelRatioF()));
+    m_icon->show();
 
     m_fade->stop();
     m_opacity->setOpacity(1.0);
@@ -75,6 +82,21 @@ void SaveIndicator::flash(const QString &fileName)
     show();
     raise();
     m_hold->start();
+}
+
+void SaveIndicator::showProgress(const QString &text)
+{
+    m_progress = true;
+    m_text->setText(text);
+    m_icon->hide();
+
+    m_hold->stop();
+    m_fade->stop();
+    m_opacity->setOpacity(1.0);
+    adjustSize();
+    reposition();
+    show();
+    raise();
 }
 
 void SaveIndicator::fadeOut()
@@ -88,7 +110,8 @@ void SaveIndicator::reposition()
     if (!host) return;
 
     move((host->width()  - width())  / 2,
-         (host->height() - height()) / 2);
+         m_progress ? host->height() / 2 + ProgressDropPx
+                    : (host->height() - height()) / 2);
 }
 
 bool SaveIndicator::eventFilter(QObject *watched, QEvent *event)

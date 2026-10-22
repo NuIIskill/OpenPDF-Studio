@@ -4,6 +4,7 @@
 
 #include "engine/document/PdfiumEdits.hpp"
 #include "engine/document/PdfiumLock.hpp"
+#include "engine/document/PdfiumPageSpace.hpp"
 #include "engine/edit/EditSession.hpp"
 
 #include "fpdf_edit.h"
@@ -46,6 +47,30 @@ bool renderProgressive(FPDF_BITMAP bmp, FPDF_PAGE pg, const QRect &target, const
     return status == FPDF_RENDER_DONE;
 }
 
+}
+
+QImage PdfiumBackend::renderEditText(int page, qreal scale, const QList<EditSession::Edit> &edits,
+                                     const QRect &pixels) const
+{
+    // Only the text, on transparency, to be laid over the page without it.
+    PdfiumLock lock;
+    if (!m_doc || edits.isEmpty()) return {};
+    const QSize px = pixelSize(page, scale);
+    const QRect target = pixels.intersected(QRect(QPoint(), px));
+    if (target.isEmpty()) return {};
+    FPDF_PAGE pg = FPDF_LoadPage(m_doc, page);
+    if (!pg) return {};
+    PdfiumEdits::textAlone(m_doc, pg, edits);
+    QImage out(target.size(), QImage::Format_ARGB32);
+    out.fill(Qt::transparent);
+    FPDF_BITMAP bmp = FPDFBitmap_CreateEx(target.width(), target.height(), FPDFBitmap_BGRA,
+                                          out.bits(), int(out.bytesPerLine()));
+    if (bmp) {
+        FPDF_RenderPageBitmap(bmp, pg, -target.x(), -target.y(), px.width(), px.height(), 0, 0);
+        FPDFBitmap_Destroy(bmp);
+    }
+    FPDF_ClosePage(pg);
+    return out;
 }
 
 QImage PdfiumBackend::renderPage(int page, qreal scale) const
@@ -133,21 +158,22 @@ QImage PdfiumBackend::renderPageInternal(int page, qreal scale,
     closePage();
 
     if (session && !rendered.isNull() && target.size() == px)
-        session->applyToImage(page, rendered, scale, EditSession::Paint::FormFields);
+        session->paintFormFields(page, rendered, scale);
 
     return rendered;
 }
 
 namespace {
 
-QHash<FPDF_PAGEOBJECT, QRectF> objectBounds(FPDF_PAGE page, double pageHeight)
+QHash<FPDF_PAGEOBJECT, QRectF> objectBounds(FPDF_PAGE page)
 {
+    const PdfiumPageSpace space(page);
     QHash<FPDF_PAGEOBJECT, QRectF> out;
     for (int i = 0, n = FPDFPage_CountObjects(page); i < n; ++i) {
         FPDF_PAGEOBJECT object = FPDFPage_GetObject(page, i);
         float left = 0, bottom = 0, right = 0, top = 0;
         if (!object || !FPDFPageObj_GetBounds(object, &left, &bottom, &right, &top)) continue;
-        out.insert(object, QRectF(left, pageHeight - top, right - left, top - bottom));
+        out.insert(object, space.toView(left, bottom, right, top));
     }
     return out;
 }
@@ -263,9 +289,9 @@ PdfBackend::AreaRender PdfiumBackend::renderChanges(int page, qreal scale,
 
     if (session) {
         const QSizeF pts = pageSizePts(page);
-        const QHash<FPDF_PAGEOBJECT, QRectF> before = objectBounds(pg, pts.height());
+        const QHash<FPDF_PAGEOBJECT, QRectF> before = objectBounds(pg);
         PdfiumEdits::applyToPage(m_doc, pg, page, *session);
-        QRectF changedPts = differingBounds(before, objectBounds(pg, pts.height()));
+        QRectF changedPts = differingBounds(before, objectBounds(pg));
         for (const EditSession::Edit &edit : session->snapshotEdits()) {
             if (edit.page != page) continue;
             for (const QRectF &rect : edit.eraseRects) changedPts = changedPts.united(rect);

@@ -62,8 +62,11 @@ src/
     settings/     the settings panel and the widgets only it uses
     organizer/    the page organizer and the widgets only it uses
     history/      the change-log timeline
+    info/         the document information card and its status bar texts
+    protect/      protecting: password, encryption and permissions
     session/      crash recovery: what was open and how to get it back
     export/       the export dialog, running an export, printing
+    import/       turning a Word, OpenDocument or image file into a PDF
     sign/         signing: the sign dialog and the digital signing flow
     widgets/      shared widgets only - see the rule below
   3rdparty/       vendored (nanosvg)

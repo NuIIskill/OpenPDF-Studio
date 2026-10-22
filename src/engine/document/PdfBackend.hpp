@@ -66,6 +66,16 @@ public:
 
     virtual QList<Note> pageNotes(int page) const { Q_UNUSED(page) return {}; }
 
+    /// An image object of a page, keyed by its place among the page's objects.
+    struct PageImage {
+        QList<int> key;
+        QRectF     bounds;
+    };
+
+    virtual QList<PageImage> pageImages(int page) const { Q_UNUSED(page) return {}; }
+    virtual QImage pageImage(int page, const QList<int> &key) const
+    { Q_UNUSED(page) Q_UNUSED(key) return {}; }
+
     virtual QSizeF pageSizePts(int page) const = 0;
 
     virtual QSize pixelSize(int page, qreal scale) const = 0;
@@ -73,7 +83,7 @@ public:
     virtual QImage renderPage(int page, qreal scale) const = 0;
 
     virtual QImage renderPage(int page, qreal scale,
-                              const EditSession *session) const;
+                              const EditSession *session) const = 0;
 
     virtual QImage renderPageInBackground(int page, qreal scale, const EditSession *session,
                                           const std::function<bool()> &cancelled,
@@ -92,7 +102,10 @@ public:
     };
 
     virtual AreaRender renderChanges(int page, qreal scale, const EditSession *session,
-                                     const QRect &include, bool wholePage) const;
+                                     const QRect &include, bool wholePage) const = 0;
+
+    virtual QImage renderEditText(int page, qreal scale, const QList<EditSession::Edit> &edits,
+                                  const QRect &pixels) const;
 
     virtual std::unique_ptr<ContentProvider> makeContentProvider() const = 0;
 
@@ -108,6 +121,8 @@ public:
     struct Selection {
         QList<QRectF> rects;
         QString       text;
+        QList<TextLayout::Source> sources;
+        QList<TextLayout::OriginalLine> lines;
     };
 
     struct TextMatch {
@@ -123,8 +138,11 @@ public:
                                  const std::optional<QPointF> &to) const = 0;
 
     virtual bool hasSelectableText(int page) const = 0;
+    virtual bool hiddenText(int page, const QRectF &area) const;
 
     virtual QString embeddedFontFamily(int page, const QPointF &pdfPt) const;
+
+    virtual bool exactFontAt(int page, const QPointF &pdfPt) const;
 
     virtual double textWidthPt(int page, const QPointF &pdfPt,
                                const QString &text, double sizePt) const;
@@ -137,6 +155,8 @@ public:
                               bool italic) const;
 
     virtual TextLayout::Metrics editMetrics(const EditSession::Edit &edit) const;
+    virtual QList<TextLayout::OriginalLine> editLines(const EditSession::Edit &edit,
+                                                      QList<QList<TextLayout::Source>> *sources) const;
 
     virtual QList<TextLayout::OriginalLine> originalLines(int page, const QRectF &area,
                                                           const QList<QRectF> &exclude) const;

@@ -35,6 +35,7 @@ public:
         QRect area;
         std::shared_ptr<const EditSession> session;
         bool  finish  { false };
+        bool  textOnly { false };
     };
 
     explicit DocumentWorker(PdfBackend *backend);

@@ -3,8 +3,12 @@ target_sources(OpenPDFStudio PRIVATE
     AnnotationLoader.hpp
     DigitalSignatureLayer.cpp
     DigitalSignatureLayer.hpp
+    DocumentInfoLoader.cpp
+    DocumentInfoLoader.hpp
     FindController.cpp
     FindController.hpp
+    HoldKeys.cpp
+    HoldKeys.hpp
     HoverHighlight.cpp
     HoverHighlight.hpp
     ImageAnnotation.cpp
@@ -17,6 +21,7 @@ target_sources(OpenPDFStudio PRIVATE
     LoadingSpinner.hpp
     PageCanvas.hpp
     PageLayoutEngine.cpp
+    PageLayoutEngine_Drag.cpp
     PageLayoutEngine_Edit.cpp
     PageLayoutEngine_Grid.cpp
     PageLayoutEngine_Tiles.cpp
@@ -27,6 +32,8 @@ target_sources(OpenPDFStudio PRIVATE
     PageTiles.cpp
     PageView.cpp
     PageView.hpp
+    ProtectionLayer.cpp
+    ProtectionLayer.hpp
     PageTiles.hpp
     SignaturePlacement.cpp
     SmoothScroll.cpp

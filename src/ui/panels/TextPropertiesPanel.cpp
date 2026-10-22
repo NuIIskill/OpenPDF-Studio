@@ -23,7 +23,7 @@ QWidget *section(const QString &s, QWidget *p)
     layout->addWidget(divider(container), 1);
     return container;
 }
-QDoubleSpinBox *spin(QWidget *p,double lo,double hi,const QString &suffix,int decimals=0) { auto *w=new QDoubleSpinBox(p); w->setRange(lo,hi); w->setDecimals(decimals); w->setSuffix(suffix); w->setSingleStep(decimals ? 0.5 : 1.0); w->setButtonSymbols(QAbstractSpinBox::NoButtons); w->setFixedHeight(30); return w; }
+QDoubleSpinBox *spin(QWidget *p,double lo,double hi,const QString &suffix,int decimals=0) { auto *w=new QDoubleSpinBox(p); w->setRange(lo,hi); w->setDecimals(decimals); w->setSuffix(suffix); w->setSingleStep(decimals ? 0.5 : 1.0); w->setButtonSymbols(QAbstractSpinBox::NoButtons); w->setKeyboardTracking(false); w->setFixedHeight(30); return w; }
 }
 
 TextPropertiesPanel::TextPropertiesPanel(QWidget *parent) : QFrame(parent)

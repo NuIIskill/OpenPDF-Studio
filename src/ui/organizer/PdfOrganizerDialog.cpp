@@ -3,6 +3,7 @@
 #include "ui/widgets/PasswordDialog.hpp"
 #include "engine/document/OrganizerDoc.hpp"
 #include "engine/document/OrganizerWriter.hpp"
+#include "ui/organizer/OrganizerThumbnails.hpp"
 #include "ui/organizer/PageCard.hpp"
 
 #include <QVBoxLayout>
@@ -63,6 +64,19 @@ PdfOrganizerDialog::PdfOrganizerDialog(const QString &initialPath, QWidget *pare
     setMinimumSize(860, 620);
     resize(1040, 700);
     buildUi();
+
+#ifdef HAVE_PDF_RENDERING
+    m_thumbs = new OrganizerThumbnails(m_docs, this);
+    connect(m_thumbs, &OrganizerThumbnails::rendered, this,
+            [this](const QString &pdfPath, int pageIndex) {
+        for (int i = 0; i < m_pages.size() && i < m_cards.size(); ++i)
+            if (!m_pages[i].isBlank && m_pages[i].pageIndex == pageIndex
+                && m_pages[i].pdfPath == pdfPath)
+                showThumb(i);
+    });
+#endif
+    connect(m_scroll->verticalScrollBar(), &QScrollBar::valueChanged,
+            this, &PdfOrganizerDialog::requestThumbs);
 
     if (!initialPath.isEmpty()) {
         m_targetPath = initialPath;
@@ -181,20 +195,22 @@ QWidget *PdfOrganizerDialog::buildToolbar()
 
     h->addStretch(1);
 
-    auto *helpBtn = new QPushButton(bar);
-    helpBtn->setObjectName(QStringLiteral("OrgBtn"));
-    helpBtn->setIcon(QIcon::fromTheme(QStringLiteral("help-browser"),
-                                      QIcon::fromTheme(QStringLiteral("help-contents"))));
-    helpBtn->setIconSize(iconSz);
-    helpBtn->setFixedSize(30, 30);
-    helpBtn->setToolTip(tr("Help"));
-    h->addWidget(helpBtn);
+    m_selectAllBtn = new QPushButton(tr("Select all"), bar);
+    m_selectAllBtn->setObjectName(QStringLiteral("OrgBtn"));
+    m_selectAllBtn->setIcon(QIcon::fromTheme(QStringLiteral("edit-select-all")));
+    m_selectAllBtn->setIconSize(iconSz);
+    m_selectAllBtn->setEnabled(false);
+    h->addWidget(m_selectAllBtn);
 
     connect(m_moveLeftBtn,  &QPushButton::clicked, this, [this]() { moveSelected(-1); });
     connect(m_moveRightBtn, &QPushButton::clicked, this, [this]() { moveSelected(+1); });
     connect(m_rotLeftBtn,   &QPushButton::clicked, this, [this]() { rotateSelected(-90); });
     connect(m_rotRightBtn,  &QPushButton::clicked, this, [this]() { rotateSelected(+90); });
     connect(m_deleteBtn,    &QPushButton::clicked, this, &PdfOrganizerDialog::removeSelected);
+    connect(m_selectAllBtn, &QPushButton::clicked, this, [this]() {
+        selectAll(std::any_of(m_pages.cbegin(), m_pages.cend(),
+                              [](const PageEntry &e) { return !e.selected; }));
+    });
 
     return bar;
 }
@@ -288,14 +304,12 @@ void PdfOrganizerDialog::addPdfPages(const QString &path)
         e.pageIndex = i;
         e.isBlank   = false;
         e.rotation  = 0;
-        e.thumb     = renderThumb(e);
         m_pages.append(e);
     }
 #else
     Q_UNUSED(path)
     PageEntry e;
     e.isBlank = true;
-    e.thumb   = renderThumb(e);
     m_pages.append(e);
 #endif
     rebuildCards();
@@ -307,7 +321,6 @@ void PdfOrganizerDialog::addBlankPage()
 {
     PageEntry e;
     e.isBlank = true;
-    e.thumb   = renderThumb(e);
     m_pages.append(e);
     rebuildCards();
     updatePageLabels();
@@ -353,9 +366,8 @@ void PdfOrganizerDialog::rotateSelected(int degrees)
     for (int i = 0; i < m_pages.size(); ++i) {
         if (!m_pages[i].selected) continue;
         m_pages[i].rotation = (m_pages[i].rotation + degrees + 360) % 360;
-        m_pages[i].thumb    = renderThumb(m_pages[i]);
         if (i < m_cards.size())
-            m_cards[i]->setThumb(m_pages[i].thumb);
+            showThumb(i);
     }
 }
 
@@ -382,23 +394,20 @@ PageCard *PdfOrganizerDialog::makeCard(int index)
         onCardCheckToggled(card->index(), checked);
     });
     connect(card, &PageCard::dragStarted, this, &PdfOrganizerDialog::startDrag);
-
-    card->setThumb(m_pages[index].thumb);
-    card->setSelected(m_pages[index].selected);
     return card;
 }
 
 void PdfOrganizerDialog::rebuildCards()
 {
-    for (PageCard *c : m_cards) c->deleteLater();
-    m_cards.clear();
-
-    for (int i = 0; i < m_pages.size(); ++i) {
-        PageCard *card = makeCard(i);
-        m_cards.append(card);
+    while (m_cards.size() > m_pages.size()) {
+        PageCard *card = m_cards.takeLast();
+        card->hide();
+        card->deleteLater();
     }
+    while (m_cards.size() < m_pages.size())
+        m_cards.append(makeCard(static_cast<int>(m_cards.size())));
     relayout();
-    updateSelectionButtons();
+    syncCards();
 }
 
 void PdfOrganizerDialog::syncCards()
@@ -410,11 +419,12 @@ void PdfOrganizerDialog::syncCards()
     }
     for (int i = 0; i < m_pages.size(); ++i) {
         m_cards[i]->setIndex(i);
-        m_cards[i]->setThumb(m_pages[i].thumb);
+        showThumb(i);
         m_cards[i]->setSelected(m_pages[i].selected);
         m_cards[i]->setPageLabel(tr("Page %1").arg(i + 1));
     }
     updateSelectionButtons();
+    requestThumbs();
 }
 
 int PdfOrganizerDialog::columnCount() const
@@ -449,6 +459,7 @@ void PdfOrganizerDialog::relayout()
         m_cards[i]->move(x, y);
         m_cards[i]->show();
     }
+    requestThumbs();
 }
 
 void PdfOrganizerDialog::updatePageLabels()
@@ -467,14 +478,19 @@ void PdfOrganizerDialog::updateFooterCount()
 void PdfOrganizerDialog::updateSelectionButtons()
 {
     bool anySelected = false;
-    for (const auto &e : m_pages)
-        if (e.selected) { anySelected = true; break; }
+    bool allSelected = !m_pages.isEmpty();
+    for (const auto &e : m_pages) {
+        anySelected = anySelected || e.selected;
+        allSelected = allSelected && e.selected;
+    }
 
     m_moveLeftBtn->setEnabled(anySelected);
     m_moveRightBtn->setEnabled(anySelected);
     m_rotLeftBtn->setEnabled(anySelected);
     m_rotRightBtn->setEnabled(anySelected);
     m_deleteBtn->setEnabled(anySelected);
+    m_selectAllBtn->setEnabled(!m_pages.isEmpty());
+    m_selectAllBtn->setText(allSelected ? tr("Deselect all") : tr("Select all"));
 }
 
 void PdfOrganizerDialog::onCardClicked(int index, bool ctrl, bool shift)
@@ -588,9 +604,37 @@ bool PdfOrganizerDialog::eventFilter(QObject *obj, QEvent *e)
     return QDialog::eventFilter(obj, e);
 }
 
-QPixmap PdfOrganizerDialog::renderThumb(const PageEntry &e)
+void PdfOrganizerDialog::requestThumbs()
 {
-    QPixmap thumb(OrgConst::THUMB_W, OrgConst::THUMB_H);
+#ifdef HAVE_PDF_RENDERING
+    if (!m_thumbs) return;
+    // Every thumbnail still missing, those in view and just below first.
+    const QRect view(QPoint(0, m_scroll->verticalScrollBar()->value()),
+                     m_scroll->viewport()->size());
+    const QRect near = view.adjusted(0, 0, 0, view.height());
+    QList<OrganizerThumbnails::Page> inView, later;
+    for (int i = 0; i < m_pages.size() && i < m_cards.size(); ++i) {
+        const PageEntry &e = m_pages[i];
+        if (e.isBlank) continue;
+        (m_cards[i]->geometry().intersects(near) ? inView : later)
+            .append({ e.pdfPath, e.pageIndex });
+    }
+    m_thumbs->request(inView + later,
+                      QSize(OrgConst::THUMB_W - 4, OrgConst::THUMB_H - 4),
+                      devicePixelRatioF());
+#endif
+}
+
+void PdfOrganizerDialog::showThumb(int index)
+{
+    m_cards[index]->setThumb(thumbFor(m_pages[index]));
+}
+
+QPixmap PdfOrganizerDialog::thumbFor(const PageEntry &e) const
+{
+    const qreal dpr = devicePixelRatioF();
+    QPixmap thumb(QSize(OrgConst::THUMB_W, OrgConst::THUMB_H) * dpr);
+    thumb.setDevicePixelRatio(dpr);
     thumb.fill(Qt::white);
     QPainter p(&thumb);
 
@@ -599,25 +643,20 @@ QPixmap PdfOrganizerDialog::renderThumb(const PageEntry &e)
         p.drawRect(1, 1, OrgConst::THUMB_W - 2, OrgConst::THUMB_H - 2);
         p.setPen(QColor(180, 180, 180));
         QFont f; f.setPointSize(11); p.setFont(f);
-        p.drawText(thumb.rect(), Qt::AlignCenter, QStringLiteral("□"));
+        p.drawText(QRect(0, 0, OrgConst::THUMB_W, OrgConst::THUMB_H),
+                   Qt::AlignCenter, QStringLiteral("□"));
     }
 #ifdef HAVE_PDF_RENDERING
-    else if (m_docs.contains(e.pdfPath)) {
-        OrganizerDoc *doc   = m_docs[e.pdfPath];
-        const qreal   scale = OrgConst::RENDER_DPI / 72.0;
-        QImage img = doc->render(e.pageIndex, scale);
+    else if (QImage img = m_thumbs->image(e.pdfPath, e.pageIndex); !img.isNull()) {
+        if (e.rotation != 0)
+            img = img.transformed(QTransform().rotate(e.rotation));
 
-        if (e.rotation != 0) {
-            QTransform t;
-            t.rotate(e.rotation);
-            img = img.transformed(t, Qt::SmoothTransformation);
-        }
-
-        const QPixmap src = QPixmap::fromImage(img).scaled(
-            OrgConst::THUMB_W - 4, OrgConst::THUMB_H - 4,
-            Qt::KeepAspectRatio, Qt::SmoothTransformation);
-        p.drawPixmap((OrgConst::THUMB_W - src.width()) / 2,
-                     (OrgConst::THUMB_H - src.height()) / 2, src);
+        const QSize box = QSize(OrgConst::THUMB_W - 4, OrgConst::THUMB_H - 4) * dpr;
+        if (img.width() > box.width() || img.height() > box.height())
+            img = img.scaled(box, Qt::KeepAspectRatio, Qt::SmoothTransformation);
+        img.setDevicePixelRatio(dpr);
+        p.drawImage(QPointF((OrgConst::THUMB_W - img.width() / dpr) / 2,
+                            (OrgConst::THUMB_H - img.height() / dpr) / 2), img);
     }
 #endif
 
@@ -800,6 +839,7 @@ void PdfOrganizerDialog::retranslateUi()
     setWindowTitle(tr("PDF Organizer - OpenPDF Studio"));
     updatePageLabels();
     updateFooterCount();
+    updateSelectionButtons();
 }
 
 void PdfOrganizerDialog::changeEvent(QEvent *e)

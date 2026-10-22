@@ -281,10 +281,13 @@ void DocumentWorker::runRender(const Render &render, quint64 generation)
     QElapsedTimer clock;
     clock.start();
     // An edited page's version names its state, so its renders can share one load.
-    const QImage image = m_backend->renderPageInBackground(
-        render.page, render.scale, render.session.get(),
-        [this] { return m_cancelRender.load(); }, render.area,
-        render.session ? quint64(render.version) : 0);
+    const QImage image = render.textOnly && render.session
+        ? m_backend->renderEditText(render.page, render.scale, render.session->snapshotEdits(),
+                                    render.area)
+        : m_backend->renderPageInBackground(
+              render.page, render.scale, render.session.get(),
+              [this] { return m_cancelRender.load(); }, render.area,
+              render.session ? quint64(render.version) : 0);
     if (image.isNull() || m_cancelRender) return;
     const int ms = int(clock.elapsed());
     // Pages this slow make the document worth rendering in parallel.

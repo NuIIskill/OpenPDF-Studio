@@ -5,10 +5,13 @@
 #include <QVBoxLayout>
 #include <QMouseEvent>
 #include <QEnterEvent>
+#include <QKeyEvent>
 #include <QPainter>
 #include <QPixmap>
 #include <QResizeEvent>
 #include <QContextMenuEvent>
+
+#include <climits>
 
 ImageAnnotation::ImageAnnotation(const QString &imagePath, QWidget *parent)
     : QFrame(parent)
@@ -17,6 +20,7 @@ ImageAnnotation::ImageAnnotation(const QString &imagePath, QWidget *parent)
     setAttribute(Qt::WA_StyledBackground, false);
     setMinimumSize(MIN_W, MIN_H);
     setMouseTracking(true);
+    setFocusPolicy(Qt::ClickFocus);
 
     auto *layout = new QVBoxLayout(this);
     layout->setContentsMargins(2, 2, 2, 2);
@@ -147,11 +151,18 @@ void ImageAnnotation::mouseMoveEvent(QMouseEvent *e)
 {
     if (m_resizing) {
         const QPoint delta = e->globalPosition().toPoint() - m_resizeOrigin;
-        int newW = qMax(MIN_W, m_sizeAtResize.width()  + delta.x());
-        int newH = qMax(MIN_H, m_sizeAtResize.height() + delta.y());
-        if (!m_pageRect.isEmpty()) {
-            newW = qMin(newW, m_pageRect.right()  - pos().x());
-            newH = qMin(newH, m_pageRect.bottom() - pos().y());
+        const int maxW = m_pageRect.isEmpty() ? INT_MAX : m_pageRect.right()  - pos().x();
+        const int maxH = m_pageRect.isEmpty() ? INT_MAX : m_pageRect.bottom() - pos().y();
+        int newW = qMin(qMax(MIN_W, m_sizeAtResize.width()  + delta.x()), maxW);
+        int newH = qMin(qMax(MIN_H, m_sizeAtResize.height() + delta.y()), maxH);
+        if ((e->modifiers() & Qt::ShiftModifier) && !m_sizeAtResize.isEmpty()) {
+            const qreal w0 = m_sizeAtResize.width();
+            const qreal h0 = m_sizeAtResize.height();
+            qreal f = qMax((w0 + delta.x()) / w0, (h0 + delta.y()) / h0);
+            f = qMax(f, qMax(MIN_W / w0, MIN_H / h0));
+            f = qMin(f, qMin(maxW / w0, maxH / h0));
+            newW = qRound(w0 * f);
+            newH = qRound(h0 * f);
         }
         resize(newW, newH);
         if (m_hovered) m_deleteBtn->move(width() - 22, 2);
@@ -160,6 +171,11 @@ void ImageAnnotation::mouseMoveEvent(QMouseEvent *e)
     }
     if (m_dragging) {
         QPoint newPos = mapToParent(e->pos()) - m_dragOff;
+        if (e->modifiers() & Qt::ShiftModifier) {
+            const QPoint d = newPos - m_posBeforeDrag;
+            if (qAbs(d.x()) >= qAbs(d.y())) newPos.setY(m_posBeforeDrag.y());
+            else                             newPos.setX(m_posBeforeDrag.x());
+        }
         if (!m_pageRect.isEmpty()) {
             newPos.setX(qBound(m_pageRect.left(), newPos.x(), m_pageRect.right()  - width()));
             newPos.setY(qBound(m_pageRect.top(),  newPos.y(), m_pageRect.bottom() - height()));
@@ -177,6 +193,17 @@ void ImageAnnotation::contextMenuEvent(QContextMenuEvent *e)
 {
     if (m_editActive)
         Q_EMIT contextMenuRequested(e->globalPos());
+    e->accept();
+}
+
+void ImageAnnotation::keyPressEvent(QKeyEvent *e)
+{
+    if (!m_editActive || m_dragging || m_resizing) { QFrame::keyPressEvent(e); return; }
+    if (e->matches(QKeySequence::Copy))     Q_EMIT copyRequested();
+    else if (e->matches(QKeySequence::Cut)) Q_EMIT cutRequested();
+    else if (e->matches(QKeySequence::Paste)) Q_EMIT pasteRequested();
+    else if (e->key() == Qt::Key_Delete)    Q_EMIT deleteRequested();
+    else { QFrame::keyPressEvent(e); return; }
     e->accept();
 }
 

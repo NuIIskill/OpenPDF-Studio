@@ -6,9 +6,12 @@
 #include "engine/document/BookmarkWriter.hpp"
 #include "engine/document/DocumentSource.hpp"
 #include "engine/edit/InkMetrics.hpp"
+#include "engine/sign/SignatureRemover.hpp"
 #include "app/SafeWrite.hpp"
 #include "app/SessionStore.hpp"
 #include "ui/view/AnnotationLoader.hpp"
+#include "ui/view/DocumentInfoLoader.hpp"
+#include "ui/view/ProtectionLayer.hpp"
 #include "ui/view/ImageAnnotation.hpp"
 #include "ui/view/ImageAnnotationLayer.hpp"
 #include "ui/view/LinkAnnotationLayer.hpp"
@@ -106,13 +109,14 @@ void DocumentView::clearDocument()
     m_src->close();
 #endif
     m_src->setContentPath(QString());
+    m_info->clear();
     m_journal.closed();
     m_bookmarks.clear();
     m_bookmarksDirty = false;
     Q_EMIT bookmarkDataChanged();
 
 #ifdef HAVE_PDF_RENDERING
-    m_imageLayer->setSource(m_src->renderer(), m_session, m_ocrEngine, QString());
+    m_imageLayer->setSource(m_src->renderer(), m_session);
 #endif
     m_src->setPageCount(0);
     m_lastReportedPage = -1;
@@ -136,6 +140,16 @@ QString DocumentView::displayName() const
 bool DocumentView::openFile(const QString &path, const QString &suggestedPath)
 {
     return openContent(path, suggestedPath, {});
+}
+
+void DocumentView::setProtection(const PdfProtection &protection)
+{
+    m_protectionLayer->set(protection);
+}
+
+const std::optional<PdfProtection> &DocumentView::pendingProtection() const
+{
+    return m_protectionLayer->pending();
 }
 
 bool DocumentView::openContent(const QString &path, const QString &suggestedPath,
@@ -162,7 +176,7 @@ bool DocumentView::openContent(const QString &path, const QString &suggestedPath
     m_bookmarksDirty = false;
     Q_EMIT bookmarkDataChanged();
 
-    m_imageLayer->setSource(m_src->renderer(), m_session, m_ocrEngine, m_src->contentPath());
+    m_imageLayer->setSource(m_src->renderer(), m_session);
     for (PageOverlay *overlay : std::as_const(m_overlays))
         overlay->setDocument(m_src->contentPath());
     m_layoutEngine->setPageCount(m_src->pageCount());
@@ -175,6 +189,7 @@ bool DocumentView::openContent(const QString &path, const QString &suggestedPath
     QMetaObject::invokeMethod(this, [this]() { syncVisibleRect(); },
                               Qt::QueuedConnection);
     m_journal.noteDocumentOpened(change);
+    m_info->load(m_src->contentPath(), PdfPwStore::forQpdf(m_src->contentPath()));
     Q_EMIT fileOpened(m_src->contentPath(), m_src->pageCount());
     m_lastReportedPage = 0;
     Q_EMIT pageChanged(1, m_src->pageCount());
@@ -219,6 +234,32 @@ bool DocumentView::openWorkingCopy(const QString &contentPath,
     return true;
 }
 
+bool DocumentView::removeSignature(const QString &field)
+{
+#ifdef HAVE_PDF_RENDERING
+    const QString source = m_src->contentPath();
+    if (source.isEmpty() || hasUnsavedEdits()) return false;
+    const QString work = m_journal.copyToWorkingFile(source, currentFile());
+    if (work.isEmpty()) return false;
+    if (!SignatureRemover::remove(source, work, field, PdfPwStore::forQpdf(source))) {
+        m_journal.discardCopy(work);
+        return false;
+    }
+    PdfPwStore::set(work, PdfPwStore::get(source));
+
+    DocumentHistory::Change change;
+    change.kind = DocumentHistory::Kind::OverlayChanged;
+    change.text = tr("Signature removed");
+    if (!openWorkingCopy(work, currentFile(), change)) {
+        m_journal.discardCopy(work);
+        return false;
+    }
+    return true;
+#else
+    return false;
+#endif
+}
+
 bool DocumentView::saveToFile(const QString &path)
 {
 #ifdef HAVE_PDF_RENDERING
@@ -230,24 +271,35 @@ bool DocumentView::saveToFile(const QString &path)
     if (!m_src->backend() || !m_session || m_src->pageCount() <= 0) return false;
 
     const bool signing = m_signatureLayer->hasPending();
-    // Signing alone keeps the file's bytes, so signatures already in it stay valid.
-    const bool signOnly = signing && !hasEditsBesideSignatures();
+    // Without edits on top of the content its bytes are kept, so the
+    // signatures in it stay valid.
+    const bool keepBytes = !hasEditsBesideSignatures();
+    const std::string password = PdfPwStore::forQpdf(m_src->contentPath());
+    const std::optional<PdfProtection> protection = m_protectionLayer->pending();
+    const bool protecting = protection.has_value();
+    const QString newPassword = protecting && protection->encrypt ? protection->userPassword
+                                                                  : QString();
     const bool detached = detachSourceFrom(path);
 
-    const QString staging = signOnly ? copyForSigning(path) : stageDocument(path);
+    const QString staging = keepBytes ? copyContent(path) : stageDocument(path);
     if (staging.isEmpty()) return false;
+    if (protecting && !ProtectionWriter::apply(staging, password, *protection)) {
+        SafeWrite::discard(staging);
+        return false;
+    }
     if (signing && m_signatureLayer->signInto(staging) != SignError::None) {
         SafeWrite::discard(staging);
         return false;
     }
 
-    // A signed file is final: the view reloads it instead of staying on a
-    // working copy that would be signed again on the next save.
-    if (detached && !signing) {
+    // A signed or newly protected file is final: the view reloads it instead
+    // of staying on a working copy that still carries the old encryption.
+    if (detached && !signing && !protecting) {
         if (!SafeWrite::commit(staging, path)) return false;
         m_bookmarksDirty = false;
         m_journal.markSaved(path);
         Q_EMIT bookmarkDataChanged();
+        m_info->load(path, password);
         return true;
     }
 
@@ -260,6 +312,10 @@ bool DocumentView::saveToFile(const QString &path)
         return false;
     }
 
+    if (protecting) {
+        if (newPassword.isEmpty()) PdfPwStore::forget(path);
+        else PdfPwStore::set(path, newPassword);
+    }
     discardEditHistory();
     const bool reopened = m_src->open(path, nullptr);
     if (!reopened) {
@@ -276,6 +332,7 @@ bool DocumentView::saveToFile(const QString &path)
     Q_EMIT bookmarkDataChanged();
     m_layoutEngine->rerenderAll();
     m_journal.savedOverBase(path, reopened);
+    m_info->load(path, protecting ? newPassword.toStdString() : password);
     return true;
 #else
     Q_UNUSED(path)
@@ -348,7 +405,8 @@ bool DocumentView::writeRecoveryCopy(const QString &path)
 #ifdef HAVE_PDF_RENDERING
     if (path.isEmpty() || path == m_src->contentPath()) return false;
 
-    const QString staging = stageDocument(path);
+    const bool keepBytes = !hasEditsBesideSignatures() && !m_signatureLayer->hasPending();
+    const QString staging = keepBytes ? copyContent(path) : stageDocument(path);
     if (staging.isEmpty()) return false;
     return SafeWrite::commit(staging, path);
 #else
@@ -388,13 +446,16 @@ void DocumentView::writeRecoveryCopyInBackground(const QString &path,
 #ifdef HAVE_PDF_RENDERING
 bool DocumentView::hasEditsBesideSignatures() const
 {
-    if (m_journal.hasUnsavedContentEdits() || m_bookmarksDirty) return true;
+    if (m_journal.hasUnsavedSessionEdits() || m_bookmarksDirty) return true;
+    // A save that kept the working copy leaves its edits in the session only.
+    if (m_session && m_session->hasAnyEdits()) return true;
+    if (m_src->backend() && m_src->backend()->bookmarks() != m_bookmarks) return true;
     for (const PageOverlay *overlay : std::as_const(m_overlays))
         if (overlay != m_signatureLayer && !overlay->state().isEmpty()) return true;
     return false;
 }
 
-QString DocumentView::copyForSigning(const QString &path) const
+QString DocumentView::copyContent(const QString &path) const
 {
     const QString staging = SafeWrite::stagingPath(path);
     if (staging.isEmpty()) return {};
@@ -437,6 +498,8 @@ DocumentHistory::DocumentState DocumentView::documentState() const
     for (const auto &p : placed)
         state.images.append({ p.page, p.pdfBounds, p.image });
     state.bookmarks = m_bookmarks;
+    if (const QByteArray changes = m_imageLayer->changeState(); !changes.isEmpty())
+        state.overlays.insert(ImageAnnotationLayer::changesKey(), changes);
     for (const PageOverlay *overlay : std::as_const(m_overlays)) {
         const QString key = overlay->stateKey();
         if (!key.isEmpty()) state.overlays.insert(key, overlay->state());
@@ -452,6 +515,7 @@ void DocumentView::applyState(const DocumentHistory::DocumentState &state)
     for (const DocumentHistory::ImageState &s : state.images)
         images.append({ s.page, s.pdfBounds, s.image });
     m_imageLayer->restoreImages(images);
+    m_imageLayer->restoreChanges(state.overlays.value(ImageAnnotationLayer::changesKey()));
 #endif
     if (state.bookmarks != m_bookmarks) {
         m_bookmarks      = state.bookmarks;
@@ -546,24 +610,33 @@ DocumentExporter::Sources DocumentView::exportSources() const
 }
 #endif
 
-QList<DocxPage> DocumentView::allPageContent(const QList<int> &pages)
+QList<DocxPage> DocumentView::allPageContent(const QList<int> &pages,
+                                             const DocxExportOptions &options,
+                                             const std::function<bool(int, int)> &progress)
 {
 #ifdef HAVE_PDF_RENDERING
-    return DocumentExporter(exportSources()).allPageContent(pages);
+    return DocumentExporter(exportSources()).allPageContent(pages, options, progress);
 #else
-    Q_UNUSED(pages)
+    Q_UNUSED(pages) Q_UNUSED(options) Q_UNUSED(progress)
     return {};
 #endif
 }
 
+void DocumentView::setBusy(bool busy)
+{
+    if (busy) m_spinner->showNow();
+    else      m_spinner->setBusy(m_layoutEngine->busy());
+}
+
 bool DocumentView::exportPagesToImages(const QString &outputPath, int quality,
-                                       const QList<int> &pages)
+                                       const QList<int> &pages,
+                                       const std::function<bool(int, int)> &progress)
 {
 #ifdef HAVE_PDF_RENDERING
     return DocumentExporter(exportSources())
-        .exportPagesToImages(outputPath, quality, pages);
+        .exportPagesToImages(outputPath, quality, pages, progress);
 #else
-    Q_UNUSED(outputPath) Q_UNUSED(quality) Q_UNUSED(pages)
+    Q_UNUSED(outputPath) Q_UNUSED(quality) Q_UNUSED(pages) Q_UNUSED(progress)
     return false;
 #endif
 }

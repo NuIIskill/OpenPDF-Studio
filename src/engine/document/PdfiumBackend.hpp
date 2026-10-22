@@ -29,6 +29,8 @@ public:
     QList<PdfBookmark> bookmarks() const override;
     QList<Link> pageLinks(int page) const override;
     QList<Note> pageNotes(int page) const override;
+    QList<PageImage> pageImages(int page) const override;
+    QImage pageImage(int page, const QList<int> &key) const override;
     QSizeF pageSizePts(int page) const override;
     QSize  pixelSize(int page, qreal scale) const override;
     QImage renderPage(int page, qreal scale) const override;
@@ -40,6 +42,8 @@ public:
 
     AreaRender renderChanges(int page, qreal scale, const EditSession *session,
                              const QRect &include, bool wholePage) const override;
+    QImage renderEditText(int page, qreal scale, const QList<EditSession::Edit> &edits,
+                          const QRect &pixels) const override;
 
     std::unique_ptr<ContentProvider> makeContentProvider() const override;
 
@@ -53,6 +57,7 @@ public:
     QList<QRectF> glyphRects(int page, const QRectF &area,
                              const QList<QRectF> &exclude = {}) const override;
     QString embeddedFontFamily(int page, const QPointF &pdfPt) const override;
+    bool    exactFontAt(int page, const QPointF &pdfPt) const override;
     double  textWidthPt(int page, const QPointF &pdfPt,
                         const QString &text, double sizePt) const override;
     double  standardTextWidthPt(const QString &family, bool bold, bool italic,
@@ -60,9 +65,12 @@ public:
     bool    canEmbedFont(const QString &family, bool bold,
                          bool italic) const override;
     TextLayout::Metrics editMetrics(const EditSession::Edit &edit) const override;
+    QList<TextLayout::OriginalLine> editLines(const EditSession::Edit &edit,
+                                              QList<QList<TextLayout::Source>> *sources) const override;
     QList<TextLayout::OriginalLine> originalLines(int page, const QRectF &area,
                                                   const QList<QRectF> &exclude) const override;
     bool    hasSelectableText(int page) const override;
+    bool    hiddenText(int page, const QRectF &area) const override;
 
     QList<TextMatch> findText(const QString &text) const override;
 

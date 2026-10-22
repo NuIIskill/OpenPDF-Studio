@@ -42,6 +42,15 @@ inline bool separatesBlocks(const QRectF &prev, const QRectF &next, double fontS
     return gap > qMax(12.0, fontSize * 2.5);
 }
 
+// A run far larger than the one beside it, set apart by more than a word
+// space of the smaller (a chapter number before its title), is a block of its own.
+inline bool separatesSizes(const QRectF &prev, const QRectF &next, double prevSize, double nextSize)
+{
+    const double small = qMin(prevSize, nextSize), large = qMax(prevSize, nextSize);
+    if (small <= 0.0 || large < small * 1.8) return false;
+    return next.left() - prev.right() > small;
+}
+
 inline bool sameGlyph(const QRectF &a, const QRectF &b)
 {
     const QRectF hit = a.intersected(b);

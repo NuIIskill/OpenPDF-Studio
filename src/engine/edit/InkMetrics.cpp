@@ -228,4 +228,78 @@ FontInk fontInkPerPt(const QString &text, QFont f)
     return { median(heights), median(rises), median(bearings) };
 }
 
+
+QRectF inkAroundPt(const QImage &img, const QRectF &linePt, qreal scale)
+{
+    // The ink of a scanned line: the rows of ink reaching into the line, as
+    // far up and down as they run unbroken, and the columns they cover.
+    if (img.isNull() || linePt.isEmpty() || scale <= 0.0) return linePt;
+    const double h = linePt.height();
+    const QRect sr = QRectF(QPointF(linePt.left() - h * 0.3, linePt.top() - h * 0.6) * scale,
+                            QPointF(linePt.right() + h * 0.3, linePt.bottom() + h * 0.6) * scale)
+                         .toAlignedRect().intersected(img.rect());
+    if (sr.width() < 4 || sr.height() < 4) return linePt;
+    const int bg = backgroundLuminance(img, sr);
+    const int x0 = qMax(sr.left(), qFloor((linePt.left() - h * 0.1) * scale));
+    const int x1 = qMin(sr.right(), qCeil((linePt.right() + h * 0.1) * scale));
+    const auto rowInk = [&](int y) {
+        int ink = 0;
+        for (int x = x0; x <= x1; ++x)
+            if (std::abs(lumAt(img, x, y) - bg) > 40) ++ink;
+        return ink;
+    };
+    // Specks of paper noise between lines are not ink of the line.
+    const int least = qMax(2, (x1 - x0) / 100);
+    const int lineTop = qMax(sr.top(), qFloor(linePt.top() * scale));
+    const int lineBottom = qMin(sr.bottom(), qCeil(linePt.bottom() * scale));
+    int top = -1, bottom = -1;
+    for (int y = lineTop; y <= lineBottom; ++y)
+        if (rowInk(y) >= least) { if (top < 0) top = y; bottom = y; }
+    if (top < 0) return linePt;
+    while (top > sr.top() && rowInk(top - 1) >= least) --top;
+    while (bottom < sr.bottom() && rowInk(bottom + 1) >= least) ++bottom;
+
+    int left = -1, right = -1;
+    for (int x = sr.left(); x <= sr.right(); ++x) {
+        int ink = 0;
+        for (int y = top; y <= bottom; ++y)
+            if (std::abs(lumAt(img, x, y) - bg) > 40) ++ink;
+        if (ink >= 2) { if (left < 0) left = x; right = x; }
+    }
+    if (left < 0) return linePt;
+    return linePt.united(QRectF(QPointF(left / scale, top / scale),
+                                QPointF((right + 1) / scale, (bottom + 1) / scale)));
+}
+
+double strokeWidthPt(const QImage &img, const QRectF &inkPt, qreal scale)
+{
+    // The typical width of the strokes across: the mean of the middle half of
+    // the dark runs, with the threshold halfway between paper and ink so blur
+    // counts half. The long runs along horizontal strokes are left out.
+    const QRect sr = QRectF(inkPt.topLeft() * scale, inkPt.size() * scale).toAlignedRect()
+                         .intersected(img.rect());
+    if (sr.width() < 4 || sr.height() < 4 || scale <= 0.0) return 0.0;
+    const int bg = backgroundLuminance(img, sr);
+    int darkest = bg;
+    for (int y = sr.top(); y <= sr.bottom(); ++y)
+        for (int x = sr.left(); x <= sr.right(); ++x) darkest = qMin(darkest, lumAt(img, x, y));
+    if (bg - darkest < 60) return 0.0;
+    const int cut = (bg + darkest) / 2;
+    std::vector<int> runs;
+    for (int y = sr.top(); y <= sr.bottom(); ++y) {
+        int run = 0;
+        for (int x = sr.left(); x <= sr.right() + 1; ++x) {
+            if (x <= sr.right() && lumAt(img, x, y) < cut) { ++run; continue; }
+            if (run > 0) runs.push_back(run);
+            run = 0;
+        }
+    }
+    if (runs.empty()) return 0.0;
+    std::sort(runs.begin(), runs.end());
+    const size_t from = runs.size() / 4, to = qMax(from + 1, runs.size() * 3 / 4);
+    double sum = 0.0;
+    for (size_t i = from; i < to; ++i) sum += runs[i];
+    return sum / double(to - from) / scale;
+}
+
 }

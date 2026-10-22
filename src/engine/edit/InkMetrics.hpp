@@ -27,4 +27,8 @@ MeasuredInk measuredInkPt(const QImage &img, const QRectF &boundsPt, qreal scale
 
 FontInk fontInkPerPt(const QString &text, QFont f);
 
+QRectF inkAroundPt(const QImage &img, const QRectF &linePt, qreal scale);
+
+double strokeWidthPt(const QImage &img, const QRectF &inkPt, qreal scale);
+
 }

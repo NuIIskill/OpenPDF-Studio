@@ -77,6 +77,9 @@ void PageLayoutEngine::setSource(PdfRenderer *renderer, EditSession *session,
 void PageLayoutEngine::clearPages()
 {
     m_renderTimer->stop();
+#ifdef HAVE_PDF_RENDERING
+    if (m_drag.page >= 0) clearDrag();
+#endif
     m_rendered.clear();
     m_previews.clear();
     m_pageVersions.clear();
@@ -89,6 +92,9 @@ void PageLayoutEngine::clearPages()
     m_levels.clear();
     m_levelAsked.clear();
     m_wholeRenderMs.clear();
+    m_slowToPatch.clear();
+    m_editRender = {};
+    m_textBase = m_textAsked = {};
 #endif
     m_zoomWanted = 0;
     m_tiles.clear();
@@ -138,6 +144,9 @@ void PageLayoutEngine::setZoom(int percent)
     // The sharp tiles stay, stretched, until the ones for the new zoom are there.
     m_tiles.rescale(qreal(percent) / m_zoom);
     m_zoomDirection = percent > m_zoom ? 1 : -1;
+#ifdef HAVE_PDF_RENDERING
+    if (m_drag.page >= 0) clearDrag();
+#endif
     m_zoom = percent;
     m_staleBase.clear();
     resizePages();
@@ -297,7 +306,7 @@ void PageLayoutEngine::renderPending()
     });
 
     std::shared_ptr<const EditSession> snapshot;
-    QList<DocumentWorker::Render> tilesNow, tilesSoon, bases, neighbours;
+    QList<DocumentWorker::Render> textBases, tilesNow, tilesSoon, bases, neighbours;
     bool changed = false;
     const auto request = [this, &snapshot](int page) {
         DocumentWorker::Render render;
@@ -306,7 +315,7 @@ void PageLayoutEngine::renderPending()
         render.version = m_pageVersions.value(page);
         // The page being edited renders with what the editor shows.
         if (m_blank.page == page || m_preview.page == page) {
-            render.session = std::make_shared<EditSession>(stateFor(page));
+            render.session = editRenderState(page, render.version);
         } else if (editedOnPage(page)) {
             if (!snapshot) snapshot = std::make_shared<EditSession>(*m_session);
             render.session = snapshot;
@@ -314,7 +323,15 @@ void PageLayoutEngine::renderPending()
         return render;
     };
 
+    textBases += askDragRenders();
     for (int page : std::as_const(order)) {
+        if (layersText(page)) {
+            if (!textBaseReady(page))
+                textBases.append(askTextBase(page));
+            else if (m_textBase.shown != m_pageVersions.value(page))
+                textBases.append(askTextLayer(page));
+            continue;
+        }
         const int version = m_pageVersions.value(page);
         const auto it = m_rendered.constFind(page);
         const bool baseOk = it != m_rendered.cend() && it->zoom == m_zoom
@@ -409,11 +426,11 @@ void PageLayoutEngine::renderPending()
     // exact, and the levels ahead matter more than its tiles.
     // A zoom waiting to be shown sharp goes before everything.
     if (m_worker && m_levelShown)
-        m_worker->setRenders(wanted + levelsNear + tilesNow + bases + tilesSoon + settle
-                             + neighbours + levelsFar);
+        m_worker->setRenders(textBases + wanted + levelsNear + tilesNow + bases + tilesSoon
+                             + settle + neighbours + levelsFar);
     else if (m_worker)
-        m_worker->setRenders(wanted + tilesNow + bases + levelsNear + tilesSoon + settle
-                             + neighbours + levelsFar);
+        m_worker->setRenders(textBases + wanted + tilesNow + bases + levelsNear + tilesSoon
+                             + settle + neighbours + levelsFar);
 
     // The spinner is for pages that show nothing yet; a stand-in that is
     // still being sharpened needs none.
@@ -444,6 +461,25 @@ void PageLayoutEngine::showRendered(int page, int zoom, int version, const QRect
         showThumbnail(page, version, image);
         return;
     }
+    if (zoom >= kDragTextTag) {
+        if (page == m_drag.page) takeDragRender(zoom, version, image);
+        return;
+    }
+    if (zoom >= kTextLayerTag) {
+        if (page == m_preview.page && zoom - kTextLayerTag == m_zoom && textBaseReady(page))
+            layText(page, area, image, version);
+        return;
+    }
+    if (zoom >= kTextBaseTag) {
+        if (page == m_textAsked.page && zoom - kTextBaseTag == m_zoom
+                && version == m_textAsked.version && area.isEmpty()
+                && m_textAsked.state == stateFor(page, false).snapshotEdits()) {
+            m_textBase = m_textAsked;
+            m_textBase.image = image;
+            if (layersText(page)) scheduleRender(0);
+        }
+        return;
+    }
     if (keepZoomRender(page, zoom, version, area, image)) return;
     if (zoom != m_zoom || version != m_pageVersions.value(page, -1)) return;
     QLabel *lbl = m_pageLabels.value(page, nullptr);
@@ -459,19 +495,23 @@ void PageLayoutEngine::showRendered(int page, int zoom, int version, const QRect
         }
         catchUpBase(page);
         m_tiles.show(lbl, page, area, image, m_canvas->devicePixelRatioF(), zoom, version);
+        if (m_drag.picture && page == m_drag.page) m_drag.picture->raise();
         if (m_tiles.covers(page, wantedTile(page, false), fullPixels(page), zoom, version))
             m_tiles.dropStandIns(page);
         // A new tile replaces pixels the anchor of an edit may have kept.
-        m_anchors.insert(page, { deviceScale(), stateFor(page), {}, {}, {} });
+        m_anchors.insert(page, { deviceScale(), renderedState(page, version), {}, {}, {} });
         if (editing) noteChanged(page, version, changedAt(page, deviceScale()), deviceScale());
         settled(page, area);
     } else {
         if (!editing) keepPreview(page, image);
-        if (!tiled(page)) m_wholeRenderMs.insert(page, milliseconds);
+        // The slowest render counts: the worker renders a page it has loaded
+        // already faster than the next render with an edit, which loads it anew.
+        if (!tiled(page)) m_wholeRenderMs.insert(page, qMax(m_wholeRenderMs.value(page), milliseconds));
         m_staleBase.remove(page);
         if (!m_settleLeft.contains(page)) m_inexact.remove(page);
         else settled(page, QRect());
-        if (!m_inexact.contains(page)) m_anchors.insert(page, { deviceScale(), stateFor(page), {}, {}, {} });
+        if (!m_inexact.contains(page))
+            m_anchors.insert(page, { deviceScale(), renderedState(page, version), {}, {}, {} });
         // The render is not used after this; its only receiver takes it over.
         showBase(page, std::move(const_cast<QImage &>(image)));
         if (!editedOnPage(page))
@@ -483,6 +523,11 @@ void PageLayoutEngine::showRendered(int page, int zoom, int version, const QRect
     }
 
     if (sharp(page)) m_tiles.dropStandIns(page);
+    if (m_editRender.newer && m_editRender.page == page && m_editRender.version == version
+            && showsVersion(page, version)) {
+        m_editRender.newer = false;
+        refreshSoon(page);
+    }
     QSet<int> pending = m_pending;
     if (!blank(page)) pending.remove(page);
     setPending(std::move(pending));
@@ -575,7 +620,7 @@ void PageLayoutEngine::renderNow(int page)
     clock.start();
     const PdfBackend::AreaRender render =
         m_renderer->backend()->renderChanges(page, baseScale(page), use, {}, true);
-    if (!tiled(page)) m_wholeRenderMs.insert(page, int(clock.elapsed()));
+    if (!tiled(page)) m_wholeRenderMs.insert(page, qMax(m_wholeRenderMs.value(page), int(clock.elapsed())));
     if (render.image.isNull()) {
         PageView::setPicture(lbl, QPixmap());
         m_rendered.remove(page);
@@ -648,6 +693,7 @@ void PageLayoutEngine::rerenderPage(int page)
     m_refreshQueue.remove(page);
     if (m_blank.page == page) m_blank = {};
     if (m_preview.page == page) m_preview = {};
+    if (m_textBase.page == page || m_textAsked.page == page) m_textBase = m_textAsked = {};
     m_previews.remove(page);
     const auto [first, last] = visibleRange();
 

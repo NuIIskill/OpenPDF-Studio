@@ -8,6 +8,8 @@
 #include <QUndoStack>
 #include <QWidget>
 
+#include <cmath>
+
 namespace {
 
 class StrokePreview final : public QWidget
@@ -74,6 +76,16 @@ bool strokeHit(const EditSession::DrawStroke &stroke, const QPointF &point,
                               stroke.points.at(i)) <= radius)
             return true;
     return false;
+}
+
+QPointF snapTo45(const QPointF &from, const QPointF &to)
+{
+    const QPointF d = to - from;
+    const qreal length = std::hypot(d.x(), d.y());
+    if (length < 0.001) return to;
+    const qreal step  = M_PI / 4.0;
+    const qreal angle = std::round(std::atan2(d.y(), d.x()) / step) * step;
+    return from + QPointF(std::cos(angle), std::sin(angle)) * length;
 }
 
 }
@@ -149,6 +161,7 @@ bool DrawingLayer::handlePress(const QPoint &canvasPos)
 
     m_beforeGesture = m_session->drawStrokes();
     m_activePage = page;
+    m_straightFrom = -1;
     m_drawing = true;
     m_changed = false;
 
@@ -172,11 +185,20 @@ bool DrawingLayer::handlePress(const QPoint &canvasPos)
     return true;
 }
 
-bool DrawingLayer::handleMove(const QPoint &canvasPos)
+bool DrawingLayer::handleMove(const QPoint &canvasPos, bool straight)
 {
     if (!m_drawing) return false;
-    if (m_tool == DrawTool::Eraser) eraseAt(canvasPos);
-    else if (appendPoint(canvasPos)) updatePreview();
+    if (m_tool == DrawTool::Eraser) {
+        eraseAt(canvasPos);
+        return true;
+    }
+    if (straight) {
+        setStraightEnd(canvasPos);
+        updatePreview();
+        return true;
+    }
+    m_straightFrom = -1;
+    if (appendPoint(canvasPos)) updatePreview();
     return true;
 }
 
@@ -187,7 +209,7 @@ bool DrawingLayer::handleRelease()
     return true;
 }
 
-bool DrawingLayer::appendPoint(const QPoint &canvasPos)
+bool DrawingLayer::pagePoint(const QPoint &canvasPos, QPointF *point) const
 {
     const QLabel *label = m_canvas->pageLabel(m_activePage);
     if (!label) return false;
@@ -197,12 +219,36 @@ bool DrawingLayer::appendPoint(const QPoint &canvasPos)
     QPoint local = canvasPos - label->pos();
     local.setX(qBound(0, local.x(), label->width()));
     local.setY(qBound(0, local.y(), label->height()));
-    const QPointF point = QPointF(local) / scale;
+    *point = QPointF(local) / scale;
+    return true;
+}
+
+bool DrawingLayer::appendPoint(const QPoint &canvasPos)
+{
+    QPointF point;
+    if (!pagePoint(canvasPos, &point)) return false;
     if (!m_activeStroke.points.isEmpty()
             && QLineF(m_activeStroke.points.last(), point).length() < 0.35)
         return false;
     m_activeStroke.points.append(point);
     return true;
+}
+
+void DrawingLayer::setStraightEnd(const QPoint &canvasPos)
+{
+    QList<QPointF> &points = m_activeStroke.points;
+    if (points.isEmpty()) return;
+    if (m_straightFrom < 0) m_straightFrom = int(points.size());
+    points.resize(m_straightFrom);
+
+    QPointF point;
+    if (!pagePoint(canvasPos, &point)) return;
+    const QLabel *label = m_canvas->pageLabel(m_activePage);
+    const qreal scale = m_canvas->screenScale();
+    point = snapTo45(points.last(), point);
+    point.setX(qBound<qreal>(0.0, point.x(), label->width() / scale));
+    point.setY(qBound<qreal>(0.0, point.y(), label->height() / scale));
+    points.append(point);
 }
 
 bool DrawingLayer::eraseAt(const QPoint &canvasPos)
@@ -250,6 +296,7 @@ void DrawingLayer::finishGesture()
     m_activeStroke = {};
     m_beforeGesture.clear();
     m_activePage = -1;
+    m_straightFrom = -1;
     m_drawing = false;
     m_changed = false;
 }
@@ -259,6 +306,7 @@ void DrawingLayer::clear()
     m_activeStroke = {};
     m_beforeGesture.clear();
     m_activePage = -1;
+    m_straightFrom = -1;
     m_drawing = false;
     m_changed = false;
     m_preview->hide();

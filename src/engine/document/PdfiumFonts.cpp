@@ -1,5 +1,8 @@
 #include "engine/document/PdfiumFonts.hpp"
 
+#include "engine/document/CffFont.hpp"
+
+#include "engine/edit/ContentMap.hpp"
 #include "engine/edit/StandardFont.hpp"
 
 #if defined(HAVE_PDF_RENDERING) && defined(HAVE_PDFIUM)
@@ -9,14 +12,24 @@
 
 #include <QByteArray>
 #include <QCryptographicHash>
+#include <QDir>
+#include <QDirIterator>
+#include <QFile>
+#include <QFileInfo>
 #include <QFont>
 #include <QFontDatabase>
 #include <QHash>
+#include <QMap>
 #include <QPainterPath>
+#include <QRandomGenerator>
 #include <QRawFont>
+#include <QRegularExpression>
+#include <QStandardPaths>
+#include <QSet>
 #include <QStringList>
 
 #include <algorithm>
+#include <cstring>
 #include <utility>
 
 #include <vector>
@@ -27,6 +40,27 @@ QHash<QByteArray, QString> &registry()
 {
     static QHash<QByteArray, QString> cache;
     return cache;
+}
+
+QHash<QString, QString> &renamedFamilies()
+{
+    static QHash<QString, QString> names;
+    return names;
+}
+
+// A family as the font names it: Qt adds the foundry, "Nimbus Sans [URW ]",
+// where two foundries ship one family.
+QString plainFamily(const QString &family)
+{
+    static const QRegularExpression foundry(QStringLiteral("\\s*\\[[^\\]]*\\]\\s*$"));
+    return QString(family).remove(foundry);
+}
+
+QString writableFamily(const QString &family)
+{
+    // A document font registered under a name of its own is written in the
+    // system font it was renamed from; the registered program is a subset.
+    return renamedFamilies().value(family, family);
 }
 
 constexpr const char *kSfntTags[] = {
@@ -60,20 +94,10 @@ quint32 tableSum(const QByteArray &table)
     return sum;
 }
 
-QByteArray buildSfnt(const QRawFont &raw)
-{
-    QList<QPair<QByteArray, QByteArray>> tabellen;
-    for (const char *tag : kSfntTags) {
-        const QByteArray daten = raw.fontTable(tag);
-        if (!daten.isEmpty()) tabellen.append({ QByteArray(tag), daten });
-    }
-    const auto hat = [&tabellen](const char *tag) {
-        return std::any_of(tabellen.cbegin(), tabellen.cend(),
-                           [tag](const auto &t) { return t.first == tag; });
-    };
-    const bool cff = hat("CFF ");
-    if (!cff && !hat("glyf")) return {};
+using Tables = QList<QPair<QByteArray, QByteArray>>;
 
+QByteArray assembleSfnt(Tables tabellen, bool cff)
+{
     std::sort(tabellen.begin(), tabellen.end(),
               [](const auto &a, const auto &b) { return a.first < b.first; });
 
@@ -105,6 +129,79 @@ QByteArray buildSfnt(const QRawFont &raw)
     return kopf + verzeichnis + rumpf;
 }
 
+QByteArray buildSfnt(const QRawFont &raw)
+{
+    Tables tabellen;
+    for (const char *tag : kSfntTags) {
+        const QByteArray daten = raw.fontTable(tag);
+        if (!daten.isEmpty()) tabellen.append({ QByteArray(tag), daten });
+    }
+    const auto hat = [&tabellen](const char *tag) {
+        return std::any_of(tabellen.cbegin(), tabellen.cend(),
+                           [tag](const auto &t) { return t.first == tag; });
+    };
+    const bool cff = hat("CFF ");
+    if (!cff && !hat("glyf")) return {};
+    return assembleSfnt(tabellen, cff);
+}
+
+QString postScriptName(const QString &family, const QString &style)
+{
+    QString out;
+    for (const QChar c : family + u'-' + style)
+        if (c.unicode() < 128 && (c.isLetterOrNumber() || c == u'-')) out += c;
+    return out;
+}
+
+QByteArray nameTable(const QString &family, const QString &style, const QString &postScript)
+{
+    const QList<QPair<quint16, QString>> names = {
+        { 1, family }, { 2, style }, { 4, family + u' ' + style }, { 6, postScript } };
+
+    QByteArray records, strings;
+    for (const auto &name : names) {
+        QByteArray utf16;
+        for (const QChar c : name.second) put16(utf16, c.unicode());
+        put16(records, 3);
+        put16(records, 1);
+        put16(records, 0x409);
+        put16(records, name.first);
+        put16(records, quint16(utf16.size()));
+        put16(records, quint16(strings.size()));
+        strings += utf16;
+    }
+    QByteArray table;
+    put16(table, 0);
+    put16(table, quint16(names.size()));
+    put16(table, quint16(6 + 12 * names.size()));
+    return table + records + strings;
+}
+
+QByteArray renamedSfnt(const QByteArray &font, const QString &family, const QString &style,
+                       const QString &postScript)
+{
+    const auto u16 = [&font](qsizetype at) {
+        return quint16((quint8(font.at(at)) << 8) | quint8(font.at(at + 1)));
+    };
+    const auto u32 = [&u16](qsizetype at) { return (quint32(u16(at)) << 16) | u16(at + 2); };
+    if (font.size() < 12) return {};
+    const quint32 version = u32(0);
+    if (version != 0x00010000 && version != 0x74727565 && version != 0x4F54544F) return {};
+    const int count = u16(4);
+    if (12 + 16 * qsizetype(count) > font.size()) return {};
+
+    Tables tables;
+    for (int i = 0; i < count; ++i) {
+        const qsizetype at = 12 + 16 * qsizetype(i);
+        const QByteArray tag = font.mid(at, 4);
+        const quint32 offset = u32(at + 8), length = u32(at + 12);
+        if (quint64(offset) + length > quint64(font.size())) return {};
+        if (tag != "name") tables.append({ tag, font.mid(offset, length) });
+    }
+    tables.append({ QByteArrayLiteral("name"), nameTable(family, style, postScript) });
+    return assembleSfnt(tables, version == 0x4F54544F);
+}
+
 const QRawFont &face(const QString &family, bool bold, bool italic)
 {
     static QHash<QString, QRawFont> faces;
@@ -123,6 +220,67 @@ const QRawFont &face(const QString &family, bool bold, bool italic)
 
 }
 
+namespace {
+
+QHash<QString, QString> &fontFiles()
+{
+    static QHash<QString, QString> files;
+    static bool scanned = false;
+    if (scanned) return files;
+    scanned = true;
+    QStringList dirs = QStandardPaths::standardLocations(QStandardPaths::FontsLocation);
+    dirs << QStringLiteral("/usr/share/fonts") << QStringLiteral("/usr/local/share/fonts")
+         << QDir::homePath() + QStringLiteral("/.fonts");
+    for (const QString &dir : std::as_const(dirs)) {
+        QDirIterator it(dir, { QStringLiteral("*.ttf"), QStringLiteral("*.otf") }, QDir::Files,
+                        QDirIterator::Subdirectories | QDirIterator::FollowSymlinks);
+        while (it.hasNext()) {
+            const QFileInfo info(it.next());
+            files.insert(info.completeBaseName().toLower(), info.filePath());
+        }
+    }
+    return files;
+}
+
+QString subsetTag(const QString &key)
+{
+    // Every font variant gets a prefix of its own, so two variants that
+    // resolve to the same program still have different names. The prefix
+    // differs from one run to the next too: a file saved before holds the
+    // fonts of that run, and an edit of it must not add a font of that name.
+    static const quint32 run = QRandomGenerator::system()->bounded(308915776u);
+    static QHash<QString, int> tags;
+    int n = tags.value(key, -1);
+    if (n < 0) {
+        n = int(tags.size());
+        tags.insert(key, n);
+    }
+    QString tag;
+    for (quint32 i = 0, v = (run + quint32(n) * 7919u) % 308915776u; i < 6; ++i, v /= 26)
+        tag += QChar(u'A' + v % 26);
+    return tag + u'+';
+}
+
+QRawFont staticFace(const QRawFont &variable, bool italic)
+{
+    // Qt embeds a variable font's tables, which hold only its default
+    // instance; a bold instance needs the static file of the same style.
+    QString base = plainFamily(variable.familyName()) + (italic ? QStringLiteral("-BoldItalic")
+                                                   : QStringLiteral("-Bold"));
+    base.remove(u' ');
+    const QString path = fontFiles().value(base.toLower());
+    QFile file(path);
+    if (path.isEmpty() || !file.open(QIODevice::ReadOnly)) return {};
+    const QRawFont candidate(file.readAll(), variable.pixelSize());
+    const bool same = candidate.isValid() && candidate.fontTable("fvar").isEmpty()
+        && plainFamily(candidate.familyName()).compare(plainFamily(variable.familyName()),
+                                                       Qt::CaseInsensitive) == 0
+        && (candidate.style() != QFont::StyleNormal) == italic && candidate.weight() >= 600;
+    return same ? candidate : QRawFont();
+}
+
+}
+
 QByteArray PdfiumFonts::fontData(const QString &family, bool bold, bool italic)
 {
     const QString schluessel = family + (bold ? QStringLiteral("|f") : QString())
@@ -132,13 +290,21 @@ QByteArray PdfiumFonts::fontData(const QString &family, bool bold, bool italic)
     if (da != speicher.cend()) return *da;
 
     QByteArray daten;
-    const QRawFont &raw = face(family, bold, italic);
+    QRawFont raw = face(writableFamily(family), bold, italic);
+    if (raw.isValid() && bold && !raw.fontTable("fvar").isEmpty()) raw = staticFace(raw, italic);
     if (raw.isValid()) {
 
         const QByteArray os2 = raw.fontTable("OS/2");
         const quint16 fsType = os2.size() >= 10
             ? quint16((quint8(os2.at(8)) << 8) | quint8(os2.at(9))) : 0;
-        if ((fsType & 0x000F) != 0x0002) daten = buildSfnt(raw);
+        // PDFium's page writer tells fonts apart by their base name, so one
+        // named like a font already in the document would be written as that
+        // font; the subset prefix keeps ours apart.
+        if ((fsType & 0x000F) != 0x0002)
+            daten = renamedSfnt(buildSfnt(raw), plainFamily(raw.familyName()), raw.styleName(),
+                                subsetTag(schluessel)
+                                    + postScriptName(plainFamily(raw.familyName()),
+                                                     raw.styleName()));
     }
     speicher.insert(schluessel, daten);
     return daten;
@@ -169,29 +335,28 @@ bool PdfiumFonts::isType3(FPDF_FONT font)
 
 namespace {
 
-struct Face {
-    QString family;
-    bool    bold   { false };
-    bool    italic { false };
-};
-
 QHash<FPDF_DOCUMENT, QHash<QString, FPDF_FONT>> &loadedFonts()
 {
     static QHash<FPDF_DOCUMENT, QHash<QString, FPDF_FONT>> fonts;
     return fonts;
 }
 
-QHash<FPDF_FONT, Face> &loadedFaces()
+QHash<FPDF_FONT, QRawFont> &loadedFaces()
 {
-    static QHash<FPDF_FONT, Face> faces;
+    static QHash<FPDF_FONT, QRawFont> faces;
     return faces;
+}
+
+QHash<FPDF_FONT, QMap<quint32, uint>> &writtenGlyphMap()
+{
+    static QHash<FPDF_FONT, QMap<quint32, uint>> glyphs;
+    return glyphs;
 }
 
 const QRawFont *loadedFace(FPDF_FONT font)
 {
     const auto it = loadedFaces().constFind(font);
-    return it == loadedFaces().cend() ? nullptr
-                                      : &face(it->family, it->bold, it->italic);
+    return it == loadedFaces().cend() ? nullptr : &*it;
 }
 
 bool hasOutline(const QRawFont &raw, char32_t codePoint)
@@ -205,6 +370,41 @@ struct Outline {
     float width    { 0.f };
     int   segments { -1 };
 };
+
+bool lacksCharacterMap(FPDF_FONT font)
+{
+    // An embedded TrueType program without a cmap (Qt writes its subsets so)
+    // gives PDFium no glyph for a new character; it would draw one from a
+    // substitute font and write that font's glyph id, which the file lacks.
+    if (FPDFFont_GetIsEmbedded(font) != 1) return false;
+    size_t size = 0;
+    if (!FPDFFont_GetFontData(font, nullptr, 0, &size) || size < 12) return false;
+    char name[128] = {};
+    FPDFFont_GetBaseFontName(font, name, sizeof(name));
+    const QString key = QStringLiteral("%1|%2|%3").arg(quintptr(font)).arg(size)
+                                                  .arg(QLatin1String(name));
+    static QHash<QString, bool> known;
+    const auto cached = known.constFind(key);
+    if (cached != known.cend()) return *cached;
+
+    std::vector<uint8_t> data(size);
+    size_t written = 0;
+    bool lacks = false;
+    if (FPDFFont_GetFontData(font, data.data(), size, &written) && written >= 12) {
+        const auto u16 = [&data](size_t at) { return quint16((data[at] << 8) | data[at + 1]); };
+        const quint32 version = (quint32(u16(0)) << 16) | u16(2);
+        const int tables = u16(4);
+        bool glyf = false, cmap = false;
+        for (int i = 0; i < tables && 12 + 16 * size_t(i) + 4 <= written; ++i) {
+            const char *tag = reinterpret_cast<const char *>(data.data() + 12 + 16 * i);
+            glyf = glyf || std::memcmp(tag, "glyf", 4) == 0;
+            cmap = cmap || std::memcmp(tag, "cmap", 4) == 0;
+        }
+        lacks = (version == 0x00010000 || version == 0x74727565) && glyf && !cmap;
+    }
+    known.insert(key, lacks);
+    return lacks;
+}
 
 Outline outlineOf(FPDF_FONT font, char32_t codePoint)
 {
@@ -222,7 +422,7 @@ bool PdfiumFonts::hasGlyph(FPDF_FONT font, char32_t codePoint)
     if (!font || isType3(font)) return false;
     if (const QRawFont *raw = loadedFace(font))
         return hasOutline(*raw, codePoint);
-    if (QChar::requiresSurrogates(codePoint)) return false;
+    if (QChar::requiresSurrogates(codePoint) || lacksCharacterMap(font)) return false;
 
     const Outline glyph = outlineOf(font, codePoint);
     if (glyph.width <= 0.f || glyph.segments <= 0) return false;
@@ -264,6 +464,9 @@ QSet<uint> PdfiumFonts::decodable(FPDF_DOCUMENT doc, FPDF_PAGE page, FPDF_FONT f
     QHash<QString, bool> &cache = decodeCache()[doc];
     QList<QPair<uint, FPDF_PAGEOBJECT>> probes;
     for (const uint cp : codePoints) {
+        // A control character makes an empty probe, which PDFium's text page
+        // cannot take apart.
+        if (QChar::category(char32_t(cp)) == QChar::Other_Control) continue;
         const auto known = cache.constFind(decodeKey(font, cp));
         if (known != cache.cend()) {
             if (*known) out.insert(cp);
@@ -303,15 +506,15 @@ QSet<uint> PdfiumFonts::decodable(FPDF_DOCUMENT doc, FPDF_PAGE page, FPDF_FONT f
 double PdfiumFonts::glyphWidth(FPDF_FONT font, char32_t codePoint, double sizePt)
 {
     if (!font) return 0.0;
-    if (QChar::requiresSurrogates(codePoint)) {
-        const QRawFont *raw = loadedFace(font);
-        if (!raw || raw->pixelSize() <= 0.0) return 0.0;
+    if (const QRawFont *raw = loadedFace(font)) {
+        if (raw->pixelSize() <= 0.0) return 0.0;
         double width = 0.0;
         const QList<quint32> ids = raw->glyphIndexesForString(QString::fromUcs4(&codePoint, 1));
         for (const QPointF &a : raw->advancesForGlyphIndexes(ids, QRawFont::UseDesignMetrics))
             width += a.x();
         return width * sizePt / raw->pixelSize();
     }
+    if (QChar::requiresSurrogates(codePoint)) return 0.0;
     float width = 0.f;
     return FPDFFont_GetGlyphWidth(font, codePoint, static_cast<float>(sizePt), &width)
         ? double(width) : 0.0;
@@ -320,10 +523,18 @@ double PdfiumFonts::glyphWidth(FPDF_FONT font, char32_t codePoint, double sizePt
 void PdfiumFonts::setText(FPDF_PAGEOBJECT object, FPDF_FONT font, const QString &text)
 {
     const QList<uint> points = text.toUcs4();
-    const bool astral = std::any_of(points.cbegin(), points.cend(),
-                                    [](uint cp) { return QChar::requiresSurrogates(cp); });
-    const QRawFont *raw = astral ? loadedFace(font) : nullptr;
+    const QRawFont *raw = loadedFace(font);
     if (raw) {
+        // A font the editor embedded is written by glyph id from its own
+        // program: PDFium maps some characters to another glyph and gets the
+        // ToUnicode entries of shared glyphs wrong, so the ids are kept too.
+        QMap<quint32, uint> &written = writtenGlyphMap()[font];
+        for (const uint cp : points) {
+            const char32_t point = cp;
+            const QList<quint32> id = raw->glyphIndexesForString(QString::fromUcs4(&point, 1));
+            if (!id.isEmpty() && id.first() != 0 && !written.contains(id.first()))
+                written.insert(id.first(), cp);
+        }
         const QList<quint32> ids = raw->glyphIndexesForString(text);
         const std::vector<uint32_t> codes(ids.cbegin(), ids.cend());
         FPDFText_SetCharcodes(object, codes.data(), codes.size());
@@ -369,6 +580,85 @@ QString fallbackFamily(char32_t codePoint, bool serif, bool bold, bool italic)
     return family;
 }
 
+struct BaseName {
+    QString family;
+    bool    bold   { false };
+    bool    italic { false };
+    bool    named  { false };
+};
+
+BaseName parseBaseName(QString name)
+{
+    if (name.size() > 7 && name.at(6) == u'+') name = name.mid(7);
+    int cut = 0;
+    while (cut < name.size() && name.at(cut) != u'-' && name.at(cut) != u',') ++cut;
+    BaseName out;
+    out.family = name.left(cut);
+    out.family.remove(QRegularExpression(QStringLiteral("(PSMT|PS|MT)$")));
+    const QString style = name.mid(cut).toLower();
+    out.named  = style.size() > 1;
+    out.bold   = style.contains(QLatin1String("bold")) || style.contains(QLatin1String("black"))
+              || style.contains(QLatin1String("heavy")) || style.contains(QLatin1String("demi"));
+    out.italic = style.contains(QLatin1String("italic")) || style.contains(QLatin1String("oblique"))
+              || style.endsWith(QLatin1String("it"));
+    return out;
+}
+
+// Whether a font draws bold: its own program says so when it is embedded,
+// a name that names its style next; the weight PDFium reports for a font
+// without /FontWeight is guessed from its stems (625 for C059-Roman).
+bool drawsBold(FPDF_FONT font, const BaseName &base)
+{
+    if (base.bold) return true;
+    thread_local QHash<FPDF_FONT, std::pair<QString, bool>> known;
+    const auto hit = known.constFind(font);
+    if (hit != known.cend() && hit->first == base.family) return hit->second;
+    bool bold = false;
+    size_t size = 0;
+    QRawFont raw;
+    if (FPDFFont_GetIsEmbedded(font) && FPDFFont_GetFontData(font, nullptr, 0, &size) && size > 0) {
+        QByteArray data(qsizetype(size), Qt::Uninitialized);
+        if (FPDFFont_GetFontData(font, reinterpret_cast<uint8_t *>(data.data()), size, &size))
+            raw = QRawFont(data, 12.0);
+    }
+    if (raw.isValid()) bold = raw.weight() >= QFont::DemiBold;
+    else if (!base.named) bold = FPDFFont_GetWeight(font) >= 600;
+    known.insert(font, { base.family, bold });
+    return bold;
+}
+
+QString familyKey(const QString &family)
+{
+    QString key;
+    for (const QChar c : plainFamily(family).toLower())
+        if (c.isLetterOrNumber()) key += c;
+    return key;
+}
+
+QString systemFamily(const QString &documentFamily)
+{
+    static QHash<QString, QString> installed;
+    if (installed.isEmpty())
+        // Without the foundry: a family split over two foundries keeps all its faces.
+        for (const QString &family : QFontDatabase::families())
+            installed.insert(familyKey(family), plainFamily(family));
+    static const QHash<QString, QString> twins = {
+        { QStringLiteral("arial"), QStringLiteral("liberationsans") },
+        { QStringLiteral("helvetica"), QStringLiteral("liberationsans") },
+        { QStringLiteral("arialnarrow"), QStringLiteral("liberationsansnarrow") },
+        { QStringLiteral("timesnewroman"), QStringLiteral("liberationserif") },
+        { QStringLiteral("times"), QStringLiteral("liberationserif") },
+        { QStringLiteral("couriernew"), QStringLiteral("liberationmono") },
+        { QStringLiteral("courier"), QStringLiteral("liberationmono") },
+        { QStringLiteral("calibri"), QStringLiteral("carlito") },
+        { QStringLiteral("cambria"), QStringLiteral("caladea") },
+    };
+    const QString key = familyKey(documentFamily);
+    if (key.isEmpty()) return {};
+    if (installed.contains(key)) return installed.value(key);
+    return installed.value(twins.value(key));
+}
+
 }
 
 FPDF_FONT PdfiumFonts::loadFont(FPDF_DOCUMENT doc, const QString &family, bool bold,
@@ -386,23 +676,128 @@ FPDF_FONT PdfiumFonts::loadFont(FPDF_DOCUMENT doc, const QString &family, bool b
         : FPDFText_LoadFont(doc, reinterpret_cast<const uint8_t *>(data.constData()),
                             static_cast<uint32_t>(data.size()), FPDF_FONT_TRUETYPE, 1);
     fonts.insert(key, font);
-    if (font) loadedFaces().insert(font, { family, bold, italic });
+    if (font) loadedFaces().insert(font, QRawFont(data, 12.0));
     return font;
+}
+
+FPDF_FONT PdfiumFonts::embeddedCopy(FPDF_DOCUMENT doc, FPDF_FONT font)
+{
+    // A document font PDFium cannot write in: its own program, a bare CFF,
+    // embedded anew under a name of its own, so the text keeps its design.
+    if (!doc || !font || FPDFFont_GetIsEmbedded(font) != 1) return nullptr;
+    size_t size = 0;
+    if (!FPDFFont_GetFontData(font, nullptr, 0, &size) || size == 0) return nullptr;
+    QByteArray program(qsizetype(size), Qt::Uninitialized);
+    if (!FPDFFont_GetFontData(font, reinterpret_cast<uint8_t *>(program.data()), size, &size)
+            || !CffFont::isBare(program))
+        return nullptr;
+    const QString key = QStringLiteral("cff|")
+        + QString::fromLatin1(QCryptographicHash::hash(program, QCryptographicHash::Md5).toHex());
+    QHash<QString, FPDF_FONT> &fonts = loadedFonts()[doc];
+    const auto known = fonts.constFind(key);
+    if (known != fonts.cend()) return *known;
+
+    char name[128] = {};
+    FPDFFont_GetBaseFontName(font, name, sizeof(name));
+    const BaseName base = parseBaseName(QString::fromLatin1(name));
+    const bool bold = drawsBold(font, base);
+    Tables tables = CffFont::tables(program, bold);
+    QByteArray data;
+    if (!tables.isEmpty() && !base.family.isEmpty()) {
+        const QString style = bold ? QStringLiteral("Bold") : QStringLiteral("Regular");
+        tables.append({ QByteArrayLiteral("name"),
+                        nameTable(base.family, style, subsetTag(key) + postScriptName(base.family, style)) });
+        data = assembleSfnt(tables, true);
+    }
+    FPDF_FONT copy = data.isEmpty() ? nullptr
+        : FPDFText_LoadFont(doc, reinterpret_cast<const uint8_t *>(data.constData()),
+                            static_cast<uint32_t>(data.size()), FPDF_FONT_TRUETYPE, 1);
+    fonts.insert(key, copy);
+    if (copy) loadedFaces().insert(copy, QRawFont(data, 12.0));
+    return copy;
 }
 
 FPDF_FONT PdfiumFonts::fallbackFont(FPDF_DOCUMENT doc, FPDF_FONT primary,
                                     char32_t codePoint)
 {
     constexpr int kSerifFlag = 1 << 1;
-    const bool serif = primary && (FPDFFont_GetFlags(primary) & kSerifFlag);
-    const bool bold  = primary && FPDFFont_GetWeight(primary) >= 600;
+    char name[128] = {};
+    if (primary) FPDFFont_GetBaseFontName(primary, name, sizeof(name));
+    const BaseName base = parseBaseName(QString::fromLatin1(name));
+    const StandardFont::Kind kind = StandardFont::kindOf(base.family);
+    const bool serif = primary && ((FPDFFont_GetFlags(primary) & kSerifFlag)
+                                   || kind == StandardFont::Kind::Serif);
+    const bool bold  = primary && drawsBold(primary, base);
     int angle = 0;
-    const bool italic = primary && FPDFFont_GetItalicAngle(primary, &angle) && angle != 0;
+    const bool italic = primary && ((FPDFFont_GetItalicAngle(primary, &angle) && angle != 0)
+                                    || base.italic);
+    // A character the subset lacks is drawn in the same design where the
+    // system has it, or in a font of the same kind and metrics.
+    QStringList alike;
+    if (const QString same = systemFamily(base.family); !same.isEmpty()) alike << same;
+    if (primary) alike << StandardFont::qtFamilies(serif ? StandardFont::Kind::Serif : kind);
+    for (const QString &family : std::as_const(alike)) {
+        FPDF_FONT font = loadFont(doc, family, bold, italic);
+        if (hasGlyph(font, codePoint)) return font;
+    }
     FPDF_FONT font = loadFont(doc, fallbackFamily(codePoint, serif, bold, italic),
                               bold, italic);
     if (!hasGlyph(font, codePoint) && (bold || italic))
         font = loadFont(doc, fallbackFamily(codePoint, serif, false, false), false, false);
     return hasGlyph(font, codePoint) ? font : nullptr;
+}
+
+PdfiumFonts::Face PdfiumFonts::faceOf(FPDF_FONT font)
+{
+    Face out;
+    if (!font) return out;
+    char name[128] = {};
+    FPDFFont_GetBaseFontName(font, name, sizeof(name));
+    const BaseName base = parseBaseName(QString::fromLatin1(name));
+    out.family = systemFamily(base.family);
+    out.bold   = drawsBold(font, base);
+    int angle = 0;
+    out.italic = base.italic || (FPDFFont_GetItalicAngle(font, &angle) && angle != 0);
+    return out;
+}
+
+QString PdfiumFonts::familyName(FPDF_FONT font)
+{
+    // The family a font names itself, the same for every subset of it and
+    // for a font loaded from the system, before saving and after.
+    if (!font) return {};
+    if (const QRawFont *raw = loadedFace(font)) return plainFamily(raw->familyName());
+    const QString registered = registerWithQt(font);
+    if (!registered.isEmpty()) return plainFamily(writableFamily(registered));
+    char name[128] = {};
+    FPDFFont_GetBaseFontName(font, name, sizeof(name));
+    return resolvePdfFont(QString::fromLatin1(name)).family;
+}
+
+bool PdfiumFonts::hasFace(const QString &family, bool bold, bool italic)
+{
+    // Qt answers an unknown family or style with some other face.
+    const QRawFont &raw = face(writableFamily(family), bold, italic);
+    return raw.isValid()
+        && plainFamily(raw.familyName()).compare(plainFamily(writableFamily(family)),
+                                                 Qt::CaseInsensitive) == 0
+        && (raw.weight() >= 600) == bold && (raw.style() != QFont::StyleNormal) == italic
+        && !fontData(family, bold, italic).isEmpty();
+}
+
+QHash<QByteArray, QMap<quint32, uint>> PdfiumFonts::writtenGlyphs(FPDF_DOCUMENT doc)
+{
+    QHash<QByteArray, QMap<quint32, uint>> out;
+    for (FPDF_FONT font : loadedFonts().value(doc)) {
+        const auto written = writtenGlyphMap().constFind(font);
+        if (!font || written == writtenGlyphMap().cend() || written->isEmpty()) continue;
+        char name[256] = {};
+        if (FPDFFont_GetBaseFontName(font, name, sizeof(name)) <= 1) continue;
+        QMap<quint32, uint> &glyphs = out[QByteArray(name)];
+        for (auto it = written->cbegin(); it != written->cend(); ++it)
+            if (!glyphs.contains(it.key())) glyphs.insert(it.key(), it.value());
+    }
+    return out;
 }
 
 void PdfiumFonts::releaseFonts(FPDF_DOCUMENT doc)
@@ -412,6 +807,7 @@ void PdfiumFonts::releaseFonts(FPDF_DOCUMENT doc)
     for (FPDF_FONT font : fonts) {
         if (!font) continue;
         loadedFaces().remove(font);
+        writtenGlyphMap().remove(font);
         FPDFFont_Close(font);
     }
 }
@@ -435,11 +831,38 @@ QString PdfiumFonts::registerWithQt(FPDF_FONT font)
     const auto known = registry().constFind(key);
     if (known != registry().constEnd()) return *known;
 
-    const int id = QFontDatabase::addApplicationFontFromData(data);
+    // A program registered under a family Qt already knows would answer later
+    // requests for that family, so it goes in under a name of its own.
+    QByteArray registered = data;
+    const QRawFont raw(data, 12);
+    QSet<QString> existing;
+    for (const QString &f : QFontDatabase::families()) existing.insert(plainFamily(f).toLower());
+    const QString own = plainFamily(raw.familyName());
+    if (raw.isValid() && existing.contains(own.toLower())) {
+        QString unique = own + QStringLiteral(" (PDF)");
+        for (int n = 2; existing.contains(unique.toLower()); ++n)
+            unique = own + QStringLiteral(" (PDF %1)").arg(n);
+        registered = renamedSfnt(data, unique, raw.styleName(),
+                                 postScriptName(unique, raw.styleName()));
+        if (registered.isEmpty()) {
+            registry().insert(key, QString());
+            return {};
+        }
+    }
+
+    const int id = QFontDatabase::addApplicationFontFromData(registered);
     const QStringList families =
         id >= 0 ? QFontDatabase::applicationFontFamilies(id) : QStringList();
-    const QString family = families.isEmpty() ? QString() : families.first();
+    QString family = families.isEmpty() ? QString() : families.first();
+    // A program Qt reads but cannot rename, a CFF, which names its family
+    // itself, would take over a family the system has; the system's own face
+    // stands for it then.
+    if (!family.isEmpty() && existing.contains(plainFamily(family).toLower())) {
+        QFontDatabase::removeApplicationFont(id);
+        family.clear();
+    }
     registry().insert(key, family);
+    if (!family.isEmpty() && registered != data) renamedFamilies().insert(family, own);
     return family;
 }
 

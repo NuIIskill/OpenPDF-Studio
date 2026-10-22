@@ -99,6 +99,15 @@ if(PDFium_FOUND)
     if(UNIX AND NOT APPLE)
         get_filename_component(_pdfium_libdir "${PDFium_LIBRARY}" DIRECTORY)
         set_property(TARGET OpenPDFStudio APPEND PROPERTY BUILD_RPATH "${_pdfium_libdir}")
+        # libpdfium.so exports the functions of its own FreeType. Loaded ahead
+        # of the system's, it would also serve Qt's text drawing, from the GUI
+        # thread while the worker renders with it, and the heap breaks. PDFium
+        # calls its copy directly, so the system FreeType goes first for Qt.
+        find_library(OPENPDF_SYSTEM_FREETYPE NAMES freetype libfreetype.so.6)
+        if(OPENPDF_SYSTEM_FREETYPE)
+            target_link_options(OpenPDFStudio PRIVATE "LINKER:--push-state,--no-as-needed"
+                                "${OPENPDF_SYSTEM_FREETYPE}" "LINKER:--pop-state")
+        endif()
     endif()
 else()
     message(WARNING "PDFium fehlt. Dieser Build kann keine PDFs anzeigen.\n"

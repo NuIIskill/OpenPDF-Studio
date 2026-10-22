@@ -12,6 +12,7 @@
 #include <p11-kit/p11-kit.h>
 #include <p11-kit/uri.h>
 
+#include <QCryptographicHash>
 #include <QTimeZone>
 
 #include <cstring>
@@ -246,6 +247,7 @@ public:
     QByteArray sign(const QString &certificateId, const QList<QByteArrayView> &data,
                     SignError *error) override;
     CmsCheck check(const QByteArray &cms, const QList<QByteArrayView> &data) override;
+    CertificateFacts read(const QByteArray &file) override;
     QString create(const NewCertificate &request, SignError *error) override;
     bool remove(const QString &certificateId) override;
 };
@@ -259,6 +261,12 @@ Certificate describe(gnutls_x509_crt_t crt, const QString &id)
     cert.issuer            = commonName(crt, true);
     cert.validTo = QDateTime::fromSecsSinceEpoch(
         qint64(gnutls_x509_crt_get_expiration_time(crt)), QTimeZone::UTC);
+    gnutls_datum_t der {};
+    if (gnutls_x509_crt_export2(crt, GNUTLS_X509_FMT_DER, &der) == 0) {
+        cert.fingerprint = QCryptographicHash::hash(
+            QByteArrayView(der.data, qsizetype(der.size)), QCryptographicHash::Sha256);
+        gnutls_free(der.data);
+    }
     return cert;
 }
 
@@ -478,8 +486,13 @@ CmsCheck Pkcs11CertificateProvider::check(const QByteArray &cms, const QList<QBy
                 && gnutls_x509_crt_init(&crt) == 0
                 && gnutls_x509_crt_import(crt, &raw, GNUTLS_X509_FMT_DER) == 0
                 && gnutls_pkcs7_verify_direct(p7, crt, 0, &contentDatum, 0) == 0) {
-            result.intact = true;
-            result.signer = commonName(crt, false);
+            result.intact      = true;
+            result.signer      = commonName(crt, false);
+            result.issuer      = commonName(crt, true);
+            result.validTo     = QDateTime::fromSecsSinceEpoch(
+                qint64(gnutls_x509_crt_get_expiration_time(crt)), QTimeZone::UTC);
+            result.fingerprint = QCryptographicHash::hash(
+                QByteArrayView(raw.data, qsizetype(raw.size)), QCryptographicHash::Sha256);
         }
         if (crt) gnutls_x509_crt_deinit(crt);
         gnutls_free(raw.data);
@@ -495,6 +508,29 @@ CmsCheck Pkcs11CertificateProvider::check(const QByteArray &cms, const QList<QBy
     return result;
 }
 
+
+CertificateFacts Pkcs11CertificateProvider::read(const QByteArray &file)
+{
+    CertificateFacts facts;
+    gnutls_x509_crt_t crt = nullptr;
+    if (gnutls_x509_crt_init(&crt) < 0) return facts;
+    gnutls_datum_t in = datum(file);
+    const gnutls_x509_crt_fmt_t format = file.contains("-----BEGIN") ? GNUTLS_X509_FMT_PEM
+                                                                     : GNUTLS_X509_FMT_DER;
+    gnutls_datum_t der {};
+    if (gnutls_x509_crt_import(crt, &in, format) == 0
+            && gnutls_x509_crt_export2(crt, GNUTLS_X509_FMT_DER, &der) == 0) {
+        facts.subject     = commonName(crt, false);
+        facts.issuer      = commonName(crt, true);
+        facts.validTo     = QDateTime::fromSecsSinceEpoch(
+            qint64(gnutls_x509_crt_get_expiration_time(crt)), QTimeZone::UTC);
+        facts.fingerprint = QCryptographicHash::hash(
+            QByteArrayView(der.data, qsizetype(der.size)), QCryptographicHash::Sha256);
+        gnutls_free(der.data);
+    }
+    gnutls_x509_crt_deinit(crt);
+    return facts;
+}
 }
 
 std::unique_ptr<CertificateProvider> createPlatformProvider()

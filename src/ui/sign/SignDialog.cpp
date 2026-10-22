@@ -3,7 +3,7 @@
 #include "ui/sign/DigitalSignPage.hpp"
 #include "ui/sign/SavedSignaturesView.hpp"
 #include "ui/sign/SignaturePad.hpp"
-#include "ui/sign/SignTabBar.hpp"
+#include "ui/widgets/IconTabBar.hpp"
 #include "ui/theme/Theme.hpp"
 
 #include <QAction>
@@ -100,10 +100,10 @@ SignDialog::SignDialog(QWidget *parent)
 {
     setWindowTitle(tr("Sign - OpenPDF Studio"));
     setModal(true);
-    setFixedSize(780, 640);
     applyDialogStyle();
 
     auto *root = new QVBoxLayout(this);
+    root->setSizeConstraint(QLayout::SetMinimumSize);
     root->setContentsMargins(0, 0, 0, 0);
     root->setSpacing(0);
 
@@ -123,7 +123,12 @@ SignDialog::SignDialog(QWidget *parent)
     m_pages->addWidget(m_digital);
     cardLayout->addWidget(m_pages);
 
-    body->addWidget(card);
+    // At least 780 x 640 with the margins and the footer; longer translations make it larger.
+    auto *cardRow = new QHBoxLayout;
+    cardRow->addStrut(532);
+    cardRow->addWidget(card);
+    body->addLayout(cardRow);
+    root->addStrut(780);
     root->addLayout(body);
     root->addWidget(buildFooter());
 
@@ -166,7 +171,7 @@ SignatureAppearance SignDialog::appearance() const
 
 QWidget *SignDialog::buildTabs()
 {
-    m_tabBar = new SignTabBar;
+    m_tabBar = new IconTabBar;
     m_tabBar->addIconTab(QStringLiteral("signature"), tr("Add signature"));
     m_tabBar->addIconTab(QStringLiteral("shield-check"), tr("Sign digitally"));
     if (!SignatureManager::available()) {

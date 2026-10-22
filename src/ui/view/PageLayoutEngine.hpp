@@ -1,9 +1,12 @@
 #pragma once
 
+#include <QColor>
 #include <QHash>
 #include <QList>
+#include <QElapsedTimer>
 #include <QObject>
 #include <QPixmap>
+#include <QPointer>
 #include <QRect>
 #include <QRectF>
 
@@ -57,9 +60,10 @@ public:
     void rerenderPage(int page);
 
     void rerenderPageWithBlank(int page, const QRectF &pdfBoundsPts,
-                               const QList<QRectF> &eraseRects);
+                               const QList<QRectF> &eraseRects, const QColor &paper);
 
     void setPreviewEdits(int page, const QList<EditSession::Edit> &edits);
+    void setDraggingText(bool on);
 
     QLabel *pageLabel(int page) const { return m_pageLabels.value(page, nullptr); }
     int     pageLabelCount()    const { return static_cast<int>(m_pageLabels.size()); }
@@ -107,7 +111,8 @@ private:
     void noteChanged(int page, int version, const QRect &pixels, qreal scale);
     QRect changedAt(int page, qreal scale) const;
 #ifdef HAVE_PDF_RENDERING
-    EditSession stateFor(int page) const;
+    EditSession stateFor(int page, bool withPreview = true) const;
+    EditSession stateWith(int page, const QList<EditSession::Edit> &preview) const;
     qreal deviceScale() const;
     bool  tiled(int page) const;
     bool  tiledAt(int page, qreal scale) const;
@@ -181,6 +186,74 @@ private:
                                 const std::function<DocumentWorker::Render(int)> &request);
     bool keepZoomRender(int page, int zoom, int version, const QRect &area, const QImage &image);
     QHash<int, int>      m_wholeRenderMs;
+    QSet<int>            m_slowToPatch;
+
+    static constexpr int kSlowPatchMs = 40;
+    // A page rendered on every key on the window's thread must take less than a frame.
+    static constexpr int kSyncRenderMs = 16;
+    // Renders of the edited page without the edit's text, and of that text
+    // alone, carry these plus their zoom.
+    static constexpr int kTextBaseTag  = 1000000;
+    static constexpr int kTextLayerTag = 2000000;
+    static constexpr int kDragTextTag  = 3000000;
+    static constexpr int kDragBaseTag  = 4000000;
+    /// The page being edited rendered once without the edit's text, which is laid over it.
+    struct TextBase {
+        int page = -1;
+        int zoom = 0;
+        int version = -1;
+        QList<EditSession::Edit> state;
+        QImage image;
+        QRect  drawn;
+        int    shown = -1;
+    };
+    TextBase m_textBase;
+    TextBase m_textAsked;
+    bool layersText(int page) const;
+    bool textBaseReady(int page) const;
+    DocumentWorker::Render askTextBase(int page);
+    DocumentWorker::Render askTextLayer(int page);
+    void layText(int page, const QRect &pixels, const QImage &layer, int version);
+
+    /// The state the renders of the edited page show; a newer one waits until they are on screen.
+    struct EditRender { int page = -1; int version = 0; std::shared_ptr<const EditSession> state; bool newer = false; };
+    EditRender m_editRender;
+    std::shared_ptr<const EditSession> editRenderState(int page, int version);
+    EditSession renderedState(int page, int version) const;
+    bool showsVersion(int page, int version) const;
+
+    /// The text of a box being moved, shown as a picture that follows the frame over the page rendered once without it.
+    struct DragText {
+        int page = -1;
+        int zoom = 0;
+        int id = 0;
+        QList<EditSession::Edit> start;
+        QList<EditSession::Edit> without;
+        QPointF delta;
+        QRect   pixels;
+        QImage  image;
+        QImage  base;
+        bool    stripped = false;
+        bool    ending = false;
+        QPointer<QLabel> picture;
+        QElapsedTimer since;
+    };
+    DragText m_drag;
+    bool     m_draggingText { false };
+    QTimer  *m_dragTimer { nullptr };
+    void followDrag(int page, QList<EditSession::Edit> &edits);
+    void beginDrag(int page, const QPointF &delta);
+    void prepareDrag();
+    QTimer  *m_prepareDragTimer { nullptr };
+    void finishDrag();
+    void giveTextBack();
+    void clearDrag();
+    void placeDragPicture();
+    void checkDrag();
+    bool shownMatchesState(int page) const;
+    QList<DocumentWorker::Render> askDragRenders() const;
+    void takeDragRender(int zoom, int version, const QImage &image);
+    void stripDragText();
 #endif
     PageTiles            m_tiles;
 
@@ -203,7 +276,7 @@ private:
     QTimer *m_renderTimer { nullptr };
 
     /// Stores the persistent erase area for one page.
-    struct Blank { int page = -1; QRectF bounds; QList<QRectF> rects; };
+    struct Blank { int page = -1; QRectF bounds; QList<QRectF> rects; QColor paper; };
     Blank m_blank;
 
     struct Preview { int page = -1; QList<EditSession::Edit> edits; };

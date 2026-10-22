@@ -215,7 +215,11 @@ bool DocumentJournal::hasUnsavedEdits() const
 
 bool DocumentJournal::hasUnsavedContentEdits() const
 {
-    if (m_workingCopyDirty) return true;
+    return m_workingCopyDirty || hasUnsavedSessionEdits();
+}
+
+bool DocumentJournal::hasUnsavedSessionEdits() const
+{
 #ifdef HAVE_PDF_RENDERING
     if (!m_session) return false;
 

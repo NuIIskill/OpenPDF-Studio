@@ -40,9 +40,10 @@ HistoryDialog::HistoryDialog(const DocumentHistory *history, const QString &docu
 HistoryDialog *HistoryDialog::openFor(DocumentView *view, QWidget *parent)
 {
     if (!view || view->contentFile().isEmpty()) {
-        QMessageBox::information(parent, tr("Change history") + QStringLiteral(" - OpenPDF Studio"),
-                                 tr("Open a document to see its change history."));
-        return nullptr;
+        auto *dlg = new HistoryDialog(nullptr, QString(), parent);
+        dlg->setAttribute(Qt::WA_DeleteOnClose);
+        dlg->open();
+        return dlg;
     }
 
     auto *dlg = new HistoryDialog(view->history(),
@@ -114,7 +115,7 @@ void HistoryDialog::buildUi()
     m_empty->setObjectName(QStringLiteral("HistorySubtitle"));
     m_empty->setAlignment(Qt::AlignCenter);
     m_empty->hide();
-    root->addWidget(m_empty);
+    root->addWidget(m_empty, 1);
 
     auto *actions = new QHBoxLayout;
     actions->setContentsMargins(0, 16, 0, 0);
@@ -181,7 +182,9 @@ void HistoryDialog::retranslateUi()
     m_subtitle->setText(m_documentName.isEmpty()
         ? tr("Every change made to this document, newest first.")
         : tr("Every change made to \"%1\", newest first.").arg(m_documentName));
-    m_empty->setText(tr("No changes recorded yet."));
+    m_subtitle->setVisible(m_history);
+    m_empty->setText(m_history ? tr("No changes recorded yet.")
+                               : tr("Open a document to see its change history."));
     m_restoreBtn->setText(tr("Go back to this state"));
     m_undoBtn->setText(tr("Undo"));
     m_redoBtn->setText(tr("Redo"));

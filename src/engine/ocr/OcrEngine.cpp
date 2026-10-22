@@ -69,28 +69,46 @@ QList<OcrEngine::Block> OcrEngine::recognizePage(const QImage &pageImage,
     tesseract::ResultIterator *ri = api->GetIterator();
     if (!ri) { api->Clear(); return result; }
 
-    const tesseract::PageIteratorLevel level = tesseract::RIL_TEXTLINE;
     const QRectF pageRect(QPointF(0, 0), pageSizePts);
 
+    // A line is split where its words stand far apart, as table cells do: a
+    // gap wider than two and a half times the line's height.
+    struct Word { QRectF box; QString text; };
+    QList<Word> line;
+    const auto flush = [&]() {
+        double height = 0.0;
+        for (const Word &w : std::as_const(line)) height = std::max(height, w.box.height());
+        QRectF box;
+        QString text;
+        for (int i = 0; i < line.size(); ++i) {
+            const Word &w = line.at(i);
+            if (i > 0 && w.box.left() - line.at(i - 1).box.right() > height * 2.5) {
+                if (!text.isEmpty()) result.append({ box, text });
+                box = QRectF();
+                text.clear();
+            }
+            box = box.isNull() ? w.box : box.united(w.box);
+            text += (text.isEmpty() ? QString() : QStringLiteral(" ")) + w.text;
+        }
+        if (!text.isEmpty()) result.append({ box, text });
+        line.clear();
+    };
     do {
-        const char *raw = ri->GetUTF8Text(level);
+        if (ri->IsAtBeginningOf(tesseract::RIL_TEXTLINE)) flush();
+        const char *raw = ri->GetUTF8Text(tesseract::RIL_WORD);
         if (!raw) continue;
         const QString text = QString::fromUtf8(raw).trimmed();
         delete[] raw;
         if (text.isEmpty()) continue;
 
         int x1 = 0, y1 = 0, x2 = 0, y2 = 0;
-        if (!ri->BoundingBox(level, &x1, &y1, &x2, &y2)) continue;
-
-        const QRectF bounds(x1 / renderScale, y1 / renderScale,
-                             (x2 - x1) / renderScale, (y2 - y1) / renderScale);
-
-        const QRectF clamped = bounds.intersected(pageRect);
-        if (clamped.isEmpty()) continue;
-
-        result.append({ clamped, text });
-
-    } while (ri->Next(level));
+        if (!ri->BoundingBox(tesseract::RIL_WORD, &x1, &y1, &x2, &y2)) continue;
+        const QRectF bounds = QRectF(x1 / renderScale, y1 / renderScale,
+                                     (x2 - x1) / renderScale, (y2 - y1) / renderScale)
+                                  .intersected(pageRect);
+        if (!bounds.isEmpty()) line.append({ bounds, text });
+    } while (ri->Next(tesseract::RIL_WORD));
+    flush();
 
     delete ri;
     api->Clear();
@@ -301,51 +319,27 @@ QString OcrEngine::recognizeImage(const QImage &image) const
 #endif
 }
 
-QList<QRectF> OcrEngine::detectImageRegions(const QImage &pageImage,
-                                              const QSizeF  &pageSizePts,
-                                              qreal          renderScale) const
+QString OcrEngine::recognizeLine(const QImage &image, int dpi) const
 {
-    QList<QRectF> result;
-
 #ifdef HAVE_TESSERACT
-    if (!m_ready || pageImage.isNull() || renderScale <= 0.0) return result;
-
+    if (!m_ready || image.isNull()) return {};
     auto *api = static_cast<tesseract::TessBaseAPI *>(m_api);
-
-    const QImage img = pageImage.convertToFormat(QImage::Format_RGB888);
+    const QImage img = image.convertToFormat(QImage::Format_RGB888);
     api->SetImage(img.bits(), img.width(), img.height(),
                   img.depth() / 8, static_cast<int>(img.bytesPerLine()));
-
-    tesseract::PageIterator *pi = api->AnalyseLayout();
-    if (!pi) { api->Clear(); return result; }
-
-    const QRectF pageRect(QPointF(0, 0), pageSizePts);
-
-    do {
-        const tesseract::PolyBlockType bt = pi->BlockType();
-        if (bt == tesseract::PT_FLOWING_IMAGE ||
-            bt == tesseract::PT_HEADING_IMAGE  ||
-            bt == tesseract::PT_PULLOUT_IMAGE) {
-            int x1 = 0, y1 = 0, x2 = 0, y2 = 0;
-            if (!pi->BoundingBox(tesseract::RIL_BLOCK, &x1, &y1, &x2, &y2)) continue;
-            const QRectF r(x1 / renderScale, y1 / renderScale,
-                           (x2 - x1) / renderScale, (y2 - y1) / renderScale);
-            const QRectF clamped = r.intersected(pageRect);
-            if (!clamped.isEmpty() && clamped.width() > 10 && clamped.height() > 10)
-                result.append(clamped);
-        }
-    } while (pi->Next(tesseract::RIL_BLOCK));
-
-    delete pi;
+    api->SetSourceResolution(dpi);
+    api->SetPageSegMode(tesseract::PSM_SINGLE_LINE);
+    char *raw = api->GetUTF8Text();
     api->Clear();
-    qDebug() << "[OCR] Image region detection:" << result.size() << "region(s)";
+    api->SetPageSegMode(tesseract::PSM_AUTO);
+    if (!raw) return {};
+    const QString text = QString::fromUtf8(raw).simplified();
+    delete[] raw;
+    return text;
 #else
-    Q_UNUSED(pageImage)
-    Q_UNUSED(pageSizePts)
-    Q_UNUSED(renderScale)
+    Q_UNUSED(image) Q_UNUSED(dpi)
+    return {};
 #endif
-
-    return result;
 }
 
 OcrEngine::Block OcrEngine::blockAt(const QList<Block> &blocks,

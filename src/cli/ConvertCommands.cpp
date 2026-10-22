@@ -45,8 +45,8 @@ int exportDocxCommand(const QStringList &args)
     DocumentView view;
     if (!view.openFile(args.at(2))) return 2;
     const bool ok = DocxExporter::exportToDocx(
-        args.at(3), view.allPageContent(pages),
-        QFileInfo(args.at(2)).completeBaseName(), docxOpt);
+        args.at(3), view.allPageContent(pages, docxOpt),
+        QFileInfo(args.at(2)).completeBaseName());
     return ok ? 0 : 3;
 }
 

@@ -1,7 +1,10 @@
 #pragma once
 
+#include <QImage>
 #include <QList>
 #include <QString>
+
+#include <functional>
 
 #include "engine/export/DocxExporter.hpp"
 
@@ -37,10 +40,13 @@ public:
     DocumentExporter() = default;
 #endif
 
-    QList<DocxPage> allPageContent(const QList<int> &pages = {}) const;
+    QList<DocxPage> allPageContent(const QList<int> &pages,
+                                   const DocxExportOptions &options,
+                                   const std::function<bool(int, int)> &progress = {}) const;
 
     bool exportPagesToImages(const QString &outputPath, int quality = 85,
-                             const QList<int> &pages = {}) const;
+                             const QList<int> &pages = {},
+                             const std::function<bool(int, int)> &progress = {}) const;
 #if defined(HAVE_PDF_RENDERING) && defined(HAVE_QT_PRINT)
 
     bool printPages(QPrinter *printer, const QList<int> &pages = {}) const;

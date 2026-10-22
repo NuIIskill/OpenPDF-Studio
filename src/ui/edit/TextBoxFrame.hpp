@@ -44,12 +44,26 @@ public:
     void setTextAnchor(bool valid, const QPointF &penOffsetPt);
     void setForbiddenZones(const QList<QRect> &zones);
 
-    void setPageRect(const QRect &pageRect);
+    void setPageRect(const QRect &pageRect, const QSizeF &pageSizePt);
     void resetCommitGuard();
     QString currentText() const;
     QString plainText() const;
+    void selectRange(int start, int end);
+    QList<TextLayout::Source> charSources() const;
+    QList<QList<double>> paragraphCharXPt() const;
+    void setCharSources(const QList<TextLayout::Source> &sources);
+    void setDocumentKey(const QString &key);
+    InlineEditor *editor() const { return m_editor; }
+    void copyAll();
+    void paste();
+    void showLookAt(const QPoint &canvasPos);
+    TextLayout::Appearance look() const;
+    QList<TextLayout::Appearance> appearances() const;
 
     QRectF innerCanvasRect() const;
+    bool   dragging() const { return m_drag != Handle::None; }
+    bool   movingBox() const { return m_drag == Handle::Move; }
+    void   holdDragForZoom();
 
     void growToFitText();
     void setGrowHorizontal(bool on);
@@ -59,8 +73,10 @@ Q_SIGNALS:
     void committed(const QString &text);
     void cancelled();
     void changed(const QString &text);
+    void moveStarted();
     void dragEnded();
     void boundsChanged(QRectF inner);
+    void lookChanged();
 
 protected:
 
@@ -85,9 +101,11 @@ private:
     void   layoutEditor();
     void   applyBoxSize();
     void   keepInsidePage();
+    void   keepHeldUnderCursor();
 
     qreal  freieBreitePt() const;
     qreal  freieHoehePt() const;
+    void   setOverflow(bool overflow);
 
     void   syncLayoutBox();
 
@@ -97,11 +115,17 @@ private:
     Handle        m_drag        { Handle::None };
     QPoint        m_dragOrigin;
     QRect         m_dragStartGeo;
+    QPoint        m_dragAt;
+    QPointF       m_heldPt;
+    bool          m_zoomPending { false };
     bool          m_decorations { true };
     bool          m_presenting  { false };
 
     int           m_minInnerW   { 120 };
+    qreal         m_minInnerWPt { 120.0 };
     bool          m_growHorizontal { false };
+    bool          m_growClamped { false };
+    bool          m_overflow { false };
     bool          m_autoHeight { true };
     TextBoxProperties m_box;
     qreal         m_scale { 1.0 };
@@ -115,4 +139,5 @@ private:
 
     QList<QRect>  m_forbidden;
     QRect         m_pageRect;
+    QSizeF        m_pageSizePt;
 };

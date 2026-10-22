@@ -170,8 +170,7 @@ static QByteArray buildSemanticDocument(const QList<DocxPage> &pages)
 }
 
 static QByteArray buildStructuredDocument(const QList<DocxPage> &pages,
-                                          QList<MediaPart> *media,
-                                          const DocxExportOptions &opt)
+                                          QList<MediaPart> *media)
 {
     QString x = QStringLiteral(
         "<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"yes\"?>"
@@ -206,18 +205,13 @@ static QByteArray buildStructuredDocument(const QList<DocxPage> &pages,
             DocxBlock scan;
             scan.kind    = DocxBlock::Kind::Picture;
             scan.bounds  = QRectF(QPointF(0.0, 0.0), page.pageSizePt);
-            scan.picture = page.background;
-            QByteArray image;
-            const QString ext = encodePicture(scan.picture, opt, &image);
-            if (!ext.isEmpty()) {
-                MediaPart part;
-                part.name  = QStringLiteral("scan%1.%2").arg(pg + 1).arg(ext);
-                part.relId = QStringLiteral("rIdImg%1").arg(mediaId);
-                part.png   = std::move(image);
-                anchors += pictureXml(scan, part.relId, drawingId++);
-                media->append(std::move(part));
-                ++mediaId;
-            }
+            MediaPart part;
+            part.name  = QStringLiteral("scan%1.%2").arg(pg + 1).arg(page.background.ext);
+            part.relId = QStringLiteral("rIdImg%1").arg(mediaId);
+            part.png   = page.background.data;
+            anchors += pictureXml(scan, part.relId, drawingId++);
+            media->append(std::move(part));
+            ++mediaId;
         }
         for (const DocxBlock &block : page.blocks) {
             if (block.kind == DocxBlock::Kind::Shape) {
@@ -228,14 +222,11 @@ static QByteArray buildStructuredDocument(const QList<DocxPage> &pages,
                 anchors += textBoxXml(block, drawingId++);
                 continue;
             }
-            if (block.kind != DocxBlock::Kind::Picture) continue;
-            QByteArray png;
-            const QString ext = encodePicture(block.picture, opt, &png);
-            if (ext.isEmpty()) continue;
+            if (block.kind != DocxBlock::Kind::Picture || block.picture.isNull()) continue;
             MediaPart part;
-            part.name  = QStringLiteral("image%1.%2").arg(mediaId).arg(ext);
+            part.name  = QStringLiteral("image%1.%2").arg(mediaId).arg(block.picture.ext);
             part.relId = QStringLiteral("rIdImg%1").arg(mediaId);
-            part.png   = std::move(png);
+            part.png   = block.picture.data;
             anchors += pictureXml(block, part.relId, drawingId++);
             media->append(std::move(part));
             ++mediaId;
@@ -301,8 +292,7 @@ static QByteArray buildStructuredDocument(const QList<DocxPage> &pages,
 }
 
 static QByteArray buildPositionedDocument(const QList<DocxPage> &pages,
-                                          QList<MediaPart> *media,
-                                          const DocxExportOptions &opt)
+                                          QList<MediaPart> *media)
 {
     QString x = QStringLiteral(
         "<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"yes\"?>"
@@ -323,16 +313,13 @@ static QByteArray buildPositionedDocument(const QList<DocxPage> &pages,
 
         x += QStringLiteral("<w:p><w:pPr><w:spacing w:before=\"0\" w:after=\"0\"/>"
                             "</w:pPr>");
-        QByteArray backgroundPng;
-
-        const QString bgExt = pages[pg].background.isNull()
-            ? QString{} : encodePicture(pages[pg].background, opt, &backgroundPng);
-        if (!bgExt.isEmpty()) {
+        const DocxImage &background = pages[pg].background;
+        if (!background.isNull()) {
             const QSizeF ps = pages[pg].pageSizePt.isEmpty()
                                   ? QSizeF(595.0, 842.0) : pages[pg].pageSizePt;
-            media->append({ QStringLiteral("page%1.%2").arg(pg + 1).arg(bgExt),
+            media->append({ QStringLiteral("page%1.%2").arg(pg + 1).arg(background.ext),
                             QStringLiteral("rIdPage%1").arg(pg + 1),
-                            backgroundPng });
+                            background.data });
             x += QStringLiteral("<w:r><w:pict><v:rect id=\"pdfBackground")
                  + QString::number(pg + 1)
                  + QStringLiteral("\" stroked=\"f\" style=\"position:absolute;left:0;top:0;")
@@ -489,8 +476,7 @@ static bool writeDocx(const QString &outputPath, const QByteArray &documentXml,
 
 bool DocxExporter::exportToDocx(const QString &outputPath,
                                 const QList<DocxPage> &pages,
-                                const QString &title,
-                                const DocxExportOptions &options)
+                                const QString &title)
 {
     Q_UNUSED(title);
     QList<MediaPart> media;
@@ -500,11 +486,11 @@ bool DocxExporter::exportToDocx(const QString &outputPath,
         return !page.blocks.isEmpty();
     });
     if (structured)
-        return writeDocx(outputPath, buildStructuredDocument(pages, &media, options), media);
+        return writeDocx(outputPath, buildStructuredDocument(pages, &media), media);
 
     if (prefersSemanticLayout(pages))
         return writeDocx(outputPath, buildSemanticDocument(pages), {});
-    return writeDocx(outputPath, buildPositionedDocument(pages, &media, options), media);
+    return writeDocx(outputPath, buildPositionedDocument(pages, &media), media);
 }
 
 bool DocxExporter::exportToDocx(const QString &outputPath,

@@ -10,9 +10,7 @@ class QCheckBox;
 class QRadioButton;
 class QLabel;
 class QPushButton;
-class QAbstractButton;
-class QButtonGroup;
-class QVBoxLayout;
+class QFrame;
 QT_END_NAMESPACE
 
 /// Stores the user's export selections.
@@ -26,8 +24,9 @@ struct ExportRequest {
     bool       keepForms       { true };
     bool       embedFonts      { true };
     bool       openAfterExport { false };
-    QString    password;
 };
+
+class ExportFormatList;
 
 class ExportDialog : public QDialog
 {
@@ -49,19 +48,14 @@ private:
     void buildUi();
 
     void applyDialogStyle();
-    void buildFormatSection(QVBoxLayout *body);
-    void buildDestinationSection(QVBoxLayout *body);
-    void buildRangeAndQualitySection(QVBoxLayout *body);
-    void buildOptionsSection(QVBoxLayout *body);
-    void buildSecuritySection(QVBoxLayout *body);
+    QWidget *buildFormatList();
+    QWidget *buildPage();
+    QFrame *buildFileSection();
+    QFrame *buildPagesSection();
+    QFrame *buildSettingsSection();
     QWidget *buildFooter();
-    void addSeparator(QVBoxLayout *body);
 
-    QWidget *makeSectionHeader(const QString &num, const QString &title);
-    QPushButton *makeFormatCard(const QString &iconChar, const QString &label,
-                                const QString &id, bool available);
     void onFormatSelected(const QString &id);
-    void updatePasswordFields();
     void updateOptionAvailability();
     void updateEstimate();
 
@@ -76,7 +70,7 @@ private:
     qint64  m_sourceBytes   { 0 };
     QString m_selectedFormat{ QStringLiteral("pdf") };
 
-    QButtonGroup *m_formatGroup   { nullptr };
+    ExportFormatList *m_formats { nullptr };
     QLineEdit    *m_filenameEdit  { nullptr };
     QLineEdit    *m_locationEdit  { nullptr };
     QRadioButton *m_allRadio      { nullptr };
@@ -84,13 +78,12 @@ private:
     QRadioButton *m_rangeRadio    { nullptr };
     QLineEdit    *m_rangeEdit     { nullptr };
     QComboBox    *m_qualityCombo  { nullptr };
+    QWidget      *m_compressRow   { nullptr };
+    QWidget      *m_contentColumn { nullptr };
     QCheckBox    *m_compressChk   { nullptr };
     QCheckBox    *m_commentsChk   { nullptr };
     QCheckBox    *m_formsChk      { nullptr };
     QCheckBox    *m_fontsChk      { nullptr };
     QCheckBox    *m_openAfterChk  { nullptr };
-    QCheckBox    *m_passwordChk   { nullptr };
-    QLineEdit    *m_passEdit      { nullptr };
-    QLineEdit    *m_passConfirm   { nullptr };
     QLabel       *m_sizeLabel     { nullptr };
 };

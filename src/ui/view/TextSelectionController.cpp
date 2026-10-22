@@ -3,9 +3,11 @@
 #ifdef HAVE_PDF_RENDERING
 #  include "engine/document/PdfBackend.hpp"
 #endif
+#include "engine/edit/SourcedText.hpp"
 
 #include <QApplication>
 #include <QClipboard>
+#include <QMimeData>
 #include <QLabel>
 #include <QStringList>
 #include <QWidget>
@@ -27,14 +29,21 @@ void TextSelectionController::setSource(PdfRenderer *renderer, const DocumentSou
 }
 #endif
 
-void TextSelectionController::handlePress(const QPoint &canvasPos)
+void TextSelectionController::handlePress(const QPoint &canvasPos, bool extend)
 {
-
-    clear();
     m_dragStart = canvasPos;
     m_tracking  = true;
-    m_dragging  = false;
     Q_EMIT focusRequested();
+
+    if (extend && hasSelection() && m_anchorPage >= 0) {
+        m_dragging = true;
+        updateSelection(canvasPos);
+        return;
+    }
+
+    clear();
+    m_dragging = false;
+    if (!anchorAt(canvasPos, &m_anchorPage, &m_anchorPt)) m_anchorPage = -1;
 }
 
 bool TextSelectionController::handleMove(const QPoint &canvasPos)
@@ -43,7 +52,7 @@ bool TextSelectionController::handleMove(const QPoint &canvasPos)
     if (!m_dragging && (canvasPos - m_dragStart).manhattanLength() > 4)
         m_dragging = true;
     if (!m_dragging) return false;
-    updateSelection(m_dragStart, canvasPos);
+    updateSelection(canvasPos);
     return true;
 }
 
@@ -89,15 +98,14 @@ bool TextSelectionController::anchorAt(const QPoint &canvasPos, int *page,
 #endif
 }
 
-void TextSelectionController::updateSelection(const QPoint &canvasFrom,
-                                              const QPoint &canvasTo)
+void TextSelectionController::updateSelection(const QPoint &canvasTo)
 {
 #ifdef HAVE_PDF_RENDERING
     m_parts.clear();
 
-    int    pageA = -1, pageB = -1;
-    QPointF ptA, ptB;
-    if (!anchorAt(canvasFrom, &pageA, &ptA) || !anchorAt(canvasTo, &pageB, &ptB)) {
+    int     pageA = m_anchorPage, pageB = -1;
+    QPointF ptA   = m_anchorPt, ptB;
+    if (pageA < 0 || !anchorAt(canvasTo, &pageB, &ptB)) {
         updateOverlays();
         return;
     }
@@ -125,12 +133,14 @@ void TextSelectionController::updateSelection(const QPoint &canvasFrom,
         part.page  = page;
         part.rects = sel.rects;
         part.text  = sel.text;
+        part.sources = sel.sources;
+        part.lines   = sel.lines;
         m_parts.append(part);
     }
 
     updateOverlays();
 #else
-    Q_UNUSED(canvasFrom) Q_UNUSED(canvasTo)
+    Q_UNUSED(canvasTo)
 #endif
 }
 
@@ -202,5 +212,32 @@ QList<TextSelectionController::SelectionPart> TextSelectionController::selectedP
 void TextSelectionController::copyToClipboard() const
 {
     const QString text = selectedText();
-    if (!text.isEmpty()) QApplication::clipboard()->setText(text);
+    if (text.isEmpty()) return;
+    QList<TextLayout::Source> sources;
+    for (const Part &p : m_parts) {
+        if (p.text.isEmpty()) continue;
+        if (!sources.isEmpty()) sources.append(TextLayout::Source{});
+        sources += p.sources.size() == p.text.size()
+                       ? p.sources : QList<TextLayout::Source>(p.text.size());
+    }
+    // Text of one page keeps where each character is set, so it is pasted as a box alike.
+    SourcedText::Box box;
+    const Part *only = nullptr;
+    int filled = 0;
+    for (const Part &p : m_parts)
+        if (!p.text.isEmpty()) { only = &p; ++filled; }
+    if (filled == 1) {
+        QList<QList<TextLayout::Source>> lineSources;
+        qsizetype at = 0;
+        for (const TextLayout::OriginalLine &line : only->lines) {
+            lineSources.append(only->sources.mid(at, line.text.size()));
+            at += line.text.size() + 1;
+        }
+        if (at - 1 == only->sources.size())
+            box = SourcedText::boxAround(only->lines, lineSources, 0.0);
+    }
+    auto *mime = new QMimeData;
+    mime->setText(text);
+    SourcedText::write(mime, SourcedText::documentKey(m_src), sources, box);
+    QApplication::clipboard()->setMimeData(mime);
 }

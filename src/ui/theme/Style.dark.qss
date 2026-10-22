@@ -270,6 +270,44 @@ QPushButton#ToolCustomizeReset {
 }
 QPushButton#ToolCustomizeReset:hover { color: #93C5FD; }
 
+/* ── Info center ─────────────────────────────────────────── */
+QFrame#InfoCenterCard {
+    background: #404040;
+    border: 1px solid #545454;
+    border-radius: 12px;
+}
+QLabel#InfoCenterTitle {
+    font-size: 16px;
+    font-weight: 700;
+    color: #E5E5E5;
+}
+QPushButton#InfoCenterClose {
+    border: none;
+    background: transparent;
+    border-radius: 5px;
+    padding: 0;
+}
+QPushButton#InfoCenterClose:hover { background: #4A4A4A; }
+QScrollArea#InfoCenterScroll, QWidget#InfoCenterBody { background: transparent; }
+QLabel#InfoFileName { font-size: 14px; font-weight: 700; color: #E5E5E5; }
+QLabel#InfoFilePath { font-size: 12px; color: #9A9A9A; }
+QFrame#InfoSection {
+    border: none;
+    border-top: 1px solid #505050;
+    border-radius: 0;
+}
+QFrame#InfoSection[expandable="true"]:hover,
+QFrame#InfoSection[clickable="true"]:hover { background: #464646; }
+QWidget#InfoClickBlock { border-radius: 6px; }
+QWidget#InfoClickBlock:hover { background: #4C4C4C; }
+QLabel#InfoSectionTitle { font-size: 13px; font-weight: 700; color: #E5E5E5; }
+QLabel#InfoDetailTitle  { font-size: 13px; font-weight: 600; color: #E5E5E5; }
+QLabel#InfoKey   { font-size: 13px; color: #B4B4B4; }
+QLabel#InfoValue { font-size: 13px; color: #E5E5E5; }
+QPushButton#InfoActionLink { border: none; background: transparent; padding: 0; font-size: 13px; color: #60A5FA; }
+QPushButton#InfoActionLink:hover { color: #93C5FD; text-decoration: underline; }
+QLabel#InfoMuted { font-size: 12px; color: #8A8A8A; }
+
 /* ── DocumentView canvas ─────────────────────────────────── */
 #DocumentView {
     background-color: #2B2B2B;
@@ -297,6 +335,42 @@ QFrame#SaveIndicatorPill {
 QLabel#SaveIndicatorText {
     color: #F3F4F6;
     font-size: 13px;
+}
+
+QFrame#EditNotice {
+    background: #353535;
+    border: 1px solid #555555;
+    border-radius: 8px;
+}
+
+QLabel#EditNoticeText {
+    color: #F3F4F6;
+    font-size: 13px;
+}
+
+QPushButton#EditNoticeNever {
+    color: #93C5FD;
+    background: transparent;
+    border: none;
+    padding: 4px 6px;
+    font-size: 13px;
+}
+
+QPushButton#EditNoticeNever:hover {
+    text-decoration: underline;
+}
+
+QToolButton#EditNoticeClose {
+    color: #F3F4F6;
+    background: transparent;
+    border: none;
+    border-radius: 4px;
+    padding: 0px 6px;
+    font-size: 16px;
+}
+
+QToolButton#EditNoticeClose:hover {
+    background: #454545;
 }
 
 QFrame#DocumentFindBar {
@@ -391,9 +465,9 @@ QLabel#PageLabel {
 
 /* ── Image region overlay ────────────────────────────────── */
 QFrame#ImageRegionOverlay {
-    border: 2px dashed #3B82F6;
-    background: rgba(59, 130, 246, 20);
-    border-radius: 3px;
+    border: 1px solid rgba(96, 165, 250, 170);
+    background: rgba(96, 165, 250, 22);
+    border-radius: 2px;
 }
 
 /* ── Grid view ───────────────────────────────────────────── */
@@ -476,10 +550,22 @@ QLabel#GridPageLabel {
     outline: none;
 }
 
-#PageTotalLabel {
+#PageTotalLabel, #StatusHint {
     color: #888888;
     font-size: 13px;
 }
+
+QPushButton#StatusBadge {
+    background: transparent;
+    border: none;
+    border-radius: 6px;
+    padding: 4px 6px;
+    color: #D8D8D8;
+    font-size: 13px;
+    font-weight: 600;
+}
+
+QPushButton#StatusBadge:hover { background: #404040; }
 
 /* ── Generic QLabel ──────────────────────────────────────── */
 QLabel {
@@ -815,6 +901,11 @@ QMenu#FormatBarMenu { background:#404040; color:#D8D8D8; border:1px solid #55555
 QMenu#FormatBarMenu::item { background:transparent; color:#D8D8D8; padding:7px 22px 7px 10px; border-radius:3px; }
 QMenu#FormatBarMenu::item:selected { background:#2563EB; color:#FFFFFF; }
 QMenu#FormatBarMenu::separator { height:1px; background:#555555; margin:4px 6px; }
+QMenu#ImageMenu { background:#404040; border:1px solid #555555; border-radius:8px; padding:6px; }
+QMenu#ImageMenu::item { background:transparent; padding:8px 24px 8px 10px; border-radius:4px; }
+QMenu#ImageMenu::item:selected { background:#4C4C4C; }
+QMenu#ImageMenu::icon { padding-left:8px; }
+QMenu#ImageMenu::separator { height:1px; background:#555555; margin:5px 8px; }
 
 /* ── Draw toolbar ────────────────────────────────────────── */
 QFrame#DrawBar { background:#353535; border-bottom:1px solid #484848; }

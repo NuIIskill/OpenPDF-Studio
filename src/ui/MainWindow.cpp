@@ -19,9 +19,13 @@
 #include "ui/export/Exporting.hpp"
 #include "ui/export/Printing.hpp"
 #include "ui/history/HistoryDialog.hpp"
+#include "ui/import/Importing.hpp"
+#include "ui/info/InfoCenter.hpp"
+#include "ui/protect/ProtectDialog.hpp"
 #include "ui/sign/DigitalSigning.hpp"
 #include "ui/sign/SignDialog.hpp"
 #include "ui/session/SessionRecovery.hpp"
+#include "ui/view/DocumentInfoLoader.hpp"
 #include "engine/import/DocumentImport.hpp"
 #include "ui/theme/Theme.hpp"
 #include "app/AppSettings.hpp"
@@ -230,6 +234,17 @@ void MainWindow::connectBars()
         if (DocumentView *dv = currentDocView())
             dv->goToPage(page - 1);
     });
+    connect(m_statusBar, &StatusBar::infoRequested, this, [this]() {
+        InfoCenter::toggle(currentDocView(), this, m_statusBar->infoAnchor());
+    });
+    connect(m_statusBar, &StatusBar::signaturesRequested, this, [this]() {
+        InfoCenter::toggle(currentDocView(), this, m_statusBar->infoAnchor(),
+                           QStringLiteral("signatures"));
+    });
+    connect(m_statusBar, &StatusBar::protectionRequested, this, [this]() {
+        InfoCenter::dismiss();
+        onModeSelected(QStringLiteral("protect"));
+    });
     connect(m_statusBar, &StatusBar::panelToggleRequested,  this, [this]() {
         setRightSidebarCollapsed(!m_rightSidebarCollapsed);
 
@@ -279,7 +294,7 @@ void MainWindow::connectPanels()
 
 void MainWindow::connectEditBars()
 {
-    connect(m_formatBar, &FormatBar::fontSizeChanged, this, [this](int pt) {
+    connect(m_formatBar, &FormatBar::fontSizeChanged, this, [this](double pt) {
         if (DocumentView *dv = currentDocView())
             dv->setEditorFontSize(pt);
     });
@@ -387,6 +402,17 @@ DocumentView *MainWindow::addDocView()
         m_statusBar->setPageInfo(1, pages);
         if (dv == currentDocView()) m_notesPanel->setDocumentAvailable(pages > 0);
         if (dv == currentDocView()) refreshBookmarkPanel();
+        if (dv == currentDocView()) refreshDocumentInfo();
+    });
+    connect(dv->documentInfo(), &DocumentInfoLoader::changed, this, [this, dv]() {
+        if (dv == currentDocView()) refreshDocumentInfo();
+    });
+
+    connect(dv, &DocumentView::hintChanged, this, [this, dv](const QString &text) {
+        if (dv == currentDocView()) m_statusBar->setHint(text);
+    });
+    connect(dv, &DocumentView::toolResetRequested, this, [this, dv]() {
+        if (dv == currentDocView()) onToolSelected(QStringLiteral("select"));
     });
 
     connect(dv, &DocumentView::pageChanged, this, [this, dv](int current, int total) {
@@ -412,6 +438,12 @@ DocumentView *MainWindow::addDocView()
         m_formatBar->setBoldChecked(bold);
         m_formatBar->setItalicChecked(italic);
         m_formatBar->setUnderlineChecked(underline);
+    });
+    connect(dv, &DocumentView::editorTextColorChanged, this, [this, dv](const QColor &color) {
+        if (dv == currentDocView()) m_formatBar->setTextColor(color);
+    });
+    connect(dv, &DocumentView::editorLineSpacingChanged, this, [this, dv](double multiplier) {
+        if (dv == currentDocView()) m_formatBar->setLineSpacing(multiplier);
     });
     connect(dv, &DocumentView::textBoxPropertiesChanged, this,
             [this, dv](const TextBoxProperties &properties) {
@@ -477,6 +509,8 @@ void MainWindow::onTabActivated(int index)
     refreshBookmarkPanel();
     m_notesPanel->setNotes(dv->notes());
     m_notesPanel->setDocumentAvailable(dv->pageCount() > 0);
+    InfoCenter::dismiss();
+    refreshDocumentInfo();
     onToolSelected(m_activeTool);
 }
 
@@ -487,6 +521,7 @@ void MainWindow::onTabCloseRequested(int index)
 
     if (!confirmAndSave(dv)) return;
     m_recovery->forget(dv);
+    InfoCenter::dismiss();
 
     if (m_docViews.size() <= 1) {
         dv->clearDocument();
@@ -547,9 +582,13 @@ void MainWindow::openImported(const QString &path)
     if (working.isEmpty()) {
         error = tr("There is no room to put the converted file.");
     } else {
-        QApplication::setOverrideCursor(Qt::WaitCursor);
-        converted = DocumentImport::convertToPdf(path, working, &error);
-        QApplication::restoreOverrideCursor();
+        const Importing::Result result = Importing::convert(
+            this, currentDocView(), m_saveIndicator, path, working, &error);
+        if (result == Importing::Result::WindowClosing) {
+            SessionStore::discard(working);
+            return;
+        }
+        converted = result == Importing::Result::Converted;
     }
 
     if (!converted) {
@@ -733,13 +772,15 @@ void MainWindow::onModeSelected(const QString &mode)
                 dv->placeSignature(dlg.signatureImage());
             }
         }
+    } else if (mode == QLatin1String("protect")) {
+        ProtectDialog::run(currentDocView(), this);
     } else if (mode == QLatin1String("export")) {
         DocumentView *dv   = currentDocView();
         const QString file = dv ? dv->currentFile() : QString{};
         const int pageCount = dv ? dv->pageCount() : 1;
         ExportDialog dlg(file, pageCount, dv ? dv->currentPage() : 0, this);
         if (dlg.exec() == QDialog::Accepted && dv)
-            Exporting::run(this, dv, dlg.request());
+            Exporting::run(this, dv, dlg.request(), m_saveIndicator);
     } else if (mode == QLatin1String("organize")) {
         DocumentView *dv = currentDocView();
 
@@ -988,6 +1029,14 @@ void MainWindow::closeTextPanel()
     m_textPanelOpen = false;
     m_textPanel->hide();
     m_textPanel->setFixedWidth(0);
+}
+
+void MainWindow::refreshDocumentInfo()
+{
+    const DocumentView *dv = currentDocView();
+    const DocumentInfoLoader *loader = dv ? dv->documentInfo() : nullptr;
+    m_statusBar->setDocumentInfo(dv && dv->pageCount() > 0,
+                                 loader && loader->loaded() ? &loader->info() : nullptr);
 }
 
 void MainWindow::refreshBookmarkPanel()

@@ -23,6 +23,19 @@ public:
         QImage image;
     };
 
+    /// A change to an image object of the original page.
+    struct ImageChange {
+        int        page { -1 };
+        QList<int> key;
+        QRectF     from;
+        QRectF     to;
+        int        quarterTurns { 0 };
+        QImage     replacement;
+        bool       removed { false };
+
+        bool operator==(const ImageChange &) const = default;
+    };
+
     struct DrawStroke {
         int              page { -1 };
         QVector<QPointF> points;
@@ -66,13 +79,12 @@ public:
     /// Stores one pending text edit.
     struct Edit {
         int     page       { -1 };
+        int     sourcePage { -1 };
         QRectF  pdfBounds;
         QRectF  sourceRect;
         QString newText;
 
         double  fontSizePt { 0.0 };
-
-        double  renderSizePt { 0.0 };
 
         QPointF textOriginOffset;
         bool    hasTextOrigin { false };
@@ -87,31 +99,41 @@ public:
         bool    italic      { false };
         bool    underline   { false };
 
-        bool    fontChanged { false };
+        bool    familyChanged { false };
+        bool    boldChanged   { false };
+        bool    italicChanged { false };
 
         bool    sizeChanged { false };
+        double  baseSizePt  { 0.0 };
+
+        bool    colorChanged { false };
+        bool    laid { false };
+        bool    scanned { false };
 
         QString formField;
 
         QList<QRectF> eraseRects;
         TextBoxProperties box;
         QList<TextLayout::OriginalLine> originalLines;
+        QList<TextLayout::Source> sources;
 
         bool operator==(const Edit &o) const {
-            return page == o.page && pdfBounds == o.pdfBounds &&
+            return page == o.page && sourcePage == o.sourcePage && pdfBounds == o.pdfBounds &&
                    sourceRect == o.sourceRect && newText == o.newText &&
                    qFuzzyCompare(fontSizePt + 1.0, o.fontSizePt + 1.0) &&
-                   qFuzzyCompare(renderSizePt + 1.0, o.renderSizePt + 1.0) &&
                    textOriginOffset == o.textOriginOffset &&
                    hasTextOrigin == o.hasTextOrigin &&
                    qFuzzyCompare(lineSpacingPt + 1.0, o.lineSpacingPt + 1.0) &&
                    textColor == o.textColor && bgColor == o.bgColor &&
                    fontFamily == o.fontFamily && bold == o.bold &&
                    italic == o.italic && underline == o.underline &&
-                   fontChanged == o.fontChanged &&
-                   sizeChanged == o.sizeChanged &&
+                   familyChanged == o.familyChanged && boldChanged == o.boldChanged &&
+                   italicChanged == o.italicChanged &&
+                   qFuzzyCompare(baseSizePt + 1.0, o.baseSizePt + 1.0) &&
+                   sizeChanged == o.sizeChanged && colorChanged == o.colorChanged &&
+                   scanned == o.scanned &&
                    formField == o.formField && eraseRects == o.eraseRects &&
-                   box == o.box && originalLines == o.originalLines;
+                   box == o.box && originalLines == o.originalLines && sources == o.sources;
         }
         bool operator!=(const Edit &o) const { return !(*this == o); }
     };
@@ -143,6 +165,9 @@ public:
     void clearImageEdits();
     const QList<ImageEdit> &imageEdits() const { return m_imageEdits; }
 
+    void replaceImageChanges(QList<ImageChange> changes);
+    const QList<ImageChange> &imageChanges() const { return m_imageChanges; }
+
     void replaceDrawStrokes(QList<DrawStroke> strokes);
     const QList<DrawStroke> &drawStrokes() const { return m_drawStrokes; }
 
@@ -160,7 +185,7 @@ public:
 
     bool    hasEditsOnPage(int page) const;
     bool    hasAnyEdits() const
-    { return !m_edits.isEmpty() || !m_imageEdits.isEmpty()
+    { return !m_edits.isEmpty() || !m_imageEdits.isEmpty() || !m_imageChanges.isEmpty()
           || !m_drawStrokes.isEmpty() || !m_linkEdits.isEmpty()
           || !m_noteEdits.isEmpty(); }
 
@@ -176,10 +201,7 @@ public:
 
     bool findEditAt(int page, const QPointF &pdfPt, Edit *out = nullptr) const;
 
-    enum class Paint { Everything, FormFields };
-
-    void applyToImage(int page, QImage &img, qreal scale,
-                      Paint what = Paint::Everything) const;
+    void paintFormFields(int page, QImage &img, qreal scale) const;
 
 private:
     static void paintTextEdit(QPainter &p, const Edit &e, qreal scale);
@@ -195,6 +217,7 @@ private:
     QList<Edit>       m_edits;
     QList<QPair<int, Edit>> m_suspendedEdits;
     QList<ImageEdit>  m_imageEdits;
+    QList<ImageChange> m_imageChanges;
     quint64           m_imageRevision { 0 };
     QList<DrawStroke> m_drawStrokes;
     QList<LinkEdit>   m_linkEdits;

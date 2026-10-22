@@ -9,12 +9,13 @@
 #include <memory>
 
 struct Certificate {
-    QString   id;
-    QString   subject;
-    QString   distinguishedName;
-    QString   issuer;
-    QDateTime validTo;
-    bool      removable { false };
+    QString    id;
+    QString    subject;
+    QString    distinguishedName;
+    QString    issuer;
+    QDateTime  validTo;
+    QByteArray fingerprint;
+    bool       removable { false };
 };
 
 enum class SignError {
@@ -37,10 +38,20 @@ struct NewCertificate {
     int     years { 3 };
 };
 
+struct CertificateFacts {
+    QString    subject;
+    QString    issuer;
+    QDateTime  validTo;
+    QByteArray fingerprint;
+};
+
 struct CmsCheck {
-    bool    intact  { false };
-    bool    trusted { false };
-    QString signer;
+    bool       intact  { false };
+    bool       trusted { false };
+    QString    signer;
+    QString    issuer;
+    QDateTime  validTo;
+    QByteArray fingerprint;
 };
 
 /// The platform's certificates and crypto: PKCS#11 through p11-kit on Linux, the certificate store through CNG on Windows.
@@ -55,6 +66,7 @@ public:
     virtual QByteArray sign(const QString &certificateId, const QList<QByteArrayView> &data,
                             SignError *error) = 0;
     virtual CmsCheck check(const QByteArray &cms, const QList<QByteArrayView> &data) = 0;
+    virtual CertificateFacts read(const QByteArray &file) = 0;
     virtual QString create(const NewCertificate &request, SignError *error) = 0;
     virtual bool remove(const QString &certificateId) = 0;
 };

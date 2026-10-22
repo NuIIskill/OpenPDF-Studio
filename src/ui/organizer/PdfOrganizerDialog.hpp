@@ -15,13 +15,13 @@ class QToolButton;
 QT_END_NAMESPACE
 
 class OrganizerDoc;
+class OrganizerThumbnails;
 
 struct PageEntry {
     QString  pdfPath;
     int      pageIndex { 0 };
     bool     isBlank   { false };
     int      rotation  { 0 };
-    QPixmap  thumb;
     bool     selected  { false };
 };
 
@@ -80,6 +80,8 @@ private:
     void      moveCardTo(int from, int to);
     void      startDrag(int fromIndex);
     void      updateSelectionButtons();
+    void      requestThumbs();
+    void      showThumb(int index);
 
 protected:
     bool eventFilter(QObject *obj, QEvent *e) override;
@@ -94,7 +96,7 @@ private:
 #ifdef HAVE_QPDF
 
 #endif
-    QPixmap renderThumb(const PageEntry &e);
+    QPixmap thumbFor(const PageEntry &e) const;
 
     QList<PageEntry>  m_pages;
     QList<PageCard *> m_cards;
@@ -108,6 +110,7 @@ private:
 
 #ifdef HAVE_PDF_RENDERING
     QMap<QString, OrganizerDoc *> m_docs;
+    OrganizerThumbnails          *m_thumbs { nullptr };
 #endif
 
     QWidget     *m_gridContainer { nullptr };
@@ -119,6 +122,7 @@ private:
     QPushButton *m_rotLeftBtn    { nullptr };
     QPushButton *m_rotRightBtn   { nullptr };
     QPushButton *m_deleteBtn     { nullptr };
+    QPushButton *m_selectAllBtn  { nullptr };
     QPushButton *m_saveBtn       { nullptr };
     QPushButton *m_saveAsBtn     { nullptr };
     QPushButton *m_cancelBtn     { nullptr };

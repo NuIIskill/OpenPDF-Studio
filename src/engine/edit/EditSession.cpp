@@ -1,7 +1,6 @@
 #include "engine/edit/EditSession.hpp"
 
 #include <QPainter>
-#include <QPainterPath>
 #include <QFont>
 #include <QDebug>
 #include <climits>
@@ -91,9 +90,8 @@ bool EditSession::isBlankCovering(int page, const QRectF &bounds) const
             }
         if (hasCompanion) continue;
 
-        const double blankArea = blank.pdfBounds.width() * blank.pdfBounds.height();
-        const double base      = qMax(1.0, qMin(blockArea, blankArea));
-        if (inter.width() * inter.height() >= base * 0.5)
+        // A part removed from inside the block leaves the rest of it there.
+        if (inter.width() * inter.height() >= qMax(1.0, blockArea) * 0.5)
             return true;
     }
     return false;
@@ -133,7 +131,11 @@ void EditSession::restoreSuspended()
 void EditSession::clear()
 {
     m_edits.clear();
-    if (!m_imageEdits.isEmpty()) { m_imageEdits.clear(); ++m_imageRevision; }
+    if (!m_imageEdits.isEmpty() || !m_imageChanges.isEmpty()) {
+        m_imageEdits.clear();
+        m_imageChanges.clear();
+        ++m_imageRevision;
+    }
     m_drawStrokes.clear();
     m_linkEdits.clear();
     m_noteEdits.clear();
@@ -157,7 +159,16 @@ bool EditSession::hasImageEditsOnPage(int page) const
 {
     for (const auto &ie : m_imageEdits)
         if (ie.page == page) return true;
+    for (const ImageChange &c : m_imageChanges)
+        if (c.page == page) return true;
     return false;
+}
+
+void EditSession::replaceImageChanges(QList<ImageChange> changes)
+{
+    if (m_imageChanges == changes) return;
+    m_imageChanges = std::move(changes);
+    ++m_imageRevision;
 }
 
 void EditSession::replaceDrawStrokes(QList<DrawStroke> strokes)
@@ -236,69 +247,35 @@ QColor EditSession::editColorAt(int page, const QRectF &pdfBounds) const
 
 bool EditSession::findEditAt(int page, const QPointF &pdfPt, Edit *out) const
 {
-
+    // The smallest box at the point is the one meant: a piece taken out of a
+    // paragraph lies over the paragraph's box.
+    const Edit *best = nullptr;
     for (int i = m_edits.size() - 1; i >= 0; --i) {
         const auto &e = m_edits[i];
-        if (e.page == page && !e.newText.isNull() && e.pdfBounds.contains(pdfPt)) {
-            if (out) *out = e;
-            return true;
-        }
+        if (e.page != page || e.newText.isNull() || !e.pdfBounds.contains(pdfPt)) continue;
+        if (!best || e.pdfBounds.width() * e.pdfBounds.height()
+                         < best->pdfBounds.width() * best->pdfBounds.height())
+            best = &e;
     }
-    return false;
+    if (best && out) *out = *best;
+    return best != nullptr;
 }
 
-void EditSession::applyToImage(int page, QImage &img, qreal scale, Paint what) const
+void EditSession::paintFormFields(int page, QImage &img, qreal scale) const
 {
     if (img.isNull()) return;
-    const bool fieldsOnly = what == Paint::FormFields;
-    const auto wanted = [fieldsOnly](const Edit &e) {
-        return !fieldsOnly || !e.formField.isEmpty();
-    };
-    bool hasText = false;
+    bool any = false;
     for (const auto &e : m_edits)
-        if (e.page == page && wanted(e)) { hasText = true; break; }
-    const bool hasImages = !fieldsOnly && hasImageEditsOnPage(page);
-    const bool hasDraw   = !fieldsOnly && hasDrawEditsOnPage(page);
-    if (!hasText && !hasImages && !hasDraw) return;
+        if (e.page == page && !e.formField.isEmpty()) { any = true; break; }
+    if (!any) return;
 
     QPainter p(&img);
-    if (hasText) {
-
-        for (const auto &e : m_edits)
-            if (e.page == page && e.newText.isNull() && wanted(e))
-                paintBlankEdit(p, img, e, scale);
-        for (const auto &e : m_edits)
-            if (e.page == page && !e.newText.isEmpty() && wanted(e))
-                paintTextEdit(p, e, scale);
-    }
-    if (hasImages) {
-        for (const ImageEdit &ie : m_imageEdits) {
-            if (ie.page != page || ie.image.isNull()) continue;
-            const QRect dst(
-                qRound(ie.pdfBounds.left()   * scale),
-                qRound(ie.pdfBounds.top()    * scale),
-                qRound(ie.pdfBounds.width()  * scale),
-                qRound(ie.pdfBounds.height() * scale));
-            p.drawImage(dst, ie.image);
-        }
-    }
-    if (hasDraw) {
-        p.setRenderHint(QPainter::Antialiasing);
-        for (const DrawStroke &stroke : m_drawStrokes) {
-            if (stroke.page != page || stroke.points.isEmpty()) continue;
-            QPen pen(stroke.color, qMax<qreal>(0.5, stroke.widthPt * scale),
-                     Qt::SolidLine, Qt::RoundCap, Qt::RoundJoin);
-            p.setPen(pen);
-            if (stroke.points.size() == 1) {
-                p.drawPoint(stroke.points.first() * scale);
-                continue;
-            }
-            QPainterPath path(stroke.points.first() * scale);
-            for (int i = 1; i < stroke.points.size(); ++i)
-                path.lineTo(stroke.points.at(i) * scale);
-            p.drawPath(path);
-        }
-    }
+    for (const auto &e : m_edits)
+        if (e.page == page && !e.formField.isEmpty() && e.newText.isNull())
+            paintBlankEdit(p, img, e, scale);
+    for (const auto &e : m_edits)
+        if (e.page == page && !e.formField.isEmpty() && !e.newText.isEmpty())
+            paintTextEdit(p, e, scale);
 }
 
 static inline QRgb overWhite(QRgb c)
@@ -467,7 +444,7 @@ void EditSession::paintTextEdit(QPainter &p, const Edit &e, qreal scale)
                                      -border.widthF()/2, -border.widthF()/2), radius, radius);
     }
 
-    const double sizePt = e.renderSizePt > 0.0 ? e.renderSizePt : e.fontSizePt;
+    const double sizePt = e.fontSizePt;
     int pixelSize;
     if (sizePt > 0.0) {
         pixelSize = qMax(6, qRound(sizePt * scale));
@@ -497,7 +474,7 @@ void EditSession::paintTextEdit(QPainter &p, const Edit &e, qreal scale)
         kFlags = Qt::AlignJustify | Qt::AlignTop | Qt::TextWordWrap;
     const qreal pad = qMax(0.0, e.box.paddingPt * scale);
     QRectF target = px.adjusted(pad, pad, -pad, -pad);
-    target.adjust(e.box.indentLevel * 18.0 * scale, 0, 0, 0);
+    target.adjust(TextLayout::indentPt(e.box, e.pdfBounds.size(), e.fontSizePt) * scale, 0, 0, 0);
     if (e.hasTextOrigin && qFuzzyIsNull(e.box.paddingPt)
             && e.box.verticalAlign == TextBoxProperties::VerticalAlign::Top) {
         const QPointF origin = (e.pdfBounds.topLeft() + e.textOriginOffset) * scale;

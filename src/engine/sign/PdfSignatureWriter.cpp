@@ -162,7 +162,7 @@ QByteArray streamObject(const QByteArray &dictEntries, const QByteArray &content
 
 QByteArray deflated(const QByteArray &raw)
 {
-    return qCompress(raw, 9).mid(4);
+    return qCompress(raw, 6).mid(4);
 }
 
 void imageObjects(const QImage &image, int imageId, int maskId, QList<Object> &objects)

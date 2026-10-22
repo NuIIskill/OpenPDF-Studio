@@ -162,6 +162,7 @@ public:
     QByteArray sign(const QString &certificateId, const QList<QByteArrayView> &data,
                     SignError *error) override;
     CmsCheck check(const QByteArray &cms, const QList<QByteArrayView> &data) override;
+    CertificateFacts read(const QByteArray &file) override;
     QString create(const NewCertificate &request, SignError *error) override;
     bool remove(const QString &certificateId) override;
 };
@@ -200,6 +201,9 @@ QList<Certificate> WindowsCertificateProvider::certificates()
         entry.distinguishedName = distinguishedName(cert);
         entry.issuer  = certName(cert, CERT_NAME_ISSUER_FLAG);
         entry.validTo = fromFileTime(cert->pCertInfo->NotAfter);
+        entry.fingerprint = QCryptographicHash::hash(
+            QByteArrayView(cert->pbCertEncoded, qsizetype(cert->cbCertEncoded)),
+            QCryptographicHash::Sha256);
         std::vector<BYTE> buffer;
         entry.removable = !ownContainer(cert, nullptr, &buffer).isEmpty();
         if (!entry.id.isEmpty()) out << entry;
@@ -339,8 +343,13 @@ CmsCheck WindowsCertificateProvider::check(const QByteArray &cms, const QList<QB
         : nullptr;
     if (signer && CryptMsgControl(msg, 0, CMSG_CTRL_VERIFY_SIGNATURE, signer->pCertInfo)
             && digestMatches(msg, content)) {
-        result.intact = true;
-        result.signer = certName(signer, 0);
+        result.intact      = true;
+        result.signer      = certName(signer, 0);
+        result.issuer      = certName(signer, CERT_NAME_ISSUER_FLAG);
+        result.validTo     = fromFileTime(signer->pCertInfo->NotAfter);
+        result.fingerprint = QCryptographicHash::hash(
+            QByteArrayView(signer->pbCertEncoded, qsizetype(signer->cbCertEncoded)),
+            QCryptographicHash::Sha256);
 
         CERT_CHAIN_PARA chainPara {};
         chainPara.cbSize = sizeof chainPara;
@@ -362,6 +371,34 @@ CmsCheck WindowsCertificateProvider::check(const QByteArray &cms, const QList<QB
     return result;
 }
 
+
+CertificateFacts WindowsCertificateProvider::read(const QByteArray &file)
+{
+    CertificateFacts facts;
+    QByteArray der = file;
+    if (file.contains("-----BEGIN")) {
+        DWORD size = 0;
+        if (!CryptStringToBinaryA(file.constData(), DWORD(file.size()), CRYPT_STRING_BASE64HEADER,
+                                  nullptr, &size, nullptr, nullptr))
+            return facts;
+        der.resize(qsizetype(size));
+        if (!CryptStringToBinaryA(file.constData(), DWORD(file.size()), CRYPT_STRING_BASE64HEADER,
+                                  reinterpret_cast<BYTE *>(der.data()), &size, nullptr, nullptr))
+            return facts;
+        der.resize(qsizetype(size));
+    }
+    PCCERT_CONTEXT cert = CertCreateCertificateContext(
+        kEncoding, reinterpret_cast<const BYTE *>(der.constData()), DWORD(der.size()));
+    if (!cert) return facts;
+    facts.subject     = certName(cert, 0);
+    facts.issuer      = certName(cert, CERT_NAME_ISSUER_FLAG);
+    facts.validTo     = fromFileTime(cert->pCertInfo->NotAfter);
+    facts.fingerprint = QCryptographicHash::hash(
+        QByteArrayView(cert->pbCertEncoded, qsizetype(cert->cbCertEncoded)),
+        QCryptographicHash::Sha256);
+    CertFreeCertificateContext(cert);
+    return facts;
+}
 
 // Encodes the subject from its parts; a name string would have to be parsed
 // and escaped, and Wine rejects quoted values in it.

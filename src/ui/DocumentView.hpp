@@ -20,6 +20,8 @@ class QPrinter;
 QT_END_NAMESPACE
 
 class DigitalSignatureLayer;
+class DocumentInfoLoader;
+class ProtectionLayer;
 struct SignatureAppearance;
 class ImageAnnotationLayer;
 class SignaturePlacement;
@@ -30,6 +32,8 @@ class NoteLayer;
 class DrawingLayer;
 class PageOverlay;
 class PageLayoutEngine;
+class HoldKeys;
+class TextToolInput;
 class HoverHighlight;
 class FindController;
 class TextSelectionController;
@@ -40,6 +44,7 @@ class ZoomController;
 #include "engine/sign/SignatureManager.hpp"
 #include "engine/document/PdfBookmark.hpp"
 #include "engine/document/DocumentSource.hpp"
+#include "engine/document/ProtectionWriter.hpp"
 #include "ui/edit/EditController.hpp"
 #include "engine/historymanager/DocumentHistory.hpp"
 #include "engine/ocr/OcrEngine.hpp"
@@ -74,6 +79,7 @@ public:
     bool   openWorkingCopy(const QString &contentPath, const QString &targetPath,
                            const DocumentHistory::Change &change = {},
                            const QString &suggestedPath = QString());
+    bool   removeSignature(const QString &field);
     void   clearDocument();
     void   setZoom(int percent);
     void   zoomSharply(int percent);
@@ -91,7 +97,7 @@ public:
     void   retranslateUi();
     void   refreshTheme();
 
-    void   setEditorFontSize(int ptSize);
+    void   setEditorFontSize(double ptSize);
 
     void   setEditorTextColor(const QColor &color);
 
@@ -123,6 +129,9 @@ public:
 
     /// What to call the document in the interface.
     QString     displayName() const;
+    DocumentInfoLoader *documentInfo() const { return m_info; }
+    void setProtection(const PdfProtection &protection);
+    const std::optional<PdfProtection> &pendingProtection() const;
     int         pageCount()        const override { return m_src->pageCount(); }
 
     int         currentPage()      const;
@@ -148,9 +157,12 @@ public:
     bool        adoptTimeline(const QString &path);
     bool        hasUnsavedEdits()  const { return m_journal.hasUnsavedEdits(); }
     bool        pdfRenderingAvailable() const;
-    QList<DocxPage> allPageContent(const QList<int> &pages = {});
+    QList<DocxPage> allPageContent(const QList<int> &pages, const DocxExportOptions &options,
+                                   const std::function<bool(int, int)> &progress = {});
     bool exportPagesToImages(const QString &outputPath, int quality = 85,
-                             const QList<int> &pages = {});
+                             const QList<int> &pages = {},
+                             const std::function<bool(int, int)> &progress = {});
+    void setBusy(bool busy);
 #ifdef HAVE_QT_PRINT
 
     bool printDocument(QPrinter *printer, const QList<int> &pages = {});
@@ -182,15 +194,19 @@ Q_SIGNALS:
     void viewModeChanged(ViewMode mode);
     void zoomChanged(int percent);
 
-    void editorFontSizeChanged(int ptSize);
+    void editorFontSizeChanged(double ptSize);
 
     void editorFontChanged(const QString &family, bool bold, bool italic,
                            bool underline);
+    void editorTextColorChanged(const QColor &color);
+    void editorLineSpacingChanged(double multiplier);
     void textBoxPropertiesChanged(const TextBoxProperties &properties);
     void textBoxEditingChanged(bool active);
     void bookmarkDataChanged();
     void notesChanged(const QList<NoteData> &notes);
     void noteSelected(const QString &id);
+    void hintChanged(const QString &text);
+    void toolResetRequested();
 
 protected:
     bool eventFilter(QObject *obj, QEvent *e) override;
@@ -205,6 +221,8 @@ protected:
 private:
 
     void   rerenderPageWithBlank(int page, const QRectF &pdfBoundsPts);
+
+    QString shiftHint() const;
 
     QRect  visibleCanvasRect() const;
     void   syncVisibleRect();
@@ -224,8 +242,6 @@ private:
 
     int    firstVisiblePage() const;
 
-    void   handleEditClick(const QPoint &canvasPos);
-    void   createTextFrame(const QRect &viewportDragRect);
     void   closeEditorBeforeUndo();
 
     void   keepScroll(const std::function<void()> &schliessen);
@@ -285,6 +301,8 @@ private:
     DrawingLayer         *m_drawingLayer { nullptr };
 
     HoverHighlight *m_hover { nullptr };
+    HoldKeys       *m_holdKeys { nullptr };
+    TextToolInput  *m_textInput { nullptr };
 
     QList<PageOverlay *> m_overlays;
 
@@ -305,16 +323,14 @@ private:
     ZoomController *m_zoomCtl { nullptr };
     SmoothScroll   *m_smoothScroll { nullptr };
 
-    QPoint m_panStart;
-    QPoint m_panScrollOrigin;
 
     TextSelectionController *m_selection { nullptr };
 
     FindController *m_find { nullptr };
 
-    bool   m_textTracking { false };
-    bool   m_textDragging { false };
-    QPoint m_textDragStart;
+    DocumentInfoLoader *m_info { nullptr };
+    ProtectionLayer    *m_protectionLayer { nullptr };
+
 
     EditController m_edit;
 
@@ -332,9 +348,10 @@ private:
 
     bool detachSourceFrom(const QString &saveTarget);
     bool hasEditsBesideSignatures() const;
-    QString copyForSigning(const QString &path) const;
+    QString copyContent(const QString &path) const;
 
     EditSession  *m_session     { nullptr };
     TextBoxFrame *m_editorFrame { nullptr };
+    EditNotice   *m_editNotice  { nullptr };
 #endif
 };

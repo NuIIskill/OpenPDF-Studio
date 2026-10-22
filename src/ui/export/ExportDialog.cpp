@@ -1,5 +1,7 @@
 #include "ui/export/ExportDialog.hpp"
+#include "ui/export/ExportFormatList.hpp"
 #include "ui/theme/Theme.hpp"
+#include "ui/widgets/CheckBoxStyle.hpp"
 #include "engine/export/PdfExporter.hpp"
 
 #include <QButtonGroup>
@@ -9,15 +11,99 @@
 #include <QFileDialog>
 #include <QFileInfo>
 #include <QFrame>
+#include <QGridLayout>
 #include <QHBoxLayout>
 #include <QLabel>
 #include <QLineEdit>
 #include <QMessageBox>
+#include <QPainter>
 #include <QPushButton>
 #include <QRadioButton>
-#include <QStandardPaths>
-#include <QStyle>
+#include <QScrollArea>
 #include <QVBoxLayout>
+
+namespace {
+
+QLabel *label(const QString &text, const char *objectName)
+{
+    auto *l = new QLabel(text);
+    l->setObjectName(QLatin1String(objectName));
+    return l;
+}
+
+QFrame *section(const QString &icon, const QString &title, const QString &subtitle,
+                QVBoxLayout **body)
+{
+    auto *card = new QFrame;
+    card->setObjectName(QStringLiteral("XSection"));
+    auto *row = new QHBoxLayout(card);
+    row->setContentsMargins(20, 12, 20, 12);
+    row->setSpacing(16);
+    auto *glyph = new QLabel;
+    glyph->setPixmap(Theme::renderSvg(icon, Theme::IconNormal, 26, card->devicePixelRatioF()));
+    row->addWidget(glyph, 0, Qt::AlignTop);
+
+    auto *column = new QVBoxLayout;
+    column->setSpacing(2);
+    column->addWidget(label(title, "XSectionTitle"));
+    QLabel *note = label(subtitle, "XMuted");
+    note->setWordWrap(true);
+    column->addWidget(note);
+    column->addSpacing(8);
+    *body = new QVBoxLayout;
+    (*body)->setSpacing(10);
+    column->addLayout(*body);
+    row->addLayout(column, 1);
+    return card;
+}
+
+QWidget *option(QCheckBox *box, const QString &description)
+{
+    auto *w = new QWidget;
+    auto *vl = new QVBoxLayout(w);
+    vl->setContentsMargins(0, 0, 0, 0);
+    vl->setSpacing(1);
+    vl->addWidget(box);
+    auto *note = label(description, "XMuted");
+    note->setWordWrap(true);
+    note->setContentsMargins(26, 0, 0, 0);
+    vl->addWidget(note);
+    return w;
+}
+
+QPixmap wordIcon(qreal dpr)
+{
+    const int side = 32;
+    QPixmap pm(QSize(side, side) * dpr);
+    pm.setDevicePixelRatio(dpr);
+    pm.fill(Qt::transparent);
+    QPainter p(&pm);
+    p.setRenderHint(QPainter::Antialiasing);
+    p.setPen(Qt::NoPen);
+    p.setBrush(QColor(0x2B, 0x57, 0x9A));
+    p.drawRoundedRect(QRectF(2, 2, side - 4, side - 4), 5, 5);
+    QFont f;
+    f.setPixelSize(18);
+    f.setBold(true);
+    p.setFont(f);
+    p.setPen(Qt::white);
+    p.drawText(QRect(0, 0, side, side), Qt::AlignCenter, QStringLiteral("W"));
+    return pm;
+}
+
+QWidget *scrolling(QWidget *content)
+{
+    content->setObjectName(QStringLiteral("XPage"));
+    auto *scroll = new QScrollArea;
+    scroll->setObjectName(QStringLiteral("XScroll"));
+    scroll->setFrameShape(QFrame::NoFrame);
+    scroll->setWidgetResizable(true);
+    scroll->setHorizontalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
+    scroll->setWidget(content);
+    return scroll;
+}
+
+}
 
 ExportDialog::ExportDialog(const QString &currentFile, int pageCount,
                            int currentPage, QWidget *parent)
@@ -29,7 +115,7 @@ ExportDialog::ExportDialog(const QString &currentFile, int pageCount,
 {
     setWindowTitle(tr("Export - OpenPDF Studio"));
     setModal(true);
-    setFixedSize(720, 760);
+    setFixedSize(980, 760);
     buildUi();
     updateOptionAvailability();
     updateEstimate();
@@ -93,38 +179,28 @@ ExportRequest ExportDialog::request() const
     r.keepForms       = m_formsChk     && m_formsChk->isChecked();
     r.embedFonts      = m_fontsChk     && m_fontsChk->isChecked();
     r.openAfterExport = m_openAfterChk && m_openAfterChk->isChecked();
-    if (m_passwordChk && m_passwordChk->isChecked())
-        r.password = m_passEdit ? m_passEdit->text() : QString{};
     return r;
 }
 
 void ExportDialog::updateOptionAvailability()
 {
-
-    const bool pdf   = m_selectedFormat == QLatin1String("pdf")
-                       && pdfExportAvailable();
+    const bool pdf   = m_selectedFormat == QLatin1String("pdf");
     const bool image = m_selectedFormat == QLatin1String("image");
 
-    if (m_commentsChk) m_commentsChk->setEnabled(pdf);
-    if (m_formsChk)    m_formsChk->setEnabled(pdf);
-    if (m_fontsChk)    m_fontsChk->setEnabled(pdf);
-    if (m_passwordChk) m_passwordChk->setEnabled(pdf);
-    if (!pdf && m_passwordChk && m_passwordChk->isChecked())
-        m_passwordChk->setChecked(false);
-    updatePasswordFields();
+    m_contentColumn->setVisible(pdf);
+    m_compressRow->setVisible(!image);
+    m_qualityCombo->setEnabled(!pdf || m_compressChk->isChecked());
 
-    Q_UNUSED(image)
-    if (m_qualityCombo) m_qualityCombo->setEnabled(true);
-    if (m_compressChk)  m_compressChk->setEnabled(true);
-
-    const QString pdfOnly = !pdfExportAvailable()
-        ? tr("Not available in this build: rewriting a PDF's annotations, "
-             "forms, fonts or encryption needs qpdf.")
-        : tr("Only available when exporting as PDF. A %1 file has no "
-             "equivalent.").arg(m_selectedFormat == QLatin1String("word")
-                                    ? tr("Word") : tr("PNG"));
-    for (QCheckBox *box : { m_commentsChk, m_formsChk, m_fontsChk, m_passwordChk })
-        if (box) box->setToolTip(pdf ? QString{} : pdfOnly);
+    const bool qpdf = pdfExportAvailable();
+    const QString missing = qpdf ? QString{}
+        : tr("Not available in this build: rewriting a PDF's annotations, "
+             "forms, fonts or encryption needs qpdf.");
+    for (QCheckBox *box : { m_commentsChk, m_formsChk, m_fontsChk }) {
+        box->setEnabled(qpdf);
+        box->setToolTip(missing);
+    }
+    for (QCheckBox *box : { m_compressChk, m_commentsChk, m_formsChk, m_fontsChk })
+        box->setCursor(box->isEnabled() ? Qt::PointingHandCursor : Qt::ArrowCursor);
 }
 
 void ExportDialog::updateEstimate()
@@ -177,7 +253,6 @@ void ExportDialog::updateEstimate()
         if (m_fontsChk && !m_fontsChk->isChecked())
             factor *= 0.75 - 0.35 * (1.0 - imageShare);
         if (m_commentsChk && !m_commentsChk->isChecked()) factor *= 0.97;
-        if (m_passwordChk && m_passwordChk->isChecked())  factor *= 1.02;
         bytes = perPage * pages * factor;
     }
 
@@ -196,13 +271,7 @@ void ExportDialog::updateEstimate()
 
 void ExportDialog::selectFormatForTest(const QString &id)
 {
-
-    if (!m_formatGroup) return;
-    for (QAbstractButton *btn : m_formatGroup->buttons())
-        if (btn->property("formatId").toString() == id && btn->isEnabled()) {
-            btn->setChecked(true);
-            return;
-        }
+    m_formats->select(id);
 }
 
 QString ExportDialog::selectedPath() const
@@ -225,68 +294,6 @@ int ExportDialog::selectedImageQuality() const
     return m_qualityCombo ? m_qualityCombo->currentData().toInt() : 85;
 }
 
-QWidget *ExportDialog::makeSectionHeader(const QString &num, const QString &title)
-{
-    auto *w  = new QWidget;
-    auto *hl = new QHBoxLayout(w);
-    hl->setContentsMargins(0, 0, 0, 0);
-    hl->setSpacing(5);
-    auto *nL = new QLabel(num);
-    nL->setObjectName(QStringLiteral("XSecNum"));
-    hl->addWidget(nL);
-    auto *tL = new QLabel(title);
-    tL->setObjectName(QStringLiteral("XSecTitle"));
-    hl->addWidget(tL);
-    hl->addStretch();
-    return w;
-}
-
-QPushButton *ExportDialog::makeFormatCard(const QString &iconChar, const QString &label,
-                                          const QString &id, bool available)
-{
-    auto *btn = new QPushButton;
-    btn->setCheckable(true);
-    btn->setEnabled(available);
-    btn->setObjectName(QStringLiteral("XCard"));
-    btn->setFixedSize(152, 88);
-    btn->setCursor(available ? Qt::PointingHandCursor : Qt::ArrowCursor);
-
-    auto *inner = new QVBoxLayout(btn);
-    inner->setContentsMargins(8, 10, 8, 8);
-    inner->setSpacing(5);
-    inner->setAlignment(Qt::AlignCenter);
-
-    auto *iconLbl = new QLabel(iconChar);
-    iconLbl->setObjectName(available ? QStringLiteral("XCardIcon")
-                                     : QStringLiteral("XCardIconDim"));
-    iconLbl->setAlignment(Qt::AlignCenter);
-    iconLbl->setAttribute(Qt::WA_TransparentForMouseEvents);
-
-    const QString iconAsset = iconChar == QStringLiteral("📄")
-        ? QStringLiteral("export-pdf")
-        : iconChar == QStringLiteral("📋") ? QStringLiteral("export-pdfa") : QString{};
-    if (!iconAsset.isEmpty())
-        iconLbl->setPixmap(Theme::renderSvg(iconAsset, Qt::transparent, 24));
-    inner->addWidget(iconLbl, 0, Qt::AlignCenter);
-
-    auto *textLbl = new QLabel(label);
-    textLbl->setObjectName(available ? QStringLiteral("XCardText")
-                                     : QStringLiteral("XCardTextDim"));
-    textLbl->setAlignment(Qt::AlignCenter);
-    textLbl->setAttribute(Qt::WA_TransparentForMouseEvents);
-    inner->addWidget(textLbl, 0, Qt::AlignCenter);
-
-    btn->setProperty("formatId", id);
-    m_formatGroup->addButton(btn);
-    m_formatGroup->setId(btn, m_formatGroup->buttons().size() - 1);
-
-    const QString fmtId = id;
-    connect(btn, &QPushButton::toggled, this, [this, fmtId](bool on) {
-        if (on) onFormatSelected(fmtId);
-    });
-    return btn;
-}
-
 void ExportDialog::onFormatSelected(const QString &id)
 {
     m_selectedFormat = id;
@@ -297,22 +304,13 @@ void ExportDialog::onFormatSelected(const QString &id)
     for (const QString &ext : {".pdf", ".docx", ".png"}) {
         if (name.endsWith(ext, Qt::CaseInsensitive)) { name.chop(ext.length()); break; }
     }
-    if (id == QLatin1String("word"))
-        name += QStringLiteral(".docx");
-    else if (id == QLatin1String("image"))
-        name += QStringLiteral(".png");
-    else
-        name += QStringLiteral(".pdf");
+    if (!name.isEmpty())
+        name += id == QLatin1String("word")  ? QStringLiteral(".docx")
+              : id == QLatin1String("image") ? QStringLiteral(".png")
+                                             : QStringLiteral(".pdf");
     m_filenameEdit->setText(name);
     updateOptionAvailability();
     updateEstimate();
-}
-
-void ExportDialog::updatePasswordFields()
-{
-    const bool on = m_passwordChk->isChecked();
-    m_passEdit->setEnabled(on);
-    m_passConfirm->setEnabled(on);
 }
 
 void ExportDialog::onBrowse()
@@ -354,19 +352,6 @@ void ExportDialog::onExport()
         }
     }
 
-    if (m_passwordChk && m_passwordChk->isChecked()) {
-        if (m_passEdit->text().isEmpty()) {
-            QMessageBox::warning(this, tr("Missing password"),
-                tr("Please enter a password, or switch password protection off."));
-            return;
-        }
-        if (m_passEdit->text() != m_passConfirm->text()) {
-            QMessageBox::warning(this, tr("Passwords do not match"),
-                tr("The password and its confirmation are different."));
-            return;
-        }
-    }
-
     const QString path = selectedPath();
     QStringList existing;
     const QList<int> pages = selectedPages();
@@ -393,347 +378,329 @@ void ExportDialog::onExport()
     accept();
 }
 
+
 void ExportDialog::applyDialogStyle()
 {
     setStyleSheet(QStringLiteral(R"css(
-        QDialog {
-            background: palette(window);
+        QDialog { background: palette(window); }
+        QLabel#XSideTitle { font-size: 17px; font-weight: 600; }
+        QPushButton#XFormat {
+            border: 1px solid transparent;
+            border-radius: 8px;
+            background: transparent;
+            text-align: left;
         }
-        /* Section headers */
-        QLabel#XSecNum {
-            font-weight: 700;
-            font-size: 13px;
+        QPushButton#XFormat:hover:!checked:enabled { background: palette(alternate-base); }
+        QLabel#XFormatTitle { font-size: 15px; font-weight: 600; }
+        QLabel#XFormatNote, QLabel#XMuted { color: palette(placeholder-text); }
+        QLabel#XFormatTitle:disabled, QLabel#XFormatNote:disabled,
+        QLabel#XMuted:disabled { color: palette(mid); }
+        QFrame#XCard {
+            border: 1px solid palette(mid);
+            border-radius: 10px;
+            background: palette(base);
         }
-        QLabel#XSecTitle {
-            font-weight: 700;
-            font-size: 13px;
-        }
-        /* Format cards */
-        QPushButton#XCard {
-            border: 2px solid palette(mid);
+        QWidget#XPage, QScrollArea#XScroll { background: palette(base); }
+        QFrame#XSection {
+            border: 1px solid palette(mid);
             border-radius: 8px;
             background: palette(base);
-            text-align: center;
         }
-        QPushButton#XCard:checked {
-            border: 2px solid #3B82F6;
-            background: palette(base);
-        }
-        QPushButton#XCard:disabled {
-            background: palette(alternateBase);
-            border-color: palette(mid);
-        }
-        QPushButton#XCard:hover:!checked:enabled {
-            border-color: #93C5FD;
-        }
-        QLabel#XCardIcon {
-            font-size: 22px;
-            background: transparent;
-            color: #3B82F6;
-        }
-        QLabel#XCardIconDim {
-            font-size: 22px;
-            background: transparent;
-            color: palette(mid);
-        }
-        QLabel#XCardText {
-            font-size: 12px;
-            font-weight: 600;
-            background: transparent;
-            color: palette(text);
-        }
-        QLabel#XCardTextDim {
-            font-size: 12px;
-            background: transparent;
-            color: palette(mid);
-        }
-        /* Inputs */
-        QLineEdit#XInput {
+        QLabel#XSectionTitle { font-size: 16px; font-weight: 600; }
+        QLabel#XField { font-weight: 500; }
+        QFrame#XDivider { background: palette(mid); border: none; }
+        QLineEdit#XInput, QComboBox#XInput {
             border: 1px solid palette(mid);
             border-radius: 6px;
-            padding: 6px 10px;
+            padding: 0 10px;
+            min-height: 34px;
             background: palette(base);
         }
-        QLineEdit#XInput:disabled {
-            background: palette(alternateBase);
-            color: palette(mid);
-        }
-        QLineEdit#XRangeInput {
-            border: 1px solid palette(mid);
-            border-radius: 6px;
-            padding: 4px 8px;
-            background: palette(base);
-            min-width: 60px;
-            max-width: 70px;
-        }
-        /* Separator */
-        QFrame#XSep {
-            color: palette(mid);
-            max-height: 1px;
-            background: palette(mid);
-        }
-        /* Footer */
-        QWidget#XFooter {
-            border-top: 1px solid palette(mid);
-        }
-        /* palette(mid) is a border shade, not a text shade. Against the
-           footer it came out barely legible. windowText carries the theme's
-           actual contrast in both light and dark. */
-        QLabel#XSizeLabel {
-            font-size: 12px;
-            font-weight: 500;
-            color: palette(windowText);
-        }
-        /* Browse button */
-        QPushButton#XBrowse {
-            border: 1px solid palette(mid);
-            border-radius: 6px;
-            padding: 6px 14px;
-            background: palette(button);
-            color: palette(buttonText);
-        }
-        QPushButton#XBrowse:hover { background: palette(light); }
-        /* Cancel */
+        QLineEdit#XInput:focus, QComboBox#XInput:focus { border-color: #3B82F6; }
+        QLineEdit#XInput:disabled, QComboBox#XInput:disabled { color: palette(placeholder-text); }
+        QComboBox#XInput::drop-down { border: none; width: 30px; }
+        QWidget#XFooter { border-top: 1px solid palette(mid); }
+        QLabel#XSizeLabel { font-weight: 500; color: palette(window-text); }
         QPushButton#XCancel {
             border: 1px solid palette(mid);
             border-radius: 6px;
-            padding: 0 16px;
+            padding: 0 14px;
             background: palette(base);
             color: palette(text);
+            font-weight: 600;
         }
-        QPushButton#XCancel:hover { background: palette(light); }
-        /* Export (primary) */
+        QPushButton#XCancel:hover { background: palette(alternate-base); }
         QPushButton#XExport {
             border: none;
             border-radius: 6px;
-            padding: 0 20px;
             background: #2563EB;
             color: white;
             font-weight: 700;
         }
         QPushButton#XExport:hover   { background: #1D4ED8; }
         QPushButton#XExport:pressed { background: #1E40AF; }
-    )css"));
+        QPushButton#XExport:disabled {
+            background: rgba(37, 99, 235, 0.35);
+            color: rgba(255, 255, 255, 0.75);
+        }
+    )css") + (Theme::DarkMode ? QStringLiteral(R"css(
+        QPushButton#XFormat:checked {
+            background: rgba(59, 130, 246, 0.22);
+            border-color: rgba(96, 165, 250, 0.60);
+        }
+        QLabel#XFormatTitle[current="true"] { color: #93C5FD; }
+    )css") : QStringLiteral(R"css(
+        QPushButton#XFormat:checked {
+            background: rgba(37, 99, 235, 0.12);
+            border-color: rgba(37, 99, 235, 0.50);
+        }
+        QLabel#XFormatTitle[current="true"] { color: #1D4ED8; }
+    )css")));
 }
 
-void ExportDialog::addSeparator(QVBoxLayout *body)
+QWidget *ExportDialog::buildFormatList()
 {
-    auto *f = new QFrame; f->setObjectName(QStringLiteral("XSep"));
-    f->setFrameShape(QFrame::HLine); f->setFixedHeight(1);
-    body->addWidget(f);
+    const qreal dpr = devicePixelRatioF();
+    m_formats = new ExportFormatList;
+    m_formats->addFormat(QStringLiteral("pdf"),
+                         Theme::renderSvg(QStringLiteral("export-pdf"), Qt::transparent, 32, dpr),
+                         QStringLiteral("PDF"), tr("Best for sharing and printing"), true);
+    m_formats->addFormat(QStringLiteral("pdfa"),
+                         Theme::renderSvg(QStringLiteral("export-pdfa"), Qt::transparent, 32, dpr),
+                         QStringLiteral("PDF/A"), tr("Long-term archiving"), false);
+    m_formats->addFormat(QStringLiteral("word"), wordIcon(dpr), QStringLiteral("Word"),
+                         tr("Edit in Microsoft Word"), true);
+    m_formats->addFormat(QStringLiteral("image"),
+                         Theme::renderSvg(QStringLiteral("image"), Theme::Primary, 32, dpr),
+                         tr("Image"), tr("PNG images"), true);
+    connect(m_formats, &ExportFormatList::formatChanged, this, &ExportDialog::onFormatSelected);
+
+    auto *side = new QWidget;
+    side->setFixedWidth(260);
+    auto *vl = new QVBoxLayout(side);
+    vl->setContentsMargins(16, 22, 0, 12);
+    vl->addWidget(m_formats);
+    return side;
 }
 
-void ExportDialog::buildFormatSection(QVBoxLayout *bl)
+QWidget *ExportDialog::buildPage()
 {
-    bl->addWidget(makeSectionHeader(tr("1."), tr("Format")));
-    {
-        auto *row = new QHBoxLayout;
-        row->setSpacing(10);
-        auto *pdfBtn  = makeFormatCard(QStringLiteral("📄"), QStringLiteral("PDF"),   QStringLiteral("pdf"),   true);
-        auto *pdfaBtn = makeFormatCard(QStringLiteral("📋"), QStringLiteral("PDF/A"), QStringLiteral("pdfa"),  true);
-        auto *wordBtn = makeFormatCard(QStringLiteral("W"),  QStringLiteral("Word"),  QStringLiteral("word"),  true);
-        auto *imgBtn  = makeFormatCard(QStringLiteral("🖼"), QStringLiteral("Image"), QStringLiteral("image"), true);
+    auto *page = new QWidget;
+    auto *vl = new QVBoxLayout(page);
+    vl->setContentsMargins(16, 16, 16, 16);
+    vl->setSpacing(12);
+    vl->addWidget(buildFileSection());
+    vl->addWidget(buildPagesSection());
+    vl->addWidget(buildSettingsSection());
+    vl->addStretch(1);
+    return scrolling(page);
+}
 
-        wordBtn->findChild<QLabel *>(QStringLiteral("XCardIcon"))->setStyleSheet(
-            QStringLiteral("font-size:16px;font-weight:bold;color:white;"
-                           "background:#2B579A;border-radius:5px;"
-                           "padding:3px 5px;"));
-        row->addWidget(pdfBtn);
-        row->addWidget(pdfaBtn);
-        row->addWidget(wordBtn);
-        row->addWidget(imgBtn);
-        row->addStretch();
-        bl->addLayout(row);
-        pdfBtn->setChecked(true);
+QFrame *ExportDialog::buildFileSection()
+{
+    QVBoxLayout *body = nullptr;
+    QFrame *card = section(QStringLiteral("folder-open"), tr("File"),
+                           tr("Choose where to save your file."), &body);
+    auto *grid = new QGridLayout;
+    grid->setHorizontalSpacing(12);
+    grid->setVerticalSpacing(10);
+    m_filenameEdit = new QLineEdit;
+    m_filenameEdit->setObjectName(QStringLiteral("XInput"));
+    if (!m_currentFile.isEmpty())
+        m_filenameEdit->setText(QFileInfo(m_currentFile).completeBaseName()
+                                + QStringLiteral("_export.pdf"));
+    m_locationEdit = new QLineEdit;
+    m_locationEdit->setObjectName(QStringLiteral("XInput"));
+    if (!m_currentFile.isEmpty())
+        m_locationEdit->setText(QFileInfo(m_currentFile).absolutePath());
+    auto *browse = new QPushButton(tr("Browse…"));
+    browse->setObjectName(QStringLiteral("XCancel"));
+    browse->setFixedHeight(36);
+    browse->setCursor(Qt::PointingHandCursor);
+    connect(browse, &QPushButton::clicked, this, &ExportDialog::onBrowse);
+    grid->addWidget(label(tr("Filename"), "XField"), 0, 0);
+    grid->addWidget(m_filenameEdit, 0, 1, 1, 2);
+    grid->addWidget(label(tr("Save location"), "XField"), 1, 0);
+    grid->addWidget(m_locationEdit, 1, 1);
+    grid->addWidget(browse, 1, 2);
+    grid->setColumnStretch(1, 1);
+    body->addLayout(grid);
+    m_openAfterChk = new QCheckBox(tr("Open file after export"));
+    body->addWidget(option(m_openAfterChk,
+        tr("Automatically open the exported file when the process completes.")));
+    return card;
+}
+
+QFrame *ExportDialog::buildPagesSection()
+{
+    QVBoxLayout *body = nullptr;
+    QFrame *card = section(QStringLiteral("layers"), tr("Pages"),
+                           tr("Select which pages to export."), &body);
+    auto *pg = new QButtonGroup(this);
+    const bool hasDocument = !m_currentFile.isEmpty();
+    m_allRadio     = new QRadioButton(hasDocument ? tr("All pages (%1)").arg(m_pageCount)
+                                                  : tr("All pages"));
+    m_currentRadio = new QRadioButton(hasDocument ? tr("Current page (%1)").arg(m_currentPage + 1)
+                                                  : tr("Current page"));
+    m_rangeRadio   = new QRadioButton(tr("Range"));
+    m_allRadio->setChecked(true);
+    m_rangeEdit = new QLineEdit(hasDocument ? QStringLiteral("1-%1").arg(m_pageCount) : QString{});
+    m_rangeEdit->setObjectName(QStringLiteral("XInput"));
+    m_rangeEdit->setToolTip(tr("For example: 1-3, 5, 8-10"));
+    m_rangeEdit->setFixedWidth(100);
+    m_rangeEdit->setEnabled(false);
+    auto *radios = new QHBoxLayout;
+    radios->setSpacing(24);
+    for (QRadioButton *radio : { m_allRadio, m_currentRadio, m_rangeRadio }) {
+        pg->addButton(radio);
+        connect(radio, &QRadioButton::toggled, this, &ExportDialog::updateEstimate);
     }
+    radios->addWidget(m_allRadio);
+    radios->addWidget(m_currentRadio);
+    auto *range = new QHBoxLayout;
+    range->setSpacing(10);
+    range->addWidget(m_rangeRadio);
+    range->addWidget(m_rangeEdit);
+    radios->addLayout(range);
+    radios->addStretch(1);
+    body->addLayout(radios);
+    connect(m_rangeRadio, &QRadioButton::toggled, m_rangeEdit, &QLineEdit::setEnabled);
+    connect(m_rangeEdit, &QLineEdit::textChanged, this, &ExportDialog::updateEstimate);
+    return card;
 }
 
-void ExportDialog::buildDestinationSection(QVBoxLayout *bl)
+QFrame *ExportDialog::buildSettingsSection()
 {
-    {
-        auto *row = new QHBoxLayout; row->setSpacing(16);
+    QVBoxLayout *body = nullptr;
+    QFrame *card = section(QStringLiteral("sliders"), tr("Settings"),
+                           tr("Adjust quality and include additional content."), &body);
+    auto *columns = new QHBoxLayout;
+    columns->setSpacing(20);
+    auto *left = new QVBoxLayout;
+    left->setSpacing(12);
+    m_compressChk = new QCheckBox(tr("Compress images"));
+    m_compressChk->setChecked(true);
+    auto *qRow = new QHBoxLayout;
+    qRow->setSpacing(12);
+    qRow->addWidget(label(tr("Quality"), "XField"));
+    m_qualityCombo = new QComboBox;
+    m_qualityCombo->setObjectName(QStringLiteral("XInput"));
+    auto *chevron = new QLabel;
+    chevron->setPixmap(Theme::renderSvg(QStringLiteral("chevron-down"), Theme::IconNormal, 16,
+                                        devicePixelRatioF()));
+    chevron->setAttribute(Qt::WA_TransparentForMouseEvents);
+    auto *arrowRow = new QHBoxLayout(m_qualityCombo);
+    arrowRow->setContentsMargins(0, 0, 10, 0);
+    arrowRow->addStretch(1);
+    arrowRow->addWidget(chevron);
+    m_qualityCombo->addItem(tr("Maximum"), 100);
+    m_qualityCombo->addItem(tr("High"),     85);
+    m_qualityCombo->addItem(tr("Medium"),   60);
+    m_qualityCombo->addItem(tr("Low"),      40);
+    m_qualityCombo->setCurrentIndex(1);
+    m_qualityCombo->setFixedWidth(200);
+    qRow->addWidget(m_qualityCombo);
+    qRow->addStretch(1);
+    left->addLayout(qRow);
+    m_compressRow = option(m_compressChk, tr("Reduces file size without noticeable quality loss."));
+    left->addWidget(m_compressRow);
+    left->addStretch(1);
+    columns->addLayout(left, 4);
 
-        auto *lv = new QVBoxLayout; lv->setSpacing(6);
-        lv->addWidget(makeSectionHeader(tr("2."), tr("Filename")));
-        m_filenameEdit = new QLineEdit;
-        m_filenameEdit->setObjectName(QStringLiteral("XInput"));
-        const QString base = m_currentFile.isEmpty()
-            ? QStringLiteral("document")
-            : QFileInfo(m_currentFile).completeBaseName();
-        m_filenameEdit->setText(base + QStringLiteral("_export.pdf"));
-        lv->addWidget(m_filenameEdit);
-        row->addLayout(lv, 1);
+    m_contentColumn = new QWidget;
+    auto *right = new QHBoxLayout(m_contentColumn);
+    right->setContentsMargins(0, 0, 0, 0);
+    right->setSpacing(20);
+    auto *divider = new QFrame;
+    divider->setObjectName(QStringLiteral("XDivider"));
+    divider->setFixedWidth(1);
+    right->addWidget(divider);
+    auto *boxes = new QVBoxLayout;
+    boxes->setSpacing(12);
+    m_formsChk    = new QCheckBox(tr("Keep forms"));
+    m_commentsChk = new QCheckBox(tr("Include comments"));
+    m_formsChk->setChecked(true);
+    m_commentsChk->setChecked(true);
+    boxes->addWidget(option(m_formsChk, tr("Preserve form fields and data.")));
+    boxes->addWidget(option(m_commentsChk, tr("Export comments and annotations.")));
+    m_fontsChk = new QCheckBox(tr("Embed fonts"));
+    m_fontsChk->setChecked(true);
+    boxes->addWidget(option(m_fontsChk, tr("Include all used fonts in the PDF file.")));
+    boxes->addStretch(1);
+    right->addLayout(boxes, 1);
+    columns->addWidget(m_contentColumn, 5);
+    body->addLayout(columns);
 
-        auto *rv = new QVBoxLayout; rv->setSpacing(6);
-        rv->addWidget(makeSectionHeader(tr("3."), tr("Save Location")));
-        auto *locRow = new QHBoxLayout; locRow->setSpacing(8);
-        m_locationEdit = new QLineEdit;
-        m_locationEdit->setObjectName(QStringLiteral("XInput"));
-        m_locationEdit->setText(m_currentFile.isEmpty()
-            ? QStandardPaths::writableLocation(QStandardPaths::DocumentsLocation)
-            : QFileInfo(m_currentFile).absolutePath());
-        locRow->addWidget(m_locationEdit, 1);
-        auto *browse = new QPushButton(tr("Browse…"));
-        browse->setObjectName(QStringLiteral("XBrowse"));
-        browse->setFixedHeight(34);
-        connect(browse, &QPushButton::clicked, this, &ExportDialog::onBrowse);
-        locRow->addWidget(browse);
-        rv->addLayout(locRow);
-        row->addLayout(rv, 1);
-
-        bl->addLayout(row);
-    }
-}
-
-void ExportDialog::buildRangeAndQualitySection(QVBoxLayout *bl)
-{
-    {
-        auto *row = new QHBoxLayout; row->setSpacing(24);
-
-        auto *lv = new QVBoxLayout; lv->setSpacing(6);
-        lv->addWidget(makeSectionHeader(tr("4."), tr("Page Range")));
-        auto *pg = new QButtonGroup(this); pg->setExclusive(true);
-        m_allRadio     = new QRadioButton(tr("All pages"));   m_allRadio->setChecked(true);
-        m_currentRadio = new QRadioButton(tr("Current page"));
-        m_rangeRadio   = new QRadioButton(tr("Range"));
-        pg->addButton(m_allRadio); pg->addButton(m_currentRadio);
-        pg->addButton(m_rangeRadio);
-        lv->addWidget(m_allRadio); lv->addWidget(m_currentRadio);
-        auto *rangeRow = new QHBoxLayout; rangeRow->setSpacing(8);
-        rangeRow->addWidget(m_rangeRadio);
-        m_rangeEdit = new QLineEdit(QStringLiteral("1-%1").arg(m_pageCount));
-        m_rangeEdit->setObjectName(QStringLiteral("XRangeInput"));
-        m_rangeEdit->setToolTip(tr("For example: 1-3, 5, 8-10"));
-        m_rangeEdit->setEnabled(false);
-        rangeRow->addWidget(m_rangeEdit); rangeRow->addStretch();
-        lv->addLayout(rangeRow);
-        connect(m_rangeRadio, &QRadioButton::toggled, m_rangeEdit, &QLineEdit::setEnabled);
-        connect(m_allRadio,     &QRadioButton::toggled, this, &ExportDialog::updateEstimate);
-        connect(m_currentRadio, &QRadioButton::toggled, this, &ExportDialog::updateEstimate);
-        connect(m_rangeRadio,   &QRadioButton::toggled, this, &ExportDialog::updateEstimate);
-        connect(m_rangeEdit,    &QLineEdit::textChanged, this, &ExportDialog::updateEstimate);
-        lv->addStretch();
-        row->addLayout(lv, 1);
-
-        auto *rv = new QVBoxLayout; rv->setSpacing(6);
-        rv->addWidget(makeSectionHeader(tr("5."), tr("Quality & Compression")));
-        auto *qRow = new QHBoxLayout; qRow->setSpacing(8);
-        qRow->addWidget(new QLabel(tr("Quality")));
-        m_qualityCombo = new QComboBox;
-        m_qualityCombo->addItem(tr("Maximum"), 100);
-        m_qualityCombo->addItem(tr("High"),     85);
-        m_qualityCombo->addItem(tr("Medium"),   60);
-        m_qualityCombo->addItem(tr("Low"),      40);
-        m_qualityCombo->setCurrentIndex(1);
-        qRow->addWidget(m_qualityCombo, 1);
-        rv->addLayout(qRow);
-        m_compressChk = new QCheckBox(tr("Compress images"));
-        m_compressChk->setChecked(true);
-        rv->addWidget(m_compressChk);
-        connect(m_qualityCombo, &QComboBox::currentIndexChanged,
-                this, &ExportDialog::updateEstimate);
-        connect(m_compressChk, &QCheckBox::toggled, this, &ExportDialog::updateEstimate);
-        rv->addStretch();
-        row->addLayout(rv, 1);
-
-        bl->addLayout(row);
-    }
-}
-
-void ExportDialog::buildOptionsSection(QVBoxLayout *bl)
-{
-    bl->addWidget(makeSectionHeader(tr("6."), tr("Options")));
-    {
-        auto *row = new QHBoxLayout; row->setSpacing(16);
-        auto *lv = new QVBoxLayout;
-        m_commentsChk = new QCheckBox(tr("Include comments")); m_commentsChk->setChecked(true);
-        m_formsChk    = new QCheckBox(tr("Keep forms"));       m_formsChk->setChecked(true);
-        lv->addWidget(m_commentsChk); lv->addWidget(m_formsChk);
-        auto *rv = new QVBoxLayout;
-        m_fontsChk     = new QCheckBox(tr("Embed fonts"));          m_fontsChk->setChecked(true);
-        m_openAfterChk = new QCheckBox(tr("Open file after export")); m_openAfterChk->setChecked(false);
-        rv->addWidget(m_fontsChk); rv->addWidget(m_openAfterChk);
-        row->addLayout(lv, 1); row->addLayout(rv, 1);
-        bl->addLayout(row);
-        connect(m_commentsChk, &QCheckBox::toggled, this, &ExportDialog::updateEstimate);
-        connect(m_fontsChk,    &QCheckBox::toggled, this, &ExportDialog::updateEstimate);
-    }
-}
-
-void ExportDialog::buildSecuritySection(QVBoxLayout *bl)
-{
-    bl->addWidget(makeSectionHeader(tr("7."), tr("Security (optional)")));
-    m_passwordChk = new QCheckBox(tr("Enable password protection"));
-    m_passwordChk->setChecked(false);
-    bl->addWidget(m_passwordChk);
-    {
-        auto *row = new QHBoxLayout; row->setSpacing(12);
-        m_passEdit = new QLineEdit;
-        m_passEdit->setObjectName(QStringLiteral("XInput"));
-        m_passEdit->setEchoMode(QLineEdit::Password);
-        m_passEdit->setPlaceholderText(tr("Password"));
-        m_passEdit->setEnabled(false);
-        m_passConfirm = new QLineEdit;
-        m_passConfirm->setObjectName(QStringLiteral("XInput"));
-        m_passConfirm->setEchoMode(QLineEdit::Password);
-        m_passConfirm->setPlaceholderText(tr("Confirm password"));
-        m_passConfirm->setEnabled(false);
-        row->addWidget(m_passEdit); row->addWidget(m_passConfirm);
-        bl->addLayout(row);
-    }
-    connect(m_passwordChk, &QCheckBox::toggled, this, &ExportDialog::updatePasswordFields);
-    connect(m_passwordChk, &QCheckBox::toggled, this, &ExportDialog::updateEstimate);
+    connect(m_qualityCombo, &QComboBox::currentIndexChanged, this, &ExportDialog::updateEstimate);
+    connect(m_compressChk, &QCheckBox::toggled, this, &ExportDialog::updateOptionAvailability);
+    connect(m_compressChk, &QCheckBox::toggled, this, &ExportDialog::updateEstimate);
+    connect(m_commentsChk, &QCheckBox::toggled, this, &ExportDialog::updateEstimate);
+    connect(m_fontsChk, &QCheckBox::toggled, this, &ExportDialog::updateEstimate);
+    return card;
 }
 
 QWidget *ExportDialog::buildFooter()
 {
     auto *footer = new QWidget;
     footer->setObjectName(QStringLiteral("XFooter"));
-    footer->setFixedHeight(64);
-    auto *fl = new QHBoxLayout(footer);
-    fl->setContentsMargins(28, 0, 28, 0);
-    fl->setSpacing(12);
-    m_sizeLabel = new QLabel(tr("Estimated file size: unknown"));
-    m_sizeLabel->setObjectName(QStringLiteral("XSizeLabel"));
-    fl->addWidget(m_sizeLabel, 1);
-    auto *cancelBtn = new QPushButton(tr("Cancel"));
-    cancelBtn->setObjectName(QStringLiteral("XCancel"));
-    cancelBtn->setFixedSize(100, 36);
-    connect(cancelBtn, &QPushButton::clicked, this, &QDialog::reject);
-    fl->addWidget(cancelBtn);
+    footer->setFixedHeight(72);
+    auto *hl = new QHBoxLayout(footer);
+    hl->setContentsMargins(24, 0, 24, 0);
+    hl->setSpacing(12);
+    auto *info = new QLabel;
+    info->setPixmap(Theme::renderSvg(QStringLiteral("info"), Theme::Primary, 22,
+                                     devicePixelRatioF()));
+    hl->addWidget(info);
+    m_sizeLabel = label(tr("Estimated file size: unknown"), "XSizeLabel");
+    hl->addWidget(m_sizeLabel, 1);
+    auto *cancel = new QPushButton(tr("Cancel"));
+    cancel->setObjectName(QStringLiteral("XCancel"));
+    cancel->setFixedSize(130, 42);
+    connect(cancel, &QPushButton::clicked, this, &QDialog::reject);
+    hl->addWidget(cancel);
     auto *exportBtn = new QPushButton(tr("Export"));
     exportBtn->setObjectName(QStringLiteral("XExport"));
-    exportBtn->setFixedSize(120, 36);
+    exportBtn->setFixedSize(150, 42);
+    exportBtn->setDefault(true);
+    exportBtn->setEnabled(!m_currentFile.isEmpty());
     connect(exportBtn, &QPushButton::clicked, this, &ExportDialog::onExport);
-    fl->addWidget(exportBtn);
+    hl->addWidget(exportBtn);
     return footer;
 }
 
 void ExportDialog::buildUi()
 {
-    m_formatGroup = new QButtonGroup(this);
-    m_formatGroup->setExclusive(true);
     applyDialogStyle();
 
     auto *root = new QVBoxLayout(this);
     root->setContentsMargins(0, 0, 0, 0);
     root->setSpacing(0);
 
-    auto *body = new QWidget;
-    auto *bl   = new QVBoxLayout(body);
-    bl->setContentsMargins(28, 22, 28, 16);
-    bl->setSpacing(16);
+    auto *main = new QHBoxLayout;
+    main->setContentsMargins(0, 0, 20, 16);
+    main->setSpacing(16);
+    main->addWidget(buildFormatList());
 
-    buildFormatSection(bl);
-    addSeparator(bl);
-    buildDestinationSection(bl);
-    addSeparator(bl);
-    buildRangeAndQualitySection(bl);
-    addSeparator(bl);
-    buildOptionsSection(bl);
-    addSeparator(bl);
-    buildSecuritySection(bl);
+    auto *card = new QFrame;
+    card->setObjectName(QStringLiteral("XCard"));
+    auto *cardLayout = new QVBoxLayout(card);
+    cardLayout->setContentsMargins(1, 1, 1, 1);
+    cardLayout->setSpacing(0);
+    cardLayout->addWidget(buildPage(), 1);
 
-    root->addWidget(body, 1);
+    auto *cardColumn = new QVBoxLayout;
+    cardColumn->setContentsMargins(0, 20, 0, 0);
+    cardColumn->addWidget(card);
+    main->addLayout(cardColumn, 1);
+    root->addLayout(main, 1);
     root->addWidget(buildFooter());
+
+    auto *checkStyle = new CheckBoxStyle;
+    checkStyle->setParent(this);
+    for (QAbstractButton *box : findChildren<QAbstractButton *>()) {
+        if (!qobject_cast<QCheckBox *>(box) && !qobject_cast<QRadioButton *>(box)) continue;
+        box->setStyle(checkStyle);
+        box->setCursor(Qt::PointingHandCursor);
+    }
+    m_formats->select(QStringLiteral("pdf"));
 }

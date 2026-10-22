@@ -40,6 +40,11 @@ QString SignatureManager::createCertificate(const NewCertificate &request, SignE
     return m_provider->create(request, error);
 }
 
+CertificateFacts SignatureManager::readCertificate(const QByteArray &file)
+{
+    return m_provider ? m_provider->read(file) : CertificateFacts();
+}
+
 bool SignatureManager::removeCertificate(const QString &certificateId)
 {
     return m_provider && m_provider->remove(certificateId);
@@ -94,7 +99,8 @@ SignError SignatureManager::sign(const QString &source, const QString &target,
     return SafeWrite::commit(staging, target) ? SignError::None : SignError::WriteFailed;
 }
 
-QList<SignatureStatus> SignatureManager::verify(const QString &path)
+QList<SignatureStatus> SignatureManager::verify(const QString &path, const std::string &password)
 {
-    return m_provider ? SignatureVerifier::verify(path, *m_provider) : QList<SignatureStatus>();
+    return m_provider ? SignatureVerifier::verify(path, *m_provider, password)
+                      : QList<SignatureStatus>();
 }

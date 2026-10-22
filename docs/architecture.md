@@ -21,7 +21,9 @@ running window (see `RenderPool`) and does nothing else.
 The window only forwards. Bars and panels act on the current `DocumentView`,
 and the view's signals update bars and panels. Work that runs through a dialog
 lives in its task folder: `Exporting` and `Printing` in `ui/export/`,
-`HistoryDialog::openFor()` in `ui/history/`, `DigitalSigning` in `ui/sign/`.
+`Importing` in `ui/import/`,
+`HistoryDialog::openFor()` in `ui/history/`, `DigitalSigning` in `ui/sign/`,
+`ProtectDialog::run()` in `ui/protect/`.
 
 ## One open document
 
@@ -46,17 +48,54 @@ page's object list in memory. PDFium only writes that list back on
 `FPDFPage_GenerateContent()`, so `PdfiumWriter` runs the same function when
 saving, and the screen shows exactly what the file will contain.
 
-A character the edited text's font cannot encode is written in an embedded
-system font (`PdfiumFonts::fallbackFont()`). The inline editor gets its glyph
-widths from the same code (`PdfBackend::editMetrics()`) and lays text out with
-the same `TextLayout` as `PdfiumEdits`, so lines, list markers and positions in
-the editor are the ones written; soft line breaks travel in the text as U+2028.
-An edit that keeps its style and box is laid out anchored to the original
-lines (`PdfBackend::originalLines()`): unchanged lines stay the original PDF
-objects and changed lines keep their text up to the first change in place.
-PDFium drops text in Type3 fonts when it regenerates a page, so
-`PdfiumWriter` takes those objects out first and `Type3Text` (qpdf) appends
-their original operators as a separate content stream after the save.
+Everything above the engine works in points of the page as shown: top-left
+origin, cropped by the CropBox and turned by /Rotate. `PdfiumPageSpace`
+converts to and from PDF user space wherever the engine reads or writes
+coordinates.
+
+`PdfiumText::Typeset` sets the text of one edit. Every character keeps the
+style of the original character it came from (font, size, matrix, colours,
+render mode, letter spacing, baseline shift); `TextLayout::styleIndices()`
+finds that character by comparing the text with the original lines, and a
+typed character takes the style before it. The format bar shows the style of
+the character clicked or at the caret (`Metrics::appearances`). A change from
+it replaces one attribute for all characters and keeps the others; a size is
+the shown character's and the others scale with it. A character the style's font cannot encode is written in the same
+family from the system, else in an embedded font of the same kind
+(`PdfiumFonts::fallbackFont()`). Pasted text names, per character, a character
+of the document it was copied from (`SourcedText`, `Edit::sources`) and is set
+in that one's style. Copied text carries where each of its characters is set
+(`SourcedText::Box`): a box copied whole relative to the box, marked text or a
+selection on one page relative to the characters taken; pasted on the page
+outside a box it becomes a laid box there, every character in the same place
+(`EditController::pasteBox()`). The text is written in runs of one style with
+the exact glyph positions. The inline editor gets its glyph widths from the
+same code (`PdfBackend::editMetrics()`) and lays text out with the same
+`TextLayout`, so lines, list markers and positions in the editor are the ones
+written; soft line breaks travel in the text as U+2028. An edit whose style and
+box layout are unchanged is laid out anchored to the original lines
+(`PdfBackend::originalLines()`); while its box has not moved, unchanged lines
+stay the original PDF objects and changed lines keep their text up to the
+first change in place. Whether an original object stays is decided by its
+characters, the same way the layout keeps them. A justified box spreads each
+line's room over its spaces in the same layout, so editor and file agree.
+PDFium's page writer is lossy: it drops Type3 text, character and word
+spacing, soft masks and every colour that is not DeviceRGB. So the page's own
+content is not taken from PDFium. `OriginalContent` (qpdf) counts the page's
+objects the way PDFium parses them; when the counts agree and the edits only
+took text out, it writes the original content back byte for byte without the
+replaced text shows, inside `q`/`Q` so nothing it leaves set reaches the new
+text, and appends PDFium's stream with the new objects. Pages
+where that does not hold (link styling and changes to the page's own images
+alter objects in place) keep PDFium's
+regenerated content, with colours pinned to RGB and Type3 or spaced text put
+back from the original operators by `KeptText`. PDFium tells fonts apart by
+name, so fonts the editor embeds carry a subset prefix in their name that
+differs from run to run, and text is never set again in a document font whose
+name another font on the page shares.
+The page's own images are changed in place by `PdfiumImages`, found by their
+position among the untouched page's objects; one inside a form takes the
+form apart on that page only, as PDFium cannot rewrite a form's content.
 
 ## Rendering
 
@@ -132,6 +171,8 @@ window's frames; touchpad gestures are left as they are.
 
 The grid of thumbnails and the find bar use the worker too: thumbnails in view
 first, the search page by page with matches shown as they come in.
+The page organizer opens its files again as `OrganizerDoc`s, each with its own
+worker, and loads its thumbnails the same way (`ui/organizer/OrganizerThumbnails`).
 
 ### Editing
 
@@ -141,12 +182,26 @@ the edits and renders that area, which is patched into the page
 (`PageLayoutEngine_Edit.cpp`). PDFium rounds text by where a render starts, so
 the last exact state of the area is rendered alongside and its pixels stay
 wherever the change does not reach; the worker renders the page exactly once
-editing pauses. Light pages are simply rendered whole. While text is edited no
+editing pauses. Light pages are simply rendered whole. A page that is slow to
+render (a large picture, thousands of paths) is not patched at all: the worker
+renders it once without the edit's text, under a version number of its own
+because the worker keeps one loaded page per number, and then, for every key or step of a
+drag, only that text on transparency (`PdfBackend::renderEditText()`), which
+the window lays over it. The window never waits for PDFium; the laid text
+differs from an exact render by at most two colour levels at glyph edges, and
+the page is rendered exactly when the edit closes. A tiled page has the worker
+render each new state, a newer one waiting for the render on its way instead
+of cancelling it. A box being moved carries its text as a picture: the worker
+renders the text alone and the strip under it without it once, the strip
+replaces the text on screen and the picture follows the frame
+(`PageLayoutEngine_Drag.cpp`). While text is edited no
 zoom levels are prepared, so the worker stays free for the edit. After a zoom
 the page being edited is rendered on the worker like any other; the area its
 edits change is kept in points, so typing goes on patching at the new zoom.
-`PdfiumBackend::editMetrics()` keeps its recent results, which the editor asks
-for again on every zoom step.
+`PdfiumBackend::editMetrics()` measures the usual characters along with the
+text and keeps its recent results regardless of the text; the editor takes
+sizes and widths per text from them and asks again only for a character they
+lack.
 
 ## Annotations and content
 
@@ -156,9 +211,32 @@ note first reads the remaining pages, so undo always sees the whole list.
 
 `ContentProvider` (`engine/edit/ContentModel.hpp`) finds text lines,
 paragraphs, table cells, form fields and images on a page. Hover only reads
-its cache, because building a page synchronously stalls scrolling. When a
+its cache, because building a page synchronously stalls scrolling.
+`ContentMap` chains the lines below each other per column, cell or centred
+block and ends a paragraph where the spacing grows, where the next line's
+first word would have fit, at a justified line short of the margin, an
+indent, a list marker or a heading. Columns and cells are told apart by the
+white channel running down between them (`TextGutters`), which the line
+reader in `PdfiumBackend` uses as well, so a click opens the same lines both
+see. When a
 click finds no text, `EditController` falls back to OCR on a page rendered at
-300 dpi or more.
+300 dpi or more, split into cells where words stand far apart. Text that shows
+only as a scan's pixels, found by OCR or in an invisible OCR text layer
+(`PdfBackend::hiddenText()`), is an `Edit::scanned`: `ScanFont` finds the
+installed face, weight, size and baseline its pixels match by rendering the
+candidates over them, a paragraph keeps only the lines set alike, the colour is
+sampled, the ink of its lines is painted over
+in the paper's colour in the preview and the file alike, and nothing of the
+invisible layer's font is used. Where the detection is wrong, a frame drawn with Shift
+decides instead: `EditOpener` takes exactly the characters inside it, also
+part of a text object, and `PdfiumEdits` splits such an object when the text is
+taken out, setting the characters outside the frame again where they were. On
+text edited or moved before it takes the characters where they are set now
+(`PdfBackend::editLines()`); the rest of that box becomes a box of its own, each
+character in place and in its style (`Edit::laid`). When the frame closes,
+its edit goes back into what a click there opens, the paragraph or the box
+(`EditController::mergedFrameEdit()`): spaces fill what the framed text no
+longer covers, so the text stays one piece.
 
 ## Changes and saving
 
@@ -174,12 +252,18 @@ journal: undo stack, change log, and snapshots in the session folder.
    `PageOverlay::writeTo()`, then changed bookmarks into a staging file. The
    edits are written by the worker while a local event loop keeps the
    spinner turning; user input waits until the file is written.
-3. Pending digital signatures are signed into the staging file. A save that
-   only signs copies the bytes unchanged, so signatures already in the file
-   stay valid.
-4. `SafeWrite::commit()` replaces the target. If that fails, the target is
+3. A protection set in `ProtectDialog` is written by `ProtectionWriter`:
+   new encryption and permissions, or none. Until then it waits in
+   `ProtectionLayer`, an overlay, so history, undo and recovery carry it like
+   any other change. Its passwords stay in memory only; after a crash the
+   change comes back as "unprotected".
+4. Pending digital signatures are signed into the staging file. A save with
+   no edits on top of the content file (only signing, a removed signature,
+   nothing at all) copies its bytes unchanged, and so does a history snapshot,
+   so signatures already in the file stay valid.
+5. `SafeWrite::commit()` replaces the target. If that fails, the target is
    untouched.
-5. The view reopens the saved file.
+6. The view reopens the saved file.
 
 ## Crash recovery
 
@@ -193,16 +277,35 @@ on startup.
 ## Import, export, OCR and signing
 
 - **Import** (`engine/import/`): docx, odt and images become a PDF working
-  copy before opening. The copy has no save target, so saving asks for a name.
-- **Export** (`engine/export/`): PDF with page selection and password through
-  qpdf, DOCX with layout detection, PNG per page, and printing.
+  copy before opening, on a worker thread (`Importing`). The copy has no save
+  target, so saving asks for a name.
+- **Export** (`engine/export/`): PDF with page selection through qpdf, DOCX
+  with layout detection, PNG per page, and printing. DOCX and PNG run on a
+  worker thread. DOCX pictures are compressed page by page while the content
+  is collected, so long documents never hold their rasters all at once.
 - **OCR** (`engine/ocr/`): Tesseract, for text the page has no text layer for.
 - **Signing** (`engine/sign/`, `ui/sign/`): a handwritten signature is placed
   as an image. A digital signature waits in `DigitalSignatureLayer` and is
   written on save by `PdfSignatureWriter` as an incremental update.
   Certificates come from PKCS#11 through p11-kit or PEM files on Linux, and
   from the certificate store through CNG on Windows. `SignatureManager::verify()`
-  checks existing signatures; the interface does not call it yet.
+  checks existing signatures. A signer the system does not trust counts as
+  trusted when the certificate is one of the user's own or its SHA-256
+  fingerprint is pinned in `app/TrustedSigners`; `ui/sign/SignerTrust` asks
+  before pinning and lists the pinned signers (sign page, Advanced), where a
+  certificate file can be added too. `SignatureRemover` takes one off, with everything
+  added after it, by cutting the file back to the revision before it, which
+  the view opens as a working copy.
+- **Document information** (`engine/document/DocumentInfo`, `ui/info/`):
+  `DocumentInfoLoader` reads version, encryption, permissions, form fields,
+  attachments, PDF/A and verified signatures with qpdf on a
+  background thread whenever a view opens or saves a file. The status bar shows
+  signatures and encryption from it: its shield opens the card on the
+  unfolded signatures, its lock the protect dialog. `InfoCenter` lists all of
+  it; its Security section opens the protect dialog and each signature the
+  dialog that removes it (`ui/sign/SignatureRemoval`), an untrusted one also
+  the question that trusts its signer. A change to the trusted signers
+  re-checks every open document.
 
 ## Modules
 

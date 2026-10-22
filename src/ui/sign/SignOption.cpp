@@ -11,6 +11,11 @@ constexpr int kBox     = 20;
 constexpr int kSpacing = 12;
 constexpr int kGap     = 4;
 
+int titleLineHeight(const QFont &font)
+{
+    return qMax(kBox, QFontMetrics(font).height());
+}
+
 }
 
 SignOption::SignOption(const QString &title, const QString &description, QWidget *parent)
@@ -35,7 +40,7 @@ QFont SignOption::descriptionFont() const
 QRect SignOption::descriptionRect(int width) const
 {
     const int left = kBox + kSpacing;
-    const int top  = QFontMetrics(font()).height() + kGap;
+    const int top  = titleLineHeight(font()) + kGap;
     return QFontMetrics(descriptionFont())
         .boundingRect(QRect(left, top, qMax(1, width - left), 1000),
                       Qt::TextWordWrap, m_description);
@@ -49,9 +54,15 @@ QSize SignOption::sizeHint() const
     return { width, heightForWidth(width) };
 }
 
+QSize SignOption::minimumSizeHint() const
+{
+    const int width = kBox + kSpacing + QFontMetrics(font()).horizontalAdvance(text()) + 1;
+    return { width, heightForWidth(width) };
+}
+
 int SignOption::heightForWidth(int width) const
 {
-    if (m_description.isEmpty()) return qMax(kBox, QFontMetrics(font()).height());
+    if (m_description.isEmpty()) return titleLineHeight(font());
     return qMax(kBox, descriptionRect(width).bottom() + 1);
 }
 
@@ -78,8 +89,8 @@ void SignOption::paintEvent(QPaintEvent *)
     p.setRenderHint(QPainter::Antialiasing);
     if (!isEnabled()) p.setOpacity(0.5);
 
-    const QFontMetrics fm(font());
-    const QRectF box(0.5, (fm.height() - kBox) / 2.0 + 0.5, kBox - 1, kBox - 1);
+    const int line = titleLineHeight(font());
+    const QRectF box(1, (line - kBox) / 2.0 + 1, kBox - 2, kBox - 2);
     if (isChecked()) {
         p.setPen(Qt::NoPen);
         p.setBrush(QColor(0x25, 0x63, 0xEB));
@@ -100,7 +111,7 @@ void SignOption::paintEvent(QPaintEvent *)
     const int left = kBox + kSpacing;
     p.setPen(palette().color(QPalette::Text));
     p.setFont(font());
-    p.drawText(QRect(left, 0, width() - left, fm.height()), Qt::AlignLeft | Qt::AlignVCenter, text());
+    p.drawText(QRect(left, 0, width() - left, line), Qt::AlignLeft | Qt::AlignVCenter, text());
 
     p.setPen(palette().color(QPalette::PlaceholderText));
     p.setFont(descriptionFont());

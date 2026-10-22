@@ -3,10 +3,12 @@
 #if defined(HAVE_PDF_RENDERING) && defined(HAVE_PDFIUM)
 
 #include "engine/document/PdfiumLock.hpp"
+#include "engine/document/PdfiumPageSpace.hpp"
 #include "engine/document/PdfiumTextRules.hpp"
 #include "engine/edit/ContentMap.hpp"
 
 #include "fpdf_annot.h"
+#include "fpdf_edit.h"
 #include "fpdf_text.h"
 
 #include <QColor>
@@ -27,10 +29,9 @@ QString utf16Value(Fn &&call)
     return QString::fromUtf16(reinterpret_cast<const char16_t *>(buffer.data()));
 }
 
-QRectF toTopLeft(const FS_RECTF &r, double pageHeight)
+QRectF toTopLeft(const FS_RECTF &r, const PdfiumPageSpace &space)
 {
-    return QRectF(r.left, pageHeight - r.top,
-                  r.right - r.left, r.top - r.bottom);
+    return space.toView(r.left, r.bottom, r.right, r.top);
 }
 
 QColor fillColorAt(FPDF_TEXTPAGE tp, int index)
@@ -99,15 +100,15 @@ QList<ContentItem> PdfiumContentProvider::buildPageItems(int page,
     FPDF_PAGE pg = FPDF_LoadPage(m_doc, page);
     if (!pg) return {};
 
-    const double pageHeight = FPDF_GetPageHeightF(pg);
+    const PdfiumPageSpace space(pg);
 
     QList<ContentItem> fields;
     QList<ContentItem> media;
-    collectAnnotations(pg, pageHeight, &fields, &media);
+    collectAnnotations(pg, space, &fields, &media);
 
     QList<ContentItem> text;
     if (FPDF_TEXTPAGE tp = FPDFText_LoadPage(pg)) {
-        text = classifyContentClusters(collectWords(tp, pageHeight), mergeVertical);
+        text = classifyContentClusters(collectWords(tp, space, mergeVertical), mergeVertical);
         FPDFText_ClosePage(tp);
     }
     FPDF_ClosePage(pg);
@@ -121,7 +122,8 @@ QList<ContentItem> PdfiumContentProvider::buildPageItems(int page,
 }
 
 QList<ContentCluster> PdfiumContentProvider::collectWords(FPDF_TEXTPAGE tp,
-                                                          double pageHeight) const
+                                                          const PdfiumPageSpace &space,
+                                                          bool uprightOnly) const
 {
     QList<ContentCluster> words;
     const int count = FPDFText_CountChars(tp);
@@ -144,12 +146,16 @@ QList<ContentCluster> PdfiumContentProvider::collectWords(FPDF_TEXTPAGE tp,
 
         const QChar ch(static_cast<char16_t>(FPDFText_GetUnicode(tp, i)));
         if (ch.isNull()) continue;
+        // Turned text cannot be edited; it is not offered to the editor.
+        if (uprightOnly && !space.upright(FPDFText_GetCharAngle(tp, i))) { flush(); continue; }
         if (ch.isSpace()) { flush(); continue; }
 
         double originX = 0, originY = 0;
         FPDFText_GetCharOrigin(tp, i, &originX, &originY);
-        const QRectF box(left, pageHeight - top, right - left, top - bottom);
-        const double baseline = pageHeight - originY;
+        const QRectF box = space.toView(left, bottom, right, top);
+        const QPointF origin = space.toView(originX, originY);
+        originX = origin.x();
+        const double baseline = origin.y();
         const double fontSize = PdfiumTextRules::effectiveFontSize(tp, i);
 
         if (open && (!PdfiumTextRules::sameLine(baseline, lastBaseline, box.height())
@@ -166,6 +172,11 @@ QList<ContentCluster> PdfiumContentProvider::collectWords(FPDF_TEXTPAGE tp,
             current.textColor     = fillColorAt(tp, i);
             current.exactWidth    = true;
             current.origin        = QPointF(originX, baseline);
+            if (FPDF_PAGEOBJECT obj = FPDFText_GetTextObject(tp, i)) {
+                float l = 0, b = 0, r = 0, t = 0;
+                if (FPDFPageObj_GetBounds(obj, &l, &b, &r, &t))
+                    current.objectBounds = space.toView(l, b, r, t);
+            }
             open = true;
         } else {
             current.bounds = current.bounds.united(box);
@@ -178,7 +189,7 @@ QList<ContentCluster> PdfiumContentProvider::collectWords(FPDF_TEXTPAGE tp,
     return words;
 }
 
-void PdfiumContentProvider::collectAnnotations(FPDF_PAGE pg, double pageHeight,
+void PdfiumContentProvider::collectAnnotations(FPDF_PAGE pg, const PdfiumPageSpace &space,
                                                QList<ContentItem> *fields,
                                                QList<ContentItem> *media) const
 {
@@ -196,7 +207,7 @@ void PdfiumContentProvider::collectAnnotations(FPDF_PAGE pg, double pageHeight,
             if (annotString(annot, "FT") == QLatin1String("Tx")) {
                 ContentItem item;
                 item.type      = ContentItem::Type::FormField;
-                item.bounds    = toTopLeft(rect, pageHeight);
+                item.bounds    = toTopLeft(rect, space);
                 item.fieldName = annotString(annot, "T");
                 item.text      = annotString(annot, "V");
                 const double size = fontSizeFromDA(annotString(annot, "DA"));
@@ -212,7 +223,7 @@ void PdfiumContentProvider::collectAnnotations(FPDF_PAGE pg, double pageHeight,
 
             ContentItem item;
             item.type   = ContentItem::Type::Media;
-            item.bounds = toTopLeft(rect, pageHeight);
+            item.bounds = toTopLeft(rect, space);
             if (item.isValid()) media->append(std::move(item));
         }
 

@@ -20,7 +20,7 @@ class FormatBar : public QFrame
 public:
     explicit FormatBar(QWidget *parent = nullptr);
     void retranslateUi();
-    void setFontSize(int ptSize);
+    void setFontSize(double ptSize);
     void setTextColor(const QColor &c);
 
     void setFontFamily(const QString &family);
@@ -34,7 +34,7 @@ public:
 
 Q_SIGNALS:
     void fontFamilyChanged(const QString &family);
-    void fontSizeChanged(int ptSize);
+    void fontSizeChanged(double ptSize);
     void textColorChanged(const QColor &color);
     void boldToggled(bool on);
     void italicToggled(bool on);
@@ -75,5 +75,5 @@ private:
     QLabel *m_lblSpacing { nullptr };
 
     QColor m_currentColor  { Qt::black };
-    int    m_lastFontSize  { 14 };
+    double m_lastFontSize  { 14.0 };
 };

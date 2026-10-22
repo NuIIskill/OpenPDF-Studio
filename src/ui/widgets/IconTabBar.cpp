@@ -1,4 +1,4 @@
-#include "ui/sign/SignTabBar.hpp"
+#include "ui/widgets/IconTabBar.hpp"
 #include "ui/theme/Theme.hpp"
 
 #include <QMouseEvent>
@@ -15,7 +15,7 @@ constexpr qreal kRadius    = 10.0;
 
 }
 
-SignTabBar::SignTabBar(QWidget *parent)
+IconTabBar::IconTabBar(QWidget *parent)
     : QTabBar(parent)
 {
     setExpanding(true);
@@ -24,17 +24,17 @@ SignTabBar::SignTabBar(QWidget *parent)
     setCursor(Qt::PointingHandCursor);
 }
 
-void SignTabBar::addIconTab(const QString &icon, const QString &text)
+void IconTabBar::addIconTab(const QString &icon, const QString &text)
 {
     setTabData(addTab(text), icon);
 }
 
-QSize SignTabBar::tabSizeHint(int index) const
+QSize IconTabBar::tabSizeHint(int index) const
 {
     return { QTabBar::tabSizeHint(index).width(), kHeight };
 }
 
-void SignTabBar::paintEvent(QPaintEvent *)
+void IconTabBar::paintEvent(QPaintEvent *)
 {
     QPainter p(this);
     p.setRenderHint(QPainter::Antialiasing);
@@ -86,7 +86,7 @@ void SignTabBar::paintEvent(QPaintEvent *)
     }
 }
 
-void SignTabBar::mouseMoveEvent(QMouseEvent *event)
+void IconTabBar::mouseMoveEvent(QMouseEvent *event)
 {
     const int hovered = tabAt(event->position().toPoint());
     if (hovered != m_hovered) {
@@ -98,7 +98,7 @@ void SignTabBar::mouseMoveEvent(QMouseEvent *event)
     QTabBar::mouseMoveEvent(event);
 }
 
-void SignTabBar::leaveEvent(QEvent *event)
+void IconTabBar::leaveEvent(QEvent *event)
 {
     m_hovered = -1;
     update();

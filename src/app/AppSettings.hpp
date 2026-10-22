@@ -73,6 +73,9 @@ public:
     [[nodiscard]] QString customPlayerCommand() const;
     void setCustomPlayerCommand(const QString &command);
 
+    [[nodiscard]] bool noticeHidden(const QString &key) const;
+    void setNoticeHidden(const QString &key, bool hidden);
+
     [[nodiscard]] bool autoUpdateCheck() const;
     void setAutoUpdateCheck(bool enabled);
 

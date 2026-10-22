@@ -21,7 +21,7 @@ QT_END_NAMESPACE
 class DigitalSignPage;
 class SavedSignaturesView;
 class SignaturePad;
-class SignTabBar;
+class IconTabBar;
 
 /// Creates a handwritten signature or collects the settings for a digital one.
 class SignDialog : public QDialog
@@ -60,7 +60,7 @@ private:
     QImage  m_image;
     QString m_imagePath;
 
-    SignTabBar     *m_tabBar       { nullptr };
+    IconTabBar     *m_tabBar       { nullptr };
     QStackedWidget *m_pages        { nullptr };
     QButtonGroup   *m_modeGroup    { nullptr };
     QStackedWidget *m_canvas       { nullptr };

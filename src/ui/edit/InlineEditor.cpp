@@ -10,7 +10,6 @@
 #include <QKeyEvent>
 #include <QFocusEvent>
 #include <QScrollBar>
-#include <QSet>
 #include <QWheelEvent>
 #include <QTextBlock>
 #include <QTextLayout>
@@ -65,7 +64,20 @@ InlineEditor::InlineEditor(QWidget *parent)
     });
     connect(this, &QTextEdit::cursorPositionChanged, this, [this]() {
         if (usesEngineLayout()) viewport()->update();
+        m_lookAt = -1;
+        Q_EMIT lookChanged();
     });
+}
+
+bool InlineEditor::focusInFormatting()
+{
+    // The format bar and the text panel act on the open edit; moving there
+    // must neither end it nor have the editor take the focus back.
+    for (QWidget *w = QApplication::focusWidget(); w; w = w->parentWidget())
+        if (w->objectName() == QLatin1String("TextPanel")
+                || w->objectName() == QLatin1String("FormatBar"))
+            return true;
+    return false;
 }
 
 bool InlineEditor::usesEngineLayout() const
@@ -225,13 +237,15 @@ void InlineEditor::refreshMetrics()
 {
     const QString text = plainText();
     if (!m_metricsStale && text == m_metricsText) return;
-    const QList<uint> points = text.toUcs4();
-    QSet<uint> characters(points.cbegin(), points.cend());
-    if (m_metricsStale || characters != m_metricsCharacters)
+    const QList<TextLayout::Source> sources = charSources();
+    if (m_metricsStale || !m_metrics.covers(text, sources))
         m_metrics = m_source ? m_source(text) : TextLayout::Metrics();
-    m_metricsText       = text;
-    m_metricsCharacters = std::move(characters);
-    m_metricsStale      = false;
+    m_metricsText  = text;
+    m_metricsStale = false;
+    m_styles  = m_metrics.stylesOf(text, sources);
+    m_sizePt  = m_metrics.sizeFor(m_styles);
+    m_advance = m_metrics.advanceFor(m_styles);
+    Q_EMIT lookChanged();
 }
 
 void InlineEditor::relayout()
@@ -241,17 +255,17 @@ void InlineEditor::relayout()
     refreshMetrics();
     if (!m_metrics.isValid()) return;
 
-    const double size = m_metrics.sizePt;
+    const double size = m_sizePt;
     TextLayout::Params params;
     params.lineStepPt         = TextLayout::lineStep(size, m_lineSpacingPt);
     params.paragraphSpacingPt = m_box.paragraphSpacingPt;
     params.charSpacingPt      = m_box.characterSpacingPt;
     params.list               = m_box.listStyle;
     params.align              = m_box.horizontalAlign;
+    params.anchor             = m_metrics.anchor;
     const TextLayout::Result result = TextLayout::layout(
         m_metricsText, params, m_box, QRectF(m_metrics.boxTopLeft, m_boundsPt), size,
-        m_wraps, m_hasAnchor, m_anchorPt, m_metrics.originals,
-        [this](char32_t cp) { return m_metrics.advance(cp); });
+        m_wraps, m_hasAnchor, m_anchorPt, m_metrics.originals, m_advance);
     m_lines  = result.lines;
     m_origin = result.firstBaseline;
     viewport()->update();
@@ -307,8 +321,8 @@ int InlineEditor::lineOf(int position) const
 
 double InlineEditor::advanceTo(const TextLayout::Line &line, int position) const
 {
-    return TextLayout::xAt(line, m_metricsText, position, m_box.characterSpacingPt,
-                           [this](char32_t cp) { return m_metrics.advance(cp); });
+    if (!m_advance) return 0.0;
+    return TextLayout::xAt(line, m_metricsText, position, m_box.characterSpacingPt, m_advance);
 }
 
 QPointF InlineEditor::caretPointPt(int position) const
@@ -322,7 +336,7 @@ QPointF InlineEditor::caretPointPt(int position) const
 QRectF InlineEditor::caretRectPx(int position) const
 {
     const QPointF p = caretPointPt(position) * m_scale + m_pixelOffset;
-    const double sizePx = m_metrics.sizePt * m_scale;
+    const double sizePx = m_sizePt * m_scale;
     return QRectF(p.x(), p.y() - sizePx * 0.85, qMax(1.0, sizePx / 11.0), sizePx * 1.1);
 }
 
@@ -343,9 +357,9 @@ int InlineEditor::positionOnLine(int lineIndex, double xPt) const
 
 int InlineEditor::positionAt(const QPoint &viewportPos) const
 {
-    if (m_lines.isEmpty()) return textCursor().position();
+    if (m_lines.isEmpty()) return cursorForPosition(viewportPos).position();
     const double yPt = (viewportPos.y() - m_pixelOffset.y()) / m_scale;
-    const double size = m_metrics.sizePt;
+    const double size = m_sizePt;
     int lineIndex = 0;
     double bestDistance = std::numeric_limits<double>::max();
     for (int i = 0; i < m_lines.size(); ++i) {
@@ -423,12 +437,34 @@ qreal InlineEditor::firstBaselineOffset() const
     return QFontMetricsF(styledFont(m_currentFontPx)).ascent();
 }
 
+QList<QList<double>> InlineEditor::paragraphCharXPt() const
+{
+    // Where each character of each paragraph is set, from where the paragraph
+    // starts, and last where it ends, spaces at the end included.
+    QList<QList<double>> out;
+    if (!usesEngineLayout() || !m_metrics.isValid() || m_metricsText != toPlainText()) return out;
+    QList<double> starts;
+    for (const TextLayout::Line &line : m_lines) {
+        while (out.size() <= line.paragraph) {
+            out.append(QList<double>());
+            starts.append(line.x);
+        }
+        QList<double> &xs = out[line.paragraph];
+        if (!xs.isEmpty()) xs.removeLast();
+        const double shift = line.x - starts.at(line.paragraph);
+        for (int i = line.start; i <= line.start + line.length; ++i)
+            xs.append(shift + advanceTo(line, i));
+    }
+    return out;
+}
+
 double InlineEditor::contentWidthPt() const
 {
     if (usesEngineLayout() && m_metrics.isValid()) {
         double width = 0.0;
+        // What the text needs, not where its alignment puts it in a wider box.
         for (const TextLayout::Line &line : m_lines)
-            width = qMax(width, m_origin.x() + line.x + line.width);
+            width = qMax(width, m_origin.x() + line.x - line.alignShift + line.width);
         return width + m_box.paddingPt;
     }
     qreal breit = 0.0;
@@ -441,7 +477,7 @@ double InlineEditor::contentWidthPt() const
 double InlineEditor::contentHeightPt() const
 {
     if (usesEngineLayout() && m_metrics.isValid()) {
-        const double size = m_metrics.sizePt;
+        const double size = m_sizePt;
         const bool anchored = m_hasAnchor && qFuzzyIsNull(m_box.paddingPt)
                            && m_box.verticalAlign == TextBoxProperties::VerticalAlign::Top;
         const double first = anchored ? m_anchorPt.y() : m_box.paddingPt + size * 0.8;
@@ -490,7 +526,7 @@ void InlineEditor::paintSelection(QPainter &p) const
     const int bis = qMax(c.anchor(), c.position());
     p.setPen(Qt::NoPen);
     p.setBrush(QColor(59, 130, 246, 38));
-    const double sizePx = m_metrics.sizePt * m_scale;
+    const double sizePx = m_sizePt * m_scale;
     for (const TextLayout::Line &line : m_lines) {
         const int a = qMax(von, line.start);
         const int b = qMin(bis, line.start + line.length);
@@ -598,6 +634,10 @@ void InlineEditor::keyPressEvent(QKeyEvent *e)
         Q_EMIT cancelled();
         return;
     }
+    if (e->matches(QKeySequence::Copy) && !textCursor().hasSelection()) {
+        copyAll();
+        return;
+    }
 
     if (e->key() == Qt::Key_Delete) {
         const QTextCursor c = textCursor();
@@ -668,6 +708,11 @@ void InlineEditor::wheelEvent(QWheelEvent *e)
 
 void InlineEditor::focusOutEvent(QFocusEvent *e)
 {
+    // A menu opened over the edit, its context menu included, does not end it.
+    if (e->reason() == Qt::PopupFocusReason) {
+        QTextEdit::focusOutEvent(e);
+        return;
+    }
     if (m_suppressFocusOut || m_dragMode) {
         m_suppressFocusOut = false;
         QTextEdit::focusOutEvent(e);
@@ -675,10 +720,7 @@ void InlineEditor::focusOutEvent(QFocusEvent *e)
     }
     QTextEdit::focusOutEvent(e);
 
-    for (QWidget *w = QApplication::focusWidget(); w; w = w->parentWidget()) {
-        if (w->objectName() == QLatin1String("TextPanel"))
-            return;
-    }
+    if (focusInFormatting()) return;
     if (!m_committing) {
         m_committing = true;
         Q_EMIT committed(toPlainText());

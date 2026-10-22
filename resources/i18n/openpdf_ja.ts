@@ -2,16 +2,92 @@
 <!DOCTYPE TS>
 <TS version="2.1" language="ja_JP">
 <context>
-    <name>CommentAnnotation</name>
+    <name>BookmarkPanel</name>
     <message>
-        <location filename="../../src/ui/tools/CommentAnnotation.cpp" line="35"/>
-        <source>Comment</source>
-        <translation>コメント</translation>
+        <location filename="../../src/ui/bookmarks/BookmarkPanel.cpp" line="175"/>
+        <source>Bookmarks</source>
+        <translation>しおり</translation>
     </message>
     <message>
-        <location filename="../../src/ui/tools/CommentAnnotation.cpp" line="65"/>
+        <location filename="../../src/ui/bookmarks/BookmarkPanel.cpp" line="176"/>
+        <source>Search bookmarks</source>
+        <translation>しおりを検索</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/bookmarks/BookmarkPanel.cpp" line="178"/>
+        <location filename="../../src/ui/bookmarks/BookmarkPanel.cpp" line="202"/>
+        <source>This document has no bookmarks.</source>
+        <translation>この文書にはしおりがありません。</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/bookmarks/BookmarkPanel.cpp" line="179"/>
+        <location filename="../../src/ui/bookmarks/BookmarkPanel.cpp" line="203"/>
+        <source>Open a PDF to view its bookmarks.</source>
+        <translation>PDF を開くとしおりが表示されます。</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/bookmarks/BookmarkPanel.cpp" line="180"/>
+        <source>Close bookmarks</source>
+        <translation>しおりを閉じる</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/bookmarks/BookmarkPanel.cpp" line="181"/>
+        <source>Add bookmark for current page</source>
+        <translation>現在のページにしおりを追加</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/bookmarks/BookmarkPanel.cpp" line="182"/>
+        <location filename="../../src/ui/bookmarks/BookmarkPanel.cpp" line="330"/>
+        <source>Rename bookmark</source>
+        <translation>しおりの名前を変更</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/bookmarks/BookmarkPanel.cpp" line="183"/>
+        <location filename="../../src/ui/bookmarks/BookmarkPanel.cpp" line="348"/>
+        <source>Delete bookmark</source>
+        <translation>しおりを削除</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/bookmarks/BookmarkPanel.cpp" line="184"/>
+        <source>Move bookmark up</source>
+        <translation>しおりを上へ移動</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/bookmarks/BookmarkPanel.cpp" line="185"/>
+        <source>Move bookmark down</source>
+        <translation>しおりを下へ移動</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/bookmarks/BookmarkPanel.cpp" line="307"/>
+        <source>Add bookmark</source>
+        <translation>しおりを追加</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/bookmarks/BookmarkPanel.cpp" line="307"/>
+        <location filename="../../src/ui/bookmarks/BookmarkPanel.cpp" line="330"/>
+        <source>Title:</source>
+        <translation>タイトル:</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/bookmarks/BookmarkPanel.cpp" line="308"/>
+        <source>Page %1</source>
+        <translation>%1 ページ</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/bookmarks/BookmarkPanel.cpp" line="349"/>
+        <source>Delete &quot;%1&quot; and its child bookmarks?</source>
+        <translation>「%1」とその下位のしおりを削除しますか?</translation>
+    </message>
+</context>
+<context>
+    <name>CommentAnnotation</name>
+    <message>
+        <source>Comment</source>
+        <translation type="vanished">コメント</translation>
+    </message>
+    <message>
         <source>Enter comment…</source>
-        <translation>コメントを入力…</translation>
+        <translation type="vanished">コメントを入力…</translation>
     </message>
 </context>
 <context>
@@ -93,20 +169,178 @@
         <translation>作成</translation>
     </message>
     <message>
-        <location filename="../../src/ui/sign/CreateCertificateDialog.cpp" line="123"/>
+        <location filename="../../src/ui/sign/CreateCertificateDialog.cpp" line="127"/>
         <source>The certificate could not be created.</source>
         <translation>証明書を作成できませんでした。</translation>
     </message>
 </context>
 <context>
+    <name>DigitalSignPage</name>
+    <message>
+        <location filename="../../src/ui/sign/DigitalSignPage.cpp" line="92"/>
+        <source>Select certificate</source>
+        <translation>証明書を選択</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/sign/DigitalSignPage.cpp" line="113"/>
+        <location filename="../../src/ui/sign/DigitalSignPage.cpp" line="342"/>
+        <source>Please select a certificate...</source>
+        <translation>証明書を選択してください...</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/sign/DigitalSignPage.cpp" line="150"/>
+        <source>Advanced</source>
+        <translation>詳細設定</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/sign/DigitalSignPage.cpp" line="152"/>
+        <source>Additional signing options.</source>
+        <translation>追加の署名オプション。</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/sign/DigitalSignPage.cpp" line="180"/>
+        <source>Not available yet</source>
+        <translation>まだ利用できません</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/sign/DigitalSignPage.cpp" line="182"/>
+        <source>Add timestamp</source>
+        <translation>タイムスタンプを追加</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/sign/DigitalSignPage.cpp" line="183"/>
+        <source>Include a trusted timestamp in the signature.</source>
+        <translation>信頼できるタイムスタンプを署名に含めます。</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/sign/DigitalSignPage.cpp" line="184"/>
+        <source>Lock document after signing</source>
+        <translation>署名後に文書をロック</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/sign/DigitalSignPage.cpp" line="185"/>
+        <source>Prevent further changes to the PDF.</source>
+        <translation>PDF へのそれ以降の変更を防ぎます。</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/sign/DigitalSignPage.cpp" line="190"/>
+        <source>Invisible signature</source>
+        <translation>不可視の署名</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/sign/DigitalSignPage.cpp" line="191"/>
+        <source>Sign the document without a visible signature.</source>
+        <translation>表示される署名なしで文書に署名します。</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/sign/DigitalSignPage.cpp" line="224"/>
+        <source>Profile</source>
+        <translation>プロファイル</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/sign/DigitalSignPage.cpp" line="240"/>
+        <source>Default</source>
+        <translation>既定</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/sign/DigitalSignPage.cpp" line="240"/>
+        <source>Unnamed profile</source>
+        <translation>名前のないプロファイル</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/sign/DigitalSignPage.cpp" line="282"/>
+        <source>Profile %1</source>
+        <translation>プロファイル %1</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/sign/DigitalSignPage.cpp" line="291"/>
+        <source>%1 (copy)</source>
+        <translation>%1 (コピー)</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/sign/DigitalSignPage.cpp" line="298"/>
+        <source>Delete profile</source>
+        <translation>プロファイルを削除</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/sign/DigitalSignPage.cpp" line="299"/>
+        <source>Delete the profile &quot;%1&quot;?</source>
+        <translation>プロファイル「%1」を削除しますか?</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/sign/DigitalSignPage.cpp" line="329"/>
+        <location filename="../../src/ui/sign/DigitalSignPage.cpp" line="394"/>
+        <source>Unnamed certificate</source>
+        <translation>名前のない証明書</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/sign/DigitalSignPage.cpp" line="331"/>
+        <source>%1, expired</source>
+        <translation>%1 (期限切れ)</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/sign/DigitalSignPage.cpp" line="336"/>
+        <source>Valid until %1</source>
+        <translation>有効期限: %1</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/sign/DigitalSignPage.cpp" line="340"/>
+        <source>New certificate...</source>
+        <translation>新しい証明書...</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/sign/DigitalSignPage.cpp" line="341"/>
+        <source>No certificates found</source>
+        <translation>証明書が見つかりません</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/sign/DigitalSignPage.cpp" line="370"/>
+        <source>Delete certificate...</source>
+        <translation>証明書を削除...</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/sign/DigitalSignPage.cpp" line="373"/>
+        <location filename="../../src/ui/sign/DigitalSignPage.cpp" line="387"/>
+        <source>Only certificates created in OpenPDF Studio can be deleted.</source>
+        <translation>削除できるのは OpenPDF Studio で作成した証明書だけです。</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/sign/DigitalSignPage.cpp" line="386"/>
+        <location filename="../../src/ui/sign/DigitalSignPage.cpp" line="395"/>
+        <location filename="../../src/ui/sign/DigitalSignPage.cpp" line="402"/>
+        <source>Delete certificate</source>
+        <translation>証明書を削除</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/sign/DigitalSignPage.cpp" line="396"/>
+        <source>Delete the certificate &quot;%1&quot;? Its private key is deleted as well, so it can no longer sign. Signatures already made with it stay valid.</source>
+        <translation>証明書「%1」を削除しますか? 秘密鍵も削除されるため、この証明書では署名できなくなります。作成済みの署名は有効なままです。</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/sign/DigitalSignPage.cpp" line="403"/>
+        <source>The certificate could not be deleted.</source>
+        <translation>証明書を削除できませんでした。</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/sign/DigitalSignPage.cpp" line="206"/>
+        <source>Trusted signers</source>
+        <translation>信頼する署名者</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/sign/DigitalSignPage.cpp" line="207"/>
+        <source>Manage...</source>
+        <translation>管理…</translation>
+    </message>
+</context>
+<context>
     <name>DigitalSignatureLayer</name>
     <message>
-        <location filename="../../src/ui/view/DigitalSignatureLayer.cpp" line="31"/>
+        <location filename="../../src/ui/view/DigitalSignatureLayer.cpp" line="29"/>
         <source>Digital signature added</source>
         <translation>デジタル署名を追加</translation>
     </message>
     <message>
-        <location filename="../../src/ui/view/DigitalSignatureLayer.cpp" line="39"/>
+        <location filename="../../src/ui/view/DigitalSignatureLayer.cpp" line="37"/>
         <source>Signed when the document is saved</source>
         <translation>文書の保存時に署名されます</translation>
     </message>
@@ -114,213 +348,149 @@
 <context>
     <name>DigitalSigning</name>
     <message>
-        <location filename="../../src/ui/sign/DigitalSigning.cpp" line="142"/>
+        <location filename="../../src/ui/sign/DigitalSigning.cpp" line="31"/>
         <source>This build cannot sign digitally.</source>
         <translation>このビルドではデジタル署名できません。</translation>
     </message>
     <message>
-        <location filename="../../src/ui/sign/DigitalSigning.cpp" line="144"/>
+        <location filename="../../src/ui/sign/DigitalSigning.cpp" line="33"/>
         <source>The certificate or its private key was not found. Check that the card or token is connected.</source>
         <translation>証明書またはその秘密鍵が見つかりません。カードまたはトークンが接続されているか確認してください。</translation>
     </message>
     <message>
-        <location filename="../../src/ui/sign/DigitalSigning.cpp" line="147"/>
+        <location filename="../../src/ui/sign/DigitalSigning.cpp" line="36"/>
         <source>The card or token asks for a PIN. The document was not signed.</source>
         <translation>カードまたはトークンが PIN を要求しています。文書は署名されていません。</translation>
     </message>
     <message>
-        <location filename="../../src/ui/sign/DigitalSigning.cpp" line="149"/>
+        <location filename="../../src/ui/sign/DigitalSigning.cpp" line="38"/>
         <source>The PIN is wrong. The document was not signed.</source>
         <translation>PIN が正しくありません。文書は署名されていません。</translation>
     </message>
     <message>
-        <location filename="../../src/ui/sign/DigitalSigning.cpp" line="151"/>
+        <location filename="../../src/ui/sign/DigitalSigning.cpp" line="40"/>
         <source>The PIN is locked. The card or token has to be unlocked first.</source>
         <translation>PIN がロックされています。先にカードまたはトークンのロックを解除してください。</translation>
     </message>
     <message>
-        <location filename="../../src/ui/sign/DigitalSigning.cpp" line="153"/>
+        <location filename="../../src/ui/sign/DigitalSigning.cpp" line="42"/>
         <source>Password-protected documents cannot be signed yet.</source>
         <translation>パスワードで保護された文書にはまだ署名できません。</translation>
     </message>
     <message>
-        <location filename="../../src/ui/sign/DigitalSigning.cpp" line="155"/>
+        <location filename="../../src/ui/sign/DigitalSigning.cpp" line="44"/>
         <source>The document could not be prepared for signing.</source>
         <translation>署名のために文書を準備できませんでした。</translation>
     </message>
     <message>
-        <location filename="../../src/ui/sign/DigitalSigning.cpp" line="157"/>
+        <location filename="../../src/ui/sign/DigitalSigning.cpp" line="46"/>
         <source>Could not write &quot;%1&quot;.</source>
         <translation>「%1」を書き込めませんでした。</translation>
     </message>
     <message>
-        <location filename="../../src/ui/sign/DigitalSigning.cpp" line="162"/>
+        <location filename="../../src/ui/sign/DigitalSigning.cpp" line="51"/>
         <source>Signing failed. The document was not signed.</source>
         <translation>署名に失敗しました。文書は署名されていません。</translation>
     </message>
 </context>
 <context>
-    <name>DigitalSignPage</name>
+    <name>DocumentImport</name>
     <message>
-        <location filename="../../src/ui/sign/DigitalSignPage.cpp" line="91"/>
-        <source>Select certificate</source>
-        <translation>証明書を選択</translation>
+        <source>Images</source>
+        <translation type="vanished">画像</translation>
     </message>
     <message>
-        <location filename="../../src/ui/sign/DigitalSignPage.cpp" line="112"/>
-        <location filename="../../src/ui/sign/DigitalSignPage.cpp" line="329"/>
-        <source>Please select a certificate...</source>
-        <translation>証明書を選択してください...</translation>
+        <location filename="../../src/engine/import/DocumentImport.cpp" line="79"/>
+        <source>All files</source>
+        <translation>すべてのファイル</translation>
     </message>
     <message>
-        <location filename="../../src/ui/sign/DigitalSignPage.cpp" line="149"/>
-        <source>Advanced</source>
-        <translation>詳細設定</translation>
+        <location filename="../../src/engine/import/DocumentImport.cpp" line="77"/>
+        <source>All supported files</source>
+        <translation>対応するすべてのファイル</translation>
     </message>
     <message>
-        <location filename="../../src/ui/sign/DigitalSignPage.cpp" line="151"/>
-        <source>Additional signing options.</source>
-        <translation>追加の署名オプション。</translation>
+        <location filename="../../src/engine/import/DocumentImport.cpp" line="66"/>
+        <source>PDF files</source>
+        <translation>PDF ファイル</translation>
     </message>
     <message>
-        <location filename="../../src/ui/sign/DigitalSignPage.cpp" line="179"/>
-        <source>Not available yet</source>
-        <translation>まだ利用できません</translation>
+        <location filename="../../src/engine/import/DocumentImport.cpp" line="70"/>
+        <source>Word documents</source>
+        <translation>Word 文書</translation>
     </message>
     <message>
-        <location filename="../../src/ui/sign/DigitalSignPage.cpp" line="181"/>
-        <source>Add timestamp</source>
-        <translation>タイムスタンプを追加</translation>
+        <location filename="../../src/engine/import/DocumentImport.cpp" line="56"/>
+        <source>Word document</source>
+        <translation>Word 文書</translation>
     </message>
     <message>
-        <location filename="../../src/ui/sign/DigitalSignPage.cpp" line="182"/>
-        <source>Include a trusted timestamp in the signature.</source>
-        <translation>信頼できるタイムスタンプを署名に含めます。</translation>
+        <location filename="../../src/engine/import/DocumentImport.cpp" line="57"/>
+        <location filename="../../src/engine/import/DocumentImport.cpp" line="71"/>
+        <source>OpenDocument text</source>
+        <translation>OpenDocument テキスト</translation>
     </message>
     <message>
-        <location filename="../../src/ui/sign/DigitalSignPage.cpp" line="183"/>
-        <source>Lock document after signing</source>
-        <translation>署名後に文書をロック</translation>
+        <location filename="../../src/engine/import/DocumentImport.cpp" line="58"/>
+        <source>Image</source>
+        <translation>画像</translation>
     </message>
     <message>
-        <location filename="../../src/ui/sign/DigitalSignPage.cpp" line="184"/>
-        <source>Prevent further changes to the PDF.</source>
-        <translation>PDF へのそれ以降の変更を防ぎます。</translation>
+        <source>The image is too large.</source>
+        <translation type="vanished">画像が大きすぎます。</translation>
     </message>
     <message>
-        <location filename="../../src/ui/sign/DigitalSignPage.cpp" line="189"/>
-        <source>Invisible signature</source>
-        <translation>不可視の署名</translation>
+        <source>The PDF could not be written.</source>
+        <translation type="vanished">PDF を書き込めませんでした。</translation>
     </message>
     <message>
-        <location filename="../../src/ui/sign/DigitalSignPage.cpp" line="190"/>
-        <source>Sign the document without a visible signature.</source>
-        <translation>表示される署名なしで文書に署名します。</translation>
+        <location filename="../../src/engine/import/DocumentImport.cpp" line="88"/>
+        <source>The file does not exist.</source>
+        <translation>ファイルが存在しません。</translation>
     </message>
     <message>
-        <location filename="../../src/ui/sign/DigitalSignPage.cpp" line="211"/>
-        <source>Profile</source>
-        <translation>プロファイル</translation>
+        <location filename="../../src/engine/import/DocumentImport.cpp" line="112"/>
+        <source>The file could not be read. It may be damaged.</source>
+        <translation>ファイルを読み取れませんでした。壊れている可能性があります。</translation>
     </message>
     <message>
-        <location filename="../../src/ui/sign/DigitalSignPage.cpp" line="227"/>
-        <source>Default</source>
-        <translation>既定</translation>
+        <source>The file has no readable document part.</source>
+        <translation type="vanished">このファイルには読み取れる文書部分がありません。</translation>
     </message>
     <message>
-        <location filename="../../src/ui/sign/DigitalSignPage.cpp" line="227"/>
-        <source>Unnamed profile</source>
-        <translation>名前のないプロファイル</translation>
+        <source>The document is damaged: %1</source>
+        <translation type="vanished">文書が壊れています: %1</translation>
     </message>
     <message>
-        <location filename="../../src/ui/sign/DigitalSignPage.cpp" line="269"/>
-        <source>Profile %1</source>
-        <translation>プロファイル %1</translation>
+        <location filename="../../src/engine/import/DocumentImport.cpp" line="98"/>
+        <source>This build was made without zlib and cannot read Word or OpenDocument files.</source>
+        <translation>このビルドは zlib なしで作成されており、Word や OpenDocument のファイルを読めません。</translation>
     </message>
     <message>
-        <location filename="../../src/ui/sign/DigitalSignPage.cpp" line="278"/>
-        <source>%1 (copy)</source>
-        <translation>%1 (コピー)</translation>
+        <location filename="../../src/engine/import/DocumentImport.cpp" line="103"/>
+        <source>This is an older Word file that only carries a .docx name. Save it as a real .docx first.</source>
+        <translation>これは .docx という名前だけの古い Word ファイルです。まず本来の .docx として保存してください。</translation>
     </message>
     <message>
-        <location filename="../../src/ui/sign/DigitalSignPage.cpp" line="285"/>
-        <source>Delete profile</source>
-        <translation>プロファイルを削除</translation>
-    </message>
-    <message>
-        <location filename="../../src/ui/sign/DigitalSignPage.cpp" line="286"/>
-        <source>Delete the profile &quot;%1&quot;?</source>
-        <translation>プロファイル「%1」を削除しますか?</translation>
-    </message>
-    <message>
-        <location filename="../../src/ui/sign/DigitalSignPage.cpp" line="316"/>
-        <location filename="../../src/ui/sign/DigitalSignPage.cpp" line="381"/>
-        <source>Unnamed certificate</source>
-        <translation>名前のない証明書</translation>
-    </message>
-    <message>
-        <location filename="../../src/ui/sign/DigitalSignPage.cpp" line="318"/>
-        <source>%1, expired</source>
-        <translation>%1 (期限切れ)</translation>
-    </message>
-    <message>
-        <location filename="../../src/ui/sign/DigitalSignPage.cpp" line="323"/>
-        <source>Valid until %1</source>
-        <translation>有効期限: %1</translation>
-    </message>
-    <message>
-        <location filename="../../src/ui/sign/DigitalSignPage.cpp" line="327"/>
-        <source>New certificate...</source>
-        <translation>新しい証明書...</translation>
-    </message>
-    <message>
-        <location filename="../../src/ui/sign/DigitalSignPage.cpp" line="328"/>
-        <source>No certificates found</source>
-        <translation>証明書が見つかりません</translation>
-    </message>
-    <message>
-        <location filename="../../src/ui/sign/DigitalSignPage.cpp" line="357"/>
-        <source>Delete certificate...</source>
-        <translation>証明書を削除...</translation>
-    </message>
-    <message>
-        <location filename="../../src/ui/sign/DigitalSignPage.cpp" line="360"/>
-        <location filename="../../src/ui/sign/DigitalSignPage.cpp" line="374"/>
-        <source>Only certificates created in OpenPDF Studio can be deleted.</source>
-        <translation>削除できるのは OpenPDF Studio で作成した証明書だけです。</translation>
-    </message>
-    <message>
-        <location filename="../../src/ui/sign/DigitalSignPage.cpp" line="373"/>
-        <location filename="../../src/ui/sign/DigitalSignPage.cpp" line="382"/>
-        <location filename="../../src/ui/sign/DigitalSignPage.cpp" line="389"/>
-        <source>Delete certificate</source>
-        <translation>証明書を削除</translation>
-    </message>
-    <message>
-        <location filename="../../src/ui/sign/DigitalSignPage.cpp" line="383"/>
-        <source>Delete the certificate &quot;%1&quot;? Its private key is deleted as well, so it can no longer sign. Signatures already made with it stay valid.</source>
-        <translation>証明書「%1」を削除しますか? 秘密鍵も削除されるため、この証明書では署名できなくなります。作成済みの署名は有効なままです。</translation>
-    </message>
-    <message>
-        <location filename="../../src/ui/sign/DigitalSignPage.cpp" line="390"/>
-        <source>The certificate could not be deleted.</source>
-        <translation>証明書を削除できませんでした。</translation>
+        <location filename="../../src/engine/import/DocumentImport.cpp" line="131"/>
+        <source>%1 files cannot be opened.</source>
+        <translation>%1 ファイルは開けません。</translation>
     </message>
 </context>
 <context>
     <name>DocumentView</name>
     <message>
-        <location filename="../../src/ui/DocumentView.cpp" line="34"/>
-        <location filename="../../src/ui/DocumentView.cpp" line="171"/>
         <source>Drop a PDF here or click a tab to open</source>
-        <translation>ここにPDFをドロップするか、タブをクリックして開く</translation>
+        <translation type="vanished">ここにPDFをドロップするか、タブをクリックして開く</translation>
     </message>
     <message>
-        <location filename="../../src/ui/DocumentView.cpp" line="173"/>
+        <location filename="../../src/ui/DocumentView.cpp" line="308"/>
         <source>PDF rendering is not available in this build.
 Please use a build that includes Qt6::Pdf support.
 (See build-win.sh for instructions.)</source>
-        <translation type="unfinished"></translation>
+        <translation>このビルドでは PDF を描画できません。
+Qt6::Pdf に対応したビルドを使用してください。
+（手順は build-win.sh を参照してください。）</translation>
     </message>
     <message>
         <source>Add Text</source>
@@ -366,36 +536,994 @@ Please use a build that includes Qt6::Pdf support.
         <source>Move Image</source>
         <translation type="vanished">画像を移動</translation>
     </message>
+    <message>
+        <location filename="../../src/ui/DocumentView.cpp" line="366"/>
+        <source>Shift+click extends the selection</source>
+        <translation>Shift+クリックで選択範囲を広げます</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/DocumentView.cpp" line="369"/>
+        <source>Shift: straight line in 45° steps</source>
+        <translation>Shift：45° 単位の直線</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/DocumentView.cpp" line="371"/>
+        <source>Shift: draw over detected images, keep the aspect ratio, move along one axis</source>
+        <translation>Shift：検出された画像の上に描く、縦横比を保つ、一方向にだけ移動</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/DocumentView.cpp" line="374"/>
+        <source>Shift+drag edits the text inside the box</source>
+        <translation>Shift+ドラッグで枠内の文字を編集します</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/DocumentView.cpp" line="538"/>
+        <location filename="../../src/ui/view/ImageAnnotationLayer.cpp" line="299"/>
+        <source>Paste</source>
+        <translation>貼り付け</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/DocumentView.cpp" line="543"/>
+        <location filename="../../src/ui/view/ImageAnnotationLayer.cpp" line="311"/>
+        <source>Delete</source>
+        <translation>削除</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/DocumentView.cpp" line="532"/>
+        <location filename="../../src/ui/view/ImageAnnotationLayer.cpp" line="296"/>
+        <source>Copy</source>
+        <translation>コピー</translation>
+    </message>
+    <message>
+        <source>Cut</source>
+        <translation type="vanished">切り取り</translation>
+    </message>
+    <message>
+        <source>Insert image</source>
+        <translation type="vanished">画像を挿入</translation>
+    </message>
+    <message>
+        <source>All files (*)</source>
+        <translation type="vanished">すべてのファイル (*)</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/DocumentView.cpp" line="306"/>
+        <location filename="../../src/ui/DocumentView_Edit.cpp" line="96"/>
+        <source>Drop a document here or click a tab to open</source>
+        <translation>ここにドキュメントをドロップするか、タブをクリックして開きます</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/view/PageLayoutEngine_Grid.cpp" line="68"/>
+        <source>Page %1</source>
+        <translation>%1 ページ</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/DocumentView_Document.cpp" line="252"/>
+        <source>Signature removed</source>
+        <translation>署名を削除しました</translation>
+    </message>
+</context>
+<context>
+    <name>DocxReader</name>
+    <message>
+        <location filename="../../src/engine/import/DocxReader.cpp" line="441"/>
+        <source>The file has no readable document part.</source>
+        <translation>このファイルには読み取れる文書部分がありません。</translation>
+    </message>
+    <message>
+        <location filename="../../src/engine/import/DocxReader.cpp" line="470"/>
+        <source>The document is damaged: %1</source>
+        <translation>文書が破損しています: %1</translation>
+    </message>
+</context>
+<context>
+    <name>DrawBar</name>
+    <message>
+        <location filename="../../src/ui/draw/DrawBar.cpp" line="185"/>
+        <source>Pen</source>
+        <translation>ペン</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/draw/DrawBar.cpp" line="186"/>
+        <source>Highlighter</source>
+        <translation>蛍光ペン</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/draw/DrawBar.cpp" line="187"/>
+        <source>Eraser</source>
+        <translation>消しゴム</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/draw/DrawBar.cpp" line="188"/>
+        <source>Thin</source>
+        <translation>細</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/draw/DrawBar.cpp" line="188"/>
+        <source>Medium</source>
+        <translation>中</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/draw/DrawBar.cpp" line="188"/>
+        <source>Thick</source>
+        <translation>太</translation>
+    </message>
+</context>
+<context>
+    <name>DrawingLayer</name>
+    <message>
+        <location filename="../../src/ui/draw/DrawingLayer.cpp" line="291"/>
+        <source>Erase drawing</source>
+        <translation>描画を消去</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/draw/DrawingLayer.cpp" line="292"/>
+        <source>Draw stroke</source>
+        <translation>線を描く</translation>
+    </message>
+</context>
+<context>
+    <name>EditController</name>
+    <message>
+        <location filename="../../src/ui/edit/EditController.cpp" line="37"/>
+        <source>Text bearbeiten</source>
+        <translation>テキストを編集</translation>
+    </message>
+</context>
+<context>
+    <name>EditNotice</name>
+    <message>
+        <location filename="../../src/ui/edit/EditNotice.cpp" line="40"/>
+        <source>Don&apos;t show again</source>
+        <translation>今後表示しない</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/edit/EditNotice.cpp" line="53"/>
+        <source>Close</source>
+        <translation>閉じる</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/edit/EditNotice.cpp" line="80"/>
+        <source>This text was scanned. It is recognised automatically, which can cause errors, and its font or font size can differ from the original. Please check the result.</source>
+        <translation>このテキストはスキャンされたものです。自動で認識されます。その際に誤りが生じたり、フォントやフォントサイズが原本と異なる場合があります。結果を確認してください。</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/edit/EditNotice.cpp" line="83"/>
+        <source>The font of this text cannot be used for editing. The text is set in the closest font available, which can look a little different.</source>
+        <translation>このテキストのフォントは編集に使用できません。テキストは利用可能な最も近いフォントで組まれるため、少し違って見える場合があります。</translation>
+    </message>
+</context>
+<context>
+    <name>ExportDialog</name>
+    <message>
+        <source>Not available yet.</source>
+        <translation type="vanished">まだ使用できません。</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/export/ExportDialog.cpp" line="116"/>
+        <source>Export - OpenPDF Studio</source>
+        <translation>エクスポート - OpenPDF Studio</translation>
+    </message>
+    <message>
+        <source>Only available when exporting as PDF.</source>
+        <translation type="vanished">PDF としてエクスポートする場合のみ使用できます。</translation>
+    </message>
+    <message>
+        <source>Not used when exporting PNG images.</source>
+        <translation type="vanished">PNG 画像のエクスポートでは使用されません。</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/export/ExportDialog.cpp" line="196"/>
+        <source>Not available in this build: rewriting a PDF&apos;s annotations, forms, fonts or encryption needs qpdf.</source>
+        <translation>このビルドでは使用できません：PDF の注釈、フォーム、フォント、暗号化を書き換えるには qpdf が必要です。</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/export/ExportDialog.cpp" line="210"/>
+        <location filename="../../src/ui/export/ExportDialog.cpp" line="654"/>
+        <source>Estimated file size: unknown</source>
+        <translation>推定ファイルサイズ：不明</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/export/ExportDialog.cpp" line="217"/>
+        <source>Estimated file size: unknown (check the page range)</source>
+        <translation>推定ファイルサイズ：不明（ページ範囲を確認してください）</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/export/ExportDialog.cpp" line="267"/>
+        <source>Estimated file size: ~%1  (%2 of %3 pages)</source>
+        <translation>推定ファイルサイズ：約 %1（%3 ページ中 %2 ページ）</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/export/ExportDialog.cpp" line="319"/>
+        <source>Select Save Location</source>
+        <translation>保存場所を選択</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/export/ExportDialog.cpp" line="330"/>
+        <source>Missing filename</source>
+        <translation>ファイル名がありません</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/export/ExportDialog.cpp" line="330"/>
+        <source>Please enter a filename.</source>
+        <translation>ファイル名を入力してください。</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/export/ExportDialog.cpp" line="334"/>
+        <source>Missing location</source>
+        <translation>保存場所がありません</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/export/ExportDialog.cpp" line="334"/>
+        <source>Please select a save location.</source>
+        <translation>保存場所を選択してください。</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/export/ExportDialog.cpp" line="339"/>
+        <source>No document</source>
+        <translation>ドキュメントがありません</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/export/ExportDialog.cpp" line="339"/>
+        <source>Please open a PDF document first.</source>
+        <translation>先に PDF ドキュメントを開いてください。</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/export/ExportDialog.cpp" line="347"/>
+        <source>Invalid page range</source>
+        <translation>無効なページ範囲</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/export/ExportDialog.cpp" line="348"/>
+        <source>&quot;%1&quot; is not a valid range for a document with %2 pages.
+Use page numbers like 1-3, 5, 8-10.</source>
+        <translation>「%1」は %2 ページのドキュメントに対して有効な範囲ではありません。
+1-3, 5, 8-10 のようなページ番号を使用してください。</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/export/ExportDialog.cpp" line="371"/>
+        <source>%1 image files</source>
+        <translation>%1 個の画像ファイル</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/export/ExportDialog.cpp" line="372"/>
+        <source>Overwrite existing file?</source>
+        <translation>既存のファイルを上書きしますか？</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/export/ExportDialog.cpp" line="373"/>
+        <source>%1 already exists. Do you want to overwrite it?</source>
+        <translation>%1 は既に存在します。上書きしますか？</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/export/ExportDialog.cpp" line="467"/>
+        <source>Best for sharing and printing</source>
+        <translation>共有と印刷に最適</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/export/ExportDialog.cpp" line="470"/>
+        <source>Long-term archiving</source>
+        <translation>長期保存</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/export/ExportDialog.cpp" line="472"/>
+        <source>Edit in Microsoft Word</source>
+        <translation>Microsoft Word で編集</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/export/ExportDialog.cpp" line="475"/>
+        <source>Image</source>
+        <translation>画像</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/export/ExportDialog.cpp" line="475"/>
+        <source>PNG images</source>
+        <translation>PNG 画像</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/export/ExportDialog.cpp" line="502"/>
+        <source>File</source>
+        <translation>ファイル</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/export/ExportDialog.cpp" line="503"/>
+        <source>Choose where to save your file.</source>
+        <translation>ファイルの保存先を選択します。</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/export/ExportDialog.cpp" line="516"/>
+        <source>Browse…</source>
+        <translation>参照…</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/export/ExportDialog.cpp" line="521"/>
+        <source>Filename</source>
+        <translation>ファイル名</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/export/ExportDialog.cpp" line="523"/>
+        <source>Save location</source>
+        <translation>保存場所</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/export/ExportDialog.cpp" line="528"/>
+        <source>Open file after export</source>
+        <translation>エクスポート後にファイルを開く</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/export/ExportDialog.cpp" line="530"/>
+        <source>Automatically open the exported file when the process completes.</source>
+        <translation>完了後にエクスポートしたファイルを自動的に開きます。</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/export/ExportDialog.cpp" line="537"/>
+        <source>Pages</source>
+        <translation>ページ</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/export/ExportDialog.cpp" line="538"/>
+        <source>Select which pages to export.</source>
+        <translation>エクスポートするページを選択します。</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/export/ExportDialog.cpp" line="541"/>
+        <source>All pages (%1)</source>
+        <translation>すべてのページ（%1）</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/export/ExportDialog.cpp" line="542"/>
+        <source>All pages</source>
+        <translation>すべてのページ</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/export/ExportDialog.cpp" line="543"/>
+        <source>Current page (%1)</source>
+        <translation>現在のページ（%1）</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/export/ExportDialog.cpp" line="544"/>
+        <source>Current page</source>
+        <translation>現在のページ</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/export/ExportDialog.cpp" line="545"/>
+        <source>Range</source>
+        <translation>範囲</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/export/ExportDialog.cpp" line="549"/>
+        <source>For example: 1-3, 5, 8-10</source>
+        <translation>例：1-3, 5, 8-10</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/export/ExportDialog.cpp" line="575"/>
+        <source>Settings</source>
+        <translation>設定</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/export/ExportDialog.cpp" line="576"/>
+        <source>Adjust quality and include additional content.</source>
+        <translation>品質を調整し、追加のコンテンツを含めます。</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/export/ExportDialog.cpp" line="581"/>
+        <source>Compress images</source>
+        <translation>画像を圧縮</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/export/ExportDialog.cpp" line="585"/>
+        <source>Quality</source>
+        <translation>品質</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/export/ExportDialog.cpp" line="596"/>
+        <source>Maximum</source>
+        <translation>最高</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/export/ExportDialog.cpp" line="597"/>
+        <source>High</source>
+        <translation>高</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/export/ExportDialog.cpp" line="598"/>
+        <source>Medium</source>
+        <translation>中</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/export/ExportDialog.cpp" line="599"/>
+        <source>Low</source>
+        <translation>低</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/export/ExportDialog.cpp" line="605"/>
+        <source>Reduces file size without noticeable quality loss.</source>
+        <translation>目立った画質の低下なしにファイルサイズを小さくします。</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/export/ExportDialog.cpp" line="620"/>
+        <source>Keep forms</source>
+        <translation>フォームを保持</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/export/ExportDialog.cpp" line="621"/>
+        <source>Include comments</source>
+        <translation>注釈を含める</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/export/ExportDialog.cpp" line="624"/>
+        <source>Preserve form fields and data.</source>
+        <translation>フォームフィールドとそのデータを保持します。</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/export/ExportDialog.cpp" line="625"/>
+        <source>Export comments and annotations.</source>
+        <translation>コメントと注釈をエクスポートします。</translation>
+    </message>
+    <message>
+        <source>Document</source>
+        <translation type="vanished">ドキュメント</translation>
+    </message>
+    <message>
+        <source>Control what is kept in the exported file.</source>
+        <translation type="vanished">エクスポートしたファイルに残す内容を指定します。</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/export/ExportDialog.cpp" line="626"/>
+        <source>Embed fonts</source>
+        <translation>フォントを埋め込む</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/export/ExportDialog.cpp" line="628"/>
+        <source>Include all used fonts in the PDF file.</source>
+        <translation>使用しているすべてのフォントを PDF ファイルに含めます。</translation>
+    </message>
+    <message>
+        <source>Preserve metadata</source>
+        <translation type="vanished">メタデータを保持</translation>
+    </message>
+    <message>
+        <source>Keep document properties such as title and author.</source>
+        <translation type="vanished">タイトルや作成者などのドキュメントプロパティを保持します。</translation>
+    </message>
+    <message>
+        <source>Optimization &amp; cleanup</source>
+        <translation type="vanished">最適化とクリーンアップ</translation>
+    </message>
+    <message>
+        <source>Prepare the file for the web and remove active content.</source>
+        <translation type="vanished">Web 向けにファイルを準備し、アクティブなコンテンツを削除します。</translation>
+    </message>
+    <message>
+        <source>Fast web view</source>
+        <translation type="vanished">Web 表示用に最適化</translation>
+    </message>
+    <message>
+        <source>Optimize the file for fast viewing in web browsers.</source>
+        <translation type="vanished">Web ブラウザーですばやく表示できるようにファイルを最適化します。</translation>
+    </message>
+    <message>
+        <source>Discard JavaScript actions</source>
+        <translation type="vanished">JavaScript アクションを破棄</translation>
+    </message>
+    <message>
+        <source>Remove all JavaScript actions from the file.</source>
+        <translation type="vanished">ファイルからすべての JavaScript アクションを削除します。</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/export/ExportDialog.cpp" line="656"/>
+        <source>Cancel</source>
+        <translation>キャンセル</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/export/ExportDialog.cpp" line="661"/>
+        <source>Export</source>
+        <translation>エクスポート</translation>
+    </message>
+    <message>
+        <source>General</source>
+        <translation type="vanished">全般</translation>
+    </message>
+    <message>
+        <source>Advanced</source>
+        <translation type="vanished">詳細設定</translation>
+    </message>
+</context>
+<context>
+    <name>ExportFormatList</name>
+    <message>
+        <location filename="../../src/ui/export/ExportFormatList.cpp" line="19"/>
+        <source>Export to</source>
+        <translation>エクスポート形式</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/export/ExportFormatList.cpp" line="36"/>
+        <source>Not available yet.</source>
+        <translation>まだ使用できません。</translation>
+    </message>
+</context>
+<context>
+    <name>Exporting</name>
+    <message>
+        <source>Exporting &quot;%1&quot;…</source>
+        <translation type="vanished">「%1」をエクスポートしています…</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/export/Exporting.cpp" line="115"/>
+        <source>Exporting page %1 of %2…</source>
+        <translation>ページ %1 / %2 をエクスポート中…</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/export/Exporting.cpp" line="136"/>
+        <source>Writing &quot;%1&quot;…</source>
+        <translation>「%1」を書き込み中…</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/export/Exporting.cpp" line="139"/>
+        <source>Could not write to &quot;%1&quot;.</source>
+        <translation>「%1」に書き込めませんでした。</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/export/Exporting.cpp" line="146"/>
+        <source>Could not export PNG images to &quot;%1&quot;.</source>
+        <translation>PNG 画像を「%1」に書き出せませんでした。</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/export/Exporting.cpp" line="68"/>
+        <source>Could not write &quot;%1&quot;.</source>
+        <translation>「%1」を書き込めませんでした。</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/export/Exporting.cpp" line="70"/>
+        <source>Could not write &quot;%1&quot;.
+
+Selecting pages for a PDF needs qpdf, which this build does not include. Exporting as Word or PNG is unaffected.</source>
+        <translation>「%1」を書き込めませんでした。
+
+PDF のページ選択には qpdf が必要ですが、このビルドには含まれていません。Word や PNG への書き出しには影響しません。</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/export/Exporting.cpp" line="166"/>
+        <source>Export failed</source>
+        <translation>書き出しに失敗しました</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/export/Exporting.cpp" line="172"/>
+        <source>%1 pages exported as PNG images</source>
+        <translation>%1 ページを PNG 画像としてエクスポートしました</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/export/Exporting.cpp" line="173"/>
+        <source>Exported &quot;%1&quot;</source>
+        <translation>「%1」をエクスポートしました</translation>
+    </message>
+</context>
+<context>
+    <name>FindController</name>
+    <message>
+        <location filename="../../src/ui/view/FindController.cpp" line="286"/>
+        <source>Find in document</source>
+        <translation>文書内を検索</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/view/FindController.cpp" line="287"/>
+        <source>Previous match (Shift+Enter)</source>
+        <translation>前の一致（Shift+Enter）</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/view/FindController.cpp" line="288"/>
+        <source>Next match (Enter)</source>
+        <translation>次の一致（Enter）</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/view/FindController.cpp" line="289"/>
+        <source>Close (Esc)</source>
+        <translation>閉じる（Esc）</translation>
+    </message>
 </context>
 <context>
     <name>FormatBar</name>
     <message>
-        <location filename="../../src/ui/FormatBar.cpp" line="136"/>
+        <location filename="../../src/ui/bars/FormatBar.cpp" line="261"/>
+        <location filename="../../src/ui/bars/FormatBar.cpp" line="609"/>
+        <source>Font</source>
+        <translation>フォント</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/bars/FormatBar.cpp" line="296"/>
+        <location filename="../../src/ui/bars/FormatBar.cpp" line="610"/>
+        <source>Size</source>
+        <translation>サイズ</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/bars/FormatBar.cpp" line="307"/>
+        <location filename="../../src/ui/bars/FormatBar.cpp" line="615"/>
+        <source>Bold</source>
+        <translation>太字</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/bars/FormatBar.cpp" line="308"/>
+        <location filename="../../src/ui/bars/FormatBar.cpp" line="616"/>
+        <source>Italic</source>
+        <translation>斜体</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/bars/FormatBar.cpp" line="309"/>
+        <location filename="../../src/ui/bars/FormatBar.cpp" line="617"/>
+        <source>Underline</source>
+        <translation>下線</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/bars/FormatBar.cpp" line="329"/>
+        <location filename="../../src/ui/bars/FormatBar.cpp" line="342"/>
+        <location filename="../../src/ui/bars/FormatBar.cpp" line="611"/>
+        <location filename="../../src/ui/bars/FormatBar.cpp" line="618"/>
+        <source>Color</source>
+        <translation>色</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/bars/FormatBar.cpp" line="332"/>
+        <source>Choose text color</source>
+        <translation>文字の色を選択</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/bars/FormatBar.cpp" line="353"/>
         <source>Align Left</source>
-        <translation type="unfinished"></translation>
+        <translation>左揃え</translation>
     </message>
     <message>
-        <location filename="../../src/ui/FormatBar.cpp" line="137"/>
+        <location filename="../../src/ui/bars/FormatBar.cpp" line="354"/>
         <source>Center</source>
-        <translation type="unfinished"></translation>
+        <translation>中央揃え</translation>
     </message>
     <message>
-        <location filename="../../src/ui/FormatBar.cpp" line="138"/>
+        <location filename="../../src/ui/bars/FormatBar.cpp" line="355"/>
         <source>Align Right</source>
-        <translation type="unfinished"></translation>
+        <translation>右揃え</translation>
     </message>
     <message>
-        <location filename="../../src/ui/FormatBar.cpp" line="139"/>
+        <location filename="../../src/ui/bars/FormatBar.cpp" line="356"/>
         <source>Justify</source>
-        <translation type="unfinished"></translation>
+        <translation>両端揃え</translation>
     </message>
     <message>
+        <location filename="../../src/ui/bars/FormatBar.cpp" line="381"/>
+        <location filename="../../src/ui/bars/FormatBar.cpp" line="612"/>
+        <source>Alignment</source>
+        <translation>配置</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/bars/FormatBar.cpp" line="391"/>
+        <source>List</source>
+        <translation>リスト</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/bars/FormatBar.cpp" line="399"/>
+        <source>Indent</source>
+        <translation>インデント</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/bars/FormatBar.cpp" line="407"/>
+        <source>No List</source>
+        <translation>リストなし</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/bars/FormatBar.cpp" line="408"/>
+        <source>Bulleted List</source>
+        <translation>箇条書き</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/bars/FormatBar.cpp" line="409"/>
+        <source>Numbered List</source>
+        <translation>番号付きリスト</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/bars/FormatBar.cpp" line="419"/>
+        <source>Decrease Indent</source>
+        <translation>インデントを減らす</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/bars/FormatBar.cpp" line="420"/>
+        <source>Increase Indent</source>
+        <translation>インデントを増やす</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/bars/FormatBar.cpp" line="431"/>
+        <location filename="../../src/ui/bars/FormatBar.cpp" line="613"/>
+        <source>List / Spacing</source>
+        <translation>リスト / 間隔</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/bars/FormatBar.cpp" line="451"/>
+        <location filename="../../src/ui/bars/FormatBar.cpp" line="614"/>
+        <source>Line Spacing</source>
+        <translation>行間</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/bars/FormatBar.cpp" line="460"/>
+        <location filename="../../src/ui/bars/FormatBar.cpp" line="619"/>
         <source>Advanced</source>
         <translation>詳細設定</translation>
     </message>
     <message>
+        <location filename="../../src/ui/bars/FormatBar.cpp" line="463"/>
+        <location filename="../../src/ui/bars/FormatBar.cpp" line="620"/>
         <source>All text box options</source>
         <translation>テキストボックスのすべてのオプション</translation>
+    </message>
+</context>
+<context>
+    <name>HistoryDialog</name>
+    <message>
+        <location filename="../../src/ui/history/HistoryDialog.cpp" line="26"/>
+        <location filename="../../src/ui/history/HistoryDialog.cpp" line="180"/>
+        <source>Change history - OpenPDF Studio</source>
+        <translation>変更履歴 - OpenPDF Studio</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/history/HistoryDialog.cpp" line="66"/>
+        <location filename="../../src/ui/history/HistoryDialog.cpp" line="181"/>
+        <source>Change history</source>
+        <translation>変更履歴</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/history/HistoryDialog.cpp" line="187"/>
+        <source>Open a document to see its change history.</source>
+        <translation>文書を開くと変更履歴が表示されます。</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/history/HistoryDialog.cpp" line="67"/>
+        <source>This state could not be restored. The copy of the document it was kept in is no longer there.</source>
+        <translation>この状態を復元できませんでした。保存されていた文書のコピーがもうありません。</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/history/HistoryDialog.cpp" line="156"/>
+        <location filename="../../src/ui/history/HistoryDialog.cpp" line="191"/>
+        <source>Clear history</source>
+        <translation>履歴を消去</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/history/HistoryDialog.cpp" line="157"/>
+        <source>Forget every recorded step except the one the document is at?
+
+The document itself is not changed, only the list of states you can go back to.</source>
+        <translation>文書の現在の状態以外に記録されたすべての手順を消去しますか?
+
+文書自体は変更されず、戻ることのできる状態の一覧だけが消えます。</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/history/HistoryDialog.cpp" line="183"/>
+        <source>Every change made to this document, newest first.</source>
+        <translation>この文書に加えたすべての変更（新しい順）。</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/history/HistoryDialog.cpp" line="184"/>
+        <source>Every change made to &quot;%1&quot;, newest first.</source>
+        <translation>「%1」に加えたすべての変更（新しい順）。</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/history/HistoryDialog.cpp" line="186"/>
+        <source>No changes recorded yet.</source>
+        <translation>まだ変更は記録されていません。</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/history/HistoryDialog.cpp" line="188"/>
+        <location filename="../../src/ui/history/HistoryDialog.cpp" line="248"/>
+        <location filename="../../src/ui/history/HistoryDialog.cpp" line="309"/>
+        <source>Go back to this state</source>
+        <translation>この状態に戻す</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/history/HistoryDialog.cpp" line="189"/>
+        <source>Undo</source>
+        <translation>元に戻す</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/history/HistoryDialog.cpp" line="190"/>
+        <source>Redo</source>
+        <translation>やり直し</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/history/HistoryDialog.cpp" line="192"/>
+        <source>Close</source>
+        <translation>閉じる</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/history/HistoryDialog.cpp" line="249"/>
+        <source>Copy details</source>
+        <translation>詳細をコピー</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/history/HistoryDialog.cpp" line="310"/>
+        <source>This state is part of an earlier version of the document, so it has to be loaded again.
+
+Text, image and drawing edits made since then are not part of any file yet and will be lost. Continue?</source>
+        <translation>この状態は文書の以前のバージョンに含まれるため、読み込み直す必要があります。
+
+その後に行ったテキスト、画像、描画の変更はまだどのファイルにも保存されておらず、失われます。続行しますか?</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/history/HistoryDialog.cpp" line="324"/>
+        <source>Document opened</source>
+        <translation>文書を開きました</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/history/HistoryDialog.cpp" line="325"/>
+        <source>Text changed</source>
+        <translation>テキストを変更しました</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/history/HistoryDialog.cpp" line="326"/>
+        <source>Text removed</source>
+        <translation>テキストを削除しました</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/history/HistoryDialog.cpp" line="327"/>
+        <source>Image inserted</source>
+        <translation>画像を挿入しました</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/history/HistoryDialog.cpp" line="328"/>
+        <source>Image removed</source>
+        <translation>画像を削除しました</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/history/HistoryDialog.cpp" line="329"/>
+        <source>Link added</source>
+        <translation>リンクを追加しました</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/history/HistoryDialog.cpp" line="330"/>
+        <source>Link changed</source>
+        <translation>リンクを変更しました</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/history/HistoryDialog.cpp" line="331"/>
+        <source>Link removed</source>
+        <translation>リンクを削除しました</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/history/HistoryDialog.cpp" line="332"/>
+        <source>Note added</source>
+        <translation>メモを追加しました</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/history/HistoryDialog.cpp" line="333"/>
+        <source>Note changed</source>
+        <translation>メモを変更しました</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/history/HistoryDialog.cpp" line="334"/>
+        <source>Note removed</source>
+        <translation>メモを削除しました</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/history/HistoryDialog.cpp" line="335"/>
+        <source>Drawing added</source>
+        <translation>描画を追加しました</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/history/HistoryDialog.cpp" line="336"/>
+        <source>Drawing removed</source>
+        <translation>描画を削除しました</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/history/HistoryDialog.cpp" line="337"/>
+        <source>Bookmarks changed</source>
+        <translation>しおりを変更しました</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/history/HistoryDialog.cpp" line="338"/>
+        <source>Page content changed</source>
+        <translation>ページの内容を変更しました</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/history/HistoryDialog.cpp" line="339"/>
+        <source>Pages rotated</source>
+        <translation>ページを回転しました</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/history/HistoryDialog.cpp" line="340"/>
+        <source>Page rotated</source>
+        <translation>ページを回転しました</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/history/HistoryDialog.cpp" line="341"/>
+        <source>Pages deleted</source>
+        <translation>ページを削除しました</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/history/HistoryDialog.cpp" line="342"/>
+        <source>Page deleted</source>
+        <translation>ページを削除しました</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/history/HistoryDialog.cpp" line="343"/>
+        <source>Pages added</source>
+        <translation>ページを追加しました</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/history/HistoryDialog.cpp" line="344"/>
+        <source>Page added</source>
+        <translation>ページを追加しました</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/history/HistoryDialog.cpp" line="345"/>
+        <source>Pages reordered</source>
+        <translation>ページを並べ替えました</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/history/HistoryDialog.cpp" line="346"/>
+        <source>Pages organized</source>
+        <translation>ページを整理しました</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/history/HistoryDialog.cpp" line="347"/>
+        <source>Document saved</source>
+        <translation>文書を保存しました</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/history/HistoryDialog.cpp" line="348"/>
+        <source>Went back to an earlier state</source>
+        <translation>以前の状態に戻しました</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/history/HistoryDialog.cpp" line="357"/>
+        <source>Page %1</source>
+        <translation>%1 ページ</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/history/HistoryDialog.cpp" line="358"/>
+        <source>%1 pages</source>
+        <translation>%1 ページ</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/history/HistoryDialog.cpp" line="381"/>
+        <source>%1° counter-clockwise</source>
+        <translation>反時計回りに %1°</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/history/HistoryDialog.cpp" line="382"/>
+        <source>%1° clockwise</source>
+        <translation>時計回りに %1°</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/history/HistoryDialog.cpp" line="393"/>
+        <source>Step %1</source>
+        <translation>ステップ %1</translation>
+    </message>
+</context>
+<context>
+    <name>HoverHighlight</name>
+    <message>
+        <location filename="../../src/ui/view/HoverHighlight.cpp" line="76"/>
+        <source>Text</source>
+        <translation>テキスト</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/view/HoverHighlight.cpp" line="78"/>
+        <source>Paragraph</source>
+        <translation>段落</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/view/HoverHighlight.cpp" line="79"/>
+        <source>Table cell</source>
+        <translation>表のセル</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/view/HoverHighlight.cpp" line="80"/>
+        <source>Form field</source>
+        <translation>フォームフィールド</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/view/HoverHighlight.cpp" line="81"/>
+        <source>Image</source>
+        <translation>画像</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/view/HoverHighlight.cpp" line="82"/>
+        <source>Media</source>
+        <translation>メディア</translation>
     </message>
 </context>
 <context>
@@ -405,104 +1533,1149 @@ Please use a build that includes Qt6::Pdf support.
         <translation type="vanished">画像</translation>
     </message>
     <message>
-        <location filename="../../src/ui/tools/ImageAnnotation.cpp" line="40"/>
         <source>(image not found)</source>
-        <translation>（画像が見つかりません）</translation>
+        <translation type="vanished">（画像が見つかりません）</translation>
+    </message>
+</context>
+<context>
+    <name>ImageAnnotationLayer</name>
+    <message>
+        <location filename="../../src/ui/view/ImageAnnotationLayer.cpp" line="304"/>
+        <location filename="../../src/ui/view/ImageAnnotationLayer.cpp" line="375"/>
+        <source>Replace image</source>
+        <translation>画像を置き換え</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/view/ImageAnnotationLayer.cpp" line="306"/>
+        <source>Rotate 90° left</source>
+        <translation>左に 90° 回転</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/view/ImageAnnotationLayer.cpp" line="307"/>
+        <source>Rotate 90° right</source>
+        <translation>右に 90° 回転</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/view/ImageAnnotationLayer.cpp" line="461"/>
+        <source>Insert image</source>
+        <translation>画像を挿入</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/view/ImageAnnotationLayer.cpp" line="376"/>
+        <location filename="../../src/ui/view/ImageAnnotationLayer.cpp" line="462"/>
+        <source>All files (*)</source>
+        <translation>すべてのファイル (*)</translation>
+    </message>
+</context>
+<context>
+    <name>ImageImport</name>
+    <message>
+        <location filename="../../src/engine/import/ImageImport.cpp" line="194"/>
+        <source>Images</source>
+        <translation>画像</translation>
+    </message>
+    <message>
+        <location filename="../../src/engine/import/ImageImport.cpp" line="205"/>
+        <source>The image is too large.</source>
+        <translation>画像が大きすぎます。</translation>
+    </message>
+    <message>
+        <location filename="../../src/engine/import/ImageImport.cpp" line="244"/>
+        <location filename="../../src/engine/import/ImageImport.cpp" line="251"/>
+        <source>The PDF could not be written.</source>
+        <translation>PDF を書き込めませんでした。</translation>
+    </message>
+</context>
+<context>
+    <name>Importing</name>
+    <message>
+        <location filename="../../src/ui/import/Importing.cpp" line="47"/>
+        <source>Converting &quot;%1&quot;…</source>
+        <translation>「%1」を変換中…</translation>
+    </message>
+</context>
+<context>
+    <name>InfoCenter</name>
+    <message>
+        <location filename="../../src/ui/info/InfoCenter.cpp" line="253"/>
+        <source>General</source>
+        <translation>一般</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/info/InfoCenter.cpp" line="254"/>
+        <source>PDF version</source>
+        <translation>PDF バージョン</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/info/InfoCenter.cpp" line="255"/>
+        <source>Unknown</source>
+        <translation>不明</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/info/InfoCenter.cpp" line="256"/>
+        <source>Pages</source>
+        <translation>ページ数</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/info/InfoCenter.cpp" line="257"/>
+        <source>File size</source>
+        <translation>ファイルサイズ</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/info/InfoCenter.cpp" line="268"/>
+        <source>Security</source>
+        <translation>セキュリティ</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/info/InfoCenter.cpp" line="270"/>
+        <source>Encrypted</source>
+        <translation>暗号化</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/info/InfoCenter.cpp" line="271"/>
+        <location filename="../../src/ui/info/InfoCenter.cpp" line="354"/>
+        <source>No</source>
+        <translation>いいえ</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/info/InfoCenter.cpp" line="272"/>
+        <source>Yes</source>
+        <translation>はい</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/info/InfoCenter.cpp" line="276"/>
+        <source>Permissions</source>
+        <translation>権限</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/info/InfoCenter.cpp" line="277"/>
+        <source>Restricted</source>
+        <translation>制限あり</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/info/InfoCenter.cpp" line="278"/>
+        <source>All allowed</source>
+        <translation>すべて許可</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/info/InfoCenter.cpp" line="281"/>
+        <source>Allowed</source>
+        <translation>許可</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/info/InfoCenter.cpp" line="281"/>
+        <source>Not allowed</source>
+        <translation>不許可</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/info/InfoCenter.cpp" line="284"/>
+        <source>Opened with password</source>
+        <translation>パスワードで開きました</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/info/InfoCenter.cpp" line="285"/>
+        <source>Opens without password</source>
+        <translation>パスワードなしで開きます</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/info/InfoCenter.cpp" line="287"/>
+        <source>Printing</source>
+        <translation>印刷</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/info/InfoCenter.cpp" line="288"/>
+        <source>High-quality printing</source>
+        <translation>高品質印刷</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/info/InfoCenter.cpp" line="289"/>
+        <source>Changing content</source>
+        <translation>内容の変更</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/info/InfoCenter.cpp" line="290"/>
+        <source>Copying text and images</source>
+        <translation>テキストと画像のコピー</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/info/InfoCenter.cpp" line="291"/>
+        <source>Comments</source>
+        <translation>注釈</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/info/InfoCenter.cpp" line="292"/>
+        <source>Filling in forms</source>
+        <translation>フォームへの入力</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/info/InfoCenter.cpp" line="293"/>
+        <source>Assembling pages</source>
+        <translation>ページの構成</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/info/InfoCenter.cpp" line="294"/>
+        <source>Accessibility</source>
+        <translation>アクセシビリティ</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/info/InfoCenter.cpp" line="307"/>
+        <source>Digital signatures</source>
+        <translation>デジタル署名</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/info/InfoCenter.cpp" line="310"/>
+        <source>Document unchanged since signing</source>
+        <translation>署名後に変更されていません</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/info/InfoCenter.cpp" line="312"/>
+        <source>This version cannot check signatures</source>
+        <translation>このバージョンでは署名を確認できません</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/info/InfoCenter.cpp" line="318"/>
+        <source>Valid</source>
+        <translation>有効</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/info/InfoCenter.cpp" line="319"/>
+        <source>Valid, signer not trusted</source>
+        <translation>有効 (署名者は信頼されていません)</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/info/InfoCenter.cpp" line="320"/>
+        <source>Invalid</source>
+        <translation>無効</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/info/InfoCenter.cpp" line="325"/>
+        <source>Unknown signer</source>
+        <translation>不明な署名者</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/info/InfoCenter.cpp" line="326"/>
+        <source>Signed</source>
+        <translation>署名日時</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/info/InfoCenter.cpp" line="327"/>
+        <source>Reason</source>
+        <translation>理由</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/info/InfoCenter.cpp" line="328"/>
+        <source>Location</source>
+        <translation>場所</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/info/InfoCenter.cpp" line="329"/>
+        <source>Field</source>
+        <translation>フィールド</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/info/InfoCenter.cpp" line="344"/>
+        <source>None</source>
+        <translation>なし</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/info/InfoCenter.cpp" line="346"/>
+        <source>PDF features</source>
+        <translation>PDF の機能</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/info/InfoCenter.cpp" line="347"/>
+        <source>Forms</source>
+        <translation>フォーム</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/info/InfoCenter.cpp" line="349"/>
+        <source>1 field</source>
+        <translation>1 個のフィールド</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/info/InfoCenter.cpp" line="350"/>
+        <source>%1 fields</source>
+        <translation>%1 個のフィールド</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/info/InfoCenter.cpp" line="351"/>
+        <source>Attachments</source>
+        <translation>添付ファイル</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/info/InfoCenter.cpp" line="353"/>
+        <source>PDF/A</source>
+        <translation>PDF/A</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/info/InfoCenter.cpp" line="402"/>
+        <source>Document information</source>
+        <translation>ドキュメント情報</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/info/InfoCenter.cpp" line="411"/>
+        <source>Close</source>
+        <translation>閉じる</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/info/InfoCenter.cpp" line="463"/>
+        <source>Reading document...</source>
+        <translation>ドキュメントを読み込み中...</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/info/InfoCenter.cpp" line="466"/>
+        <source>Further details unavailable</source>
+        <translation>詳細情報を取得できません</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/info/InfoCenter.cpp" line="467"/>
+        <source>Protection, signatures and features could not be read.</source>
+        <translation>保護、署名、機能を読み取れませんでした。</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/info/InfoCenter.cpp" line="332"/>
+        <source>Trust this signer...</source>
+        <translation>この署名者を信頼…</translation>
+    </message>
+</context>
+<context>
+    <name>InfoText</name>
+    <message>
+        <location filename="../../src/ui/info/InfoText.cpp" line="25"/>
+        <source>No digital signatures</source>
+        <translation>デジタル署名なし</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/info/InfoText.cpp" line="27"/>
+        <source>1 valid signature</source>
+        <translation>1 件の有効な署名</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/info/InfoText.cpp" line="28"/>
+        <source>%1 valid signatures</source>
+        <translation>%1 件の有効な署名</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/info/InfoText.cpp" line="30"/>
+        <source>1 signature, signer not trusted</source>
+        <translation>1 件の署名 (署名者は信頼されていません)</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/info/InfoText.cpp" line="31"/>
+        <source>%1 signatures, signer not trusted</source>
+        <translation>%1 件の署名 (署名者は信頼されていません)</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/info/InfoText.cpp" line="33"/>
+        <source>Document changed after signing</source>
+        <translation>署名後にドキュメントが変更されました</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/info/InfoText.cpp" line="35"/>
+        <source>Signature invalid</source>
+        <translation>署名が無効です</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/info/InfoText.cpp" line="37"/>
+        <source>1 signature, not checked</source>
+        <translation>1 件の署名 (未確認)</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/info/InfoText.cpp" line="38"/>
+        <source>%1 signatures, not checked</source>
+        <translation>%1 件の署名 (未確認)</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/info/InfoText.cpp" line="65"/>
+        <source>Not encrypted</source>
+        <translation>暗号化なし</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/info/InfoText.cpp" line="67"/>
+        <source>Encrypted</source>
+        <translation>暗号化</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/info/InfoText.cpp" line="67"/>
+        <source>Encrypted (%1)</source>
+        <translation>暗号化 (%1)</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/info/InfoText.cpp" line="68"/>
+        <source>%1, opened with password</source>
+        <translation>%1、パスワードで開きました</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/info/InfoText.cpp" line="69"/>
+        <source>%1, permissions restricted</source>
+        <translation>%1、権限が制限されています</translation>
     </message>
 </context>
 <context>
     <name>LeftSidebar</name>
     <message>
-        <location filename="../../src/ui/LeftSidebar.cpp" line="25"/>
         <source>Select</source>
-        <translation>選択</translation>
+        <translation type="vanished">選択</translation>
     </message>
     <message>
-        <location filename="../../src/ui/LeftSidebar.cpp" line="26"/>
         <source>Pan</source>
-        <translation>スクロール</translation>
+        <translation type="vanished">スクロール</translation>
     </message>
     <message>
-        <location filename="../../src/ui/LeftSidebar.cpp" line="27"/>
         <source>Text</source>
-        <translation>テキスト</translation>
+        <translation type="vanished">テキスト</translation>
     </message>
     <message>
-        <location filename="../../src/ui/LeftSidebar.cpp" line="28"/>
         <source>Comment</source>
-        <translation>コメント</translation>
+        <translation type="vanished">コメント</translation>
     </message>
     <message>
-        <location filename="../../src/ui/LeftSidebar.cpp" line="29"/>
         <source>Draw</source>
-        <translation>描画</translation>
+        <translation type="vanished">描画</translation>
     </message>
     <message>
-        <location filename="../../src/ui/LeftSidebar.cpp" line="30"/>
         <source>Image</source>
-        <translation>画像</translation>
+        <translation type="vanished">画像</translation>
     </message>
     <message>
-        <location filename="../../src/ui/LeftSidebar.cpp" line="33"/>
         <source>Bookmark</source>
-        <translation>ブックマーク</translation>
+        <translation type="vanished">ブックマーク</translation>
     </message>
     <message>
-        <location filename="../../src/ui/LeftSidebar.cpp" line="34"/>
         <source>Attachment</source>
-        <translation>添付ファイル</translation>
+        <translation type="vanished">添付ファイル</translation>
     </message>
     <message>
-        <location filename="../../src/ui/LeftSidebar.cpp" line="58"/>
-        <location filename="../../src/ui/LeftSidebar.cpp" line="76"/>
+        <location filename="../../src/ui/panels/LeftSidebar.cpp" line="83"/>
+        <location filename="../../src/ui/panels/LeftSidebar.cpp" line="189"/>
+        <source>Customize Tools</source>
+        <translation>ツールをカスタマイズ</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/panels/LeftSidebar.cpp" line="89"/>
+        <location filename="../../src/ui/panels/LeftSidebar.cpp" line="191"/>
         <source>Settings</source>
         <translation>設定</translation>
     </message>
 </context>
 <context>
-    <name>MainWindow</name>
+    <name>LicenseNotice</name>
     <message>
-        <location filename="../../src/ui/MainWindow.cpp" line="229"/>
-        <source>Open PDF</source>
-        <translation>PDFを開く</translation>
+        <location filename="../../src/drm/LicenseNotice.cpp" line="16"/>
+        <source>How do you use OpenPDF Studio?</source>
+        <translation>OpenPDF Studio をどのように使いますか?</translation>
     </message>
     <message>
-        <location filename="../../src/ui/MainWindow.cpp" line="229"/>
-        <location filename="../../src/ui/MainWindow.cpp" line="249"/>
-        <location filename="../../src/ui/MainWindow.cpp" line="467"/>
+        <location filename="../../src/drm/LicenseNotice.cpp" line="17"/>
+        <source>Is this a private or a business installation?</source>
+        <translation>これは個人用ですか、それとも業務用ですか?</translation>
+    </message>
+    <message>
+        <location filename="../../src/drm/LicenseNotice.cpp" line="18"/>
+        <source>Personal use is free. Business use needs a Business License after a 30-day evaluation. The answer is kept in the configuration file and can be changed there.</source>
+        <translation>個人での利用は無料です。業務での利用には 30 日間の評価期間の後に Business ライセンスが必要です。回答は設定ファイルに保存され、そこで変更できます。</translation>
+    </message>
+    <message>
+        <location filename="../../src/drm/LicenseNotice.cpp" line="21"/>
+        <source>Personal</source>
+        <translation>個人</translation>
+    </message>
+    <message>
+        <location filename="../../src/drm/LicenseNotice.cpp" line="22"/>
+        <source>Business</source>
+        <translation>業務</translation>
+    </message>
+    <message>
+        <location filename="../../src/drm/LicenseNotice.cpp" line="45"/>
+        <source>License</source>
+        <translation>ライセンス</translation>
+    </message>
+    <message>
+        <location filename="../../src/drm/LicenseNotice.cpp" line="46"/>
+        <source>Your %1-day evaluation for business use has ended.</source>
+        <translation>業務利用の %1 日間の評価期間が終了しました。</translation>
+    </message>
+    <message>
+        <location filename="../../src/drm/LicenseNotice.cpp" line="48"/>
+        <source>Business use requires a license. Please enter a license key.</source>
+        <translation>業務での利用にはライセンスが必要です。ライセンスキーを入力してください。</translation>
+    </message>
+    <message>
+        <location filename="../../src/drm/LicenseNotice.cpp" line="50"/>
+        <source>Enter license key</source>
+        <translation>ライセンスキーを入力</translation>
+    </message>
+</context>
+<context>
+    <name>LicensePage</name>
+    <message>
+        <location filename="../../src/drm/LicensePage.cpp" line="148"/>
+        <source>Remove License</source>
+        <translation>ライセンスを削除</translation>
+    </message>
+    <message>
+        <location filename="../../src/drm/LicensePage.cpp" line="149"/>
+        <source>License key on record</source>
+        <translation>登録済みのライセンスキー</translation>
+    </message>
+    <message>
+        <location filename="../../src/drm/LicensePage.cpp" line="151"/>
+        <source>Set by the installer for every account on this machine.</source>
+        <translation>インストーラーにより、このコンピューターのすべてのアカウントに設定されています。</translation>
+    </message>
+    <message>
+        <location filename="../../src/drm/LicensePage.cpp" line="152"/>
+        <source>Entered in this application. Business use is covered.</source>
+        <translation>このアプリケーションで入力されました。業務での利用が許可されています。</translation>
+    </message>
+    <message>
+        <location filename="../../src/drm/LicensePage.cpp" line="156"/>
+        <source>Activate License</source>
+        <translation>ライセンスを有効化</translation>
+    </message>
+    <message>
+        <location filename="../../src/drm/LicensePage.cpp" line="162"/>
+        <source>Evaluation: 1 day left</source>
+        <translation>評価期間: 残り 1 日</translation>
+    </message>
+    <message>
+        <location filename="../../src/drm/LicensePage.cpp" line="163"/>
+        <source>Evaluation: %1 days left</source>
+        <translation>評価期間: 残り %1 日</translation>
+    </message>
+    <message>
+        <location filename="../../src/drm/LicensePage.cpp" line="165"/>
+        <source>Business use is free to evaluate for %1 days. No key needed yet.</source>
+        <translation>業務での利用は %1 日間無料で評価できます。まだキーは必要ありません。</translation>
+    </message>
+    <message>
+        <location filename="../../src/drm/LicensePage.cpp" line="168"/>
+        <source>Evaluation period ended</source>
+        <translation>評価期間が終了しました</translation>
+    </message>
+    <message>
+        <location filename="../../src/drm/LicensePage.cpp" line="170"/>
+        <source>Business use requires a license. Please enter a license key.</source>
+        <translation>業務での利用にはライセンスが必要です。ライセンスキーを入力してください。</translation>
+    </message>
+    <message>
+        <location filename="../../src/drm/LicensePage.cpp" line="182"/>
+        <source>License key removed.</source>
+        <translation>ライセンスキーを削除しました。</translation>
+    </message>
+    <message>
+        <location filename="../../src/drm/LicensePage.cpp" line="193"/>
+        <source>License key saved.</source>
+        <translation>ライセンスキーを保存しました。</translation>
+    </message>
+    <message>
+        <location filename="../../src/drm/LicensePage.cpp" line="266"/>
+        <location filename="../../src/drm/LicensePage.cpp" line="271"/>
+        <source>License Key</source>
+        <translation>ライセンスキー</translation>
+    </message>
+    <message>
+        <location filename="../../src/drm/LicensePage.cpp" line="267"/>
+        <source>This installation is set up for business use. Enter your license key here.</source>
+        <translation>このインストールは業務用に設定されています。ここにライセンスキーを入力してください。</translation>
+    </message>
+    <message>
+        <location filename="../../src/drm/LicensePage.cpp" line="269"/>
+        <source>LICENSE STATUS</source>
+        <translation>ライセンスの状態</translation>
+    </message>
+    <message>
+        <location filename="../../src/drm/LicensePage.cpp" line="270"/>
+        <source>ACTIVATE LICENSE</source>
+        <translation>ライセンスの有効化</translation>
+    </message>
+    <message>
+        <location filename="../../src/drm/LicensePage.cpp" line="272"/>
+        <source>Enter your license key</source>
+        <translation>ライセンスキーを入力してください</translation>
+    </message>
+    <message>
+        <location filename="../../src/drm/LicensePage.cpp" line="273"/>
+        <source>NEED A LICENSE?</source>
+        <translation>ライセンスが必要ですか?</translation>
+    </message>
+    <message>
+        <location filename="../../src/drm/LicensePage.cpp" line="274"/>
+        <source>A Business License covers business use of OpenPDF Studio and supports the development.</source>
+        <translation>Business ライセンスは OpenPDF Studio の業務利用を許可し、開発を支援します。</translation>
+    </message>
+    <message>
+        <location filename="../../src/drm/LicensePage.cpp" line="276"/>
+        <source>Get License</source>
+        <translation>ライセンスを入手</translation>
+    </message>
+</context>
+<context>
+    <name>LinkAnnotationLayer</name>
+    <message>
+        <location filename="../../src/ui/view/LinkAnnotationLayer.cpp" line="174"/>
+        <source>Link</source>
+        <translation>リンク</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/view/LinkAnnotationLayer.cpp" line="174"/>
+        <source>Link address:</source>
+        <translation>リンクのアドレス:</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/view/LinkAnnotationLayer.cpp" line="190"/>
+        <source>Open Link</source>
+        <translation>リンクを開く</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/view/LinkAnnotationLayer.cpp" line="192"/>
+        <source>Open Link in New Tab</source>
+        <translation>新しいタブでリンクを開く</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/view/LinkAnnotationLayer.cpp" line="194"/>
+        <source>Copy Link Address</source>
+        <translation>リンクのアドレスをコピー</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/view/LinkAnnotationLayer.cpp" line="197"/>
+        <source>Edit Link</source>
+        <translation>リンクを編集</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/view/LinkAnnotationLayer.cpp" line="199"/>
+        <source>Delete Link</source>
+        <translation>リンクを削除</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/view/LinkAnnotationLayer.cpp" line="201"/>
+        <location filename="../../src/ui/view/LinkAnnotationLayer.cpp" line="254"/>
+        <source>Add Link...</source>
+        <translation>リンクを追加…</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/view/LinkAnnotationLayer.cpp" line="223"/>
+        <source>Edit link</source>
+        <translation>リンクを編集</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/view/LinkAnnotationLayer.cpp" line="240"/>
+        <source>Delete link</source>
+        <translation>リンクを削除</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/view/LinkAnnotationLayer.cpp" line="290"/>
+        <location filename="../../src/ui/view/LinkAnnotationLayer.cpp" line="332"/>
+        <source>Add link</source>
+        <translation>リンクを追加</translation>
+    </message>
+</context>
+<context>
+    <name>MainWindow</name>
+    <message>
+        <source>Open PDF</source>
+        <translation type="vanished">PDFを開く</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/MainWindow.cpp" line="677"/>
         <source>PDF files (*.pdf)</source>
         <translation>PDFファイル (*.pdf)</translation>
     </message>
     <message>
-        <location filename="../../src/ui/MainWindow.cpp" line="249"/>
-        <location filename="../../src/ui/MainWindow.cpp" line="467"/>
+        <location filename="../../src/ui/MainWindow.cpp" line="676"/>
         <source>Save PDF As</source>
         <translation>PDFに名前を付けて保存</translation>
     </message>
     <message>
-        <location filename="../../src/ui/MainWindow.cpp" line="326"/>
+        <location filename="../../src/ui/MainWindow.cpp" line="105"/>
+        <source>Update available</source>
+        <translation>アップデートがあります</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/MainWindow.cpp" line="106"/>
+        <source>OpenPDF Studio %1 is available.</source>
+        <translation>OpenPDF Studio %1 が利用可能です。</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/MainWindow.cpp" line="107"/>
+        <source>You are running %1.</source>
+        <translation>現在のバージョンは %1 です。</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/MainWindow.cpp" line="108"/>
+        <source>Open download page</source>
+        <translation>ダウンロードページを開く</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/MainWindow.cpp" line="110"/>
+        <source>Later</source>
+        <translation>後で</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/MainWindow.cpp" line="661"/>
+        <location filename="../../src/ui/MainWindow.cpp" line="666"/>
+        <source>Save failed</source>
+        <translation>保存に失敗しました</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/MainWindow.cpp" line="667"/>
+        <source>Could not write &quot;%1&quot;.
+
+The file may be write-protected or open in another program. The document is unchanged. Try saving it under a different name.</source>
+        <translation>「%1」を書き込めませんでした。
+
+ファイルが書き込み禁止か、別のプログラムで開かれている可能性があります。文書は変更されていません。別の名前で保存してください。</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/MainWindow.cpp" line="831"/>
         <source>Edit Mode</source>
-        <translation type="unfinished"></translation>
+        <translation>編集モード</translation>
     </message>
     <message>
-        <location filename="../../src/ui/MainWindow.cpp" line="327"/>
+        <location filename="../../src/ui/MainWindow.cpp" line="832"/>
         <source>Do you want to enable Edit Mode?</source>
-        <translation type="unfinished"></translation>
+        <translation>編集モードを有効にしますか?</translation>
     </message>
     <message>
-        <location filename="../../src/ui/MainWindow.cpp" line="450"/>
+        <location filename="../../src/ui/MainWindow.cpp" line="1059"/>
         <source>Untitled</source>
-        <translation type="unfinished"></translation>
+        <translation>無題</translation>
     </message>
     <message>
-        <location filename="../../src/ui/MainWindow.cpp" line="455"/>
+        <location filename="../../src/ui/MainWindow.cpp" line="1063"/>
         <source>Unsaved Changes</source>
-        <translation type="unfinished"></translation>
+        <translation>未保存の変更</translation>
     </message>
     <message>
-        <location filename="../../src/ui/MainWindow.cpp" line="456"/>
+        <location filename="../../src/ui/MainWindow.cpp" line="1064"/>
         <source>Save changes to &quot;%1&quot;?</source>
-        <translation type="unfinished"></translation>
+        <translation>「%1」への変更を保存しますか?</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/MainWindow.cpp" line="546"/>
+        <source>Open Document</source>
+        <translation>ドキュメントを開く</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/MainWindow.cpp" line="561"/>
+        <source>Cannot open file</source>
+        <translation>ファイルを開けません</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/MainWindow.cpp" line="583"/>
+        <source>There is no room to put the converted file.</source>
+        <translation>変換したファイルを置く場所がありません。</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/MainWindow.cpp" line="597"/>
+        <location filename="../../src/ui/MainWindow.cpp" line="615"/>
+        <source>Import failed</source>
+        <translation>インポートに失敗しました</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/MainWindow.cpp" line="562"/>
+        <source>&quot;%1&quot; is not a PDF and cannot be turned into one.</source>
+        <translation>「%1」は PDF ではなく、PDF に変換することもできません。</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/MainWindow.cpp" line="598"/>
+        <source>&quot;%1&quot; could not be turned into a PDF.
+
+%2</source>
+        <translation>「%1」を PDF に変換できませんでした。
+
+%2</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/MainWindow.cpp" line="616"/>
+        <source>&quot;%1&quot; was converted, but the result could not be opened.</source>
+        <translation>「%1」は変換されましたが、結果を開けませんでした。</translation>
+    </message>
+</context>
+<context>
+    <name>MediaLayer</name>
+    <message>
+        <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="210"/>
+        <source>Edit properties</source>
+        <translation>プロパティを編集</translation>
+    </message>
+    <message>
+        <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="212"/>
+        <source>Play</source>
+        <translation>再生</translation>
+    </message>
+    <message>
+        <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="213"/>
+        <source>Save media as...</source>
+        <translation>メディアに名前を付けて保存…</translation>
+    </message>
+    <message>
+        <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="215"/>
+        <source>Remove</source>
+        <translation>削除</translation>
+    </message>
+    <message>
+        <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="254"/>
+        <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="264"/>
+        <source>Media removed</source>
+        <translation>メディアを削除しました</translation>
+    </message>
+    <message>
+        <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="355"/>
+        <source>Save media as</source>
+        <translation>メディアに名前を付けて保存</translation>
+    </message>
+    <message>
+        <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="360"/>
+        <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="748"/>
+        <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="759"/>
+        <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="781"/>
+        <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="795"/>
+        <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="887"/>
+        <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="904"/>
+        <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="920"/>
+        <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="935"/>
+        <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="958"/>
+        <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="991"/>
+        <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="999"/>
+        <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="1023"/>
+        <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="1058"/>
+        <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="1131"/>
+        <source>Rich Media</source>
+        <translation>リッチメディア</translation>
+    </message>
+    <message>
+        <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="361"/>
+        <source>Could not write &quot;%1&quot;.</source>
+        <translation>「%1」を書き込めませんでした。</translation>
+    </message>
+    <message>
+        <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="731"/>
+        <source>Media changed</source>
+        <translation>メディアを変更しました</translation>
+    </message>
+    <message>
+        <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="743"/>
+        <source>%1, an unsupported format</source>
+        <translation>%1（未対応の形式）</translation>
+    </message>
+    <message>
+        <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="744"/>
+        <source>%1 in %2</source>
+        <translation>%2 内の %1</translation>
+    </message>
+    <message>
+        <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="749"/>
+        <source>This file is %1. Most PDF viewers play only H.264 video in an MP4 container, so for many people the video will be a still image.
+
+Install ffmpeg to convert it, or embed it as it is.</source>
+        <translation>このファイルは %1 です。多くの PDF ビューアーは MP4 コンテナーの H.264 動画しか再生できないため、多くの人には静止画として表示されます。
+
+変換するには ffmpeg をインストールするか、そのまま埋め込んでください。</translation>
+    </message>
+    <message>
+        <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="760"/>
+        <source>This file is %1.</source>
+        <translation>このファイルは %1 です。</translation>
+    </message>
+    <message>
+        <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="762"/>
+        <source>H.264 in an MP4 container is what plays everywhere: in PDF viewers, in browsers and on phones. Convert it now so the video works for everyone who opens the document?</source>
+        <translation>MP4 コンテナーの H.264 は、PDF ビューアー、ブラウザー、スマートフォンなど、どこでも再生できます。文書を開くすべての人が動画を再生できるよう、今すぐ変換しますか?</translation>
+    </message>
+    <message>
+        <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="765"/>
+        <source>Convert</source>
+        <translation>変換</translation>
+    </message>
+    <message>
+        <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="766"/>
+        <source>Embed as is</source>
+        <translation>そのまま埋め込む</translation>
+    </message>
+    <message>
+        <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="779"/>
+        <source>Converting %1...</source>
+        <translation>%1 を変換しています…</translation>
+    </message>
+    <message>
+        <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="780"/>
+        <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="918"/>
+        <source>Cancel</source>
+        <translation>キャンセル</translation>
+    </message>
+    <message>
+        <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="796"/>
+        <source>The file could not be converted.</source>
+        <translation>ファイルを変換できませんでした。</translation>
+    </message>
+    <message>
+        <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="836"/>
+        <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="1122"/>
+        <source>Media inserted</source>
+        <translation>メディアを挿入しました</translation>
+    </message>
+    <message>
+        <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="873"/>
+        <source>%1 in %2, %3 by %4 pixels.</source>
+        <translation>%2 内の %1、%3 × %4 ピクセル。</translation>
+    </message>
+    <message>
+        <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="876"/>
+        <source>%1 in %2.</source>
+        <translation>%2 内の %1。</translation>
+    </message>
+    <message>
+        <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="880"/>
+        <source>Video this large is more than some systems will decode. A smaller copy usually plays, and the document keeps the original.</source>
+        <translation>このサイズの動画は一部のシステムでデコードできません。小さいコピーなら通常再生でき、文書には元の動画が残ります。</translation>
+    </message>
+    <message>
+        <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="888"/>
+        <source>This video could not be played here: %1</source>
+        <translation>この動画はここで再生できませんでした: %1</translation>
+    </message>
+    <message>
+        <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="895"/>
+        <source>Play a smaller copy</source>
+        <translation>小さいコピーを再生</translation>
+    </message>
+    <message>
+        <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="897"/>
+        <source>Open in system player</source>
+        <translation>システムのプレーヤーで開く</translation>
+    </message>
+    <message>
+        <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="905"/>
+        <source>No media player was found on this system.</source>
+        <translation>このシステムにメディアプレーヤーが見つかりません。</translation>
+    </message>
+    <message>
+        <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="918"/>
+        <source>Preparing a smaller copy...</source>
+        <translation>小さいコピーを準備しています…</translation>
+    </message>
+    <message>
+        <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="936"/>
+        <source>The smaller copy could not be made.</source>
+        <translation>小さいコピーを作成できませんでした。</translation>
+    </message>
+    <message>
+        <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="959"/>
+        <source>Play &quot;%1&quot; from this document?</source>
+        <translation>この文書の「%1」を再生しますか?</translation>
+    </message>
+    <message>
+        <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="961"/>
+        <source>Media in a PDF is chosen by whoever made the file. Playing it hands the data to a decoder, in this build possibly to a player outside OpenPDF Studio. Play it only if you trust the document.</source>
+        <translation>PDF 内のメディアはファイルの作成者が選んだものです。再生するとデータがデコーダーに渡され、このビルドでは OpenPDF Studio 外のプレーヤーに渡ることもあります。文書を信頼できる場合のみ再生してください。</translation>
+    </message>
+    <message>
+        <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="964"/>
+        <source>Play once</source>
+        <translation>今回だけ再生</translation>
+    </message>
+    <message>
+        <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="965"/>
+        <source>Always for this document</source>
+        <translation>この文書では常に再生</translation>
+    </message>
+    <message>
+        <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="992"/>
+        <source>This media points to a file outside the document, so OpenPDF Studio does not open it.</source>
+        <translation>このメディアは文書外のファイルを参照しているため、OpenPDF Studio では開きません。</translation>
+    </message>
+    <message>
+        <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="1000"/>
+        <source>The media could not be read from the document.</source>
+        <translation>文書からメディアを読み取れませんでした。</translation>
+    </message>
+    <message>
+        <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="1024"/>
+        <source>The page this media sits on is not on screen, so it cannot be played here.</source>
+        <translation>このメディアのあるページが表示されていないため、ここでは再生できません。</translation>
+    </message>
+    <message>
+        <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="1059"/>
+        <source>No media player was found. Install VLC or mpv, or set a custom player under Settings, Media Playback.</source>
+        <translation>メディアプレーヤーが見つかりません。VLC か mpv をインストールするか、設定の「メディア再生」でプレーヤーを指定してください。</translation>
+    </message>
+    <message>
+        <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="1132"/>
+        <source>The video could not be added as a new page.</source>
+        <translation>動画を新しいページとして追加できませんでした。</translation>
+    </message>
+</context>
+<context>
+    <name>MediaPlayerFrame</name>
+    <message>
+        <location filename="../../modules/rich-media/ui/MediaPlayerFrame.cpp" line="70"/>
+        <source>Close the player</source>
+        <translation>プレーヤーを閉じる</translation>
+    </message>
+    <message>
+        <location filename="../../modules/rich-media/ui/MediaPlayerFrame.cpp" line="105"/>
+        <source>nothing was decoded within six seconds</source>
+        <translation>6 秒以内に何もデコードされませんでした</translation>
+    </message>
+</context>
+<context>
+    <name>NoteLayer</name>
+    <message>
+        <location filename="../../src/ui/notes/NoteLayer.cpp" line="106"/>
+        <source>Note</source>
+        <translation>メモ</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/notes/NoteLayer.cpp" line="139"/>
+        <source>New note</source>
+        <translation>新しいメモ</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/notes/NoteLayer.cpp" line="145"/>
+        <source>Add note</source>
+        <translation>メモを追加</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/notes/NoteLayer.cpp" line="182"/>
+        <source>Untitled note</source>
+        <translation>無題のメモ</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/notes/NoteLayer.cpp" line="189"/>
+        <source>Edit note</source>
+        <translation>メモを編集</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/notes/NoteLayer.cpp" line="214"/>
+        <source>Delete note</source>
+        <translation>メモを削除</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/notes/NoteLayer.cpp" line="228"/>
+        <source>Pin note</source>
+        <translation>メモを固定</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/notes/NoteLayer.cpp" line="228"/>
+        <source>Unpin note</source>
+        <translation>メモの固定を解除</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/notes/NoteLayer.cpp" line="373"/>
+        <source>Page %1</source>
+        <translation>%1 ページ</translation>
+    </message>
+</context>
+<context>
+    <name>NotesPanel</name>
+    <message>
+        <location filename="../../src/ui/notes/NotesPanel.cpp" line="48"/>
+        <source>Untitled note</source>
+        <translation>無題のメモ</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/notes/NotesPanel.cpp" line="68"/>
+        <source>Page %1</source>
+        <translation>%1 ページ</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/notes/NotesPanel.cpp" line="242"/>
+        <source>No notes yet. Add one and place it on the current page.</source>
+        <translation>まだメモはありません。メモを追加して現在のページに配置してください。</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/notes/NotesPanel.cpp" line="259"/>
+        <source>Unpin</source>
+        <translation>固定を解除</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/notes/NotesPanel.cpp" line="259"/>
+        <source>Pin</source>
+        <translation>固定</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/notes/NotesPanel.cpp" line="264"/>
+        <source>Notes</source>
+        <translation>メモ</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/notes/NotesPanel.cpp" line="265"/>
+        <source>Close notes</source>
+        <translation>メモを閉じる</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/notes/NotesPanel.cpp" line="266"/>
+        <source>New note</source>
+        <translation>新しいメモ</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/notes/NotesPanel.cpp" line="267"/>
+        <source>Title</source>
+        <translation>タイトル</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/notes/NotesPanel.cpp" line="268"/>
+        <source>Write a note…</source>
+        <translation>メモを書く…</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/notes/NotesPanel.cpp" line="269"/>
+        <source>Delete</source>
+        <translation>削除</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/notes/NotesPanel.cpp" line="270"/>
+        <source>Cancel</source>
+        <translation>キャンセル</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/notes/NotesPanel.cpp" line="271"/>
+        <source>Save</source>
+        <translation>保存</translation>
+    </message>
+</context>
+<context>
+    <name>OdtReader</name>
+    <message>
+        <location filename="../../src/engine/import/OdtReader.cpp" line="243"/>
+        <source>The file has no readable document part.</source>
+        <translation>このファイルには読み取れる文書部分がありません。</translation>
+    </message>
+    <message>
+        <location filename="../../src/engine/import/OdtReader.cpp" line="264"/>
+        <source>The document is damaged: %1</source>
+        <translation>文書が破損しています: %1</translation>
+    </message>
+</context>
+<context>
+    <name>PasswordDialog</name>
+    <message>
+        <location filename="../../src/ui/widgets/PasswordDialog.cpp" line="12"/>
+        <source>Password required</source>
+        <translation>パスワードが必要です</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/widgets/PasswordDialog.cpp" line="24"/>
+        <source>Wrong password. Please try again:</source>
+        <translation>パスワードが違います。もう一度入力してください:</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/widgets/PasswordDialog.cpp" line="25"/>
+        <source>&quot;%1&quot; is password protected.
+Enter the password to open it:</source>
+        <translation>「%1」はパスワードで保護されています。
+開くにはパスワードを入力してください:</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/widgets/PasswordDialog.cpp" line="35"/>
+        <source>Password</source>
+        <translation>パスワード</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/widgets/PasswordDialog.cpp" line="40"/>
+        <source>Open</source>
+        <translation>開く</translation>
     </message>
 </context>
 <context>
@@ -524,7 +2697,7 @@ Please use a build that includes Qt6::Pdf support.
         <translation type="vanished">選択を削除</translation>
     </message>
     <message>
-        <location filename="../../src/ui/organizer/PdfOrganizerDialog.cpp" line="383"/>
+        <location filename="../../src/ui/organizer/PdfOrganizerDialog.cpp" line="260"/>
         <source>Cancel</source>
         <translation>キャンセル</translation>
     </message>
@@ -533,127 +2706,146 @@ Please use a build that includes Qt6::Pdf support.
         <translation type="vanished">名前を付けて保存…</translation>
     </message>
     <message>
-        <location filename="../../src/ui/organizer/PdfOrganizerDialog.cpp" line="165"/>
-        <location filename="../../src/ui/organizer/PdfOrganizerDialog.cpp" line="806"/>
-        <source>PDF Organizer · OpenPDF Studio</source>
-        <translation type="unfinished"></translation>
+        <location filename="../../src/ui/organizer/PdfOrganizerDialog.cpp" line="63"/>
+        <location filename="../../src/ui/organizer/PdfOrganizerDialog.cpp" line="839"/>
+        <source>PDF Organizer - OpenPDF Studio</source>
+        <translation>PDF オーガナイザー - OpenPDF Studio</translation>
     </message>
     <message>
-        <location filename="../../src/ui/organizer/PdfOrganizerDialog.cpp" line="264"/>
+        <location filename="../../src/ui/organizer/PdfOrganizerDialog.cpp" line="134"/>
         <source>Add PDF</source>
-        <translation type="unfinished"></translation>
+        <translation>PDF を追加</translation>
     </message>
     <message>
-        <location filename="../../src/ui/organizer/PdfOrganizerDialog.cpp" line="268"/>
+        <location filename="../../src/ui/organizer/PdfOrganizerDialog.cpp" line="140"/>
         <source>Open PDF file…</source>
-        <translation type="unfinished"></translation>
+        <translation>PDF ファイルを開く…</translation>
     </message>
     <message>
-        <location filename="../../src/ui/organizer/PdfOrganizerDialog.cpp" line="270"/>
-        <location filename="../../src/ui/organizer/PdfOrganizerDialog.cpp" line="276"/>
-        <location filename="../../src/ui/organizer/PdfOrganizerDialog.cpp" line="411"/>
+        <location filename="../../src/ui/organizer/PdfOrganizerDialog.cpp" line="142"/>
+        <location filename="../../src/ui/organizer/PdfOrganizerDialog.cpp" line="148"/>
+        <location filename="../../src/ui/organizer/PdfOrganizerDialog.cpp" line="294"/>
         <source>Open PDF</source>
         <translation>PDFを開く</translation>
     </message>
     <message>
-        <location filename="../../src/ui/organizer/PdfOrganizerDialog.cpp" line="270"/>
-        <location filename="../../src/ui/organizer/PdfOrganizerDialog.cpp" line="276"/>
+        <location filename="../../src/ui/organizer/PdfOrganizerDialog.cpp" line="142"/>
+        <location filename="../../src/ui/organizer/PdfOrganizerDialog.cpp" line="148"/>
         <location filename="../../src/ui/organizer/PdfOrganizerDialog.cpp" line="758"/>
         <source>PDF files (*.pdf)</source>
         <translation>PDFファイル (*.pdf)</translation>
     </message>
     <message>
-        <location filename="../../src/ui/organizer/PdfOrganizerDialog.cpp" line="282"/>
+        <location filename="../../src/ui/organizer/PdfOrganizerDialog.cpp" line="153"/>
         <source>Blank Page</source>
-        <translation type="unfinished"></translation>
+        <translation>空白ページ</translation>
     </message>
     <message>
-        <location filename="../../src/ui/organizer/PdfOrganizerDialog.cpp" line="308"/>
+        <location filename="../../src/ui/organizer/PdfOrganizerDialog.cpp" line="181"/>
         <source>Move left</source>
-        <translation type="unfinished"></translation>
+        <translation>左へ移動</translation>
     </message>
     <message>
-        <location filename="../../src/ui/organizer/PdfOrganizerDialog.cpp" line="308"/>
+        <location filename="../../src/ui/organizer/PdfOrganizerDialog.cpp" line="181"/>
         <source>Move page left</source>
-        <translation type="unfinished"></translation>
+        <translation>ページを左へ移動</translation>
     </message>
     <message>
-        <location filename="../../src/ui/organizer/PdfOrganizerDialog.cpp" line="309"/>
+        <location filename="../../src/ui/organizer/PdfOrganizerDialog.cpp" line="182"/>
         <source>Move right</source>
-        <translation type="unfinished"></translation>
+        <translation>右へ移動</translation>
     </message>
     <message>
-        <location filename="../../src/ui/organizer/PdfOrganizerDialog.cpp" line="309"/>
+        <location filename="../../src/ui/organizer/PdfOrganizerDialog.cpp" line="182"/>
         <source>Move page right</source>
-        <translation type="unfinished"></translation>
+        <translation>ページを右へ移動</translation>
     </message>
     <message>
-        <location filename="../../src/ui/organizer/PdfOrganizerDialog.cpp" line="312"/>
+        <location filename="../../src/ui/organizer/PdfOrganizerDialog.cpp" line="185"/>
         <source>Rotate left</source>
-        <translation type="unfinished"></translation>
+        <translation>左に回転</translation>
     </message>
     <message>
-        <location filename="../../src/ui/organizer/PdfOrganizerDialog.cpp" line="312"/>
+        <location filename="../../src/ui/organizer/PdfOrganizerDialog.cpp" line="185"/>
         <source>Rotate left 90°</source>
-        <translation type="unfinished"></translation>
+        <translation>左に 90° 回転</translation>
     </message>
     <message>
-        <location filename="../../src/ui/organizer/PdfOrganizerDialog.cpp" line="313"/>
+        <location filename="../../src/ui/organizer/PdfOrganizerDialog.cpp" line="186"/>
         <source>Rotate right</source>
-        <translation type="unfinished"></translation>
+        <translation>右に回転</translation>
     </message>
     <message>
-        <location filename="../../src/ui/organizer/PdfOrganizerDialog.cpp" line="313"/>
+        <location filename="../../src/ui/organizer/PdfOrganizerDialog.cpp" line="186"/>
         <source>Rotate right 90°</source>
-        <translation type="unfinished"></translation>
+        <translation>右に 90° 回転</translation>
     </message>
     <message>
-        <location filename="../../src/ui/organizer/PdfOrganizerDialog.cpp" line="316"/>
+        <location filename="../../src/ui/organizer/PdfOrganizerDialog.cpp" line="189"/>
         <source>Delete page</source>
-        <translation type="unfinished"></translation>
+        <translation>ページを削除</translation>
     </message>
     <message>
-        <location filename="../../src/ui/organizer/PdfOrganizerDialog.cpp" line="327"/>
-        <source>Help</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location filename="../../src/ui/organizer/PdfOrganizerDialog.cpp" line="353"/>
+        <location filename="../../src/ui/organizer/PdfOrganizerDialog.cpp" line="232"/>
         <source>Drag &amp; drop pages to reorder</source>
-        <translation type="unfinished"></translation>
+        <translation>ページをドラッグ＆ドロップして並べ替え</translation>
     </message>
     <message>
-        <location filename="../../src/ui/organizer/PdfOrganizerDialog.cpp" line="378"/>
-        <location filename="../../src/ui/organizer/PdfOrganizerDialog.cpp" line="573"/>
+        <location filename="../../src/ui/organizer/PdfOrganizerDialog.cpp" line="255"/>
+        <location filename="../../src/ui/organizer/PdfOrganizerDialog.cpp" line="475"/>
         <source>Pages</source>
-        <translation type="unfinished"></translation>
+        <translation>ページ</translation>
     </message>
     <message>
-        <location filename="../../src/ui/organizer/PdfOrganizerDialog.cpp" line="388"/>
+        <location filename="../../src/ui/organizer/PdfOrganizerDialog.cpp" line="265"/>
         <source>Save as</source>
-        <translation type="unfinished"></translation>
+        <translation>名前を付けて保存</translation>
     </message>
     <message>
-        <location filename="../../src/ui/organizer/PdfOrganizerDialog.cpp" line="393"/>
+        <location filename="../../src/ui/organizer/PdfOrganizerDialog.cpp" line="270"/>
         <source>Save</source>
-        <translation type="unfinished">保存</translation>
+        <translation>保存</translation>
     </message>
     <message>
-        <location filename="../../src/ui/organizer/PdfOrganizerDialog.cpp" line="412"/>
+        <location filename="../../src/ui/organizer/PdfOrganizerDialog.cpp" line="295"/>
         <source>Could not open: </source>
-        <translation type="unfinished"></translation>
+        <translation>開けませんでした: </translation>
     </message>
     <message>
-        <location filename="../../src/ui/organizer/PdfOrganizerDialog.cpp" line="566"/>
+        <location filename="../../src/ui/organizer/PdfOrganizerDialog.cpp" line="424"/>
+        <location filename="../../src/ui/organizer/PdfOrganizerDialog.cpp" line="468"/>
         <source>Page %1</source>
-        <translation type="unfinished"></translation>
+        <translation>%1 ページ</translation>
     </message>
     <message>
+        <location filename="../../src/ui/organizer/PdfOrganizerDialog.cpp" line="684"/>
+        <location filename="../../src/ui/organizer/PdfOrganizerDialog.cpp" line="691"/>
+        <source>Save failed</source>
+        <translation>保存に失敗しました</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/organizer/PdfOrganizerDialog.cpp" line="685"/>
+        <source>%1 of %2 pages could not be rendered, so the document would have been saved blank. Your PDF was not changed.</source>
+        <translation>%2 ページ中 %1 ページを描画できなかったため、文書は白紙で保存されるところでした。PDF は変更されていません。</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/organizer/PdfOrganizerDialog.cpp" line="692"/>
+        <source>The organized document could not be written to &quot;%1&quot;. Your PDF was not changed.</source>
+        <translation>整理した文書を「%1」に書き込めませんでした。PDF は変更されていません。</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/organizer/PdfOrganizerDialog.cpp" line="698"/>
+        <source>PDF writing requires a PDF backend (Qt6Pdf or Poppler).</source>
+        <translation>PDF の書き込みには PDF バックエンド（Qt6Pdf または Poppler）が必要です。</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/organizer/PdfOrganizerDialog.cpp" line="731"/>
         <location filename="../../src/ui/organizer/PdfOrganizerDialog.cpp" line="752"/>
         <source>Empty</source>
         <translation>空</translation>
     </message>
     <message>
+        <location filename="../../src/ui/organizer/PdfOrganizerDialog.cpp" line="732"/>
         <location filename="../../src/ui/organizer/PdfOrganizerDialog.cpp" line="753"/>
         <source>Add at least one page before saving.</source>
         <translation>保存する前に少なくとも1ページ追加してください。</translation>
@@ -664,14 +2856,46 @@ Please use a build that includes Qt6::Pdf support.
         <translation>PDFに名前を付けて保存</translation>
     </message>
     <message>
-        <location filename="../../src/ui/organizer/PdfOrganizerDialog.cpp" line="791"/>
+        <location filename="../../src/ui/organizer/PdfOrganizerDialog.cpp" line="697"/>
         <source>Not Available</source>
         <translation>利用不可</translation>
     </message>
     <message>
-        <location filename="../../src/ui/organizer/PdfOrganizerDialog.cpp" line="792"/>
         <source>PDF writing requires Qt6Pdf.</source>
-        <translation>PDF書き込みにはQt6Pdfが必要です。</translation>
+        <translation type="vanished">PDF書き込みにはQt6Pdfが必要です。</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/organizer/PdfOrganizerDialog.cpp" line="198"/>
+        <location filename="../../src/ui/organizer/PdfOrganizerDialog.cpp" line="493"/>
+        <source>Select all</source>
+        <translation>すべて選択</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/organizer/PdfOrganizerDialog.cpp" line="493"/>
+        <source>Deselect all</source>
+        <translation>すべて選択解除</translation>
+    </message>
+</context>
+<context>
+    <name>PresentationWindow</name>
+    <message>
+        <location filename="../../src/ui/PresentationWindow.cpp" line="18"/>
+        <source>Präsentation</source>
+        <translation>プレゼンテーション</translation>
+    </message>
+</context>
+<context>
+    <name>Printing</name>
+    <message>
+        <location filename="../../src/ui/export/Printing.cpp" line="76"/>
+        <location filename="../../src/ui/export/Printing.cpp" line="86"/>
+        <source>Print</source>
+        <translation>印刷</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/export/Printing.cpp" line="87"/>
+        <source>The document could not be printed.</source>
+        <translation>文書を印刷できませんでした。</translation>
     </message>
 </context>
 <context>
@@ -698,26 +2922,515 @@ Please use a build that includes Qt6::Pdf support.
     </message>
 </context>
 <context>
+    <name>ProtectDialog</name>
+    <message>
+        <location filename="../../src/ui/protect/ProtectDialog.cpp" line="58"/>
+        <source>AES-256 encryption provides strong protection and is supported by all modern PDF readers.</source>
+        <translation>AES-256 暗号化は強力な保護を提供し、最新の PDF リーダーすべてでサポートされています。</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/protect/ProtectDialog.cpp" line="60"/>
+        <source>AES-128 also opens in older readers, but is weaker than AES-256.</source>
+        <translation>AES-128 は古いリーダーでも開けますが、AES-256 より弱くなります。</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/protect/ProtectDialog.cpp" line="62"/>
+        <source>RC4 is outdated and can be broken. Use it only for very old PDF readers.</source>
+        <translation>RC4 は古く、解読される可能性があります。非常に古い PDF リーダー向けにのみ使用してください。</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/protect/ProtectDialog.cpp" line="92"/>
+        <source>Protect</source>
+        <translation>保護</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/protect/ProtectDialog.cpp" line="93"/>
+        <source>Protecting a PDF needs qpdf, which this build does not include.</source>
+        <translation>PDF の保護には qpdf が必要ですが、このバージョンには含まれていません。</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/protect/ProtectDialog.cpp" line="121"/>
+        <source>Protect - OpenPDF Studio</source>
+        <translation>保護 - OpenPDF Studio</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/protect/ProtectDialog.cpp" line="141"/>
+        <source>Password &amp; Encryption</source>
+        <translation>パスワードと暗号化</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/protect/ProtectDialog.cpp" line="142"/>
+        <location filename="../../src/ui/protect/ProtectDialog.cpp" line="270"/>
+        <source>Permissions</source>
+        <translation>権限</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/protect/ProtectDialog.cpp" line="154"/>
+        <source>Saving with changed protection rewrites the file, so its digital signatures will no longer be valid.</source>
+        <translation>保護を変更して保存するとファイルが書き直されるため、デジタル署名は無効になります。</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/protect/ProtectDialog.cpp" line="187"/>
+        <source>This document is currently protected.</source>
+        <translation>このドキュメントは現在保護されています。</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/protect/ProtectDialog.cpp" line="188"/>
+        <source>This document is not protected.</source>
+        <translation>このドキュメントは保護されていません。</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/protect/ProtectDialog.cpp" line="192"/>
+        <source>You can change the password and encryption settings below.</source>
+        <translation>パスワードと暗号化の設定は下で変更できます。</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/protect/ProtectDialog.cpp" line="193"/>
+        <source>Set a password below, or restrict what readers may do.</source>
+        <translation>下でパスワードを設定するか、閲覧者の操作を制限してください。</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/protect/ProtectDialog.cpp" line="197"/>
+        <source>Remove protection</source>
+        <translation>保護を解除</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/protect/ProtectDialog.cpp" line="222"/>
+        <location filename="../../src/ui/protect/ProtectDialog.cpp" line="228"/>
+        <location filename="../../src/ui/protect/ProtectDialog.cpp" line="230"/>
+        <source>Password</source>
+        <translation>パスワード</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/protect/ProtectDialog.cpp" line="222"/>
+        <source>Require a password to open this PDF.</source>
+        <translation>この PDF を開くときにパスワードを要求します。</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/protect/ProtectDialog.cpp" line="223"/>
+        <source>Enable password protection</source>
+        <translation>パスワード保護を有効にする</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/protect/ProtectDialog.cpp" line="229"/>
+        <location filename="../../src/ui/protect/ProtectDialog.cpp" line="231"/>
+        <location filename="../../src/ui/protect/ProtectDialog.cpp" line="278"/>
+        <location filename="../../src/ui/protect/ProtectDialog.cpp" line="280"/>
+        <source>Confirm password</source>
+        <translation>パスワードの確認</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/protect/ProtectDialog.cpp" line="238"/>
+        <source>Encryption</source>
+        <translation>暗号化</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/protect/ProtectDialog.cpp" line="238"/>
+        <source>Choose the encryption level for the PDF.</source>
+        <translation>PDF の暗号化レベルを選択します。</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/protect/ProtectDialog.cpp" line="239"/>
+        <source>Encryption level</source>
+        <translation>暗号化レベル</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/protect/ProtectDialog.cpp" line="242"/>
+        <source>AES-256 (Recommended)</source>
+        <translation>AES-256 (推奨)</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/protect/ProtectDialog.cpp" line="242"/>
+        <source>AES-128</source>
+        <translation>AES-128</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/protect/ProtectDialog.cpp" line="243"/>
+        <source>RC4 128-bit (Legacy)</source>
+        <translation>RC4 128 ビット (旧式)</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/protect/ProtectDialog.cpp" line="270"/>
+        <source>Choose what readers may do with the PDF.</source>
+        <translation>閲覧者が PDF でできる操作を選択します。</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/protect/ProtectDialog.cpp" line="271"/>
+        <source>Restrict printing, editing and copying</source>
+        <translation>印刷、編集、コピーを制限する</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/protect/ProtectDialog.cpp" line="277"/>
+        <location filename="../../src/ui/protect/ProtectDialog.cpp" line="279"/>
+        <source>Permissions password</source>
+        <translation>権限パスワード</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/protect/ProtectDialog.cpp" line="284"/>
+        <source>Needed to lift the restrictions later. If you leave it empty, nobody can lift them.</source>
+        <translation>後で制限を解除するときに必要です。空欄のままにすると、誰も解除できません。</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/protect/ProtectDialog.cpp" line="290"/>
+        <source>Allowed actions</source>
+        <translation>許可する操作</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/protect/ProtectDialog.cpp" line="295"/>
+        <source>Printing</source>
+        <translation>印刷</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/protect/ProtectDialog.cpp" line="295"/>
+        <source>High-quality printing</source>
+        <translation>高品質印刷</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/protect/ProtectDialog.cpp" line="295"/>
+        <source>Changing content</source>
+        <translation>内容の変更</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/protect/ProtectDialog.cpp" line="296"/>
+        <source>Copying text and images</source>
+        <translation>テキストと画像のコピー</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/protect/ProtectDialog.cpp" line="296"/>
+        <source>Adding comments</source>
+        <translation>注釈の追加</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/protect/ProtectDialog.cpp" line="296"/>
+        <source>Filling in forms</source>
+        <translation>フォームへの入力</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/protect/ProtectDialog.cpp" line="297"/>
+        <source>Inserting, deleting and rotating pages</source>
+        <translation>ページの挿入、削除、回転</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/protect/ProtectDialog.cpp" line="297"/>
+        <source>Reading aloud for accessibility</source>
+        <translation>アクセシビリティのための読み上げ</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/protect/ProtectDialog.cpp" line="308"/>
+        <source>Most PDF readers respect these restrictions, but they are not a strong protection on their own. Use an open password for confidential documents.</source>
+        <translation>ほとんどの PDF リーダーはこれらの制限に従いますが、それだけでは強力な保護にはなりません。機密文書には開くためのパスワードを使用してください。</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/protect/ProtectDialog.cpp" line="325"/>
+        <source>Changes are applied when you save the document.</source>
+        <translation>変更はドキュメントの保存時に適用されます。</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/protect/ProtectDialog.cpp" line="326"/>
+        <source>Cancel</source>
+        <translation>キャンセル</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/protect/ProtectDialog.cpp" line="331"/>
+        <source>Apply</source>
+        <translation>適用</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/protect/ProtectDialog.cpp" line="350"/>
+        <location filename="../../src/ui/protect/ProtectDialog.cpp" line="357"/>
+        <source>Show password</source>
+        <translation>パスワードを表示</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/protect/ProtectDialog.cpp" line="357"/>
+        <source>Hide password</source>
+        <translation>パスワードを隠す</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/protect/ProtectDialog.cpp" line="411"/>
+        <source>Missing password</source>
+        <translation>パスワードがありません</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/protect/ProtectDialog.cpp" line="412"/>
+        <source>Please enter a password, or switch password protection off.</source>
+        <translation>パスワードを入力するか、パスワード保護をオフにしてください。</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/protect/ProtectDialog.cpp" line="416"/>
+        <location filename="../../src/ui/protect/ProtectDialog.cpp" line="423"/>
+        <source>Passwords do not match</source>
+        <translation>パスワードが一致しません</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/protect/ProtectDialog.cpp" line="417"/>
+        <source>The password and its confirmation are different.</source>
+        <translation>パスワードと確認用パスワードが異なります。</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/protect/ProtectDialog.cpp" line="424"/>
+        <source>The permissions password and its confirmation are different.</source>
+        <translation>権限パスワードと確認用パスワードが異なります。</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/protect/ProtectDialog.cpp" line="429"/>
+        <source>Same password twice</source>
+        <translation>同じパスワードが 2 回使われています</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/protect/ProtectDialog.cpp" line="430"/>
+        <source>The permissions password must differ from the open password, otherwise everyone who can open the PDF can lift the restrictions.</source>
+        <translation>権限パスワードは開くためのパスワードと異なる必要があります。同じだと、PDF を開ける人は誰でも制限を解除できます。</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/protect/ProtectDialog.cpp" line="186"/>
+        <source>No document is open.</source>
+        <translation>ドキュメントが開かれていません。</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/protect/ProtectDialog.cpp" line="190"/>
+        <source>Open a PDF to protect it.</source>
+        <translation>PDF を開いて保護してください。</translation>
+    </message>
+</context>
+<context>
+    <name>ProtectionLayer</name>
+    <message>
+        <location filename="../../src/ui/view/ProtectionLayer.cpp" line="23"/>
+        <source>Protection changed</source>
+        <translation>保護を変更</translation>
+    </message>
+</context>
+<context>
+    <name>QShortcut</name>
+    <message>
+        <location filename="../../src/ui/view/ImageAnnotationLayer.cpp" line="49"/>
+        <source>Del</source>
+        <translation>Del</translation>
+    </message>
+</context>
+<context>
+    <name>Registration</name>
+    <message>
+        <location filename="../../modules/rich-media/MediaModule.cpp" line="31"/>
+        <source>Rich Media</source>
+        <translation>リッチメディア</translation>
+    </message>
+</context>
+<context>
+    <name>RichMediaPanel</name>
+    <message>
+        <location filename="../../modules/rich-media/ui/RichMediaPanel.cpp" line="119"/>
+        <location filename="../../modules/rich-media/ui/RichMediaPanel.cpp" line="530"/>
+        <source>Rich Media</source>
+        <translation>リッチメディア</translation>
+    </message>
+    <message>
+        <location filename="../../modules/rich-media/ui/RichMediaPanel.cpp" line="128"/>
+        <location filename="../../modules/rich-media/ui/RichMediaPanel.cpp" line="551"/>
+        <source>Close</source>
+        <translation>閉じる</translation>
+    </message>
+    <message>
+        <location filename="../../modules/rich-media/ui/RichMediaPanel.cpp" line="133"/>
+        <location filename="../../modules/rich-media/ui/RichMediaPanel.cpp" line="531"/>
+        <source>Edit media or add a new source</source>
+        <translation>メディアを編集するか新しいソースを追加</translation>
+    </message>
+    <message>
+        <location filename="../../modules/rich-media/ui/RichMediaPanel.cpp" line="138"/>
+        <location filename="../../modules/rich-media/ui/RichMediaPanel.cpp" line="532"/>
+        <source>Source</source>
+        <translation>ソース</translation>
+    </message>
+    <message>
+        <location filename="../../modules/rich-media/ui/RichMediaPanel.cpp" line="145"/>
+        <location filename="../../modules/rich-media/ui/RichMediaPanel.cpp" line="538"/>
+        <source>Choose a media file</source>
+        <translation>メディアファイルを選択</translation>
+    </message>
+    <message>
+        <location filename="../../modules/rich-media/ui/RichMediaPanel.cpp" line="151"/>
+        <location filename="../../modules/rich-media/ui/RichMediaPanel.cpp" line="539"/>
+        <source>Browse</source>
+        <translation>参照</translation>
+    </message>
+    <message>
+        <location filename="../../modules/rich-media/ui/RichMediaPanel.cpp" line="162"/>
+        <location filename="../../modules/rich-media/ui/RichMediaPanel.cpp" line="533"/>
+        <source>Poster / Thumbnail</source>
+        <translation>ポスター / サムネイル</translation>
+    </message>
+    <message>
+        <location filename="../../modules/rich-media/ui/RichMediaPanel.cpp" line="178"/>
+        <location filename="../../modules/rich-media/ui/RichMediaPanel.cpp" line="540"/>
+        <source>Change</source>
+        <translation>変更</translation>
+    </message>
+    <message>
+        <location filename="../../modules/rich-media/ui/RichMediaPanel.cpp" line="186"/>
+        <location filename="../../modules/rich-media/ui/RichMediaPanel.cpp" line="541"/>
+        <source>Remove</source>
+        <translation>削除</translation>
+    </message>
+    <message>
+        <location filename="../../modules/rich-media/ui/RichMediaPanel.cpp" line="204"/>
+        <location filename="../../modules/rich-media/ui/RichMediaPanel.cpp" line="534"/>
+        <source>Trigger</source>
+        <translation>トリガー</translation>
+    </message>
+    <message>
+        <location filename="../../modules/rich-media/ui/RichMediaPanel.cpp" line="209"/>
+        <location filename="../../modules/rich-media/ui/RichMediaPanel.cpp" line="542"/>
+        <source>On click</source>
+        <translation>クリック時</translation>
+    </message>
+    <message>
+        <location filename="../../modules/rich-media/ui/RichMediaPanel.cpp" line="210"/>
+        <location filename="../../modules/rich-media/ui/RichMediaPanel.cpp" line="543"/>
+        <source>On page open</source>
+        <translation>ページを開いたとき</translation>
+    </message>
+    <message>
+        <location filename="../../modules/rich-media/ui/RichMediaPanel.cpp" line="223"/>
+        <location filename="../../modules/rich-media/ui/RichMediaPanel.cpp" line="535"/>
+        <source>Playback options</source>
+        <translation>再生オプション</translation>
+    </message>
+    <message>
+        <location filename="../../modules/rich-media/ui/RichMediaPanel.cpp" line="230"/>
+        <location filename="../../modules/rich-media/ui/RichMediaPanel.cpp" line="544"/>
+        <source>Autoplay</source>
+        <translation>自動再生</translation>
+    </message>
+    <message>
+        <location filename="../../modules/rich-media/ui/RichMediaPanel.cpp" line="232"/>
+        <location filename="../../modules/rich-media/ui/RichMediaPanel.cpp" line="546"/>
+        <source>Loop</source>
+        <translation>ループ</translation>
+    </message>
+    <message>
+        <location filename="../../modules/rich-media/ui/RichMediaPanel.cpp" line="234"/>
+        <location filename="../../modules/rich-media/ui/RichMediaPanel.cpp" line="545"/>
+        <source>Muted</source>
+        <translation>ミュート</translation>
+    </message>
+    <message>
+        <location filename="../../modules/rich-media/ui/RichMediaPanel.cpp" line="236"/>
+        <location filename="../../modules/rich-media/ui/RichMediaPanel.cpp" line="547"/>
+        <source>Show controls</source>
+        <translation>コントロールを表示</translation>
+    </message>
+    <message>
+        <location filename="../../modules/rich-media/ui/RichMediaPanel.cpp" line="244"/>
+        <location filename="../../modules/rich-media/ui/RichMediaPanel.cpp" line="536"/>
+        <source>Placement</source>
+        <translation>配置</translation>
+    </message>
+    <message>
+        <location filename="../../modules/rich-media/ui/RichMediaPanel.cpp" line="249"/>
+        <location filename="../../modules/rich-media/ui/RichMediaPanel.cpp" line="548"/>
+        <source>Inline</source>
+        <translation>ページ内</translation>
+    </message>
+    <message>
+        <location filename="../../modules/rich-media/ui/RichMediaPanel.cpp" line="250"/>
+        <location filename="../../modules/rich-media/ui/RichMediaPanel.cpp" line="549"/>
+        <source>Floating</source>
+        <translation>フローティング</translation>
+    </message>
+    <message>
+        <location filename="../../modules/rich-media/ui/RichMediaPanel.cpp" line="264"/>
+        <location filename="../../modules/rich-media/ui/RichMediaPanel.cpp" line="497"/>
+        <source>Drag a frame on the page to place the media.</source>
+        <translation>ページ上で枠をドラッグしてメディアを配置します。</translation>
+    </message>
+    <message>
+        <location filename="../../modules/rich-media/ui/RichMediaPanel.cpp" line="269"/>
+        <location filename="../../modules/rich-media/ui/RichMediaPanel.cpp" line="550"/>
+        <source>Apply</source>
+        <translation>適用</translation>
+    </message>
+    <message>
+        <location filename="../../modules/rich-media/ui/RichMediaPanel.cpp" line="389"/>
+        <source>Media files (*.mp4 *.m4v *.mov *.webm *.mkv *.avi *.mp3 *.m4a *.wav *.ogg *.opus *.flac);;All files (*)</source>
+        <translation>メディアファイル (*.mp4 *.m4v *.mov *.webm *.mkv *.avi *.mp3 *.m4a *.wav *.ogg *.opus *.flac);;すべてのファイル (*)</translation>
+    </message>
+    <message>
+        <location filename="../../modules/rich-media/ui/RichMediaPanel.cpp" line="391"/>
+        <source>Choose media</source>
+        <translation>メディアを選択</translation>
+    </message>
+    <message>
+        <location filename="../../modules/rich-media/ui/RichMediaPanel.cpp" line="399"/>
+        <source>Choose a poster image</source>
+        <translation>ポスター画像を選択</translation>
+    </message>
+    <message>
+        <location filename="../../modules/rich-media/ui/RichMediaPanel.cpp" line="400"/>
+        <source>Images (*.png *.jpg *.jpeg *.webp *.bmp);;All files (*)</source>
+        <translation>画像 (*.png *.jpg *.jpeg *.webp *.bmp);;すべてのファイル (*)</translation>
+    </message>
+    <message>
+        <location filename="../../modules/rich-media/ui/RichMediaPanel.cpp" line="499"/>
+        <source>Choose a file to embed.</source>
+        <translation>埋め込むファイルを選択してください。</translation>
+    </message>
+    <message>
+        <location filename="../../modules/rich-media/ui/RichMediaPanel.cpp" line="501"/>
+        <source>Drag the handles on the page to resize the media.</source>
+        <translation>ページ上のハンドルをドラッグしてメディアのサイズを変更します。</translation>
+    </message>
+    <message>
+        <location filename="../../modules/rich-media/ui/RichMediaPanel.cpp" line="503"/>
+        <source>Page %1. The file is copied into the document.</source>
+        <translation>%1 ページ。ファイルは文書にコピーされます。</translation>
+    </message>
+</context>
+<context>
     <name>RightSidebar</name>
     <message>
-        <location filename="../../src/ui/RightSidebar.cpp" line="22"/>
+        <location filename="../../src/ui/panels/RightSidebar.cpp" line="22"/>
         <source>Edit</source>
         <translation>編集</translation>
     </message>
     <message>
-        <location filename="../../src/ui/RightSidebar.cpp" line="23"/>
+        <location filename="../../src/ui/panels/RightSidebar.cpp" line="25"/>
         <source>Export</source>
         <translation>エクスポート</translation>
     </message>
     <message>
-        <location filename="../../src/ui/RightSidebar.cpp" line="24"/>
+        <location filename="../../src/ui/panels/RightSidebar.cpp" line="26"/>
         <source>Organize</source>
         <translation>整理</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/panels/RightSidebar.cpp" line="27"/>
+        <source>History</source>
+        <translation>履歴</translation>
     </message>
     <message>
         <location filename="../../src/ui/panels/RightSidebar.cpp" line="23"/>
         <source>Sign</source>
         <translation>署名</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/panels/RightSidebar.cpp" line="24"/>
+        <source>Protect</source>
+        <translation>保護</translation>
+    </message>
+</context>
+<context>
+    <name>SaveIndicator</name>
+    <message>
+        <location filename="../../src/ui/SaveIndicator.cpp" line="67"/>
+        <source>Saved</source>
+        <translation>保存しました</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/SaveIndicator.cpp" line="67"/>
+        <source>Saved &quot;%1&quot;</source>
+        <translation>「%1」を保存しました</translation>
     </message>
 </context>
 <context>
@@ -749,141 +3462,722 @@ Please use a build that includes Qt6::Pdf support.
     </message>
 </context>
 <context>
+    <name>SessionRecovery</name>
+    <message>
+        <location filename="../../src/ui/session/SessionRecovery.cpp" line="25"/>
+        <source>Untitled</source>
+        <translation>無題</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/session/SessionRecovery.cpp" line="58"/>
+        <source>Restore Session</source>
+        <translation>セッションの復元</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/session/SessionRecovery.cpp" line="59"/>
+        <source>OpenPDF Studio did not shut down properly last time.</source>
+        <translation>OpenPDF Studio は前回正常に終了しませんでした。</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/session/SessionRecovery.cpp" line="60"/>
+        <source>Restore the documents that were open?</source>
+        <translation>開いていた文書を復元しますか？</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/session/SessionRecovery.cpp" line="53"/>
+        <source>%1 (unsaved changes)</source>
+        <translation>%1（未保存の変更）</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/session/SessionRecovery.cpp" line="62"/>
+        <source>Restore</source>
+        <translation>復元</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/session/SessionRecovery.cpp" line="63"/>
+        <source>Discard</source>
+        <translation>破棄</translation>
+    </message>
+</context>
+<context>
     <name>SettingsPanel</name>
     <message>
-        <location filename="../../src/ui/SettingsPanel.cpp" line="215"/>
-        <location filename="../../src/ui/SettingsPanel.cpp" line="715"/>
+        <location filename="../../src/ui/settings/SettingsPanel.cpp" line="47"/>
+        <location filename="../../src/ui/settings/SettingsPanel.cpp" line="1159"/>
         <source>Settings - OpenPDF Studio</source>
         <translation>設定 - OpenPDF Studio</translation>
     </message>
     <message>
-        <location filename="../../src/ui/SettingsPanel.cpp" line="272"/>
+        <location filename="../../src/ui/settings/SettingsPanel.cpp" line="426"/>
+        <source>Choose how video embedded in a PDF is played.</source>
+        <translation>PDF に埋め込まれた動画の再生方法を選択します。</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/settings/SettingsPanel.cpp" line="439"/>
+        <source>In OpenPDF Studio</source>
+        <translation>OpenPDF Studio 内</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/settings/SettingsPanel.cpp" line="440"/>
+        <source>Plays on the page</source>
+        <translation>ページ上で再生</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/settings/SettingsPanel.cpp" line="441"/>
+        <source>System player</source>
+        <translation>システムのプレーヤー</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/settings/SettingsPanel.cpp" line="442"/>
+        <source>Opens in your video player</source>
+        <translation>お使いの動画プレーヤーで開く</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/settings/SettingsPanel.cpp" line="443"/>
+        <source>Custom command</source>
+        <translation>カスタムコマンド</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/settings/SettingsPanel.cpp" line="444"/>
+        <source>Run a player of your choice</source>
+        <translation>任意のプレーヤーを実行</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/settings/SettingsPanel.cpp" line="457"/>
+        <source>This build has no built-in player. &quot;In OpenPDF Studio&quot; falls back to the system player.</source>
+        <translation>このビルドには内蔵プレーヤーがありません。「OpenPDF Studio 内」はシステムのプレーヤーを使います。</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/settings/SettingsPanel.cpp" line="470"/>
+        <source>Command:</source>
+        <translation>コマンド:</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/settings/SettingsPanel.cpp" line="477"/>
+        <source>%1 is replaced with the video file. Without it the file is appended.</source>
+        <translation>%1 は動画ファイルに置き換えられます。ない場合はファイルが末尾に追加されます。</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/settings/SettingsPanel.cpp" line="480"/>
+        <source>Browse...</source>
+        <translation>参照…</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/settings/SettingsPanel.cpp" line="482"/>
+        <source>Choose a media player</source>
+        <translation>メディアプレーヤーを選択</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/settings/SettingsPanel.cpp" line="511"/>
+        <source>Keyboard Shortcuts</source>
+        <translation>キーボードショートカット</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/settings/SettingsPanel.cpp" line="514"/>
+        <source>Configure keyboard shortcuts for frequent actions.</source>
+        <translation>よく使う操作のキーボードショートカットを設定します。</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/settings/SettingsPanel.cpp" line="528"/>
+        <source>Search action</source>
+        <translation>操作を検索</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/settings/SettingsPanel.cpp" line="531"/>
+        <source>Show only global default shortcuts</source>
+        <translation>グローバルな既定のショートカットのみ表示</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/settings/SettingsPanel.cpp" line="549"/>
+        <source>Action</source>
+        <translation>操作</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/settings/SettingsPanel.cpp" line="553"/>
+        <source>Key Combination</source>
+        <translation>キーの組み合わせ</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/settings/SettingsPanel.cpp" line="582"/>
+        <source>Save As</source>
+        <translation>名前を付けて保存</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/settings/SettingsPanel.cpp" line="583"/>
+        <source>Print</source>
+        <translation>印刷</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/settings/SettingsPanel.cpp" line="584"/>
+        <source>Open</source>
+        <translation>開く</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/settings/SettingsPanel.cpp" line="585"/>
+        <source>Undo</source>
+        <translation>元に戻す</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/settings/SettingsPanel.cpp" line="586"/>
+        <source>Redo</source>
+        <translation>やり直し</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/settings/SettingsPanel.cpp" line="587"/>
+        <source>Find</source>
+        <translation>検索</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/settings/SettingsPanel.cpp" line="588"/>
+        <source>Text Tool</source>
+        <translation>テキストツール</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/settings/SettingsPanel.cpp" line="589"/>
+        <source>Notes</source>
+        <translation>メモ</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/settings/SettingsPanel.cpp" line="590"/>
+        <source>Zoom In</source>
+        <translation>拡大</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/settings/SettingsPanel.cpp" line="591"/>
+        <source>Zoom Out</source>
+        <translation>縮小</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/settings/SettingsPanel.cpp" line="592"/>
+        <source>Presentation</source>
+        <translation>プレゼンテーション</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/settings/SettingsPanel.cpp" line="640"/>
+        <source>Double-click on a key combination to change it.</source>
+        <translation>キーの組み合わせをダブルクリックすると変更できます。</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/settings/SettingsPanel.cpp" line="652"/>
+        <source>Configure how zoom works with the mouse wheel.</source>
+        <translation>マウスホイールでのズームの動作を設定します。</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/settings/SettingsPanel.cpp" line="680"/>
+        <source>Mouse Wheel Zoom Step</source>
+        <translation>マウスホイールのズーム刻み</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/settings/SettingsPanel.cpp" line="686"/>
+        <source>Zoom step with Ctrl + Mouse Wheel</source>
+        <translation>Ctrl + マウスホイールのズーム刻み</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/settings/SettingsPanel.cpp" line="698"/>
+        <source>Sets how much is zoomed per mouse wheel movement.</source>
+        <translation>マウスホイール 1 回あたりのズーム量を設定します。</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/settings/SettingsPanel.cpp" line="720"/>
+        <source>Zoom with Ctrl + Mouse Wheel</source>
+        <translation>Ctrl + マウスホイールでズーム</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/settings/SettingsPanel.cpp" line="725"/>
+        <source>Zoom to Mouse Pointer</source>
+        <translation>マウスポインターの位置にズーム</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/settings/SettingsPanel.cpp" line="736"/>
+        <source>Action without Ctrl</source>
+        <translation>Ctrl なしの操作</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/settings/SettingsPanel.cpp" line="741"/>
+        <source>Scroll</source>
+        <translation>スクロール</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/settings/SettingsPanel.cpp" line="758"/>
+        <source>Example: 100 % → %1 %</source>
+        <translation>例: 100 % → %1 %</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/settings/SettingsPanel.cpp" line="828"/>
+        <source>Updates</source>
+        <translation>アップデート</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/settings/SettingsPanel.cpp" line="829"/>
+        <source>Check for automatic updates</source>
+        <translation>アップデートを自動確認</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/settings/SettingsPanel.cpp" line="830"/>
+        <source>Automatically check for updates in the background and notify you when a new version is available.</source>
+        <translation>バックグラウンドでアップデートを確認し、新しいバージョンがあればお知らせします。</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/settings/SettingsPanel.cpp" line="834"/>
+        <source>Check interval:</source>
+        <translation>確認間隔:</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/settings/SettingsPanel.cpp" line="835"/>
+        <source>On every start</source>
+        <translation>起動するたび</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/settings/SettingsPanel.cpp" line="836"/>
+        <source>Daily</source>
+        <translation>毎日</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/settings/SettingsPanel.cpp" line="837"/>
+        <source>Weekly</source>
+        <translation>毎週</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/settings/SettingsPanel.cpp" line="838"/>
+        <source>Monthly</source>
+        <translation>毎月</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/settings/SettingsPanel.cpp" line="851"/>
+        <source>Check now</source>
+        <translation>今すぐ確認</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/settings/SettingsPanel.cpp" line="864"/>
+        <source>Last checked %1</source>
+        <translation>最終確認: %1</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/settings/SettingsPanel.cpp" line="866"/>
+        <source>Not checked yet</source>
+        <translation>まだ確認していません</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/settings/SettingsPanel.cpp" line="875"/>
+        <source>Checking…</source>
+        <translation>確認しています…</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/settings/SettingsPanel.cpp" line="890"/>
+        <source>Check failed: %1</source>
+        <translation>確認に失敗しました: %1</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/settings/SettingsPanel.cpp" line="895"/>
+        <source>Version %1 is up to date.</source>
+        <translation>バージョン %1 は最新です。</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/settings/SettingsPanel.cpp" line="901"/>
+        <source>Version %1 is available. &lt;a href=&quot;%2&quot; style=&quot;color:%3;&quot;&gt;Download&lt;/a&gt;</source>
+        <translation>バージョン %1 が利用可能です。&lt;a href=&quot;%2&quot; style=&quot;color:%3;&quot;&gt;ダウンロード&lt;/a&gt;</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/settings/SettingsPanel.cpp" line="910"/>
+        <source>Interface</source>
+        <translation>インターフェース</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/settings/SettingsPanel.cpp" line="911"/>
+        <source>Preserve panel layout</source>
+        <translation>パネルのレイアウトを保持</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/settings/SettingsPanel.cpp" line="912"/>
+        <source>Restore expanded and collapsed panels after restart.</source>
+        <translation>再起動後に開閉していたパネルを元に戻します。</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/settings/SettingsPanel.cpp" line="918"/>
+        <source>Performance</source>
+        <translation>パフォーマンス</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/settings/SettingsPanel.cpp" line="919"/>
+        <source>Use hardware acceleration when available</source>
+        <translation>利用可能な場合はハードウェアアクセラレーションを使う</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/settings/SettingsPanel.cpp" line="920"/>
+        <source>Improves performance for rendering and media playback.</source>
+        <translation>描画とメディア再生のパフォーマンスを向上させます。</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/settings/SettingsPanel.cpp" line="923"/>
+        <source>Limit memory usage</source>
+        <translation>メモリ使用量を制限</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/settings/SettingsPanel.cpp" line="924"/>
+        <source>Helps improve stability on systems with limited memory.</source>
+        <translation>メモリが少ないシステムでの安定性向上に役立ちます。</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/settings/SettingsPanel.cpp" line="930"/>
+        <source>Diagnostics</source>
+        <translation>診断</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/settings/SettingsPanel.cpp" line="931"/>
+        <source>Enable debug logging</source>
+        <translation>デバッグログを有効にする</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/settings/SettingsPanel.cpp" line="932"/>
+        <source>Save detailed logs for troubleshooting purposes.</source>
+        <translation>トラブルシューティング用に詳細なログを保存します。</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/settings/SettingsPanel.cpp" line="935"/>
+        <source>Log level:</source>
+        <translation>ログレベル:</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/settings/SettingsPanel.cpp" line="936"/>
+        <source>Error</source>
+        <translation>エラー</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/settings/SettingsPanel.cpp" line="937"/>
+        <source>Warning</source>
+        <translation>警告</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/settings/SettingsPanel.cpp" line="938"/>
+        <source>Info</source>
+        <translation>情報</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/settings/SettingsPanel.cpp" line="939"/>
+        <source>Debug</source>
+        <translation>デバッグ</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/settings/SettingsPanel.cpp" line="949"/>
         <source>Reset</source>
         <translation>リセット</translation>
     </message>
     <message>
-        <location filename="../../src/ui/SettingsPanel.cpp" line="285"/>
+        <location filename="../../src/ui/settings/SettingsPanel.cpp" line="1034"/>
+        <source>Configuration (portable): %1</source>
+        <translation>設定（ポータブル）: %1</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/settings/SettingsPanel.cpp" line="1035"/>
+        <source>Configuration: %1</source>
+        <translation>設定: %1</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/settings/SettingsPanel.cpp" line="110"/>
         <source>Cancel</source>
         <translation>キャンセル</translation>
     </message>
     <message>
-        <location filename="../../src/ui/SettingsPanel.cpp" line="290"/>
+        <location filename="../../src/ui/settings/SettingsPanel.cpp" line="115"/>
+        <location filename="../../src/ui/settings/SettingsPanel.cpp" line="581"/>
         <source>Save</source>
         <translation>保存</translation>
     </message>
     <message>
-        <location filename="../../src/ui/SettingsPanel.cpp" line="307"/>
-        <location filename="../../src/ui/SettingsPanel.cpp" line="421"/>
-        <location filename="../../src/ui/SettingsPanel.cpp" line="718"/>
+        <location filename="../../src/ui/settings/SettingsPanel.cpp" line="130"/>
+        <location filename="../../src/ui/settings/SettingsPanel.cpp" line="307"/>
         <source>Appearance</source>
         <translation>外観</translation>
     </message>
     <message>
-        <location filename="../../src/ui/SettingsPanel.cpp" line="308"/>
-        <location filename="../../src/ui/SettingsPanel.cpp" line="465"/>
-        <location filename="../../src/ui/SettingsPanel.cpp" line="719"/>
+        <location filename="../../src/ui/settings/SettingsPanel.cpp" line="131"/>
+        <location filename="../../src/ui/settings/SettingsPanel.cpp" line="351"/>
         <source>Language</source>
         <translation>言語</translation>
     </message>
     <message>
-        <location filename="../../src/ui/SettingsPanel.cpp" line="309"/>
-        <location filename="../../src/ui/SettingsPanel.cpp" line="536"/>
-        <location filename="../../src/ui/SettingsPanel.cpp" line="720"/>
+        <location filename="../../src/ui/settings/SettingsPanel.cpp" line="132"/>
+        <location filename="../../src/ui/settings/SettingsPanel.cpp" line="421"/>
         <source>Media Playback</source>
         <translation>メディア再生</translation>
     </message>
     <message>
-        <location filename="../../src/ui/SettingsPanel.cpp" line="310"/>
-        <location filename="../../src/ui/SettingsPanel.cpp" line="573"/>
-        <location filename="../../src/ui/SettingsPanel.cpp" line="721"/>
+        <location filename="../../src/ui/settings/SettingsPanel.cpp" line="133"/>
+        <source>Shortcuts</source>
+        <translation>ショートカット</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/settings/SettingsPanel.cpp" line="134"/>
+        <location filename="../../src/ui/settings/SettingsPanel.cpp" line="652"/>
+        <location filename="../../src/ui/settings/SettingsPanel.cpp" line="742"/>
+        <source>Zoom</source>
+        <translation>ズーム</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/settings/SettingsPanel.cpp" line="135"/>
+        <location filename="../../src/ui/settings/SettingsPanel.cpp" line="986"/>
         <source>Advanced</source>
         <translation>詳細設定</translation>
     </message>
     <message>
-        <location filename="../../src/ui/SettingsPanel.cpp" line="354"/>
-        <location filename="../../src/ui/SettingsPanel.cpp" line="722"/>
+        <location filename="../../src/ui/settings/SettingsPanel.cpp" line="139"/>
+        <source>License Key</source>
+        <translation>ライセンスキー</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/settings/SettingsPanel.cpp" line="182"/>
+        <location filename="../../src/ui/settings/SettingsPanel.cpp" line="187"/>
         <source>About</source>
         <translation>情報</translation>
     </message>
     <message>
-        <location filename="../../src/ui/SettingsPanel.cpp" line="426"/>
+        <location filename="../../src/ui/settings/SettingsPanel.cpp" line="312"/>
         <source>Choose how OpenPDF Studio is displayed.</source>
         <translation>OpenPDF Studioの表示方法を選択してください。</translation>
     </message>
     <message>
-        <location filename="../../src/ui/SettingsPanel.cpp" line="437"/>
+        <location filename="../../src/ui/settings/SettingsPanel.cpp" line="323"/>
         <source>System</source>
         <translation>システム</translation>
     </message>
     <message>
-        <location filename="../../src/ui/SettingsPanel.cpp" line="437"/>
+        <location filename="../../src/ui/settings/SettingsPanel.cpp" line="323"/>
         <source>Follows system settings</source>
         <translation>システム設定に従う</translation>
     </message>
     <message>
-        <location filename="../../src/ui/SettingsPanel.cpp" line="438"/>
+        <location filename="../../src/ui/settings/SettingsPanel.cpp" line="324"/>
         <source>Light</source>
         <translation>ライト</translation>
     </message>
     <message>
-        <location filename="../../src/ui/SettingsPanel.cpp" line="438"/>
+        <location filename="../../src/ui/settings/SettingsPanel.cpp" line="324"/>
         <source>Light user interface</source>
         <translation>ライトインターフェース</translation>
     </message>
     <message>
-        <location filename="../../src/ui/SettingsPanel.cpp" line="439"/>
+        <location filename="../../src/ui/settings/SettingsPanel.cpp" line="325"/>
         <source>Dark</source>
         <translation>ダーク</translation>
     </message>
     <message>
-        <location filename="../../src/ui/SettingsPanel.cpp" line="439"/>
+        <location filename="../../src/ui/settings/SettingsPanel.cpp" line="325"/>
         <source>Dark user interface</source>
         <translation>ダークインターフェース</translation>
     </message>
     <message>
-        <location filename="../../src/ui/SettingsPanel.cpp" line="469"/>
+        <location filename="../../src/ui/settings/SettingsPanel.cpp" line="355"/>
         <source>Choose your preferred interface language.</source>
         <translation>お好みのインターフェース言語を選択してください。</translation>
     </message>
     <message>
-        <location filename="../../src/ui/SettingsPanel.cpp" line="541"/>
         <source>Choose how media is played in OpenPDF Studio.</source>
-        <translation>OpenPDF Studioでのメディア再生方法を選択してください。</translation>
+        <translation type="vanished">OpenPDF Studioでのメディア再生方法を選択してください。</translation>
     </message>
     <message>
-        <location filename="../../src/ui/SettingsPanel.cpp" line="552"/>
         <source>Default</source>
-        <translation>デフォルト</translation>
+        <translation type="vanished">デフォルト</translation>
     </message>
     <message>
-        <location filename="../../src/ui/SettingsPanel.cpp" line="552"/>
         <source>Use system player</source>
-        <translation>システムプレーヤーを使用</translation>
+        <translation type="vanished">システムプレーヤーを使用</translation>
     </message>
     <message>
-        <location filename="../../src/ui/SettingsPanel.cpp" line="553"/>
         <source>Custom...</source>
-        <translation>カスタム…</translation>
+        <translation type="vanished">カスタム…</translation>
     </message>
     <message>
-        <location filename="../../src/ui/SettingsPanel.cpp" line="553"/>
         <source>Custom media player</source>
-        <translation>カスタムメディアプレーヤー</translation>
+        <translation type="vanished">カスタムメディアプレーヤー</translation>
     </message>
     <message>
-        <location filename="../../src/ui/SettingsPanel.cpp" line="578"/>
+        <location filename="../../src/ui/settings/SettingsPanel.cpp" line="986"/>
         <source>Advanced settings for OpenPDF Studio.</source>
         <translation>OpenPDF Studioの詳細設定。</translation>
     </message>
     <message>
-        <location filename="../../src/ui/SettingsPanel.cpp" line="583"/>
+        <location filename="../../src/ui/settings/SettingsPanel.cpp" line="950"/>
         <source>Reset All Settings to Defaults</source>
         <translation>すべての設定をリセット</translation>
     </message>
     <message>
-        <location filename="../../src/ui/SettingsPanel.cpp" line="635"/>
+        <location filename="../../src/ui/settings/SettingsPanel.cpp" line="1027"/>
         <source>A modern, open-source PDF editor built with Qt.</source>
         <translation>Qtで構築された最新のオープンソースPDFエディター。</translation>
+    </message>
+</context>
+<context>
+    <name>ShortcutRow</name>
+    <message>
+        <location filename="../../src/ui/settings/ShortcutRow.hpp" line="132"/>
+        <source>Reset to default</source>
+        <translation>既定に戻す</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/settings/ShortcutRow.hpp" line="143"/>
+        <source>Edit</source>
+        <translation>編集</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/settings/ShortcutRow.hpp" line="153"/>
+        <source>Save</source>
+        <translation>保存</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/settings/ShortcutRow.hpp" line="161"/>
+        <source>Cancel</source>
+        <translation>キャンセル</translation>
+    </message>
+</context>
+<context>
+    <name>SignDialog</name>
+    <message>
+        <location filename="../../src/ui/sign/SignDialog.cpp" line="101"/>
+        <source>Sign - OpenPDF Studio</source>
+        <translation>署名 - OpenPDF Studio</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/sign/SignDialog.cpp" line="175"/>
+        <source>Add signature</source>
+        <translation>署名を追加</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/sign/SignDialog.cpp" line="176"/>
+        <source>Sign digitally</source>
+        <translation>デジタル署名</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/sign/SignDialog.cpp" line="179"/>
+        <source>Not available in this build</source>
+        <translation>このビルドでは利用できません</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/sign/SignDialog.cpp" line="196"/>
+        <source>Create, import or choose a signature, then place it freely in the PDF.</source>
+        <translation>署名を作成、読み込み、または選択し、PDF 内の好きな位置に配置します。</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/sign/SignDialog.cpp" line="210"/>
+        <source>Once created, the signature can be placed freely in the PDF and adjusted later.</source>
+        <translation>作成した署名は PDF 内の好きな位置に配置でき、後から調整できます。</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/sign/SignDialog.cpp" line="241"/>
+        <source>Draw</source>
+        <translation>手書き</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/sign/SignDialog.cpp" line="242"/>
+        <source>Type</source>
+        <translation>入力</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/sign/SignDialog.cpp" line="243"/>
+        <source>Import image</source>
+        <translation>画像を読み込む</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/sign/SignDialog.cpp" line="244"/>
+        <source>Saved</source>
+        <translation>保存済み</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/sign/SignDialog.cpp" line="279"/>
+        <source>Clear</source>
+        <translation>消去</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/sign/SignDialog.cpp" line="294"/>
+        <source>Type your name</source>
+        <translation>名前を入力</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/sign/SignDialog.cpp" line="314"/>
+        <source>Choose image...</source>
+        <translation>画像を選択...</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/sign/SignDialog.cpp" line="339"/>
+        <source>Blue</source>
+        <translation>青</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/sign/SignDialog.cpp" line="340"/>
+        <source>Dark blue</source>
+        <translation>紺</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/sign/SignDialog.cpp" line="341"/>
+        <source>Black</source>
+        <translation>黒</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/sign/SignDialog.cpp" line="342"/>
+        <source>Red</source>
+        <translation>赤</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/sign/SignDialog.cpp" line="360"/>
+        <location filename="../../src/ui/sign/SignDialog.cpp" line="362"/>
+        <source>%1 px</source>
+        <translation>%1 px</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/sign/SignDialog.cpp" line="364"/>
+        <source>Color</source>
+        <translation>色</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/sign/SignDialog.cpp" line="367"/>
+        <source>Line width</source>
+        <translation>線の太さ</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/sign/SignDialog.cpp" line="383"/>
+        <source>Cancel</source>
+        <translation>キャンセル</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/sign/SignDialog.cpp" line="455"/>
+        <source>Could not save the signature.</source>
+        <translation>署名を保存できませんでした。</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/sign/SignDialog.cpp" line="490"/>
+        <source>Sign</source>
+        <translation>署名</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/sign/SignDialog.cpp" line="450"/>
+        <source>%1 (Image)</source>
+        <translation>%1（画像）</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/sign/SignDialog.cpp" line="451"/>
+        <source>Signature %1</source>
+        <translation>署名 %1</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/sign/SignDialog.cpp" line="388"/>
+        <source>Save</source>
+        <translation>保存</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/sign/SignDialog.cpp" line="393"/>
+        <location filename="../../src/ui/sign/SignDialog.cpp" line="490"/>
+        <location filename="../../src/ui/sign/SignDialog.cpp" line="494"/>
+        <source>Place</source>
+        <translation>配置</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/sign/SignDialog.cpp" line="469"/>
+        <source>Import signature image</source>
+        <translation>署名画像を読み込む</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/sign/SignDialog.cpp" line="470"/>
+        <source>Images (%1)</source>
+        <translation>画像 (%1)</translation>
     </message>
 </context>
 <context>
@@ -1067,175 +4361,222 @@ Please use a build that includes Qt6::Pdf support.
     </message>
 </context>
 <context>
-    <name>SignDialog</name>
+    <name>SignatureRemoval</name>
     <message>
-        <location filename="../../src/ui/sign/SignDialog.cpp" line="105"/>
-        <source>Sign - OpenPDF Studio</source>
-        <translation>署名 - OpenPDF Studio</translation>
+        <location filename="../../src/ui/sign/SignatureRemoval.cpp" line="14"/>
+        <source>Unknown signer</source>
+        <translation>不明な署名者</translation>
     </message>
     <message>
-        <location filename="../../src/ui/sign/SignDialog.cpp" line="179"/>
-        <source>Add signature</source>
-        <translation>署名を追加</translation>
+        <location filename="../../src/ui/sign/SignatureRemoval.cpp" line="17"/>
+        <location filename="../../src/ui/sign/SignatureRemoval.cpp" line="60"/>
+        <source>Remove signature</source>
+        <translation>署名を削除</translation>
     </message>
     <message>
-        <location filename="../../src/ui/sign/SignDialog.cpp" line="180"/>
-        <source>Sign digitally</source>
-        <translation>デジタル署名</translation>
+        <location filename="../../src/ui/sign/SignatureRemoval.cpp" line="32"/>
+        <source>The signature of %1 cannot be removed.</source>
+        <translation>%1 の署名は削除できません。</translation>
     </message>
     <message>
-        <location filename="../../src/ui/sign/SignDialog.cpp" line="183"/>
-        <source>Not available in this build</source>
-        <translation>このビルドでは利用できません</translation>
+        <location filename="../../src/ui/sign/SignatureRemoval.cpp" line="20"/>
+        <source>Save or undo your changes first.</source>
+        <translation>先に変更を保存するか元に戻してください。</translation>
     </message>
     <message>
-        <location filename="../../src/ui/sign/SignDialog.cpp" line="200"/>
-        <source>Create, import or choose a signature, then place it freely in the PDF.</source>
-        <translation>署名を作成、読み込み、または選択し、PDF 内の好きな位置に配置します。</translation>
+        <location filename="../../src/ui/sign/SignatureRemoval.cpp" line="21"/>
+        <source>A signature can only be removed from the saved document.</source>
+        <translation>署名は保存済みの文書からのみ削除できます。</translation>
     </message>
     <message>
-        <location filename="../../src/ui/sign/SignDialog.cpp" line="214"/>
-        <source>Once created, the signature can be placed freely in the PDF and adjusted later.</source>
-        <translation>作成した署名は PDF 内の好きな位置に配置でき、後から調整できます。</translation>
+        <location filename="../../src/ui/sign/SignatureRemoval.cpp" line="33"/>
+        <source>It is part of the file&apos;s first version.</source>
+        <translation>ファイルの最初のバージョンに含まれています。</translation>
     </message>
     <message>
-        <location filename="../../src/ui/sign/SignDialog.cpp" line="245"/>
-        <source>Draw</source>
-        <translation>手書き</translation>
+        <location filename="../../src/ui/sign/SignatureRemoval.cpp" line="41"/>
+        <source>The signature added after it is removed as well.</source>
+        <translation>この後に追加された署名も削除されます。</translation>
     </message>
     <message>
-        <location filename="../../src/ui/sign/SignDialog.cpp" line="246"/>
-        <source>Type</source>
-        <translation>入力</translation>
+        <location filename="../../src/ui/sign/SignatureRemoval.cpp" line="43"/>
+        <source>The %1 signatures added after it are removed as well.</source>
+        <translation>この後に追加された %1 件の署名も削除されます。</translation>
     </message>
     <message>
-        <location filename="../../src/ui/sign/SignDialog.cpp" line="247"/>
-        <source>Import image</source>
-        <translation>画像を読み込む</translation>
+        <location filename="../../src/ui/sign/SignatureRemoval.cpp" line="46"/>
+        <source>Changes saved after it are undone as well.</source>
+        <translation>この後に保存された変更も元に戻されます。</translation>
     </message>
     <message>
-        <location filename="../../src/ui/sign/SignDialog.cpp" line="248"/>
-        <source>Saved</source>
-        <translation>保存済み</translation>
+        <location filename="../../src/ui/sign/SignatureRemoval.cpp" line="51"/>
+        <source>Remove the signature of %1?</source>
+        <translation>%1 の署名を削除しますか？</translation>
     </message>
     <message>
-        <location filename="../../src/ui/sign/SignDialog.cpp" line="283"/>
-        <source>Clear</source>
-        <translation>消去</translation>
+        <location filename="../../src/ui/sign/SignatureRemoval.cpp" line="47"/>
+        <source>The document goes back to how it was before this signature. The change is written when you save and can be undone until then.</source>
+        <translation>文書はこの署名の前の状態に戻ります。変更は保存時に書き込まれ、それまでは元に戻せます。</translation>
     </message>
     <message>
-        <location filename="../../src/ui/sign/SignDialog.cpp" line="298"/>
-        <source>Type your name</source>
-        <translation>名前を入力</translation>
+        <location filename="../../src/ui/sign/SignatureRemoval.cpp" line="53"/>
+        <source>Remove</source>
+        <translation>削除</translation>
     </message>
     <message>
-        <location filename="../../src/ui/sign/SignDialog.cpp" line="318"/>
-        <source>Choose image...</source>
-        <translation>画像を選択...</translation>
+        <location filename="../../src/ui/sign/SignatureRemoval.cpp" line="61"/>
+        <source>The signature could not be removed.</source>
+        <translation>署名を削除できませんでした。</translation>
+    </message>
+</context>
+<context>
+    <name>SignerTrust</name>
+    <message>
+        <location filename="../../src/ui/sign/SignerTrust.cpp" line="49"/>
+        <source>%1 (expired)</source>
+        <translation>%1 (期限切れ)</translation>
     </message>
     <message>
-        <location filename="../../src/ui/sign/SignDialog.cpp" line="343"/>
-        <source>Blue</source>
-        <translation>青</translation>
+        <location filename="../../src/ui/sign/SignerTrust.cpp" line="50"/>
+        <source>Issued by</source>
+        <translation>発行者</translation>
     </message>
     <message>
-        <location filename="../../src/ui/sign/SignDialog.cpp" line="344"/>
-        <source>Dark blue</source>
-        <translation>紺</translation>
+        <location filename="../../src/ui/sign/SignerTrust.cpp" line="51"/>
+        <source>Valid until</source>
+        <translation>有効期限</translation>
     </message>
     <message>
-        <location filename="../../src/ui/sign/SignDialog.cpp" line="345"/>
-        <source>Black</source>
-        <translation>黒</translation>
+        <location filename="../../src/ui/sign/SignerTrust.cpp" line="52"/>
+        <source>Fingerprint (SHA-256)</source>
+        <translation>フィンガープリント (SHA-256)</translation>
     </message>
     <message>
-        <location filename="../../src/ui/sign/SignDialog.cpp" line="346"/>
-        <source>Red</source>
-        <translation>赤</translation>
+        <location filename="../../src/ui/sign/SignerTrust.cpp" line="113"/>
+        <location filename="../../src/ui/sign/SignerTrust.cpp" line="168"/>
+        <location filename="../../src/ui/sign/SignerTrust.cpp" line="237"/>
+        <source>Trusted signers</source>
+        <translation>信頼する署名者</translation>
     </message>
     <message>
-        <location filename="../../src/ui/sign/SignDialog.cpp" line="364"/>
-        <location filename="../../src/ui/sign/SignDialog.cpp" line="366"/>
-        <source>%1 px</source>
-        <translation>%1 px</translation>
+        <location filename="../../src/ui/sign/SignerTrust.cpp" line="118"/>
+        <source>Signatures by these signers count as valid on this computer, even when no certificate authority confirms who they are.</source>
+        <translation>認証局が本人であることを確認していなくても、これらの署名者の署名はこのコンピューターで有効と見なされます。</translation>
     </message>
     <message>
-        <location filename="../../src/ui/sign/SignDialog.cpp" line="368"/>
-        <source>Color</source>
-        <translation>色</translation>
+        <location filename="../../src/ui/sign/SignerTrust.cpp" line="140"/>
+        <source>Close</source>
+        <translation>閉じる</translation>
     </message>
     <message>
-        <location filename="../../src/ui/sign/SignDialog.cpp" line="371"/>
-        <source>Line width</source>
-        <translation>線の太さ</translation>
+        <location filename="../../src/ui/sign/SignerTrust.cpp" line="188"/>
+        <source>No trusted signers yet.</source>
+        <translation>信頼する署名者はまだいません。</translation>
     </message>
     <message>
-        <location filename="../../src/ui/sign/SignDialog.cpp" line="487"/>
-        <source>Cancel</source>
-        <translation>キャンセル</translation>
+        <location filename="../../src/ui/sign/SignerTrust.cpp" line="78"/>
+        <location filename="../../src/ui/sign/SignerTrust.cpp" line="210"/>
+        <source>Unknown signer</source>
+        <translation>不明な署名者</translation>
     </message>
     <message>
-        <location filename="../../src/ui/sign/SignDialog.cpp" line="559"/>
-        <source>Could not save the signature.</source>
-        <translation>署名を保存できませんでした。</translation>
+        <location filename="../../src/ui/sign/SignerTrust.cpp" line="215"/>
+        <source>Trusted since</source>
+        <translation>信頼した日</translation>
     </message>
     <message>
-        <location filename="../../src/ui/sign/SignDialog.cpp" line="631"/>
-        <source>Sign</source>
-        <translation>署名</translation>
+        <location filename="../../src/ui/sign/SignerTrust.cpp" line="230"/>
+        <source>Remove</source>
+        <translation>削除</translation>
     </message>
     <message>
-        <location filename="../../src/ui/sign/SignDialog.cpp" line="554"/>
-        <source>%1 (Image)</source>
-        <translation>%1（画像）</translation>
+        <location filename="../../src/ui/sign/SignerTrust.cpp" line="238"/>
+        <source>The signer could not be removed.</source>
+        <translation>署名者を削除できませんでした。</translation>
     </message>
     <message>
-        <location filename="../../src/ui/sign/SignDialog.cpp" line="555"/>
-        <source>Signature %1</source>
-        <translation>署名 %1</translation>
+        <location filename="../../src/ui/sign/SignerTrust.cpp" line="80"/>
+        <location filename="../../src/ui/sign/SignerTrust.cpp" line="99"/>
+        <source>Trust signer</source>
+        <translation>署名者を信頼</translation>
     </message>
     <message>
-        <location filename="../../src/ui/sign/SignDialog.cpp" line="492"/>
-        <source>Save</source>
-        <translation>保存</translation>
+        <location filename="../../src/ui/sign/SignerTrust.cpp" line="82"/>
+        <source>Trust %1?</source>
+        <translation>%1 を信頼しますか?</translation>
     </message>
     <message>
-        <location filename="../../src/ui/sign/SignDialog.cpp" line="497"/>
-        <location filename="../../src/ui/sign/SignDialog.cpp" line="631"/>
-        <location filename="../../src/ui/sign/SignDialog.cpp" line="635"/>
-        <source>Place</source>
-        <translation>配置</translation>
+        <location filename="../../src/ui/sign/SignerTrust.cpp" line="86"/>
+        <source>Compare the fingerprint with the signer, for example by phone. Only trust a certificate whose origin you know.</source>
+        <translation>電話などで署名者とフィンガープリントを照合してください。出所がわかっている証明書だけを信頼してください。</translation>
     </message>
     <message>
-        <location filename="../../src/ui/sign/SignDialog.cpp" line="573"/>
-        <source>Import signature image</source>
-        <translation>署名画像を読み込む</translation>
+        <location filename="../../src/ui/sign/SignerTrust.cpp" line="88"/>
+        <source>Signatures made with this certificate then count as valid on this computer. Others who open the document still see the signer as not trusted.</source>
+        <translation>この証明書による署名は、このコンピューターで有効と見なされるようになります。ドキュメントを開く他の人には、引き続き署名者は信頼されていないと表示されます。</translation>
     </message>
     <message>
-        <location filename="../../src/ui/sign/SignDialog.cpp" line="574"/>
-        <source>Images (%1)</source>
-        <translation>画像 (%1)</translation>
+        <location filename="../../src/ui/sign/SignerTrust.cpp" line="92"/>
+        <source>Trust</source>
+        <translation>信頼</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/sign/SignerTrust.cpp" line="100"/>
+        <source>The signer could not be saved.</source>
+        <translation>署名者を保存できませんでした。</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/sign/SignerTrust.cpp" line="136"/>
+        <source>Add certificate...</source>
+        <translation>証明書を追加…</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/sign/SignerTrust.cpp" line="159"/>
+        <source>Choose a certificate</source>
+        <translation>証明書を選択</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/sign/SignerTrust.cpp" line="160"/>
+        <source>Certificates (*.cer *.crt *.pem *.der);;All files (*)</source>
+        <translation>証明書 (*.cer *.crt *.pem *.der);;すべてのファイル (*)</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/sign/SignerTrust.cpp" line="169"/>
+        <source>The file is not a certificate.</source>
+        <translation>このファイルは証明書ではありません。</translation>
     </message>
 </context>
 <context>
     <name>StatusBar</name>
     <message>
-        <location filename="../../src/ui/StatusBar.cpp" line="36"/>
-        <location filename="../../src/ui/StatusBar.cpp" line="52"/>
+        <location filename="../../src/ui/bars/StatusBar.cpp" line="107"/>
+        <location filename="../../src/ui/bars/StatusBar.cpp" line="161"/>
         <source>Previous Page</source>
         <translation>前のページ</translation>
     </message>
     <message>
-        <location filename="../../src/ui/StatusBar.cpp" line="37"/>
-        <location filename="../../src/ui/StatusBar.cpp" line="74"/>
+        <location filename="../../src/ui/bars/StatusBar.cpp" line="108"/>
+        <location filename="../../src/ui/bars/StatusBar.cpp" line="189"/>
         <source>Next Page</source>
         <translation>次のページ</translation>
     </message>
     <message>
-        <location filename="../../src/ui/StatusBar.cpp" line="39"/>
-        <location filename="../../src/ui/StatusBar.cpp" line="82"/>
+        <location filename="../../src/ui/bars/StatusBar.cpp" line="109"/>
+        <location filename="../../src/ui/bars/StatusBar.cpp" line="171"/>
+        <source>Go to page</source>
+        <translation>ページへ移動</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/bars/StatusBar.cpp" line="111"/>
+        <location filename="../../src/ui/bars/StatusBar.cpp" line="202"/>
         <source>Toggle Panel</source>
         <translation>パネルを切り替え</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/bars/StatusBar.cpp" line="112"/>
+        <location filename="../../src/ui/bars/StatusBar.cpp" line="126"/>
+        <source>Document information</source>
+        <translation>ドキュメント情報</translation>
     </message>
 </context>
 <context>
@@ -1245,181 +4586,151 @@ Please use a build that includes Qt6::Pdf support.
         <translation type="vanished">テキスト</translation>
     </message>
     <message>
-        <location filename="../../src/ui/tools/TextAnnotation.cpp" line="25"/>
         <source>Enter text…</source>
-        <translation>テキストを入力…</translation>
+        <translation type="vanished">テキストを入力…</translation>
+    </message>
+</context>
+<context>
+    <name>TextDocumentPdf</name>
+    <message>
+        <location filename="../../src/engine/import/TextDocumentPdf.cpp" line="40"/>
+        <location filename="../../src/engine/import/TextDocumentPdf.cpp" line="128"/>
+        <source>The PDF could not be written.</source>
+        <translation>PDF を書き込めませんでした。</translation>
     </message>
 </context>
 <context>
     <name>TextPropertiesPanel</name>
     <message>
-        <location filename="../../src/ui/TextPropertiesPanel.cpp" line="72"/>
-        <location filename="../../src/ui/TextPropertiesPanel.cpp" line="198"/>
+        <location filename="../../src/ui/panels/TextPropertiesPanel.cpp" line="36"/>
+        <location filename="../../src/ui/panels/TextPropertiesPanel.cpp" line="87"/>
         <source>Text</source>
-        <translation type="unfinished">テキスト</translation>
+        <translation>テキスト</translation>
     </message>
     <message>
-        <location filename="../../src/ui/TextPropertiesPanel.cpp" line="89"/>
-        <location filename="../../src/ui/TextPropertiesPanel.cpp" line="199"/>
-        <source>Line Spacing</source>
-        <translation type="unfinished"></translation>
+        <location filename="../../src/ui/panels/TextPropertiesPanel.cpp" line="37"/>
+        <location filename="../../src/ui/panels/TextPropertiesPanel.cpp" line="87"/>
+        <source>Drag on the page to create a text box, or click existing text.</source>
+        <translation>ページ上をドラッグしてテキストボックスを作成するか、既存のテキストをクリックします。</translation>
     </message>
     <message>
-        <location filename="../../src/ui/TextPropertiesPanel.cpp" line="105"/>
-        <location filename="../../src/ui/TextPropertiesPanel.cpp" line="200"/>
+        <location filename="../../src/ui/panels/TextPropertiesPanel.cpp" line="46"/>
+        <source>W</source>
+        <translation>幅</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/panels/TextPropertiesPanel.cpp" line="46"/>
+        <source>H</source>
+        <translation>高</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/panels/TextPropertiesPanel.cpp" line="48"/>
+        <source>Rotation</source>
+        <translation>回転</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/panels/TextPropertiesPanel.cpp" line="50"/>
+        <source>Appearance</source>
+        <translation>外観</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/panels/TextPropertiesPanel.cpp" line="50"/>
         <source>Opacity</source>
-        <translation type="unfinished"></translation>
+        <translation>不透明度</translation>
     </message>
     <message>
-        <location filename="../../src/ui/TextPropertiesPanel.cpp" line="128"/>
-        <location filename="../../src/ui/TextPropertiesPanel.cpp" line="201"/>
-        <source>Border</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location filename="../../src/ui/TextPropertiesPanel.cpp" line="136"/>
-        <source>Solid</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location filename="../../src/ui/TextPropertiesPanel.cpp" line="136"/>
-        <source>Dashed</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location filename="../../src/ui/TextPropertiesPanel.cpp" line="136"/>
-        <source>Dotted</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location filename="../../src/ui/TextPropertiesPanel.cpp" line="155"/>
-        <location filename="../../src/ui/TextPropertiesPanel.cpp" line="202"/>
-        <source>Background</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location filename="../../src/ui/TextPropertiesPanel.cpp" line="179"/>
-        <source>Save as Default</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
+        <location filename="../../src/ui/panels/TextPropertiesPanel.cpp" line="40"/>
         <source>Position &amp; Size</source>
         <translation>位置とサイズ</translation>
     </message>
 </context>
 <context>
+    <name>ToolCustomizePopup</name>
+    <message>
+        <location filename="../../src/ui/panels/ToolCustomizePopup.cpp" line="222"/>
+        <source>Customize Tools</source>
+        <translation>ツールをカスタマイズ</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/panels/ToolCustomizePopup.cpp" line="239"/>
+        <source>Drag to reorder</source>
+        <translation>ドラッグして並べ替え</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/panels/ToolCustomizePopup.cpp" line="249"/>
+        <source>Reset to default</source>
+        <translation>既定に戻す</translation>
+    </message>
+</context>
+<context>
     <name>TopToolbar</name>
     <message>
-        <location filename="../../src/ui/TopToolbar.cpp" line="43"/>
-        <location filename="../../src/ui/TopToolbar.cpp" line="258"/>
+        <location filename="../../src/ui/bars/TopToolbar.cpp" line="56"/>
+        <location filename="../../src/ui/bars/TopToolbar.cpp" line="260"/>
         <source>Save</source>
         <translation>保存</translation>
     </message>
     <message>
-        <location filename="../../src/ui/TopToolbar.cpp" line="44"/>
-        <location filename="../../src/ui/TopToolbar.cpp" line="264"/>
+        <location filename="../../src/ui/bars/TopToolbar.cpp" line="57"/>
+        <location filename="../../src/ui/bars/TopToolbar.cpp" line="272"/>
         <source>Print</source>
         <translation>印刷</translation>
     </message>
     <message>
-        <location filename="../../src/ui/TopToolbar.cpp" line="45"/>
-        <location filename="../../src/ui/TopToolbar.cpp" line="275"/>
+        <location filename="../../src/ui/bars/TopToolbar.cpp" line="58"/>
+        <location filename="../../src/ui/bars/TopToolbar.cpp" line="282"/>
         <source>Undo</source>
         <translation>元に戻す</translation>
     </message>
     <message>
-        <location filename="../../src/ui/TopToolbar.cpp" line="46"/>
-        <location filename="../../src/ui/TopToolbar.cpp" line="281"/>
+        <location filename="../../src/ui/bars/TopToolbar.cpp" line="59"/>
+        <location filename="../../src/ui/bars/TopToolbar.cpp" line="288"/>
         <source>Redo</source>
         <translation>やり直す</translation>
     </message>
     <message>
-        <location filename="../../src/ui/TopToolbar.cpp" line="47"/>
-        <location filename="../../src/ui/TopToolbar.cpp" line="292"/>
+        <location filename="../../src/ui/bars/TopToolbar.cpp" line="60"/>
+        <location filename="../../src/ui/bars/TopToolbar.cpp" line="298"/>
         <source>Zoom Out</source>
         <translation>縮小</translation>
     </message>
     <message>
-        <location filename="../../src/ui/TopToolbar.cpp" line="48"/>
-        <location filename="../../src/ui/TopToolbar.cpp" line="304"/>
+        <location filename="../../src/ui/bars/TopToolbar.cpp" line="61"/>
+        <location filename="../../src/ui/bars/TopToolbar.cpp" line="310"/>
         <source>Zoom In</source>
         <translation>拡大</translation>
     </message>
     <message>
-        <location filename="../../src/ui/TopToolbar.cpp" line="49"/>
-        <location filename="../../src/ui/TopToolbar.cpp" line="315"/>
+        <location filename="../../src/ui/bars/TopToolbar.cpp" line="62"/>
+        <location filename="../../src/ui/bars/TopToolbar.cpp" line="320"/>
         <source>Single Page</source>
         <translation>単一ページ</translation>
     </message>
     <message>
-        <location filename="../../src/ui/TopToolbar.cpp" line="50"/>
-        <location filename="../../src/ui/TopToolbar.cpp" line="322"/>
+        <location filename="../../src/ui/bars/TopToolbar.cpp" line="63"/>
+        <location filename="../../src/ui/bars/TopToolbar.cpp" line="332"/>
         <source>Grid View</source>
         <translation>グリッド表示</translation>
     </message>
     <message>
-        <location filename="../../src/ui/TopToolbar.cpp" line="54"/>
-        <location filename="../../src/ui/TopToolbar.cpp" line="81"/>
-        <location filename="../../src/ui/TopToolbar.cpp" line="154"/>
+        <location filename="../../src/ui/bars/TopToolbar.cpp" line="67"/>
+        <location filename="../../src/ui/bars/TopToolbar.cpp" line="92"/>
+        <location filename="../../src/ui/bars/TopToolbar.cpp" line="164"/>
         <source>No Document</source>
         <translation>ドキュメントなし</translation>
     </message>
 </context>
 <context>
-    <name>FindController</name>
-    <message><source>Find in document</source><translation>文書内を検索</translation></message>
-    <message><source>Previous match (Shift+Enter)</source><translation>前の一致（Shift+Enter）</translation></message>
-    <message><source>Next match (Enter)</source><translation>次の一致（Enter）</translation></message>
-    <message><source>Close (Esc)</source><translation>閉じる（Esc）</translation></message>
-</context>
-<context>
-    <name>SessionRecovery</name>
-    <message><source>Untitled</source><translation>無題</translation></message>
-    <message><source>Restore Session</source><translation>セッションの復元</translation></message>
-    <message><source>OpenPDF Studio did not shut down properly last time.</source><translation>OpenPDF Studio は前回正常に終了しませんでした。</translation></message>
-    <message><source>Restore the documents that were open?</source><translation>開いていた文書を復元しますか？</translation></message>
-    <message><source>%1 (unsaved changes)</source><translation>%1（未保存の変更）</translation></message>
-    <message><source>Restore</source><translation>復元</translation></message>
-    <message><source>Discard</source><translation>破棄</translation></message>
-</context>
-<context>
-    <name>DocumentView</name>
-    <message><source>Insert image</source><translation>画像を挿入</translation></message>
-    <message><source>All files (*)</source><translation>すべてのファイル (*)</translation></message>
-    <message><source>Drop a PDF, Word, OpenDocument or image file here, or click a tab to open</source><translation>PDF、Word、OpenDocument、画像をここにドロップするか、タブをクリックして開きます</translation></message>
-</context>
-<context>
-    <name>MainWindow</name>
-    <message><source>Open Document</source><translation>ドキュメントを開く</translation></message>
-    <message><source>Cannot open file</source><translation>ファイルを開けません</translation></message>
-    <message><source>"%1" is not a PDF and cannot be turned into one.</source><translation>「%1」は PDF ではなく、PDF に変換することもできません。</translation></message>
-    <message><source>There is no room to put the converted file.</source><translation>変換したファイルを置く場所がありません。</translation></message>
-    <message><source>Import failed</source><translation>インポートに失敗しました</translation></message>
-    <message><source>"%1" could not be turned into a PDF.
-
-%2</source><translation>「%1」を PDF に変換できませんでした。
-
-%2</translation></message>
-    <message><source>"%1" was converted, but the result could not be opened.</source><translation>「%1」は変換されましたが、結果を開けませんでした。</translation></message>
-</context>
-<context>
-    <name>DocumentImport</name>
-    <message><source>Images</source><translation>画像</translation></message>
-    <message><source>All files</source><translation>すべてのファイル</translation></message>
-    <message><source>All supported files</source><translation>対応するすべてのファイル</translation></message>
-    <message><source>PDF files</source><translation>PDF ファイル</translation></message>
-    <message><source>Word documents</source><translation>Word 文書</translation></message>
-    <message><source>Word document</source><translation>Word 文書</translation></message>
-    <message><source>OpenDocument text</source><translation>OpenDocument テキスト</translation></message>
-    <message><source>Image</source><translation>画像</translation></message>
-    <message><source>The image is too large.</source><translation>画像が大きすぎます。</translation></message>
-    <message><source>The PDF could not be written.</source><translation>PDF を書き込めませんでした。</translation></message>
-    <message><source>The file does not exist.</source><translation>ファイルが存在しません。</translation></message>
-    <message><source>The file could not be read. It may be damaged.</source><translation>ファイルを読み取れませんでした。壊れている可能性があります。</translation></message>
-    <message><source>The file has no readable document part.</source><translation>このファイルには読み取れる文書部分がありません。</translation></message>
-    <message><source>The document is damaged: %1</source><translation>文書が壊れています: %1</translation></message>
-    <message><source>This build was made without zlib and cannot read Word or OpenDocument files.</source><translation>このビルドは zlib なしで作成されており、Word や OpenDocument のファイルを読めません。</translation></message>
-    <message><source>This is an older Word file that only carries a .docx name. Save it as a real .docx first.</source><translation>これは .docx という名前だけの古い Word ファイルです。まず本来の .docx として保存してください。</translation></message>
-    <message><source>%1 files cannot be opened.</source><translation>%1 ファイルは開けません。</translation></message>
+    <name>UpdateChecker</name>
+    <message>
+        <location filename="../../src/app/UpdateChecker.cpp" line="193"/>
+        <source>Unexpected answer from GitHub.</source>
+        <translation>GitHub から予期しない応答がありました。</translation>
+    </message>
+    <message>
+        <location filename="../../src/app/UpdateChecker.cpp" line="206"/>
+        <source>No released version found.</source>
+        <translation>公開されたバージョンが見つかりません。</translation>
+    </message>
 </context>
 </TS>

@@ -5,6 +5,7 @@
 #  include "engine/edit/ContentMap.hpp"
 #  include "engine/edit/ContentModel.hpp"
 #  include "engine/export/DocxLayout.hpp"
+#  include "engine/export/DocxXml.hpp"
 #  include "engine/edit/EditSession.hpp"
 #  include "engine/ocr/OcrEngine.hpp"
 #  include "engine/render/PdfRenderer.hpp"
@@ -191,7 +192,9 @@ QImage DocumentExporter::eraseTextRuns(const QImage &original,
 
 #endif
 
-QList<DocxPage> DocumentExporter::allPageContent(const QList<int> &pages) const
+QList<DocxPage> DocumentExporter::allPageContent(const QList<int> &pages,
+                                                 const DocxExportOptions &options,
+                                                 const std::function<bool(int, int)> &progress) const
 {
     QList<DocxPage> result;
 #ifdef HAVE_PDF_RENDERING
@@ -200,7 +203,9 @@ QList<DocxPage> DocumentExporter::allPageContent(const QList<int> &pages) const
     if (wanted.isEmpty())
         for (int p = 0; p < m_src.pageCount; ++p) wanted.append(p);
     result.reserve(wanted.size());
-    for (int i : wanted) {
+    for (int n = 0; n < wanted.size(); ++n) {
+        if (progress && !progress(n, wanted.size())) return {};
+        const int i = wanted[n];
         if (i < 0 || i >= m_src.pageCount) continue;
         DocxPage page;
         page.pageSizePt = m_src.renderer->pageSizePts(i);
@@ -209,24 +214,29 @@ QList<DocxPage> DocumentExporter::allPageContent(const QList<int> &pages) const
 
         constexpr qreal exportScale = 2.0;
         const QImage originalRaster = m_src.renderer->renderPage(i, exportScale);
-        page.background = eraseTextRuns(originalRaster, page.items, i, exportScale);
         DocxLayoutInput layout;
         layout.items      = page.items;
         layout.original   = originalRaster;
-        layout.erased     = page.background;
+        layout.erased     = eraseTextRuns(originalRaster, page.items, i, exportScale);
         layout.pageSizePt = page.pageSizePt;
         layout.scale      = exportScale;
+        layout.options    = options;
         page.blocks = buildDocxBlocks(layout, &page.marginsPt);
+        if (page.blocks.isEmpty())
+            page.background = DocxXml::encodePicture(layout.erased, options);
 
         result.append(std::move(page));
     }
+#else
+    Q_UNUSED(pages) Q_UNUSED(options) Q_UNUSED(progress)
 #endif
     return result;
 }
 
 bool DocumentExporter::exportPagesToImages(const QString &outputPath,
                                            int quality,
-                                           const QList<int> &pages) const
+                                           const QList<int> &pages,
+                                           const std::function<bool(int, int)> &progress) const
 {
 #ifdef HAVE_PDF_RENDERING
     if (!m_src.renderer || m_src.pageCount <= 0 || outputPath.isEmpty()) return false;
@@ -238,7 +248,9 @@ bool DocumentExporter::exportPagesToImages(const QString &outputPath,
     const QFileInfo out(outputPath);
     const qreal scale = quality >= 95 ? 3.0 : quality >= 80 ? 2.0
                                       : quality >= 55 ? 1.5 : 1.0;
-    for (int i : wanted) {
+    for (int n = 0; n < wanted.size(); ++n) {
+        if (progress && !progress(n, wanted.size())) return false;
+        const int i = wanted[n];
         if (i < 0 || i >= m_src.pageCount) continue;
         QImage image = m_src.renderer->renderPage(i, scale, m_src.session);
         if (image.isNull()) return false;
@@ -253,6 +265,7 @@ bool DocumentExporter::exportPagesToImages(const QString &outputPath,
     Q_UNUSED(outputPath);
     Q_UNUSED(quality);
     Q_UNUSED(pages);
+    Q_UNUSED(progress);
     return false;
 #endif
 }

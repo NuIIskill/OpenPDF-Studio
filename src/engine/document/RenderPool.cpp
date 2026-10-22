@@ -8,6 +8,7 @@
 
 #include <QCoreApplication>
 #include <QDataStream>
+#include <QDeadlineTimer>
 #include <QElapsedTimer>
 #include <QImage>
 #include <QLocalServer>
@@ -147,8 +148,10 @@ void RenderPool::shutdown()
         RenderServer::send(*helper.socket, message(Message::Quit));
         helper.socket->flush();
     }
+    // A helper still in a render reads the quit only afterwards; they share one wait.
+    const QDeadlineTimer deadline(300);
     for (QProcess *process : std::as_const(m_processes)) {
-        if (!process->waitForFinished(300)) process->kill();
+        if (!process->waitForFinished(int(deadline.remainingTime()))) process->kill();
         process->waitForFinished(300);
         delete process;
     }

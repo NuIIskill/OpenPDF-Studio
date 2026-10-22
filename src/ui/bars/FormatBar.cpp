@@ -4,6 +4,8 @@
 
 #include <QButtonGroup>
 #include <QColorDialog>
+
+#include <cmath>
 #include <QFontComboBox>
 #include <QLineEdit>
 #include <QHBoxLayout>
@@ -249,8 +251,10 @@ FormatBar::FormatBar(QWidget *parent) : QFrame(parent)
         m_fontFamily->setCurrentFont(QFont(QStringLiteral("Noto Sans")));
         m_fontFamily->setFixedWidth(192);
         m_fontFamily->setFixedHeight(30);
-        connect(m_fontFamily, &QFontComboBox::currentFontChanged, this,
-                [this](const QFont &f) { Q_EMIT fontFamilyChanged(f.family()); });
+        // Only a family the user picks: the list rebuilds itself whenever a
+        // document's font is registered, and that picks nothing.
+        connect(m_fontFamily, &QComboBox::activated, this,
+                [this]() { Q_EMIT fontFamilyChanged(m_fontFamily->currentFont().family()); });
         auto *hl = new QHBoxLayout();
         hl->setSpacing(0);
         hl->addWidget(m_fontFamily);
@@ -268,22 +272,24 @@ FormatBar::FormatBar(QWidget *parent) : QFrame(parent)
         m_fontSize->setEditable(true);
         m_fontSize->setFixedWidth(66);
         m_fontSize->setFixedHeight(30);
-        connect(m_fontSize, &QComboBox::currentTextChanged, this, [this](const QString &t) {
-            bool ok; const int pt = t.toInt(&ok);
-            if (ok && pt >= 4 && pt <= 400) {
-                m_lastFontSize = pt;
-                Q_EMIT fontSizeChanged(pt);
-            }
-        });
-
-        connect(m_fontSize->lineEdit(), &QLineEdit::editingFinished, this, [this]() {
-            const QString t = m_fontSize->currentText().trimmed();
-            bool ok; const int pt = t.toInt(&ok);
-            if (!ok || pt < 4 || pt > 400) {
+        // A size is taken when it is picked or the entry is finished; taking
+        // every keystroke would set 6 pt on the way to 65.
+        const auto take = [this]() {
+            QString t = m_fontSize->currentText().trimmed();
+            t.replace(QLatin1Char(','), QLatin1Char('.'));
+            bool ok = false;
+            const double pt = t.toDouble(&ok);
+            if (!ok || pt < 4.0 || pt > 400.0) {
                 QSignalBlocker b(m_fontSize);
                 m_fontSize->setCurrentText(QString::number(m_lastFontSize));
+                return;
             }
-        });
+            if (qFuzzyCompare(pt, m_lastFontSize)) return;
+            m_lastFontSize = pt;
+            Q_EMIT fontSizeChanged(pt);
+        };
+        connect(m_fontSize, &QComboBox::textActivated, this, take);
+        connect(m_fontSize->lineEdit(), &QLineEdit::editingFinished, this, take);
         auto *hl = new QHBoxLayout();
         hl->setSpacing(0);
         hl->addWidget(m_fontSize);
@@ -469,9 +475,11 @@ FormatBar::FormatBar(QWidget *parent) : QFrame(parent)
     refreshTheme();
 }
 
-void FormatBar::setFontSize(int ptSize)
+void FormatBar::setFontSize(double ptSize)
 {
-    const QString s = QString::number(ptSize);
+    const double shown = std::round(ptSize * 10.0) / 10.0;
+    m_lastFontSize = shown;
+    const QString s = QString::number(shown);
     if (m_fontSize->currentText() != s) {
         QSignalBlocker b(m_fontSize);
         m_fontSize->setCurrentText(s);
@@ -491,6 +499,9 @@ void FormatBar::setFontFamily(const QString &family)
         return;
     QSignalBlocker b(m_fontFamily);
     m_fontFamily->setCurrentFont(QFont(family));
+    // A family the system lacks shows by its own name, not by Qt's stand-in.
+    if (!m_fontFamily->currentText().startsWith(family, Qt::CaseInsensitive))
+        m_fontFamily->setEditText(family);
 }
 
 void FormatBar::setBoldChecked(bool on)

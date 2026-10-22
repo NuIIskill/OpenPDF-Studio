@@ -5,8 +5,9 @@
 #include "app/PdfPwStore.hpp"
 #include "engine/document/PdfiumEdits.hpp"
 #include "engine/document/PdfiumFonts.hpp"
+#include "engine/document/KeptText.hpp"
+#include "engine/document/OriginalContent.hpp"
 #include "engine/document/PdfiumLock.hpp"
-#include "engine/document/Type3Text.hpp"
 #include "engine/edit/EditSession.hpp"
 
 #include "fpdf_annot.h"
@@ -23,7 +24,9 @@
 #include <QDebug>
 #include <QFile>
 #include <QHash>
+#include <QMap>
 #include <QSet>
+#include <QTransform>
 
 #include <vector>
 
@@ -49,6 +52,22 @@ int writeBlock(FPDF_FILEWRITE *self, const void *data, unsigned long size)
         return 0;
     }
     return 1;
+}
+
+void pinColoursToRgb(FPDF_PAGE page)
+{
+    // A regenerated page keeps only DeviceRGB colours; ICC, CMYK and
+    // separation colours would come out black.
+    for (int i = 0, n = FPDFPage_CountObjects(page); i < n; ++i) {
+        FPDF_PAGEOBJECT obj = FPDFPage_GetObject(page, i);
+        const int type = FPDFPageObj_GetType(obj);
+        if (type != FPDF_PAGEOBJ_TEXT && type != FPDF_PAGEOBJ_PATH) continue;
+        unsigned int r = 0, g = 0, b = 0, a = 0;
+        if (FPDFPageObj_GetFillColor(obj, &r, &g, &b, &a))
+            FPDFPageObj_SetFillColor(obj, r, g, b, a);
+        if (FPDFPageObj_GetStrokeColor(obj, &r, &g, &b, &a))
+            FPDFPageObj_SetStrokeColor(obj, r, g, b, a);
+    }
 }
 
 QByteArray escapePdfString(const QString &text)
@@ -163,14 +182,12 @@ bool reapplyEncryption(const QString &file, const QString &password)
 #endif
 }
 
-QList<FPDF_PAGEOBJECT> type3TextObjects(FPDF_PAGE page)
+QList<FPDF_PAGEOBJECT> textObjects(FPDF_PAGE page)
 {
     QList<FPDF_PAGEOBJECT> out;
     for (int i = 0, n = FPDFPage_CountObjects(page); i < n; ++i) {
         FPDF_PAGEOBJECT obj = FPDFPage_GetObject(page, i);
-        if (obj && FPDFPageObj_GetType(obj) == FPDF_PAGEOBJ_TEXT
-                && PdfiumFonts::isType3(FPDFTextObj_GetFont(obj)))
-            out.append(obj);
+        if (obj && FPDFPageObj_GetType(obj) == FPDF_PAGEOBJ_TEXT) out.append(obj);
     }
     return out;
 }
@@ -183,28 +200,97 @@ QSet<FPDF_PAGEOBJECT> pageObjects(FPDF_PAGE page)
     return out;
 }
 
-Type3Text::Kept takeType3Text(FPDF_PAGE page, const QList<FPDF_PAGEOBJECT> &type3,
-                              const QSet<FPDF_PAGEOBJECT> &before, bool modified)
+static_assert(FPDF_PAGEOBJ_TEXT == OriginalContent::Text && FPDF_PAGEOBJ_PATH == OriginalContent::Path
+              && FPDF_PAGEOBJ_IMAGE == OriginalContent::Image
+              && FPDF_PAGEOBJ_SHADING == OriginalContent::Shading
+              && FPDF_PAGEOBJ_FORM == OriginalContent::Form);
+
+QList<FPDF_PAGEOBJECT> allObjects(FPDF_PAGE page)
 {
-    Type3Text::Kept kept;
+    QList<FPDF_PAGEOBJECT> out;
+    for (int i = 0, n = FPDFPage_CountObjects(page); i < n; ++i)
+        out.append(FPDFPage_GetObject(page, i));
+    return out;
+}
+
+QList<int> objectTypes(const QList<FPDF_PAGEOBJECT> &objects)
+{
+    QList<int> out;
+    out.reserve(objects.size());
+    for (FPDF_PAGEOBJECT obj : objects) out.append(FPDFPageObj_GetType(obj));
+    return out;
+}
+
+QHash<int, QTransform> textMatrices(const QList<FPDF_PAGEOBJECT> &objects)
+{
+    QHash<int, QTransform> out;
+    for (int i = 0; i < objects.size(); ++i) {
+        FS_MATRIX m {};
+        if (FPDFPageObj_GetType(objects.at(i)) == FPDF_PAGEOBJ_TEXT
+                && FPDFPageObj_GetMatrix(objects.at(i), &m))
+            out.insert(i, QTransform(m.a, m.b, m.c, m.d, m.e, m.f));
+    }
+    return out;
+}
+
+bool keepsOriginal(const QList<FPDF_PAGEOBJECT> &original, const QList<int> &types,
+                   const QHash<int, QTransform> &matrices, FPDF_PAGE page,
+                   OriginalContent::Page &out)
+{
+    // The original content can be written back when the edits only took text
+    // out and added objects of their own.
+    const QSet<FPDF_PAGEOBJECT> now = pageObjects(page);
+    for (int i = 0; i < original.size(); ++i) {
+        if (now.contains(original.at(i))) continue;
+        if (types.at(i) != FPDF_PAGEOBJ_TEXT) return false;
+        out.removed.insert(i);
+    }
+    const QSet<FPDF_PAGEOBJECT> before(original.cbegin(), original.cend());
+    for (FPDF_PAGEOBJECT obj : now)
+        if (!before.contains(obj)) { out.appended = true; break; }
+    out.textMatrices = matrices;
+    return true;
+}
+
+QList<FPDF_PAGEOBJECT> keptCandidates(FPDF_PAGE page, const QList<bool> &spaced,
+                                      KeptText::Kept &kept)
+{
+    const QList<FPDF_PAGEOBJECT> text = textObjects(page);
+    kept.type3Only = text.size() != spaced.size();
+    QList<FPDF_PAGEOBJECT> counted;
+    for (int i = 0; i < text.size(); ++i) {
+        const bool type3 = PdfiumFonts::isType3(FPDFTextObj_GetFont(text.at(i)));
+        if (kept.type3Only && !type3) continue;
+        const bool lost = type3 || (!kept.type3Only && spaced.at(i));
+        counted.append(lost ? text.at(i) : nullptr);
+    }
+    kept.total = counted.size();
+    return counted;
+}
+
+bool takeKeptText(FPDF_PAGE page, const QList<FPDF_PAGEOBJECT> &counted,
+                  const QSet<FPDF_PAGEOBJECT> &before, bool modified, KeptText::Kept &kept)
+{
     const QSet<FPDF_PAGEOBJECT> now = pageObjects(page);
     bool rewritten = modified;
     for (FPDF_PAGEOBJECT obj : before)
         if (!now.contains(obj)) { rewritten = true; break; }
-    if (!rewritten) return kept;
+    if (!rewritten) return false;
 
-    kept.total = type3.size();
-    for (int i = 0; i < type3.size(); ++i) {
-        if (!now.contains(type3.at(i))) continue;
+    for (int i = 0; i < counted.size(); ++i) {
+        FPDF_PAGEOBJECT obj = counted.at(i);
+        if (!obj || !now.contains(obj)) continue;
         kept.indices.insert(i);
-        if (FPDFPage_RemoveObject(page, type3.at(i))) FPDFPageObj_Destroy(type3.at(i));
+        if (FPDFPage_RemoveObject(page, obj)) FPDFPageObj_Destroy(obj);
     }
-    return kept;
+    return true;
 }
 
 bool writeEdits(const QString &sourcePath, const QString &outputPath,
                 const EditSession &session, const std::function<bool()> &cancelled,
-                bool &wasEncrypted, QHash<int, Type3Text::Kept> &type3Pages)
+                bool &wasEncrypted, QHash<int, KeptText::Kept> &keptPages,
+                QHash<int, OriginalContent::Page> &originalPages,
+                QHash<QByteArray, QMap<quint32, uint>> &toUnicode)
 {
     PdfiumLock lock;
     const QByteArray path = sourcePath.toUtf8();
@@ -234,6 +320,8 @@ bool writeEdits(const QString &sourcePath, const QString &outputPath,
     }
     for (const EditSession::ImageEdit &e : session.imageEdits())
         touch(e.page);
+    for (const EditSession::ImageChange &c : session.imageChanges())
+        touch(c.page);
     for (const EditSession::DrawStroke &stroke : session.drawStrokes())
         touch(stroke.page);
     for (const EditSession::LinkEdit &e : session.linkEdits())
@@ -241,26 +329,48 @@ bool writeEdits(const QString &sourcePath, const QString &outputPath,
     for (const EditSession::NoteEdit &e : session.noteEdits())
         touch(e.page);
 
+    const QHash<int, OriginalContent::Scan> scans = OriginalContent::scan(sourcePath, touched);
+    // Pasted text takes its style from other pages, read before the loop changes them.
+    QHash<int, FPDF_PAGE> sourcePages;
+    for (const EditSession::Edit &e : session.edits())
+        for (const TextLayout::Source &s : TextLayout::distinctSources(e.sources))
+            if (s.page != e.page && !sourcePages.contains(s.page))
+                if (FPDF_PAGE p = FPDF_LoadPage(doc, s.page)) sourcePages.insert(s.page, p);
     for (int pageIndex : touched) {
         FPDF_PAGE page = FPDF_LoadPage(doc, pageIndex);
         if (!page) continue;
 
-        const QList<FPDF_PAGEOBJECT> type3 = type3TextObjects(page);
-        const QSet<FPDF_PAGEOBJECT> before = type3.isEmpty() ? QSet<FPDF_PAGEOBJECT>()
-                                                             : pageObjects(page);
-        PdfiumEdits::applyToPage(doc, page, pageIndex, session);
+        const OriginalContent::Scan scan = scans.value(pageIndex);
+        const QList<FPDF_PAGEOBJECT> original = allObjects(page);
+        const QList<int> types = objectTypes(original);
+        const bool mapped = !scan.objects.isEmpty() && scan.objects == types;
+        const QHash<int, QTransform> matrices = mapped ? textMatrices(original)
+                                                       : QHash<int, QTransform>();
+        KeptText::Kept kept;
+        const QList<FPDF_PAGEOBJECT> counted =
+            keptCandidates(page, mapped ? scan.spacedText : QList<bool>(), kept);
+        const QSet<FPDF_PAGEOBJECT> before(original.cbegin(), original.cend());
+        PdfiumEdits::applyToPage(doc, page, pageIndex, session, &sourcePages);
         PdfiumEdits::applyNoteEdits(page, pageIndex, session);
         for (const EditSession::Edit &edit : fieldsByPage.value(pageIndex))
             setFieldValue(page, edit.formField, edit.newText);
-        if (!type3.isEmpty()) {
-            const Type3Text::Kept kept = takeType3Text(
-                page, type3, before, session.hasLinkEditsOnPage(pageIndex));
-            if (!kept.indices.isEmpty()) type3Pages.insert(pageIndex, kept);
+        // Link styling and image changes alter objects in place, so those pages are regenerated.
+        bool inPlace = session.hasLinkEditsOnPage(pageIndex);
+        for (const EditSession::ImageChange &c : session.imageChanges())
+            inPlace |= c.page == pageIndex;
+        OriginalContent::Page content;
+        if (mapped && !inPlace && keepsOriginal(original, types, matrices, page, content)) {
+            // Text only added still goes through the original: its state must not reach the new text.
+            if (!content.removed.isEmpty() || content.appended) originalPages.insert(pageIndex, content);
+        } else if (takeKeptText(page, counted, before, inPlace, kept)) {
+            if (!kept.indices.isEmpty()) keptPages.insert(pageIndex, kept);
+            pinColoursToRgb(page);
         }
 
         FPDFPage_GenerateContent(page);
         FPDF_ClosePage(page);
     }
+    for (FPDF_PAGE p : std::as_const(sourcePages)) FPDF_ClosePage(p);
 
     FileSink sink;
     sink.writer.version    = 1;
@@ -274,6 +384,7 @@ bool writeEdits(const QString &sourcePath, const QString &outputPath,
     }
 
     const bool saved = FPDF_SaveWithVersion(doc, &sink.writer, FPDF_NO_INCREMENTAL, 17);
+    toUnicode = PdfiumFonts::writtenGlyphs(doc);
     const bool ok = saved && !sink.failed;
     sink.file.close();
     PdfiumFonts::releaseFonts(doc);
@@ -295,12 +406,19 @@ bool PdfiumWriter::save(const QString &sourcePath, const QString &outputPath,
     if (sourcePath.isEmpty() || outputPath.isEmpty()) return false;
 
     bool wasEncrypted = false;
-    QHash<int, Type3Text::Kept> type3Pages;
-    if (!writeEdits(sourcePath, outputPath, session, cancelled, wasEncrypted, type3Pages))
+    QHash<int, KeptText::Kept> keptPages;
+    QHash<int, OriginalContent::Page> originalPages;
+    QHash<QByteArray, QMap<quint32, uint>> toUnicode;
+    if (!writeEdits(sourcePath, outputPath, session, cancelled, wasEncrypted, keptPages,
+                    originalPages, toUnicode))
         return false;
 
-    if (!Type3Text::restore(sourcePath, outputPath, type3Pages))
-        qWarning() << "[PdfiumWriter] Type3-Text auf" << type3Pages.size()
+    if (!OriginalContent::restore(sourcePath, outputPath, originalPages, toUnicode))
+        qWarning() << "[PdfiumWriter] Originalinhalt auf" << originalPages.size()
+                   << "Seite(n) konnte nicht erhalten werden";
+
+    if (!KeptText::restore(sourcePath, outputPath, keptPages))
+        qWarning() << "[PdfiumWriter] Text auf" << keptPages.size()
                    << "Seite(n) konnte nicht erhalten werden";
 
     const QString password = PdfPwStore::get(sourcePath);

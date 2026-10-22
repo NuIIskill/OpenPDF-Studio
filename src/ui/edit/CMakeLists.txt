@@ -1,8 +1,21 @@
 target_sources(OpenPDFStudio PRIVATE
     EditController.cpp
+    EditController_Clipboard.cpp
+    EditController_Format.cpp
+    EditController_Frame.cpp
     EditController.hpp
+    EditOpen.hpp
+    EditNotice.cpp
+    EditNotice.hpp
+    EditOpener.cpp
+    EditOpener.hpp
+    EditOpener_Scan.cpp
     InlineEditor.cpp
+    InlineEditor_Clipboard.cpp
+    InlineEditor_Look.cpp
     InlineEditor.hpp
     TextBoxFrame.cpp
     TextBoxFrame.hpp
+    TextToolInput.cpp
+    TextToolInput.hpp
 )

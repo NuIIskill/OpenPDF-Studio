@@ -19,6 +19,8 @@ public:
     explicit SaveIndicator(QWidget *parent);
 
     void flash(const QString &fileName);
+    void showDone(const QString &text);
+    void showProgress(const QString &text);
 
 protected:
     bool eventFilter(QObject *watched, QEvent *event) override;
@@ -33,4 +35,5 @@ private:
     QGraphicsOpacityEffect *m_opacity { nullptr };
     QPropertyAnimation     *m_fade    { nullptr };
     QTimer                 *m_hold    { nullptr };
+    bool                    m_progress { false };
 };

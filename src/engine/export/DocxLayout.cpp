@@ -1,4 +1,5 @@
 #include "engine/export/DocxLayout.hpp"
+#include "engine/export/DocxXml.hpp"
 
 #include <QHash>
 #include <QPainter>
@@ -834,7 +835,7 @@ QList<DocxBlock> buildDocxBlocks(const DocxLayoutInput &in, QMarginsF *marginsOu
         pic.kind    = DocxBlock::Kind::Picture;
         pic.bounds  = boundsPt;
 
-        pic.picture = erased.crop(region.px);
+        pic.picture = DocxXml::encodePicture(erased.crop(region.px), in.options);
         if (pic.picture.isNull()) continue;
         pictures.append(pic);
 

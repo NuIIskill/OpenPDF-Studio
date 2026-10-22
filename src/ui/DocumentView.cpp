@@ -11,6 +11,9 @@
 #include "ui/view/LinkAnnotationLayer.hpp"
 #include "ui/notes/NoteLayer.hpp"
 #include "ui/draw/DrawingLayer.hpp"
+#include "ui/edit/InlineEditor.hpp"
+#include "ui/edit/TextToolInput.hpp"
+#include "ui/view/HoldKeys.hpp"
 #include "ui/view/HoverHighlight.hpp"
 #include "ui/view/DigitalSignatureLayer.hpp"
 #include "ui/view/SignaturePlacement.hpp"
@@ -42,13 +45,13 @@
 #include <QDragEnterEvent>
 #include <QDragMoveEvent>
 #include <QDropEvent>
-#include <QCursor>
 #include <QScrollBar>
 #include <QMouseEvent>
 #include <QWheelEvent>
 #include <QPalette>
 #include <QPainter>
 #include <QApplication>
+#include <QCursor>
 #include <QClipboard>
 #include <QTextEdit>
 #include <QStyle>
@@ -58,6 +61,7 @@
 #include <QFileDialog>
 #include <QFontMetrics>
 #include <QMenu>
+#include <QPointer>
 #include <QRegularExpression>
 #include <QUndoCommand>
 #include <QStringList>
@@ -96,6 +100,9 @@ void DocumentView::repositionForZoom()
     m_noteLayer->relayout();
     m_drawingLayer->relayout();
     QTimer::singleShot(0, this, [this]() { m_selection->relayout(); });
+#ifdef HAVE_PDF_RENDERING
+    if (m_edit.activeEditPage >= 0) m_editorFrame->holdDragForZoom();
+#endif
     repositionEditorFrame();
 }
 
@@ -105,20 +112,21 @@ void DocumentView::repositionEditorFrame()
 
     if (m_edit.activeEditPage < 0 || !m_editorFrame->isVisible()) return;
 
-    const int activePage = m_edit.activeEditPage;
-    QTimer::singleShot(0, this, [this, activePage]() {
-        if (m_edit.activeEditPage != activePage || !m_editorFrame->isVisible()) return;
+    QTimer::singleShot(0, this, [this]() {
+        // The page the box is on now; a drag may have carried it to another.
+        const int activePage = m_edit.activeEditPage;
+        if (activePage < 0 || !m_editorFrame->isVisible()) return;
 
         if (m_layout) m_layout->activate();
         const QLabel *lbl = pageLabel(activePage);
         if (!lbl) return;
 
         const qreal scale = PdfRenderer::screenScale(m_zoomCtl->zoom());
-        m_editorFrame->setPageRect(lbl->geometry());
+        m_editorFrame->setPageRect(lbl->geometry(), m_src->renderer()->pageSizePts(activePage));
         const QRectF cb(m_edit.activeEditBounds.topLeft() * scale + QPointF(lbl->pos()),
                         m_edit.activeEditBounds.size() * scale);
         m_editorFrame->repositionForZoom(
-            cb, qMax(1.0, m_edit.currentEditorRenderSizePt * scale),
+            cb, qMax(1.0, m_edit.currentEditorFontSizePt * scale),
             m_edit.currentBox, scale);
         m_edit.syncBoundsFromFrame();
 
@@ -132,7 +140,11 @@ void DocumentView::setTool(Tool tool)
     if (tool != Tool::Select) m_selection->clear();
     m_tool = tool;
 
+    m_holdKeys->setPanTool(tool == Tool::Pan);
     m_imageLayer->setToolActive(tool == Tool::Image);
+    // The image tool marks detected images under the pointer.
+    m_canvas->setMouseTracking(tool == Tool::Image);
+    viewport()->setMouseTracking(tool == Tool::Image);
     m_linkLayer->setToolActive(tool == Tool::Attach);
     m_noteLayer->setToolActive(tool == Tool::Comment);
     m_drawingLayer->setActive(m_editMode && tool == Tool::Draw);
@@ -294,7 +306,7 @@ void DocumentView::reportCurrentPage()
 void DocumentView::retranslateUi()
 {
 #ifdef HAVE_PDF_RENDERING
-    m_dropHint->setText(tr("Drop a PDF, Word, OpenDocument or image file here, or click a tab to open"));
+    m_dropHint->setText(tr("Drop a document here or click a tab to open"));
 #else
     m_dropHint->setText(tr(
         "PDF rendering is not available in this build.\n"
@@ -324,12 +336,48 @@ void DocumentView::keyPressEvent(QKeyEvent *e)
         e->accept();
         return;
     }
+#ifdef HAVE_PDF_RENDERING
+    // The text tool pastes a box of its own where the pointer is, else where the page was last clicked.
+    if (e->matches(QKeySequence::Paste) && m_editMode && m_tool == Tool::Text
+            && !m_editorFrame->isVisible()) {
+        QPoint at = m_canvas->mapFromGlobal(QCursor::pos());
+        if (pageAtCanvasPos(at).first < 0) at = m_textInput->pointer();
+        if (m_edit.pasteBox(at)) {
+            e->accept();
+            return;
+        }
+    }
+#endif
     if (e->key() == Qt::Key_Escape && m_selection->hasSelection()) {
         m_selection->clear();
         e->accept();
         return;
     }
+    if (e->key() == Qt::Key_Escape && m_tool != Tool::Select) {
+        Q_EMIT toolResetRequested();
+        e->accept();
+        return;
+    }
     QScrollArea::keyPressEvent(e);
+}
+
+QString DocumentView::shiftHint() const
+{
+    switch (m_tool) {
+    case Tool::Select:
+    case Tool::Attach:
+        return tr("Shift+click extends the selection");
+    case Tool::Draw:
+        if (!m_editMode || m_drawingLayer->tool() == DrawTool::Eraser) return {};
+        return tr("Shift: straight line in 45° steps");
+    case Tool::Image:
+        return tr("Shift: draw over detected images, keep the aspect ratio, move along one axis");
+    case Tool::Text:
+        if (!m_editMode) return {};
+        return tr("Shift+drag edits the text inside the box");
+    default:
+        return {};
+    }
 }
 
 void DocumentView::resizeEvent(QResizeEvent *e)
@@ -466,22 +514,62 @@ void DocumentView::setViewMode(ViewMode mode)
 
 void DocumentView::showGeneralContextMenu(const QPoint &globalPos)
 {
-    auto *focusEdit    = qobject_cast<QTextEdit *>(QApplication::focusWidget());
-    const bool hasEdit = focusEdit && m_editorFrame && m_editorFrame->isVisible();
-    const bool hasSel  = hasEdit && focusEdit->textCursor().hasSelection();
+    // The open box counts also while the format bar has the keys.
+    const bool boxOpen = m_editorFrame && m_editorFrame->isVisible();
+    QPointer<QTextEdit> boxEdit = boxOpen ? m_editorFrame->editor() : nullptr;
+    const QPoint canvasPos = m_canvas->mapFromGlobal(globalPos);
+    const bool inBox  = boxEdit && m_editorFrame->geometry().contains(canvasPos);
+    const bool hasSel = inBox && boxEdit->textCursor().hasSelection();
 
-    const bool hasPageSel = !hasEdit && !selectedText().isEmpty();
+    const bool hasPageSel = !boxOpen && !selectedText().isEmpty();
+    // Outside an open box the text tool pastes a box of its own at the spot,
+    // and copies the text there as the box it opens as.
+    const bool newBox = !inBox && m_editMode && m_tool == Tool::Text
+                     && pageAtCanvasPos(canvasPos).first >= 0;
+    const bool textHere = newBox && m_edit.hasTextAt(canvasPos);
+    const QMimeData *clip = QApplication::clipboard()->mimeData();
+    const bool clipText = clip && !clip->text().trimmed().isEmpty();
 
     QMenu menu(this);
     QAction *copy = menu.addAction(QIcon::fromTheme(QStringLiteral("edit-copy")),
-                                   tr("Kopieren"));
-    copy->setEnabled(hasSel || hasPageSel);
+                                   tr("Copy"));
+    // In the open box: the marked text, or with nothing marked the whole box.
+    copy->setEnabled(hasSel || hasPageSel || inBox || textHere);
+    QAction *paste  = nullptr;
+    QAction *remove = nullptr;
+    if (inBox || newBox) {
+        paste = menu.addAction(QIcon::fromTheme(QStringLiteral("edit-paste")), tr("Paste"));
+        paste->setEnabled(inBox ? boxEdit->canPaste() : clipText);
+    }
+    if (inBox) {
+        menu.addSeparator();
+        remove = menu.addAction(QIcon::fromTheme(QStringLiteral("edit-delete")), tr("Delete"));
+    }
 
     QAction *act = menu.exec(globalPos);
+    if (!act) return;
+#ifdef HAVE_PDF_RENDERING
+    if ((act == paste && newBox) || (act == copy && textHere)) {
+        // As a click there: the open box closes first.
+        if (!m_editorFrame->isVisible()) m_edit.lastCommittedPage = -1;
+        commitCurrentEdit(m_editorFrame->currentText());
+        if (act == paste) m_edit.pasteBox(canvasPos);
+        else              m_edit.copyBoxAt(canvasPos);
+        return;
+    }
+#endif
+    if (act == paste || act == remove) {
+        if (!boxEdit || !m_editorFrame->isVisible()) return;
+        if (act == paste)  boxEdit->paste();
+        else if (hasSel)   boxEdit->textCursor().removeSelectedText();
+        else               commitCurrentEdit(QString());
+        return;
+    }
     if (act != copy) return;
 
-    if (hasPageSel)      copySelectedText();
-    else if (focusEdit)  focusEdit->copy();
+    if (hasPageSel)              copySelectedText();
+    else if (inBox && !hasSel)   m_editorFrame->copyAll();
+    else if (boxEdit && hasSel)  boxEdit->copy();
 }
 
 qreal DocumentView::screenScale() const
@@ -512,14 +600,21 @@ bool DocumentView::eventFilter(QObject *obj, QEvent *e)
     const QPoint scroll(horizontalScrollBar()->value(), verticalScrollBar()->value());
     auto toCanvas   = [&](const QPoint &p) { return fromCanvas ? p : p + scroll; };
     auto toViewport = [&](const QPoint &p) { return fromCanvas ? p - scroll : p; };
+    const bool textTool = m_editMode && m_tool == Tool::Text;
+
+    if (e->type() == QEvent::MouseButtonPress || e->type() == QEvent::MouseMove
+            || e->type() == QEvent::MouseButtonRelease) {
+        auto *me = static_cast<QMouseEvent *>(e);
+        if (m_holdKeys->handleMouse(me, toViewport(me->pos()))) return true;
+    }
 
     if (e->type() == QEvent::MouseButtonPress) {
         auto *me = static_cast<QMouseEvent *>(e);
         if (me->button() == Qt::LeftButton) {
             const QPoint cvsPos = toCanvas(me->pos());
-            const QPoint vpPos  = toViewport(me->pos());
+            const bool   shift  = me->modifiers() & Qt::ShiftModifier;
 
-            if (m_editMode && m_tool == Tool::Text) {
+            if (textTool) {
 #ifdef HAVE_PDF_RENDERING
 
                 if (m_editorFrame->isVisible() && m_editorFrame->geometry().contains(cvsPos))
@@ -528,97 +623,49 @@ bool DocumentView::eventFilter(QObject *obj, QEvent *e)
                 if (!m_editorFrame->isVisible()) m_edit.lastCommittedPage = -1;
                 commitCurrentEdit(m_editorFrame->currentText());
 #endif
-                m_textDragStart = cvsPos;
-                m_textTracking  = true;
-                m_textDragging  = false;
+                // Keys such as Ctrl+V reach the page; a box opened takes them over.
+                setFocus(Qt::MouseFocusReason);
+                m_textInput->press(cvsPos, shift);
                 return true;
             }
 
-            if (m_tool == Tool::Image) {
-
-                if (m_imageLayer->takeDetectedRegionAt(cvsPos)) return true;
+            setFocus(Qt::MouseFocusReason);
+            switch (m_tool) {
+            case Tool::Image:
+                if (!shift && m_imageLayer->takeDetectedRegionAt(cvsPos)) return true;
                 m_imageLayer->handlePress(cvsPos);
                 return true;
-            }
-
-            if (m_tool == Tool::Comment) {
+            case Tool::Comment:
                 m_noteLayer->addAt(cvsPos);
                 return true;
-            }
-
-            if (m_tool == Tool::Draw) {
+            case Tool::Draw:
                 m_drawingLayer->handlePress(cvsPos);
                 return true;
-            }
-
-            switch (m_tool) {
             case Tool::Select:
             case Tool::Attach:
-                m_selection->handlePress(cvsPos);
-                break;
-            case Tool::Pan:
-                m_panStart        = vpPos;
-                m_panScrollOrigin = { horizontalScrollBar()->value(),
-                                     verticalScrollBar()->value() };
-                viewport()->setCursor(Qt::ClosedHandCursor);
+                m_selection->handlePress(cvsPos, shift);
                 break;
             default: break;
             }
         }
     } else if (e->type() == QEvent::MouseMove) {
         auto *me = static_cast<QMouseEvent *>(e);
+        const QPoint cvsPos = toCanvas(me->pos());
+        const bool   shift  = me->modifiers() & Qt::ShiftModifier;
         if (m_tool == Tool::Draw && (me->buttons() & Qt::LeftButton)) {
-            m_drawingLayer->handleMove(toCanvas(me->pos()));
+            m_drawingLayer->handleMove(cvsPos, shift);
             return true;
         }
-
-        if (m_editMode && m_tool == Tool::Text && !m_textTracking)
-            m_hover->showAt(toCanvas(me->pos()));
-        else
-            m_hover->hide();
-        if (m_editMode && m_tool == Tool::Text && m_textTracking) {
-            const QPoint cvsPos = toCanvas(me->pos());
-            if (!m_textDragging && (cvsPos - m_textDragStart).manhattanLength() > 6)
-                m_textDragging = true;
-            if (m_textDragging) {
-                m_rubberBand->setGeometry(
-                    QRect(toViewport(m_textDragStart), toViewport(cvsPos)).normalized());
-                m_rubberBand->show();
-            }
+        if (!textTool) m_hover->hide();
+        if (textTool && m_textInput->move(cvsPos, scroll, shift)) return true;
+        if (m_tool == Tool::Image) {
+            const bool overImage = m_imageLayer->hoverAt(cvsPos);
+            viewport()->setCursor(overImage ? Qt::PointingHandCursor : Qt::CrossCursor);
+            if (m_imageLayer->handleMove(cvsPos, scroll)) return true;
+        }
+        if ((m_tool == Tool::Select || m_tool == Tool::Attach)
+                && (me->buttons() & Qt::LeftButton) && m_selection->handleMove(cvsPos))
             return true;
-        }
-        if (m_tool == Tool::Image && m_imageLayer->isDragTracking()) {
-            bool dragging = false;
-            const QPoint cvsPos = m_imageLayer->handleMove(toCanvas(me->pos()), &dragging);
-            if (dragging) {
-                m_rubberBand->setGeometry(
-                    QRect(toViewport(m_imageLayer->dragStart()),
-                          toViewport(cvsPos)).normalized());
-                m_rubberBand->show();
-            }
-            return true;
-        }
-
-        {
-            const QPoint vpPos = toViewport(me->pos());
-            switch (m_tool) {
-            case Tool::Select:
-            case Tool::Attach:
-                if ((me->buttons() & Qt::LeftButton)
-                        && m_selection->handleMove(toCanvas(me->pos())))
-                    return true;
-                break;
-            case Tool::Pan:
-                if (me->buttons() & Qt::LeftButton) {
-                    const QPoint d = vpPos - m_panStart;
-                    horizontalScrollBar()->setValue(m_panScrollOrigin.x() - d.x());
-                    verticalScrollBar()->setValue(m_panScrollOrigin.y() - d.y());
-                    return true;
-                }
-                break;
-            default: break;
-            }
-        }
     } else if (e->type() == QEvent::MouseButtonRelease) {
         auto *me = static_cast<QMouseEvent *>(e);
         if (me->button() == Qt::LeftButton) {
@@ -626,61 +673,29 @@ bool DocumentView::eventFilter(QObject *obj, QEvent *e)
                 m_drawingLayer->handleRelease();
                 return true;
             }
-            if (m_editMode && m_tool == Tool::Text && m_textTracking) {
-                m_textTracking = false;
-                if (m_textDragging) {
-                    m_textDragging = false;
-                    const QRect band = m_rubberBand->geometry();
-                    m_rubberBand->hide();
-                    if (band.width() > 30 && band.height() > 15)
-                        createTextFrame(band);
-                } else {
-                    handleEditClick(m_textDragStart);
-                }
-                return true;
-            }
-            if (m_tool == Tool::Image && m_imageLayer->isDragTracking()) {
-                if (m_imageLayer->handleRelease()) {
-                    const QRect band = m_rubberBand->geometry();
-                    m_rubberBand->hide();
-                    if (band.width() > 20 && band.height() > 20) {
-                        const QString path = QFileDialog::getOpenFileName(this,
-                            tr("Insert image"), {},
-                            ImageImport::nameFilter() + QStringLiteral(";;")
-                                + tr("All files (*)"));
-                        if (!path.isEmpty()) {
-                            QImageReader reader(path);
-                            reader.setAutoTransform(true);
-                            const QImage img = reader.read();
-                            if (!img.isNull())
-                                m_imageLayer->placeInRect(img, band.translated(scroll));
-                        }
-                    }
-                }
-                return true;
-            }
-            switch (m_tool) {
-            case Tool::Select:
-            case Tool::Attach:
+            if (textTool && m_textInput->release(toCanvas(me->pos()))) return true;
+            if (m_tool == Tool::Image && m_imageLayer->handleRelease(scroll)) return true;
+            if (m_tool == Tool::Select || m_tool == Tool::Attach) {
                 m_rubberBand->hide();
                 if (m_selection->handleRelease()) return true;
-                break;
-            case Tool::Pan:    viewport()->setCursor(Qt::OpenHandCursor);   break;
-            default: break;
             }
         }
+    } else if (e->type() == QEvent::Leave && m_tool == Tool::Image) {
+        m_imageLayer->hoverAt(QPoint(-1, -1));
     } else if (e->type() == QEvent::ContextMenu) {
+        auto *ce = static_cast<QContextMenuEvent *>(e);
+        if (m_tool == Tool::Image) {
+            m_imageLayer->showContextMenu(nullptr, ce->globalPos());
+            return true;
+        }
         if (m_tool == Tool::Attach) {
-            auto *ce = static_cast<QContextMenuEvent *>(e);
             if (m_linkLayer->showEmptyContextMenu(
                     toCanvas(ce->pos()), ce->globalPos(), m_selection->selectedParts()))
                 m_selection->clear();
             return true;
         }
-
         if (m_editMode || m_tool == Tool::Text || m_tool == Tool::Image
                 || m_selection->hasSelection()) {
-            auto *ce = static_cast<QContextMenuEvent *>(e);
             showGeneralContextMenu(ce->globalPos());
             return true;
         }

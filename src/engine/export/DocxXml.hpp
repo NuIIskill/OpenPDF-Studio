@@ -34,7 +34,7 @@ QString tableXml(const DocxBlock &block);
 QString pictureXml(const DocxBlock &block, const QString &relId, int id);
 QString shapeXml(const DocxBlock &block, int id);
 QString textBoxXml(const DocxBlock &block, int id);
-QString encodePicture(const QImage &image, const DocxExportOptions &opt, QByteArray *out);
+DocxImage encodePicture(const QImage &image, const DocxExportOptions &opt);
 QString semanticParagraph(const ContentItem &item, int beforeTwips, int leftTwips = 0);
 QString paragraphXml(const DocxBlock &block, double spaceBeforePt, bool insideCell);
 

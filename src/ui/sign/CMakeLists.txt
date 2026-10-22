@@ -13,6 +13,8 @@ target_sources(OpenPDFStudio PRIVATE
     SavedSignaturesView.hpp
     SignatureCard.cpp
     SignatureCard.hpp
+    SignatureRemoval.cpp
+    SignatureRemoval.hpp
     SignatureAppearance.cpp
     SignatureAppearance.hpp
     SignatureAppearanceDialog.cpp
@@ -23,6 +25,6 @@ target_sources(OpenPDFStudio PRIVATE
     SignDialog.hpp
     SignOption.cpp
     SignOption.hpp
-    SignTabBar.cpp
-    SignTabBar.hpp
+    SignerTrust.cpp
+    SignerTrust.hpp
 )

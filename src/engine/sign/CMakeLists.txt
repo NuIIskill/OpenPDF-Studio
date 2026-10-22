@@ -8,6 +8,8 @@ target_sources(OpenPDFStudio PRIVATE
     Pkcs11CertificateProvider.cpp
     SignatureManager.cpp
     SignatureManager.hpp
+    SignatureRemover.cpp
+    SignatureRemover.hpp
     SignatureVerifier.cpp
     SignatureVerifier.hpp
     WindowsCertificateProvider.cpp

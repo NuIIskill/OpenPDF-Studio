@@ -280,3 +280,13 @@ void AppSettings::sync()
 {
     settings().sync();
 }
+
+bool AppSettings::noticeHidden(const QString &key) const
+{
+    return settings().value(QStringLiteral("notices/") + key, false).toBool();
+}
+
+void AppSettings::setNoticeHidden(const QString &key, bool hidden)
+{
+    settings().setValue(QStringLiteral("notices/") + key, hidden);
+}

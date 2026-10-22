@@ -2,11 +2,11 @@
 
 #include <QTabBar>
 
-/// Tab bar of the sign dialog, painted with icon and label centred together.
-class SignTabBar : public QTabBar
+/// Tab bar whose tabs show an icon and a label centred together.
+class IconTabBar : public QTabBar
 {
 public:
-    explicit SignTabBar(QWidget *parent = nullptr);
+    explicit IconTabBar(QWidget *parent = nullptr);
 
     void addIconTab(const QString &icon, const QString &text);
 

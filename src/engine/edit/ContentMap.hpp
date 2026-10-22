@@ -68,6 +68,7 @@ struct ContentCluster {
     QColor  textColor;
     bool    exactWidth { false };
     QPointF origin;
+    QRectF  objectBounds;
 };
 
 QList<ContentItem> classifyContentClusters(QList<ContentCluster> clusters,
@@ -80,6 +81,8 @@ struct ResolvedFont {
 };
 
 ResolvedFont resolvePdfFont(const QString &rawBaseFont);
+
+bool isListMarker(const QString &word);
 
 #ifdef HAVE_QPDF
 

@@ -91,6 +91,7 @@ private:
     void openTextPanel();
     void closeTextPanel();
     void refreshBookmarkPanel();
+    void refreshDocumentInfo();
     void loadShortcuts();
     void loadZoomSettings();
 

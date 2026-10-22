@@ -18,27 +18,19 @@ std::unique_ptr<PdfBackend> PdfBackend::create()
 #endif
 }
 
-QImage PdfBackend::renderPage(int page, qreal scale, const EditSession *session) const
+bool PdfBackend::exactFontAt(int, const QPointF &) const
 {
-    QImage img = renderPage(page, scale);
-    if (session && !img.isNull()) session->applyToImage(page, img, scale);
-    return img;
-}
-
-PdfBackend::AreaRender PdfBackend::renderChanges(int page, qreal scale,
-                                                 const EditSession *session,
-                                                 const QRect &, bool) const
-{
-    AreaRender result;
-    result.image   = renderPage(page, scale, session);
-    result.pixels  = result.image.rect();
-    result.changed = result.image.rect();
-    return result;
+    return true;
 }
 
 QString PdfBackend::embeddedFontFamily(int, const QPointF &) const
 {
     return {};
+}
+
+bool PdfBackend::hiddenText(int, const QRectF &) const
+{
+    return false;
 }
 
 double PdfBackend::textWidthPt(int, const QPointF &, const QString &, double) const
@@ -58,6 +50,17 @@ bool PdfBackend::canEmbedFont(const QString &, bool, bool) const
 }
 
 TextLayout::Metrics PdfBackend::editMetrics(const EditSession::Edit &) const
+{
+    return {};
+}
+
+QList<TextLayout::OriginalLine> PdfBackend::editLines(const EditSession::Edit &,
+                                                     QList<QList<TextLayout::Source>> *) const
+{
+    return {};
+}
+
+QImage PdfBackend::renderEditText(int, qreal, const QList<EditSession::Edit> &, const QRect &) const
 {
     return {};
 }

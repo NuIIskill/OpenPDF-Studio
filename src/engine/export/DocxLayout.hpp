@@ -13,6 +13,7 @@ struct DocxLayoutInput {
     QImage             erased;
     QSizeF             pageSizePt;
     qreal              scale { 1.0 };
+    DocxExportOptions  options;
 };
 
 QList<DocxBlock> buildDocxBlocks(const DocxLayoutInput &in, QMarginsF *marginsOut);

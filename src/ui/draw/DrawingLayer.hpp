@@ -26,9 +26,10 @@ public:
     void setTool(DrawTool tool);
     void setColor(const QColor &color);
     void setWidth(qreal widthPt);
+    DrawTool tool() const { return m_tool; }
 
     bool handlePress(const QPoint &canvasPos);
-    bool handleMove(const QPoint &canvasPos);
+    bool handleMove(const QPoint &canvasPos, bool straight = false);
     bool handleRelease();
 
     void clear();
@@ -40,7 +41,9 @@ Q_SIGNALS:
     void strokesRemoved(int page);
 
 private:
+    bool pagePoint(const QPoint &canvasPos, QPointF *point) const;
     bool appendPoint(const QPoint &canvasPos);
+    void setStraightEnd(const QPoint &canvasPos);
     bool eraseAt(const QPoint &canvasPos);
     void finishGesture();
     void restoreState(const QList<EditSession::DrawStroke> &strokes);
@@ -63,6 +66,7 @@ private:
     bool m_drawing { false };
     bool m_changed { false };
     int m_activePage { -1 };
+    int m_straightFrom { -1 };
     EditSession::DrawStroke m_activeStroke;
     QList<EditSession::DrawStroke> m_beforeGesture;
 };

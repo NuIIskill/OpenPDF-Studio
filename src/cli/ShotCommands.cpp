@@ -16,9 +16,16 @@ namespace Cli {
 
 int shotExportDialog(const QStringList &args)
 {
-    ExportDialog dlg(QStringLiteral("/tmp/demo.pdf"), 4, 0);
-    if (args.size() >= 4)
-        dlg.selectFormatForTest(args.at(3));
+    for (const QString &arg : args.mid(3))
+        if (arg == QLatin1String("dark") || arg == QLatin1String("light"))
+            Theme::apply(arg);
+    const bool empty = args.mid(3).contains(QLatin1String("empty"));
+    ExportDialog dlg(empty ? QString{} : QStringLiteral("/tmp/demo.pdf"), empty ? 1 : 4, 0);
+    for (const QString &arg : args.mid(3)) {
+        if (arg != QLatin1String("dark") && arg != QLatin1String("light")
+                && arg != QLatin1String("empty"))
+            dlg.selectFormatForTest(arg);
+    }
     dlg.show();
     QApplication::processEvents();
     return dlg.grab().save(args.at(2)) ? 0 : 3;

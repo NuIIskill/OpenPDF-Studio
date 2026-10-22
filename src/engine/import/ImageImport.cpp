@@ -37,7 +37,7 @@ QSizeF pageSizePt(const QSize &pixels, int dotsPerMeterX, int dotsPerMeterY)
 /// byte length, and a zlib stream is exactly what /FlateDecode wants.
 QByteArray flate(const QByteArray &data)
 {
-    const QByteArray compressed = qCompress(data, 9);
+    const QByteArray compressed = qCompress(data, 6);
     return compressed.size() > 4 ? compressed.mid(4) : QByteArray();
 }
 

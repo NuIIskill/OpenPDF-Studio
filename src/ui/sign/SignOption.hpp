@@ -11,6 +11,7 @@ public:
     SignOption(const QString &title, const QString &description, QWidget *parent = nullptr);
 
     QSize sizeHint() const override;
+    QSize minimumSizeHint() const override;
     bool  hasHeightForWidth() const override { return true; }
     int   heightForWidth(int width) const override;
 

@@ -27,8 +27,7 @@ bool encodePng(const QImage &image, QByteArray *out)
     return !image.isNull() && image.save(&buffer, "PNG");
 }
 
-QString encodePicture(const QImage &image, const DocxExportOptions &opt,
-                             QByteArray *out)
+DocxImage encodePicture(const QImage &image, const DocxExportOptions &opt)
 {
     if (image.isNull()) return {};
 
@@ -60,13 +59,11 @@ QString encodePicture(const QImage &image, const DocxExportOptions &opt,
         jpegBuffer.open(QIODevice::WriteOnly);
         if (opaque.save(&jpegBuffer, "JPEG", qBound(10, opt.imageQuality, 100))
                 && jpeg.size() < png.size()) {
-            *out = std::move(jpeg);
-            return QStringLiteral("jpeg");
+            return { std::move(jpeg), QStringLiteral("jpeg") };
         }
     }
 
-    *out = std::move(png);
-    return QStringLiteral("png");
+    return { std::move(png), QStringLiteral("png") };
 }
 
 QString xmlEsc(const QString &s)

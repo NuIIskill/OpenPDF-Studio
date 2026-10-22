@@ -59,7 +59,7 @@ void ZipWriter::deflateEntry(ZipWriter::Entry &e)
     e.method = 0;
     e.stored = e.data;
     if (e.data.size() < 256) return;
-    const QByteArray z = qCompress(e.data, 9);
+    const QByteArray z = qCompress(e.data, 6);
     if (z.size() <= 10) return;
     const QByteArray raw = z.mid(6, z.size() - 10);
     if (raw.isEmpty() || raw.size() >= e.data.size()) return;

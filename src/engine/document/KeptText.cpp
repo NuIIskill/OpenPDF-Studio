@@ -1,4 +1,4 @@
-#include "engine/document/Type3Text.hpp"
+#include "engine/document/KeptText.hpp"
 
 #include "app/PdfPwStore.hpp"
 
@@ -72,11 +72,11 @@ private:
     int m_counter { 0 };
 };
 
-class Type3Filter : public QPDFObjectHandle::TokenFilter
+class KeptFilter : public QPDFObjectHandle::TokenFilter
 {
 public:
-    Type3Filter(const std::set<std::string> &type3Fonts, const Type3Text::Kept &kept,
-                bool keepAll, Resources &resources)
+    KeptFilter(const std::set<std::string> &type3Fonts, const KeptText::Kept &kept,
+               bool keepAll, Resources &resources)
         : m_type3(type3Fonts), m_kept(kept), m_keepAll(keepAll), m_resources(resources) {}
 
     int shows() const { return m_index; }
@@ -94,17 +94,26 @@ public:
         }
         const std::string op = token.getValue();
         if (op == "BI") m_inImage = true;
-        else handleOperator(op, token);
+        else handleOperator(op);
         m_operands.clear();
     }
 
 private:
+    struct Spacing { double charSpacing { 0.0 }; double wordSpacing { 0.0 }; };
+    struct Saved { Spacing spacing; std::string font; std::string renderMode; };
+    struct Pending { std::vector<Token> fontOperands; std::string fontSet; std::string show; };
+
     std::vector<Token> values() const
     {
         std::vector<Token> out;
         for (const Token &t : m_operands)
             if (t.getType() != QPDFTokenizer::tt_space) out.push_back(t);
         return out;
+    }
+
+    static double number(const Token &t)
+    {
+        try { return std::stod(t.getValue()); } catch (...) { return 0.0; }
     }
 
     std::string text(const std::vector<Token> &operands, const std::string &op) const
@@ -116,9 +125,10 @@ private:
 
     void emit(const std::string &op) { write(text(values(), op)); }
 
-    void emitRenamed(const std::string &op, const char *category, size_t index)
+    void emitRenamed(const std::vector<Token> &operands, const std::string &op,
+                     const char *category, size_t index)
     {
-        std::vector<Token> v = values();
+        std::vector<Token> v = operands;
         if (index < v.size() && v[index].getType() == QPDFTokenizer::tt_name
                 && m_resources.has(category, v[index].getValue()))
             v[index] = Token(QPDFTokenizer::tt_name,
@@ -133,15 +143,20 @@ private:
     {
         const std::vector<Token> v = values();
         if (op == "TJ") {
+            int strings = 0;
+            bool empty = true;
             for (const Token &t : v)
-                if (t.getType() == QPDFTokenizer::tt_string) return true;
-            return false;
+                if (t.getType() == QPDFTokenizer::tt_string) {
+                    ++strings;
+                    empty = empty && t.getValue().empty();
+                }
+            return strings > 1 || (strings == 1 && !empty);
         }
         return !v.empty() && v.back().getType() == QPDFTokenizer::tt_string
             && !v.back().getValue().empty();
     }
 
-    void handleOperator(const std::string &op, const Token &)
+    void handleOperator(const std::string &op)
     {
         static const std::set<std::string> construction {
             "m", "l", "c", "v", "y", "h", "re" };
@@ -159,16 +174,46 @@ private:
             return;
         }
         if (dropped.count(op)) return;
-        if (op == "gs") { emitRenamed(op, "/ExtGState", 0); return; }
-        if (op == "cs" || op == "CS") { emitRenamed(op, "/ColorSpace", 0); return; }
+        if (op == "q") {
+            m_saved.push_back({ m_spacing, m_fontWritten, m_renderMode });
+            emit(op);
+            return;
+        }
+        if (op == "Q") {
+            if (!m_saved.empty()) {
+                m_spacing     = m_saved.back().spacing;
+                m_fontWritten = m_saved.back().font;
+                m_renderMode  = m_saved.back().renderMode;
+                m_saved.pop_back();
+            }
+            emit(op);
+            return;
+        }
+        if (op == "Tr") {
+            const std::vector<Token> v = values();
+            if (!v.empty()) m_renderMode = v.back().getRawValue();
+            emit(op);
+            return;
+        }
+        if (op == "BT" || op == "ET" || op == "Td" || op == "TD" || op == "Tm" || op == "T*")
+            m_pending.clear();
+        if (op == "Tc" || op == "Tw") {
+            const std::vector<Token> v = values();
+            if (!v.empty())
+                (op == "Tc" ? m_spacing.charSpacing : m_spacing.wordSpacing) = number(v.back());
+            emit(op);
+            return;
+        }
+        if (op == "gs") { emitRenamed(values(), op, "/ExtGState", 0); return; }
+        if (op == "cs" || op == "CS") { emitRenamed(values(), op, "/ColorSpace", 0); return; }
         if (op == "scn" || op == "SCN") {
-            emitRenamed(op, "/Pattern", values().empty() ? 0 : values().size() - 1);
+            emitRenamed(values(), op, "/Pattern", values().empty() ? 0 : values().size() - 1);
             return;
         }
         if (op == "Tf") {
-            const std::vector<Token> v = values();
-            m_font = v.empty() ? std::string() : v.front().getValue();
-            if (m_type3.count(m_font)) emitRenamed(op, "/Font", 0);
+            m_fontOperands = values();
+            m_font = m_fontOperands.empty() ? std::string() : m_fontOperands.front().getValue();
+            m_fontSet = text(m_fontOperands, op);
             return;
         }
         if (op != "Tj" && op != "TJ" && op != "'" && op != "\"") {
@@ -176,30 +221,76 @@ private:
             return;
         }
 
+        if (op == "\"") {
+            const std::vector<Token> v = values();
+            if (v.size() >= 2) {
+                m_spacing.wordSpacing = number(v.at(0));
+                m_spacing.charSpacing = number(v.at(1));
+            }
+        }
         bool keep = false;
-        if (m_type3.count(m_font) && showsText(op)) {
-            keep = m_keepAll || m_kept.indices.contains(m_index);
-            ++m_index;
+        if (showsText(op)) {
+            const bool type3 = m_type3.count(m_font) > 0;
+            const bool spaced = !qFuzzyIsNull(m_spacing.charSpacing)
+                             || !qFuzzyIsNull(m_spacing.wordSpacing);
+            if (!m_kept.type3Only || type3) {
+                keep = m_keepAll ? (type3 || (spaced && !m_kept.type3Only))
+                                 : m_kept.indices.contains(m_index);
+                ++m_index;
+            }
         }
         if (keep) {
+            if (op == "Tj" || op == "TJ") writePending();
+            m_pending.clear();
+            writeFont(m_fontOperands, m_fontSet);
             emit(op);
-        } else if (op == "'") {
-            write("T*\n");
-        } else if (op == "\"") {
+            return;
+        }
+        if (op == "'" || op == "\"") {
             const std::vector<Token> v = values();
-            if (v.size() >= 2)
+            if (op == "\"" && v.size() >= 2)
                 write(v.at(0).getRawValue() + " Tw " + v.at(1).getRawValue() + " Tc ");
             write("T*\n");
+            m_pending.clear();
+            if (!v.empty()) m_pending.push_back({ m_fontOperands, m_fontSet, text({ v.back() }, "Tj") });
+            return;
         }
+        m_pending.push_back({ m_fontOperands, m_fontSet, text(values(), op) });
+    }
+
+    void writeFont(const std::vector<Token> &operands, const std::string &set)
+    {
+        if (m_fontWritten == set || operands.empty()) return;
+        emitRenamed(operands, "Tf", "/Font", 0);
+        m_fontWritten = set;
+    }
+
+    void writePending()
+    {
+        // Text left out before a kept show is drawn invisibly, so the kept
+        // text starts where the pen stood in the original.
+        if (m_pending.empty()) return;
+        for (const Pending &p : m_pending) {
+            writeFont(p.fontOperands, p.fontSet);
+            write("3 Tr\n" + p.show);
+        }
+        write((m_renderMode.empty() ? std::string("0") : m_renderMode) + " Tr\n");
     }
 
     const std::set<std::string> &m_type3;
-    const Type3Text::Kept       &m_kept;
+    const KeptText::Kept        &m_kept;
     const bool                   m_keepAll;
     Resources                   &m_resources;
     std::vector<Token>           m_operands;
+    std::vector<Token>           m_fontOperands;
     std::string                  m_font;
+    std::string                  m_fontSet;
+    std::string                  m_fontWritten;
     std::string                  m_path;
+    Spacing                      m_spacing;
+    std::string                  m_renderMode;
+    std::vector<Saved>           m_saved;
+    std::vector<Pending>         m_pending;
     bool                         m_clip    { false };
     int                          m_index   { 0 };
     bool                         m_inImage { false };
@@ -220,11 +311,11 @@ std::set<std::string> type3FontNames(QPDFObjectHandle resources)
 }
 
 void restorePage(QPDF &src, QPDF &out, QPDFPageObjectHelper &source,
-                 QPDFPageObjectHelper &target, const Type3Text::Kept &kept)
+                 QPDFPageObjectHelper &target, const KeptText::Kept &kept)
 {
     QPDFObjectHandle resources = source.getAttribute("/Resources", false);
     const std::set<std::string> type3 = type3FontNames(resources);
-    if (type3.empty()) return;
+    if (kept.type3Only && type3.empty()) return;
 
     QPDFObjectHandle targetResources = target.getAttribute("/Resources", true);
     if (!targetResources.isDictionary()) {
@@ -234,11 +325,11 @@ void restorePage(QPDF &src, QPDF &out, QPDFPageObjectHelper &source,
 
     for (const bool keepAll : { false, true }) {
         Resources used(resources, targetResources);
-        Pl_Buffer buffer("type3");
-        Type3Filter filter(type3, kept, keepAll, used);
+        Pl_Buffer buffer("kept");
+        KeptFilter filter(type3, kept, keepAll, used);
         source.filterContents(&filter, &buffer);
         if (!keepAll && filter.shows() != kept.total) {
-            qWarning() << "[Type3Text]" << filter.shows() << "Type3 text operations,"
+            qWarning() << "[KeptText]" << filter.shows() << "text operations,"
                        << "PDFium saw" << kept.total << "- keeping all of them";
             continue;
         }
@@ -263,12 +354,12 @@ void restorePage(QPDF &src, QPDF &out, QPDFPageObjectHelper &source,
 }
 #endif
 
-bool Type3Text::restore(const QString &source, const QString &output,
-                        const QHash<int, Kept> &pages)
+bool KeptText::restore(const QString &source, const QString &output,
+                       const QHash<int, Kept> &pages)
 {
     if (pages.isEmpty()) return true;
 #ifdef HAVE_QPDF
-    const QString temp = output + QStringLiteral(".type3");
+    const QString temp = output + QStringLiteral(".kept");
     try {
         QPDF src;
         const std::string password = PdfPwStore::forQpdf(source);
@@ -290,7 +381,7 @@ bool Type3Text::restore(const QString &source, const QString &output,
         QPDFWriter writer(out, temp.toLocal8Bit().constData());
         writer.write();
     } catch (const std::exception &ex) {
-        qWarning() << "[Type3Text] konnte Type3-Text nicht wiederherstellen:" << ex.what();
+        qWarning() << "[KeptText] konnte den Text nicht wiederherstellen:" << ex.what();
         QFile::remove(temp);
         return false;
     }
@@ -299,7 +390,7 @@ bool Type3Text::restore(const QString &source, const QString &output,
 #else
     Q_UNUSED(source)
     Q_UNUSED(output)
-    qWarning() << "[Type3Text] ohne qpdf geht Type3-Text beim Speichern verloren";
+    qWarning() << "[KeptText] ohne qpdf geht Type3-Text beim Speichern verloren";
     return false;
 #endif
 }

@@ -7,10 +7,16 @@ target_sources(OpenPDFStudio PRIVATE
     EditSession.hpp
     InkMetrics.cpp
     InkMetrics.hpp
+    ScanFont.cpp
+    ScanFont.hpp
     StandardFont.cpp
+    SourcedText.cpp
+    SourcedText.hpp
     StandardFont.hpp
     TextBlock.hpp
     TextBoxProperties.hpp
+    TextGutters.cpp
+    TextGutters.hpp
     TextLayout.cpp
     TextLayout.hpp
 )

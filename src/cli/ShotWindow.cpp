@@ -2,6 +2,7 @@
 #include "App.hpp"
 #include "ui/DocumentView.hpp"
 #include "ui/MainWindow.hpp"
+#include "ui/bars/StatusBar.hpp"
 #include "ui/edit/InlineEditor.hpp"
 #include "ui/panels/LeftSidebar.hpp"
 #include "ui/panels/RightSidebar.hpp"
@@ -198,7 +199,7 @@ void typeAndFormat(const Shot &s)
         if (o.startsWith(QLatin1String("color="))) {
             s.dv->setEditorTextColor(QColor(o.mid(6)));
         } else if (o.startsWith(QLatin1String("size="))) {
-            s.dv->setEditorFontSize(o.mid(5).toInt());
+            s.dv->setEditorFontSize(o.mid(5).toDouble());
         } else if (o.startsWith(QLatin1String("font="))) {
             const QStringList parts = o.mid(5).split(u',');
             s.dv->setEditorFontFamily(parts.at(0));
@@ -594,6 +595,23 @@ int shotWindow(const QStringList &args)
     if (s.has("tools")) {
         s.win->leftSidebar()->openCustomizePopup();
         settle(600);
+    }
+    if (s.has("info") || s.has("info-open")) {
+        if (StatusBar *bar = s.win->findChild<StatusBar *>())
+            Q_EMIT bar->infoRequested();
+        settle(400);
+        if (s.has("info-open")) {
+            for (QWidget *section : s.win->findChildren<QWidget *>()) {
+                if (!section->property("expandable").toBool()) continue;
+                const auto *chevron = section->findChild<QWidget *>(QStringLiteral("InfoChevron"));
+                const QPointF at = chevron ? QPointF(chevron->geometry().center()) : QPointF(4, 4);
+                QMouseEvent release(QEvent::MouseButtonRelease, at,
+                                    section->mapToGlobal(at), Qt::LeftButton,
+                                    Qt::NoButton, Qt::NoModifier);
+                QApplication::sendEvent(section, &release);
+            }
+            settle(400);
+        }
     }
 
     return s.win->grab().save(args.at(2)) ? 0 : 3;

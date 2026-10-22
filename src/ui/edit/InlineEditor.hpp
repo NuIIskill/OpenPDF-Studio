@@ -2,7 +2,6 @@
 #include <QColor>
 #include <QFont>
 #include <QList>
-#include <QSet>
 #include <QPointF>
 #include <QSizeF>
 #include <QTextEdit>
@@ -14,6 +13,7 @@ class QPainter;
 class QTimer;
 QT_END_NAMESPACE
 
+#include "engine/edit/SourcedText.hpp"
 #include "engine/edit/TextBoxProperties.hpp"
 #include "engine/edit/TextLayout.hpp"
 
@@ -63,16 +63,28 @@ public:
     void setPixelOffset(const QPointF &offset);
 
     bool   usesEngineLayout() const;
+    static bool focusInFormatting();
     const QList<TextLayout::Line> &layoutLines() const { return m_lines; }
     QPointF layoutOriginPt() const { return m_origin; }
-    double layoutSizePt() const { return m_metrics.sizePt; }
+    double layoutSizePt() const { return m_sizePt; }
     double contentWidthPt() const;
+    QList<QList<double>> paragraphCharXPt() const;
     double contentHeightPt() const;
+    QList<TextLayout::Source> charSources() const;
+    void setCharSources(const QList<TextLayout::Source> &sources);
+    void setDocumentKey(const QString &key) { m_documentKey = key; }
+
+    void copyAll();
+    int charAt(const QPoint &viewportPos) const;
+    void setLookAt(int index);
+    TextLayout::Appearance look() const;
+    QList<TextLayout::Appearance> appearances() const;
 
 Q_SIGNALS:
     void committed(const QString &text);
     void cancelled();
     void changed(const QString &text);
+    void lookChanged();
 
 protected:
     void paintEvent(QPaintEvent *e) override;
@@ -85,6 +97,8 @@ protected:
     void resizeEvent(QResizeEvent *e) override;
     void scrollContentsBy(int dx, int dy) override;
     QVariant inputMethodQuery(Qt::InputMethodQuery query) const override;
+    QMimeData *createMimeDataFromSelection() const override;
+    void insertFromMimeData(const QMimeData *source) override;
 
 public:
     void resetCommitGuard()    { m_committing = false; }
@@ -94,9 +108,9 @@ public:
 
     int    lineOf(int position) const;
     QPointF caretPointPt(int position) const;
+    int    positionAt(const QPoint &viewportPos) const;
 
 private:
-    int    positionAt(const QPoint &viewportPos) const;
     int    positionOnLine(int line, double xPt) const;
     double advanceTo(const TextLayout::Line &line, int position) const;
     QRectF caretRectPx(int position) const;
@@ -108,6 +122,10 @@ private:
     void   applyStyle();
     void   applyParagraphSpacing();
     void   updateVerticalAlignment();
+    TextLayout::Appearance appearanceOf(int index) const;
+    TextLayout::Appearance caretAppearance() const;
+    QMimeData *mimeOf(int start, int end, const SourcedText::Box &box) const;
+    SourcedText::Box laidBox(int start, int end) const;
 
     bool    m_committing      { false };
     bool    m_suppressFocusOut{ false };
@@ -130,8 +148,11 @@ private:
 
     MetricsSource            m_source;
     TextLayout::Metrics      m_metrics;
+    TextLayout::Advance      m_advance;
+    QList<int>               m_styles;
+    QString                  m_documentKey;
     QString                  m_metricsText;
-    QSet<uint>               m_metricsCharacters;
+    double                   m_sizePt { 0.0 };
     bool                     m_metricsStale { true };
     QList<TextLayout::Line>  m_lines;
     QPointF                  m_origin;
@@ -140,5 +161,6 @@ private:
     bool                     m_hasAnchor { false };
     QPointF                  m_anchorPt;
     double                   m_goalXPt   { -1.0 };
+    int                      m_lookAt    { -1 };
     QPointF                  m_pixelOffset;
 };

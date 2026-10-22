@@ -22,6 +22,9 @@ public:
 
 Q_SIGNALS:
     void deleteRequested();
+    void copyRequested();
+    void cutRequested();
+    void pasteRequested();
     void geometryChanged(const QRect &newGeometry);
     void contextMenuRequested(const QPoint &globalPos);
 
@@ -34,6 +37,7 @@ protected:
     void paintEvent(QPaintEvent *e) override;
     void resizeEvent(QResizeEvent *e) override;
     void contextMenuEvent(QContextMenuEvent *e) override;
+    void keyPressEvent(QKeyEvent *e) override;
 
 private:
     void updateScaledPixmap();

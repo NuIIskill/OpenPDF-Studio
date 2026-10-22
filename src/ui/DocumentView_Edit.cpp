@@ -1,11 +1,14 @@
 
 
 #include "ui/DocumentView.hpp"
+#include "ui/edit/EditNotice.hpp"
 
 #include "app/PdfPwStore.hpp"
 #include "engine/document/DocumentSource.hpp"
 #include "engine/edit/InkMetrics.hpp"
 #include "app/SafeWrite.hpp"
+#include "ui/view/DocumentInfoLoader.hpp"
+#include "ui/view/ProtectionLayer.hpp"
 #include "ui/view/ImageAnnotation.hpp"
 #include "ui/view/AnnotationLoader.hpp"
 #include "ui/view/ImageAnnotationLayer.hpp"
@@ -13,6 +16,8 @@
 #include "ui/view/LoadingSpinner.hpp"
 #include "ui/notes/NoteLayer.hpp"
 #include "ui/draw/DrawingLayer.hpp"
+#include "ui/edit/TextToolInput.hpp"
+#include "ui/view/HoldKeys.hpp"
 #include "ui/view/HoverHighlight.hpp"
 #include "ui/view/FindController.hpp"
 #include "ui/view/PageLayoutEngine.hpp"
@@ -88,7 +93,7 @@ DocumentView::DocumentView(QWidget *parent)
     m_layout->setContentsMargins(40, 40, 40, 40);
     m_layout->setSpacing(20);
 
-    m_dropHint = new QLabel(tr("Drop a PDF, Word, OpenDocument or image file here, or click a tab to open"), m_canvas);
+    m_dropHint = new QLabel(tr("Drop a document here or click a tab to open"), m_canvas);
     m_dropHint->setObjectName(QStringLiteral("DropHint"));
     m_dropHint->setAlignment(Qt::AlignCenter);
     m_dropHint->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
@@ -121,11 +126,19 @@ DocumentView::DocumentView(QWidget *parent)
     connect(m_selection, &TextSelectionController::focusRequested,
             this, [this]() { setFocus(Qt::MouseFocusReason); });
 
+    m_holdKeys = new HoldKeys(this);
+    connect(m_holdKeys, &HoldKeys::shiftChanged, this, [this](bool held) {
+        if (held) m_hover->hide();
+        Q_EMIT hintChanged(held ? shiftHint() : QString());
+    });
+
     m_find = new FindController(this, viewport(), m_src.get(), this);
+    m_info = new DocumentInfoLoader(this);
     connect(m_find, &FindController::matchActivated,
             this, &DocumentView::scrollToSearchMatch);
 
     m_imageLayer = new ImageAnnotationLayer(this, this);
+    m_imageLayer->setRubberBand(m_rubberBand);
     connect(m_imageLayer, &ImageAnnotationLayer::pageNeedsRerender,
             this, &DocumentView::rerenderPage);
     connect(m_imageLayer, &ImageAnnotationLayer::imageAdded, this, [this](int page) {
@@ -196,10 +209,13 @@ DocumentView::DocumentView(QWidget *parent)
 
     m_smoothScroll = new SmoothScroll(this, this);
     m_hover = new HoverHighlight(this, this);
+    m_textInput = new TextToolInput(&m_edit, m_hover, m_rubberBand, m_canvas, this);
 
     m_overlays = PageOverlays::createAll(this, this);
     m_signatureLayer = new DigitalSignatureLayer(this, this);
     m_overlays.append(m_signatureLayer);
+    m_protectionLayer = new ProtectionLayer(this);
+    m_overlays.append(m_protectionLayer);
     for (PageOverlay *overlay : std::as_const(m_overlays))
         overlay->setChangeReporter([this](const QString &title, int page) {
             m_journal.recordSideChange(
@@ -224,12 +240,17 @@ DocumentView::DocumentView(QWidget *parent)
     connect(m_editorFrame, &TextBoxFrame::changed, this, [this]() {
         m_edit.refreshLivePreview();
     });
+    connect(m_editorFrame, &TextBoxFrame::lookChanged, this, [this]() { m_edit.showLook(); });
     connect(&m_edit, &EditController::livePreviewChanged, this,
             [this](int page, const QList<EditSession::Edit> &edits) {
         m_layoutEngine->setPreviewEdits(page, edits);
     });
 
+    connect(m_editorFrame, &TextBoxFrame::moveStarted, this, [this]() {
+        m_layoutEngine->setDraggingText(true);
+    });
     connect(m_editorFrame, &TextBoxFrame::dragEnded, this, [this]() {
+        m_layoutEngine->setDraggingText(false);
         m_edit.activeEditMovedByUser = true;
         m_edit.refreshAdvanceMeasure();
         repositionEditorFrame();
@@ -243,7 +264,9 @@ DocumentView::DocumentView(QWidget *parent)
     connect(m_editorFrame, &TextBoxFrame::boundsChanged, this, [this](const QRectF &inner) {
         if (m_edit.activeEditPage < 0) return;
 
-        auto [pg, lbl] = pageAtCanvasPos(inner.center().toPoint());
+        // Only a drag carries the box to another page; growing text stays on its own.
+        auto [pg, lbl] = m_editorFrame->dragging() ? pageAtCanvasPos(inner.center().toPoint())
+                                                   : std::pair<int, QLabel *>(-1, nullptr);
         if (pg < 0 || !lbl) {
             pg  = m_edit.activeEditPage;
             lbl = pageLabel(pg);
@@ -252,7 +275,7 @@ DocumentView::DocumentView(QWidget *parent)
         if (pg != m_edit.activeEditPage) {
             m_edit.activeEditPage = pg;
 
-            m_editorFrame->setPageRect(lbl->geometry());
+            m_editorFrame->setPageRect(lbl->geometry(), m_src->renderer()->pageSizePts(pg));
         }
         const qreal scale = PdfRenderer::screenScale(m_zoomCtl->zoom());
         QRectF newBounds(
@@ -262,6 +285,7 @@ DocumentView::DocumentView(QWidget *parent)
         m_edit.activeEditBounds = newBounds;
         m_edit.currentBox.bounds = newBounds;
         m_edit.notifyBoundsChanged();
+        m_layoutEngine->setDraggingText(m_editorFrame->movingBox());
         m_edit.refreshLivePreview();
     });
     m_hover->setEditorFrame(m_editorFrame);
@@ -277,7 +301,7 @@ DocumentView::DocumentView(QWidget *parent)
     m_ocrEngine = new OcrEngine();
 #ifdef HAVE_PDF_RENDERING
 
-    m_imageLayer->setSource(m_src->renderer(), m_session, m_ocrEngine, m_src->contentPath());
+    m_imageLayer->setSource(m_src->renderer(), m_session);
 #endif
 
     m_edit.attach(this, m_src.get(), m_editorFrame, m_zoomCtl, m_hover,
@@ -290,10 +314,16 @@ DocumentView::DocumentView(QWidget *parent)
 #ifdef HAVE_PDF_RENDERING
     m_edit.setSession(m_session);
 #endif
+    m_editNotice = new EditNotice(viewport());
+    connect(&m_edit, &EditController::noticeWanted, m_editNotice, &EditNotice::offer);
     connect(&m_edit, &EditController::fontSizeChanged,
             this, &DocumentView::editorFontSizeChanged);
     connect(&m_edit, &EditController::fontChanged,
             this, &DocumentView::editorFontChanged);
+    connect(&m_edit, &EditController::textColorChanged,
+            this, &DocumentView::editorTextColorChanged);
+    connect(&m_edit, &EditController::lineSpacingChanged,
+            this, &DocumentView::editorLineSpacingChanged);
     connect(&m_edit, &EditController::textBoxPropertiesChanged,
             this, &DocumentView::textBoxPropertiesChanged);
     connect(&m_edit, &EditController::textBoxEditingChanged,
@@ -367,18 +397,10 @@ QRectF DocumentView::editFrameRect() const
 void DocumentView::rerenderPageWithBlank(int page, const QRectF &pdfBoundsPts)
 {
 #ifdef HAVE_PDF_RENDERING
-    m_layoutEngine->rerenderPageWithBlank(page, pdfBoundsPts, m_edit.activeEditEraseRects);
+    m_layoutEngine->rerenderPageWithBlank(page, pdfBoundsPts, m_edit.activeEditEraseRects,
+                                          m_edit.activeEditScanned ? m_edit.currentBgColor : QColor());
 #else
     Q_UNUSED(page) Q_UNUSED(pdfBoundsPts)
-#endif
-}
-
-void DocumentView::handleEditClick(const QPoint &canvasPos)
-{
-#ifdef HAVE_PDF_RENDERING
-    m_edit.handleClick(canvasPos);
-#else
-    Q_UNUSED(canvasPos)
 #endif
 }
 
@@ -446,21 +468,12 @@ void DocumentView::cancelCurrentEdit()
 #endif
 }
 
-void DocumentView::createTextFrame(const QRect &viewportDragRect)
-{
-#ifdef HAVE_PDF_RENDERING
-    m_edit.createTextFrame(viewportDragRect);
-#else
-    Q_UNUSED(viewportDragRect)
-#endif
-}
-
 void DocumentView::refreshEditorFontLive()                     { m_edit.refreshFontLive(); }
 void DocumentView::setEditorFontFamily(const QString &family)  { m_edit.setFontFamily(family); }
 void DocumentView::setEditorBold(bool on)                      { m_edit.setBold(on); }
 void DocumentView::setEditorItalic(bool on)                    { m_edit.setItalic(on); }
 void DocumentView::setEditorUnderline(bool on)                 { m_edit.setUnderline(on); }
-void DocumentView::setEditorFontSize(int ptSize)               { m_edit.setFontSize(ptSize); }
+void DocumentView::setEditorFontSize(double ptSize)            { m_edit.setFontSize(ptSize); }
 void DocumentView::setEditorTextColor(const QColor &color)     { m_edit.setTextColor(color); }
 void DocumentView::setTextBoxProperties(const TextBoxProperties &p) { m_edit.setTextBoxProperties(p); }
 void DocumentView::setTextBoxDefaults(const TextBoxProperties &p) { m_edit.setTextBoxDefaults(p); }

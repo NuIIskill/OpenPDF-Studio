@@ -5,6 +5,7 @@
 #include <QCoreApplication>
 
 class DocumentView;
+class SaveIndicator;
 
 QT_BEGIN_NAMESPACE
 class QWidget;
@@ -16,5 +17,6 @@ class Exporting
     Q_DECLARE_TR_FUNCTIONS(Exporting)
 
 public:
-    static void run(QWidget *parent, DocumentView *view, const ExportRequest &request);
+    static void run(QWidget *parent, DocumentView *view, const ExportRequest &request,
+                    SaveIndicator *indicator);
 };

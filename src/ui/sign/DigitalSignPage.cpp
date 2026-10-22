@@ -3,6 +3,7 @@
 #include "ui/sign/CreateCertificateDialog.hpp"
 #include "ui/sign/ProfileCombo.hpp"
 #include "ui/sign/SignOption.hpp"
+#include "ui/sign/SignerTrust.hpp"
 #include "ui/theme/Theme.hpp"
 
 #include <QApplication>
@@ -198,6 +199,18 @@ QWidget *DigitalSignPage::buildAdvancedCard()
     for (SignOption *option : { timestamp, lock, m_invisible })
         options->addWidget(option, 1);
     vl->addLayout(options);
+    vl->addWidget(divider());
+
+    auto *trust = new QHBoxLayout;
+    trust->setSpacing(12);
+    trust->addWidget(fieldLabel(tr("Trusted signers")), 1);
+    auto *manage = new QPushButton(tr("Manage..."));
+    manage->setObjectName(QStringLiteral("SSecondary"));
+    manage->setFixedHeight(32);
+    manage->setCursor(Qt::PointingHandCursor);
+    connect(manage, &QPushButton::clicked, this, [this]() { SignerTrust::manage(this); });
+    trust->addWidget(manage, 0, Qt::AlignVCenter);
+    vl->addLayout(trust);
     return card;
 }
 
@@ -422,9 +435,9 @@ SignRequest DigitalSignPage::signRequest() const
     if (isInvisible()) return request;
 
     const SignatureAppearance look = appearance();
-    request.name       = look.name;
-    request.reason     = look.reason;
-    request.location   = look.location;
+    request.name       = look.showName ? look.name : QString();
+    request.reason     = look.showReason ? look.reason : QString();
+    request.location   = look.showLocation ? look.location : QString();
     request.appearance = look.render(QDateTime::currentDateTime());
     return request;
 }
