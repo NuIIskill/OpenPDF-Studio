@@ -19,8 +19,9 @@ free for personal use; commercial use requires a Business License after a
 30-day evaluation period. The first start asks once which of the two this is,
 personal preselected; personal use never asks for a key.
 
-See [LICENSES/](LICENSES/) for details, and [LICENSES/README.md](LICENSES/README.md)
-for the path-by-path map.
+[LICENSE](LICENSE) is the overview and [COPYING](COPYING) the full GPL-3.0
+text. See [LICENSES/](LICENSES/) for the other license texts, and
+[LICENSES/README.md](LICENSES/README.md) for the path-by-path map.
 
 Everything you need to build, run and modify the full viewer and editor is
 Core, and Core is free software. The PDF engine is PDFium under BSD-3-Clause,
