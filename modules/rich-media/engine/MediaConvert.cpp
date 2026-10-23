@@ -2,6 +2,7 @@
 #include "rich-media/engine/MediaConvert.hpp"
 
 #include "rich-media/engine/MediaFormat.hpp"
+#include "rich-media/engine/SystemEncoder.hpp"
 
 #include <QCoreApplication>
 #include <QDebug>
@@ -43,34 +44,22 @@ QString locate(const char *name)
 #endif
 }
 
+bool needsReencoding(const MediaFormat::Info &info, int maxHeight)
+{
+    return !info.videoIsH264() || (maxHeight > 0 && info.size.height() > maxHeight);
 }
 
-QString MediaConvert::toolPath()
+bool runFfmpeg(const QString &ffmpeg, const QString &in, const QString &out,
+               const MediaFormat::Info &info,
+               const std::function<bool(int)> &progress, int maxHeight)
 {
-    static const QString path = locate("ffmpeg");
-    return path;
-}
-
-bool MediaConvert::available()
-{
-    return !toolPath().isEmpty();
-}
-
-bool MediaConvert::run(const QString &in, const QString &out,
-                       const std::function<bool(int)> &progress, int maxHeight)
-{
-    const QString ffmpeg = toolPath();
-    if (ffmpeg.isEmpty() || in.isEmpty() || out.isEmpty()) return false;
-
-    const MediaFormat::Info info = MediaFormat::inspect(in);
-
     QStringList arguments {
         QStringLiteral("-nostdin"),
         QStringLiteral("-v"), QStringLiteral("error"),
         QStringLiteral("-i"), in,
     };
     const bool scaling = maxHeight > 0 && info.size.height() > maxHeight;
-    if (info.videoIsH264() && !scaling) {
+    if (!needsReencoding(info, maxHeight)) {
 
         arguments << QStringLiteral("-c:v") << QStringLiteral("copy");
     } else {
@@ -132,4 +121,38 @@ bool MediaConvert::run(const QString &in, const QString &out,
         QFile::remove(out);
     }
     return ok;
+}
+
+}
+
+QString MediaConvert::toolPath()
+{
+    static const QString path = locate("ffmpeg");
+    return path;
+}
+
+bool MediaConvert::available()
+{
+    return SystemEncoder::available() || !toolPath().isEmpty();
+}
+
+bool MediaConvert::run(const QString &in, const QString &out,
+                       const std::function<bool(int)> &progress, int maxHeight)
+{
+    if (in.isEmpty() || out.isEmpty()) return false;
+
+    const MediaFormat::Info info = MediaFormat::inspect(in);
+    const QString ffmpeg = toolPath();
+
+    // ffmpeg can move an H.264 stream into MP4 without encoding it again.
+    const bool repackage = !ffmpeg.isEmpty() && !needsReencoding(info, maxHeight);
+    if (!repackage && SystemEncoder::available()) {
+        switch (SystemEncoder::run(in, out, progress, maxHeight)) {
+        case SystemEncoder::Result::Done:      return true;
+        case SystemEncoder::Result::Cancelled: return false;
+        case SystemEncoder::Result::Failed:    break;
+        }
+    }
+    if (ffmpeg.isEmpty()) return false;
+    return runFfmpeg(ffmpeg, in, out, info, progress, maxHeight);
 }

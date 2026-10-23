@@ -147,6 +147,10 @@ DocumentView::DocumentView(QWidget *parent)
     connect(m_imageLayer, &ImageAnnotationLayer::imageRemoved, this, [this](int page) {
         m_journal.recordChange({ DocumentHistory::Kind::ImageRemoved, page });
     });
+    connect(m_imageLayer, &ImageAnnotationLayer::imageChanged, this,
+            [this](int page, const QString &what) {
+        m_journal.recordChange({ DocumentHistory::Kind::ImageChanged, page, 1, 0, what });
+    });
     m_signaturePlacement = new SignaturePlacement(this, this, this);
     connect(m_signaturePlacement, &SignaturePlacement::placed,
             m_imageLayer, &ImageAnnotationLayer::placeInRect);

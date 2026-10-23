@@ -484,7 +484,7 @@
         <translation type="vanished">将PDF拖放至此处或点击标签页打开</translation>
     </message>
     <message>
-        <location filename="../../src/ui/DocumentView.cpp" line="308"/>
+        <location filename="../../src/ui/DocumentView.cpp" line="311"/>
         <source>PDF rendering is not available in this build.
 Please use a build that includes Qt6::Pdf support.
 (See build-win.sh for instructions.)</source>
@@ -537,40 +537,40 @@ Please use a build that includes Qt6::Pdf support.
         <translation type="vanished">移动图像</translation>
     </message>
     <message>
-        <location filename="../../src/ui/DocumentView.cpp" line="366"/>
+        <location filename="../../src/ui/DocumentView.cpp" line="369"/>
         <source>Shift+click extends the selection</source>
         <translation>Shift+单击扩展选区</translation>
     </message>
     <message>
-        <location filename="../../src/ui/DocumentView.cpp" line="369"/>
+        <location filename="../../src/ui/DocumentView.cpp" line="372"/>
         <source>Shift: straight line in 45° steps</source>
         <translation>Shift：以 45° 为步长画直线</translation>
     </message>
     <message>
-        <location filename="../../src/ui/DocumentView.cpp" line="371"/>
+        <location filename="../../src/ui/DocumentView.cpp" line="374"/>
         <source>Shift: draw over detected images, keep the aspect ratio, move along one axis</source>
         <translation>Shift：在识别出的图像上绘制、保持宽高比、沿单一轴移动</translation>
     </message>
     <message>
-        <location filename="../../src/ui/DocumentView.cpp" line="374"/>
+        <location filename="../../src/ui/DocumentView.cpp" line="377"/>
         <source>Shift+drag edits the text inside the box</source>
         <translation>Shift+拖动编辑框内的文字</translation>
     </message>
     <message>
-        <location filename="../../src/ui/DocumentView.cpp" line="538"/>
-        <location filename="../../src/ui/view/ImageAnnotationLayer.cpp" line="299"/>
+        <location filename="../../src/ui/DocumentView.cpp" line="541"/>
+        <location filename="../../src/ui/view/ImageAnnotationLayer.cpp" line="308"/>
         <source>Paste</source>
         <translation>粘贴</translation>
     </message>
     <message>
-        <location filename="../../src/ui/DocumentView.cpp" line="543"/>
-        <location filename="../../src/ui/view/ImageAnnotationLayer.cpp" line="311"/>
+        <location filename="../../src/ui/DocumentView.cpp" line="546"/>
+        <location filename="../../src/ui/view/ImageAnnotationLayer.cpp" line="319"/>
         <source>Delete</source>
         <translation>删除</translation>
     </message>
     <message>
-        <location filename="../../src/ui/DocumentView.cpp" line="532"/>
-        <location filename="../../src/ui/view/ImageAnnotationLayer.cpp" line="296"/>
+        <location filename="../../src/ui/DocumentView.cpp" line="535"/>
+        <location filename="../../src/ui/view/ImageAnnotationLayer.cpp" line="304"/>
         <source>Copy</source>
         <translation>复制</translation>
     </message>
@@ -587,7 +587,7 @@ Please use a build that includes Qt6::Pdf support.
         <translation type="vanished">所有文件 (*)</translation>
     </message>
     <message>
-        <location filename="../../src/ui/DocumentView.cpp" line="306"/>
+        <location filename="../../src/ui/DocumentView.cpp" line="309"/>
         <location filename="../../src/ui/DocumentView_Edit.cpp" line="96"/>
         <source>Drop a document here or click a tab to open</source>
         <translation>将文档拖到此处，或点击标签页打开</translation>
@@ -1468,27 +1468,32 @@ Text, image and drawing edits made since then are not part of any file yet and w
         <translation>已返回到较早的状态</translation>
     </message>
     <message>
-        <location filename="../../src/ui/history/HistoryDialog.cpp" line="357"/>
+        <location filename="../../src/ui/history/HistoryDialog.cpp" line="349"/>
+        <source>Image changed</source>
+        <translation>图片已更改</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/history/HistoryDialog.cpp" line="358"/>
         <source>Page %1</source>
         <translation>第 %1 页</translation>
     </message>
     <message>
-        <location filename="../../src/ui/history/HistoryDialog.cpp" line="358"/>
+        <location filename="../../src/ui/history/HistoryDialog.cpp" line="359"/>
         <source>%1 pages</source>
         <translation>%1 页</translation>
     </message>
     <message>
-        <location filename="../../src/ui/history/HistoryDialog.cpp" line="381"/>
+        <location filename="../../src/ui/history/HistoryDialog.cpp" line="383"/>
         <source>%1° counter-clockwise</source>
         <translation>逆时针 %1°</translation>
     </message>
     <message>
-        <location filename="../../src/ui/history/HistoryDialog.cpp" line="382"/>
+        <location filename="../../src/ui/history/HistoryDialog.cpp" line="384"/>
         <source>%1° clockwise</source>
         <translation>顺时针 %1°</translation>
     </message>
     <message>
-        <location filename="../../src/ui/history/HistoryDialog.cpp" line="393"/>
+        <location filename="../../src/ui/history/HistoryDialog.cpp" line="395"/>
         <source>Step %1</source>
         <translation>第 %1 步</translation>
     </message>
@@ -1540,29 +1545,49 @@ Text, image and drawing edits made since then are not part of any file yet and w
 <context>
     <name>ImageAnnotationLayer</name>
     <message>
-        <location filename="../../src/ui/view/ImageAnnotationLayer.cpp" line="304"/>
-        <location filename="../../src/ui/view/ImageAnnotationLayer.cpp" line="375"/>
+        <location filename="../../src/ui/view/ImageAnnotationLayer.cpp" line="262"/>
+        <source>Image resized</source>
+        <translation>图片大小已更改</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/view/ImageAnnotationLayer.cpp" line="262"/>
+        <source>Image moved</source>
+        <translation>图片已移动</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/view/ImageAnnotationLayer.cpp" line="312"/>
+        <location filename="../../src/ui/view/ImageAnnotationLayer.cpp" line="421"/>
         <source>Replace image</source>
         <translation>替换图片</translation>
     </message>
     <message>
-        <location filename="../../src/ui/view/ImageAnnotationLayer.cpp" line="306"/>
+        <location filename="../../src/ui/view/ImageAnnotationLayer.cpp" line="314"/>
         <source>Rotate 90° left</source>
         <translation>向左旋转 90°</translation>
     </message>
     <message>
-        <location filename="../../src/ui/view/ImageAnnotationLayer.cpp" line="307"/>
+        <location filename="../../src/ui/view/ImageAnnotationLayer.cpp" line="315"/>
         <source>Rotate 90° right</source>
         <translation>向右旋转 90°</translation>
     </message>
     <message>
-        <location filename="../../src/ui/view/ImageAnnotationLayer.cpp" line="461"/>
+        <location filename="../../src/ui/view/ImageAnnotationLayer.cpp" line="414"/>
+        <source>Image rotated</source>
+        <translation>图片已旋转</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/view/ImageAnnotationLayer.cpp" line="440"/>
+        <source>Image replaced</source>
+        <translation>图片已替换</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/view/ImageAnnotationLayer.cpp" line="516"/>
         <source>Insert image</source>
         <translation>插入图像</translation>
     </message>
     <message>
-        <location filename="../../src/ui/view/ImageAnnotationLayer.cpp" line="376"/>
-        <location filename="../../src/ui/view/ImageAnnotationLayer.cpp" line="462"/>
+        <location filename="../../src/ui/view/ImageAnnotationLayer.cpp" line="422"/>
+        <location filename="../../src/ui/view/ImageAnnotationLayer.cpp" line="517"/>
         <source>All files (*)</source>
         <translation>所有文件 (*)</translation>
     </message>
@@ -3204,7 +3229,7 @@ Enter the password to open it:</source>
 <context>
     <name>QShortcut</name>
     <message>
-        <location filename="../../src/ui/view/ImageAnnotationLayer.cpp" line="49"/>
+        <location filename="../../src/ui/view/ImageAnnotationLayer.cpp" line="38"/>
         <source>Del</source>
         <translation>Del</translation>
     </message>

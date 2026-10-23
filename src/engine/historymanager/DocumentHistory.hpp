@@ -42,6 +42,7 @@ public:
         PagesOrganized,
         Saved,
         Reverted,
+        ImageChanged,
     };
 
     /// Session image overlays as of one entry.
@@ -56,6 +57,7 @@ public:
         QList<ImageState>          images;
         QList<PdfBookmark>         bookmarks;
         QHash<QString, QByteArray> overlays;
+        QHash<QString, QByteArray> edits;
     };
 
     /// What a caller reports; the history adds time, state and ordering.
@@ -122,6 +124,7 @@ public:
 
     void adopt(QList<Entry> entries, int current, const QString &currentSource,
                const DocumentState &currentState, int undoIndex);
+    void resume(QList<Entry> entries, int current);
 
 Q_SIGNALS:
 

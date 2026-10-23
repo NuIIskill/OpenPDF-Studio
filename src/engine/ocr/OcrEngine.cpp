@@ -5,7 +5,9 @@
 #  include <leptonica/allheaders.h>
 #endif
 
+#include <QCoreApplication>
 #include <QDebug>
+#include <QStringList>
 #include <algorithm>
 #include <cmath>
 #include <limits>
@@ -15,11 +17,27 @@ OcrEngine::OcrEngine()
 #ifdef HAVE_TESSERACT
     auto *api = new tesseract::TessBaseAPI();
 
-    if (api->Init(nullptr, "deu+eng") == 0) {
-        qDebug() << "[OCR] Tesseract ready (deu+eng)";
+    // The Windows packages carry the language data next to the executable;
+    // the path compiled into Tesseract points into the build machine's sysroot.
+#ifdef Q_OS_WIN
+    const QByteArray dataDir =
+        (QCoreApplication::applicationDirPath() + QStringLiteral("/share/tessdata/")).toLocal8Bit();
+    const char *dataPath = dataDir.constData();
+#else
+    const char *dataPath = nullptr;
+#endif
+
+    // A missing language is skipped, so report what was actually loaded.
+    if (api->Init(dataPath, "deu+eng+fra") == 0) {
+        std::vector<std::string> loaded;
+        api->GetLoadedLanguagesAsVector(&loaded);
+        QStringList names;
+        for (const std::string &lang : loaded)
+            names << QString::fromStdString(lang);
+        qDebug() << "[OCR] Tesseract ready:" << names.join(u'+');
         m_api   = api;
         m_ready = true;
-    } else if (api->Init(nullptr, "eng") == 0) {
+    } else if (api->Init(dataPath, "eng") == 0) {
         qDebug() << "[OCR] Tesseract ready (eng only, install tesseract-langpack-deu for German)";
         m_api   = api;
         m_ready = true;

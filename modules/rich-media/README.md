@@ -28,7 +28,8 @@ modules/rich-media/
     MediaSpec.hpp          an insert: source, poster, trigger, playback, place
     MediaSession.*         what is inserted or dropped but not yet saved
     MediaFormat.*          container and codec, read out of the file itself
-    MediaConvert.*         ffmpeg: rewrite as H.264 in MP4
+    MediaConvert.*         rewrite as H.264 in MP4: system encoder, then ffmpeg
+    SystemEncoder.*        Media Foundation's H.264 and AAC encoders on Windows
     MediaDrop.*            place a dropped video on a page or on its own page
     RichMediaWriter.*      qpdf: annotation, filespec, EF stream, /AP poster
     PosterFrame.*          still frame via VideoStill, drawn placeholder otherwise
@@ -48,8 +49,9 @@ optional, and that is the point: a build missing one of them used to succeed
 and then behave differently from every other build, with settings that quietly
 did nothing. Half a module is worse than none, so configure refuses it and
 names the package to install (`qt6-qtmultimedia-devel`). The Windows build
-links `mfplay`, `mf`, `mfplat`, `mfuuid` and `strmiids`, all part of the
-system.
+links `mfuuid` and `strmiids` and loads `mfplat`, `mfplay` and `mfreadwrite`
+at runtime, all part of the system, so a Windows N without the Media Feature
+Pack still starts.
 
 Everything the module does works the same on every platform it builds on:
 
@@ -59,12 +61,22 @@ Everything the module does works the same on every platform it builds on:
 | poster | one frame through the same decoder that plays | see above |
 | format check | the container and codec read out of the file | nothing |
 | reading, writing | qpdf | qpdf |
-| conversion to H.264 | ffmpeg | ffmpeg, when present |
+| conversion to H.264 | Media Foundation on Windows, ffmpeg as fallback and on Linux | ffmpeg, where the system has no encoder |
 
-Conversion is the one thing that reaches outside, because encoding video is not
-something this program carries its own code for. It behaves identically
-everywhere: with ffmpeg the offer appears, without it the user is told what the
-consequence is. Reading a file's format used to ask ffprobe and no longer does:
+On Windows the conversion uses the H.264 and AAC encoders Windows ships
+(`SystemEncoder`: Source Reader into Sink Writer, NV12, High profile, AAC
+160 kbit/s). Microsoft licenses those codecs; nothing is shipped for it.
+`moov` stays after `mdat`: asked to put it first, the MP4 sink either refuses
+to finish or writes a file whose sample offsets point nowhere. WebM and MKV
+report half their frame rate to Media Foundation, so the rate is taken from
+the frame durations; given the reported one, the video processor drops every
+other frame. A conversion that still comes out a quarter or more short of its
+frames counts as failed rather than delivering half a video. ffmpeg stays the
+fallback: when the system encoder fails or is
+missing (Windows N), and first when an H.264 stream only needs a new container,
+because ffmpeg repackages it without encoding it again. On Linux ffmpeg is the
+only way, as before. It behaves identically everywhere: with an encoder the
+offer appears, without one the user is told what the consequence is. Reading a file's format used to ask ffprobe and no longer does:
 `MediaFormat` walks the ISO base media boxes far enough to name the container
 and the codec, which is exactly the question being asked.
 
@@ -98,10 +110,11 @@ knows the format, and the common denominator is H.264 in an MP4 container:
 that plays in the PDF viewers that play media at all, and in browsers and on
 phones besides. Anything else is caught by `MediaProbe` before it is embedded,
 and the user is offered a conversion (`libx264`, `yuv420p`, `+faststart`; a
-stream that is already H.264 is only repackaged). The question put to the user
+stream that is already H.264 is only repackaged; on Windows Media Foundation
+encodes the same thing). The question put to the user
 is about reach, not about one product: naming a single viewer would be both
-narrower and less true. Without ffprobe nothing is checked; without ffmpeg the
-user is told what will happen and can embed anyway.
+narrower and less true. Without an encoder the user is told what will happen
+and can embed anyway.
 
 Two rules the code keeps:
 
@@ -178,8 +191,8 @@ about the scroll area's clip. Converting once per frame and scaling lazily
 while painting keeps the cost off the paint path.
 
 When an engine does give up, the dialog names what the file actually is and
-offers two ways on that the user picks: a 1080p copy made with ffmpeg and
-played in the program, or the system player. The copy exists only for playback;
+offers two ways on that the user picks: a 1080p copy, made the same way as a
+conversion and played in the program, or the system player. The copy exists only for playback;
 the document keeps the original, and a medium that needed one is played from it
 from then on. A copyable block underneath carries version, error, file and
 which backends are present, so a report says something.

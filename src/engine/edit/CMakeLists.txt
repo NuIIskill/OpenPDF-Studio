@@ -3,6 +3,8 @@ target_sources(OpenPDFStudio PRIVATE
     ContentMap.hpp
     ContentModel.cpp
     ContentModel.hpp
+    EditCodec.cpp
+    EditCodec.hpp
     EditSession.cpp
     EditSession.hpp
     InkMetrics.cpp

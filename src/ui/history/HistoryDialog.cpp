@@ -346,6 +346,7 @@ QString HistoryDialog::titleFor(const DocumentHistory::Entry &e)
     case Kind::PagesOrganized: return tr("Pages organized");
     case Kind::Saved:          return tr("Document saved");
     case Kind::Reverted:       return tr("Went back to an earlier state");
+    case Kind::ImageChanged:   return e.text.isEmpty() ? tr("Image changed") : e.text;
     }
     return {};
 }
@@ -365,6 +366,7 @@ QString HistoryDialog::detailFor(const DocumentHistory::Entry &e)
     case Kind::TextRemoved:
     case Kind::ImageInserted:
     case Kind::ImageRemoved:
+    case Kind::ImageChanged:
     case Kind::LinkAdded:
     case Kind::LinkEdited:
     case Kind::LinkRemoved:
@@ -403,7 +405,8 @@ QString HistoryDialog::iconFor(DocumentHistory::Kind kind)
     case Kind::TextEdited:
     case Kind::TextRemoved:    return QStringLiteral("type");
     case Kind::ImageInserted:
-    case Kind::ImageRemoved:   return QStringLiteral("image");
+    case Kind::ImageRemoved:
+    case Kind::ImageChanged:   return QStringLiteral("image");
     case Kind::LinkAdded:
     case Kind::LinkEdited:     return QStringLiteral("paperclip");
     case Kind::LinkRemoved:    return QStringLiteral("trash-2");

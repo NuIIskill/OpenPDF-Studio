@@ -5,6 +5,7 @@
 
 #ifdef HAVE_PDF_RENDERING
 #  include "engine/document/PdfBackend.hpp"
+#  include "engine/edit/EditCodec.hpp"
 #  include "engine/edit/EditSession.hpp"
 #  include "engine/render/PdfRenderer.hpp"
 #endif
@@ -13,7 +14,6 @@
 #include <QAction>
 #include <QClipboard>
 #include <QCoreApplication>
-#include <QDataStream>
 #include <QFileDialog>
 #include <QFrame>
 #include <QGuiApplication>
@@ -244,8 +244,13 @@ void ImageAnnotationLayer::connectAnnotation(ImageAnnotation *ann)
                 if (!lbl2) break;
                 const QPoint  local = newGeo.topLeft() - lbl2->pos();
                 const QRectF  oldBounds = placed.pdfBounds;
-                placed.pdfBounds = QRectF(local.x() / sc, local.y() / sc,
-                                          newGeo.width() / sc, newGeo.height() / sc);
+                // A click is no change, and a move keeps the size the pixels only round.
+                const QRect   oldGeo = canvasRect(placed.page, oldBounds);
+                if (newGeo == oldGeo) break;
+                const bool resized = newGeo.size() != oldGeo.size();
+                placed.pdfBounds = resized
+                    ? QRectF(local.x() / sc, local.y() / sc, newGeo.width() / sc, newGeo.height() / sc)
+                    : QRectF(QPointF(local.x() / sc, local.y() / sc), oldBounds.size());
                 const QRectF  to = placed.pdfBounds;
                 if (!placed.key.isEmpty()) {
                     changeOriginal(placed, [to](EditSession::ImageChange &c) { c.to = to; });
@@ -254,6 +259,7 @@ void ImageAnnotationLayer::connectAnnotation(ImageAnnotation *ann)
                     m_session->addImageEdit(placed.page, placed.pdfBounds, placed.image);
                 }
                 Q_EMIT pageNeedsRerender(placed.page);
+                Q_EMIT imageChanged(placed.page, resized ? tr("Image resized") : tr("Image moved"));
             }
 #endif
             break;
@@ -405,6 +411,7 @@ void ImageAnnotationLayer::rotateImage(ImageAnnotation *ann, int degrees)
         if (c.replacement.isNull()) c.quarterTurns = (c.quarterTurns + degrees / 90 + 4) % 4;
         else c.replacement = c.replacement.transformed(QTransform().rotate(degrees));
     });
+    Q_EMIT imageChanged(e->page, tr("Image rotated"));
 }
 
 void ImageAnnotationLayer::replaceImage(ImageAnnotation *ann)
@@ -430,6 +437,7 @@ void ImageAnnotationLayer::replaceImage(ImageAnnotation *ann)
         c.replacement  = img;
         c.quarterTurns = 0;
     });
+    Q_EMIT imageChanged(e->page, tr("Image replaced"));
 }
 
 void ImageAnnotationLayer::changeEntry(Entry &e, const QRectF &pdfBounds, const QImage &img,
@@ -670,16 +678,10 @@ bool ImageAnnotationLayer::takeDetectedRegionAt(const QPoint &canvasPos)
 
 QByteArray ImageAnnotationLayer::changeState() const
 {
-    QByteArray data;
 #ifdef HAVE_PDF_RENDERING
-    if (!m_session || m_session->imageChanges().isEmpty()) return data;
-    QDataStream out(&data, QIODevice::WriteOnly);
-    out << qint32(m_session->imageChanges().size());
-    for (const EditSession::ImageChange &c : m_session->imageChanges())
-        out << qint32(c.page) << c.key << c.from << c.to << qint32(c.quarterTurns)
-            << c.replacement << c.removed;
+    if (m_session) return EditCodec::encode(m_session->imageChanges());
 #endif
-    return data;
+    return {};
 }
 
 void ImageAnnotationLayer::restoreChanges(const QByteArray &data)
@@ -687,17 +689,7 @@ void ImageAnnotationLayer::restoreChanges(const QByteArray &data)
 #ifdef HAVE_PDF_RENDERING
     if (!m_session) return;
     QList<EditSession::ImageChange> changes;
-    QDataStream in(data);
-    qint32 count = 0;
-    if (!data.isEmpty()) in >> count;
-    for (qint32 i = 0; i < count && in.status() == QDataStream::Ok; ++i) {
-        EditSession::ImageChange c;
-        qint32 page = -1, turns = 0;
-        in >> page >> c.key >> c.from >> c.to >> turns >> c.replacement >> c.removed;
-        c.page = page;
-        c.quarterTurns = turns;
-        if (in.status() == QDataStream::Ok) changes.append(std::move(c));
-    }
+    if (!data.isEmpty() && !EditCodec::decode(data, &changes)) return;
     if (changes == m_session->imageChanges()) return;
 
     QList<int> touched;

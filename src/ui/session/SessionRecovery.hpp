@@ -39,9 +39,11 @@ private:
         qint64  changedAt { 0 };
         qint64  writtenAt { 0 };
         QString writing;
+        bool    archiveStale { false };
     };
 
     void tick();
+    void writeArchives();
     void noteChange(DocumentView *view);
     void dropCopy(DocumentView *view);
     void writeContent(DocumentView *view, Copy &copy);
@@ -53,6 +55,7 @@ private:
 
     QWidget               *m_parent { nullptr };
     QTimer                *m_timer  { nullptr };
+    QTimer                *m_archiveTimer { nullptr };
     QList<DocumentView *>  m_views;
     QHash<DocumentView *, Copy> m_copies;
     bool                   m_active { false };

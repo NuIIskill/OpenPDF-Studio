@@ -9,6 +9,7 @@
 #include "ui/draw/DrawBar.hpp"
 #include "ui/bars/StatusBar.hpp"
 #include "ui/SaveIndicator.hpp"
+#include "ui/ShellFileDrop.hpp"
 #include "ui/panels/LeftSidebar.hpp"
 #include "ui/panels/ToolPanels.hpp"
 #include "ui/panels/RightSidebar.hpp"
@@ -63,6 +64,14 @@ MainWindow::MainWindow(AppSettings *settings, QWidget *parent)
     buildUi();
     connectSignals();
     applyPanelLayout();
+
+    ShellFileDrop::enable(this, [this](const QStringList &paths) {
+        for (const QString &path : paths)
+            if (DocumentImport::isPdf(path) || DocumentImport::isSupported(path)) {
+                openPath(path);
+                return;
+            }
+    });
 
     QTimer::singleShot(0, this, &MainWindow::showLicenseNotices);
     QTimer::singleShot(0, this, &MainWindow::checkForUpdates);
@@ -629,12 +638,18 @@ void MainWindow::restoreSession()
         DocumentView *dv = currentDocView();
         if (!dv || dv->pageCount() > 0) dv = addDocView();
 
-        const bool opened = doc.content.isEmpty()
-            ? dv->openFile(doc.target)
-            : dv->openWorkingCopy(doc.content, doc.target);
-        if (!opened) continue;
-        if (!doc.history.isEmpty() && !dv->adoptTimeline(doc.history))
-            SessionRecovery::discard({ QString(), QString(), doc.history });
+        // The change log takes the document up again on its base file, with
+        // every step undoable; the recovery copy is for older logs.
+        if (!doc.history.isEmpty() && dv->resumeTimeline(doc.history, doc.target)) {
+            SessionStore::discard(doc.content);
+        } else {
+            const bool opened = doc.content.isEmpty()
+                ? dv->openFile(doc.target)
+                : dv->openWorkingCopy(doc.content, doc.target);
+            if (!opened) continue;
+            if (!doc.history.isEmpty() && !dv->adoptTimeline(doc.history))
+                SessionRecovery::discard({ QString(), QString(), doc.history });
+        }
 
         const int page = doc.page;
         QMetaObject::invokeMethod(dv, [dv, page] { dv->goToPage(page); },

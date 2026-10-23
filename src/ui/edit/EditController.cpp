@@ -4,6 +4,7 @@
 
 #ifdef HAVE_PDF_RENDERING
 #  include "engine/document/DocumentSource.hpp"
+#  include "engine/edit/EditCodec.hpp"
 #  include "engine/document/PdfBackend.hpp"
 #  include "engine/render/PdfRenderer.hpp"
 #  include "engine/edit/ContentMap.hpp"
@@ -54,6 +55,26 @@ private:
             Q_EMIT m_ctl->pageNeedsRerender(m_dstPage);
     }
 };
+
+#ifdef HAVE_PDF_RENDERING
+QByteArray EditController::encodedEdits() const
+{
+    return m_session ? EditCodec::encode(m_session->edits()) : QByteArray();
+}
+
+void EditController::restoreEncodedEdits(const QByteArray &data)
+{
+    QList<EditSession::Edit> edits;
+    if (!m_session || !EditCodec::decode(data, &edits) || edits == m_session->edits()) return;
+    QList<int> pages;
+    for (const auto *list : { &m_session->edits(), &std::as_const(edits) })
+        for (const EditSession::Edit &e : *list)
+            for (int page : { e.page, e.sourcePage })
+                if (page >= 0 && !pages.contains(page)) pages.append(page);
+    m_session->restoreEdits(std::move(edits));
+    for (int page : std::as_const(pages)) Q_EMIT pageNeedsRerender(page);
+}
+#endif
 
 EditController::Look EditController::currentLook() const
 {

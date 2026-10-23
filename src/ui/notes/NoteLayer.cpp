@@ -7,6 +7,7 @@
 #  include "engine/edit/EditSession.hpp"
 #endif
 
+#include <QDataStream>
 #include <QFrame>
 #include <QHBoxLayout>
 #include <QLabel>
@@ -261,6 +262,43 @@ void NoteLayer::restoreState(const QList<NoteData> &restored)
     relayout();
     syncSession();
     notifyChanged();
+}
+
+QByteArray NoteLayer::encodedState() const
+{
+    QByteArray data;
+    QDataStream out(&data, QIODevice::WriteOnly);
+    out.setVersion(QDataStream::Qt_6_0);
+    const QList<NoteData> notes = state();
+    out << quint8(1) << qint32(notes.size());
+    for (const NoteData &n : notes)
+        out << n.id << n.title << n.text << qint32(n.page) << n.pdfBounds << n.modified
+            << n.pinned << n.existing << n.removed << n.originalId << n.originalTitle
+            << n.originalText << n.originalBounds << n.originalPinned;
+    return data;
+}
+
+void NoteLayer::restoreEncoded(const QByteArray &data)
+{
+    QDataStream in(data);
+    in.setVersion(QDataStream::Qt_6_0);
+    quint8 version = 0;
+    qint32 count = 0;
+    in >> version >> count;
+    if (version != 1 || count < 0) return;
+    QList<NoteData> notes;
+    for (qint32 i = 0; i < count && in.status() == QDataStream::Ok; ++i) {
+        NoteData n;
+        qint32 page = -1;
+        in >> n.id >> n.title >> n.text >> page >> n.pdfBounds >> n.modified
+           >> n.pinned >> n.existing >> n.removed >> n.originalId >> n.originalTitle
+           >> n.originalText >> n.originalBounds >> n.originalPinned;
+        n.page = page;
+        notes.append(std::move(n));
+    }
+    if (in.status() != QDataStream::Ok) return;
+    if (m_beforeChange) m_beforeChange();
+    if (notes != state()) restoreState(notes);
 }
 
 void NoteLayer::pushUndo(const QList<NoteData> &before, const QString &text)

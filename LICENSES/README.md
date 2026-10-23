@@ -37,6 +37,7 @@ RPM `License:` field says.
 - `GPL-3.0.txt` - the GNU General Public License v3, verbatim.
 - `OPENPDF-COMMERCIAL.txt` - the commercial option for the Core.
 - `OPENPDF-BUSINESS.txt` - the license of the source-available components.
+- `TESSERACT.txt` - Tesseract, its language data and Leptonica, as shipped in the Windows packages.
 
 ## Third-party dependencies
 
@@ -47,7 +48,7 @@ None of these is vendored except nanosvg; the rest are linked from the system.
 | Qt 6 (Core, Widgets, Gui, PrintSupport) | LGPL-3.0-or-later | dynamically linked, open-source edition |
 | PDFium (+ FreeType, libjpeg-turbo, lcms, OpenJPEG, libpng, zlib, ICU, AGG 2.3, abseil, simdutf, fast_float) | BSD-3-Clause und weitere permissive | die PDF-Engine; vollständige Sammlung in `PDFIUM.txt` |
 | qpdf | Apache-2.0 | optional, vector PDF save and export options |
-| Tesseract (+ Leptonica) | Apache-2.0 / BSD-2-Clause | optional, OCR |
+| Tesseract (+ Leptonica) | Apache-2.0 / BSD-2-Clause | optional, OCR; texts in `TESSERACT.txt` |
 | nanosvg | zlib | vendored in `src/3rdparty/nanosvg/` |
 
 

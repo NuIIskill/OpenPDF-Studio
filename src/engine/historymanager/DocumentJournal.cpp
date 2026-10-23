@@ -290,6 +290,36 @@ bool DocumentJournal::writeArchive(const QString &path)
     return HistoryArchive::write(m_history->entries(), m_history->currentIndex(), path);
 }
 
+std::optional<DocumentJournal::Resumable> DocumentJournal::readResumable(const QString &archive)
+{
+    HistoryArchive::Timeline timeline;
+    if (!HistoryArchive::read(archive, &timeline)) return std::nullopt;
+
+    Resumable r;
+    r.current = qBound(0, timeline.current, static_cast<int>(timeline.entries.size()) - 1);
+    const int base = timeline.entries[r.current].base;
+    for (int i = r.current; i >= 0 && timeline.entries[i].base == base; --i) {
+        // Without its edits an entry is only reached through the lost undo stack.
+        if (timeline.entries[i].state.edits.isEmpty()) return std::nullopt;
+        const QString snapshot = timeline.entries[i].snapshot;
+        if (!snapshot.isEmpty() && QFile::exists(snapshot)) {
+            r.anchor   = i;
+            r.baseFile = snapshot;
+            break;
+        }
+    }
+    if (r.baseFile.isEmpty()) return std::nullopt;
+    r.entries = std::move(timeline.entries);
+    return r;
+}
+
+void DocumentJournal::resume(Resumable timeline, const QString &archive)
+{
+    m_history->resume(std::move(timeline.entries), timeline.current);
+    undoStackChanged();
+    SessionStore::discardSnapshot(archive);
+}
+
 bool DocumentJournal::adoptArchive(const QString &path)
 {
     HistoryArchive::Timeline timeline;

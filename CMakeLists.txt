@@ -238,17 +238,29 @@ if(OPENPDF_RICH_MEDIA AND EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/modules/rich-media
 endif()
 
 # ── OCR via Tesseract ─────────────────────────────────────────────────────────
-# Optional dependency: install tesseract-devel and tesseract-langpack-deu|eng
-if(PkgConfig_FOUND)
+# Optional dependency: install tesseract-devel and tesseract-langpack-deu|eng|fra,
+# for Windows mingw64-tesseract. The cross build has no pkg-config (see above),
+# so there the package's CMake config is used.
+if(CMAKE_CROSSCOMPILING)
+    find_package(Tesseract CONFIG QUIET)
+elseif(PkgConfig_FOUND)
     pkg_check_modules(TESSERACT QUIET tesseract)
 endif()
-if(TESSERACT_FOUND)
+if(Tesseract_FOUND)
+    message(STATUS "OCR backend: Tesseract ${Tesseract_VERSION}")
+    target_compile_definitions(OpenPDFStudio PRIVATE HAVE_TESSERACT)
+    target_link_libraries(OpenPDFStudio PRIVATE Tesseract::libtesseract)
+elseif(TESSERACT_FOUND)
     message(STATUS "OCR backend: Tesseract ${TESSERACT_VERSION}")
     target_compile_definitions(OpenPDFStudio PRIVATE HAVE_TESSERACT)
     target_include_directories(OpenPDFStudio PRIVATE ${TESSERACT_INCLUDE_DIRS})
     target_link_libraries(OpenPDFStudio PRIVATE ${TESSERACT_LIBRARIES})
 else()
-    message(STATUS "OCR backend: none  (sudo dnf install tesseract-devel tesseract-langpack-deu)")
+    if(CMAKE_CROSSCOMPILING)
+        message(STATUS "OCR backend: none  (sudo dnf install mingw64-tesseract)")
+    else()
+        message(STATUS "OCR backend: none  (sudo dnf install tesseract-devel tesseract-langpack-deu)")
+    endif()
 endif()
 
 # ── zlib: inflate for the docx/odt import (engine/import/ZipArchive) ─────────
@@ -272,6 +284,7 @@ endif()
 
 if(WIN32)
     set_target_properties(OpenPDFStudio PROPERTIES WIN32_EXECUTABLE TRUE)
+    target_link_libraries(OpenPDFStudio PRIVATE ole32 shell32)
     configure_file(resources/windows/openpdf-studio.rc.in
                    "${CMAKE_CURRENT_BINARY_DIR}/openpdf-studio.rc" @ONLY)
     target_sources(OpenPDFStudio PRIVATE "${CMAKE_CURRENT_BINARY_DIR}/openpdf-studio.rc")
@@ -365,6 +378,8 @@ page organizer, annotations, OCR and export to PDF, DOCX and image formats.")
     # link against libQt6Multimedia.so.6, and the backend plugins ship in that
     # same package. ffmpeg only converts video on insert and stays optional.
     set(CPACK_RPM_PACKAGE_SUGGESTS "ffmpeg-free")
+    # The TIFF and WebP image plugins are loaded at runtime, so AUTOREQ cannot see them.
+    set(CPACK_RPM_PACKAGE_REQUIRES "qt6-qtimageformats")
     set(CPACK_RPM_PACKAGE_URL "${CPACK_PACKAGE_HOMEPAGE_URL}")
     # Der RPM-Generator übernimmt CPACK_PACKAGE_DESCRIPTION nicht automatisch.
     set(CPACK_RPM_PACKAGE_DESCRIPTION "${CPACK_PACKAGE_DESCRIPTION}")
@@ -406,7 +421,7 @@ page organizer, annotations, OCR and export to PDF, DOCX and image formats.")
     # as Recommends left dpkg free to leave them out. The RPM never had the
     # problem because AUTOREQ reads the sonames out of the binary.
     set(CPACK_DEBIAN_PACKAGE_DEPENDS
-        "libqt6core6 | libqt6core6t64, libqt6gui6, libqt6widgets6, libqt6printsupport6, libqt6network6, libqt6multimedia6, libqpdf29 | libqpdf29t64, libgnutls30 | libgnutls30t64, libp11-kit0, libtesseract5 | libtesseract5t64, zlib1g")
+        "libqt6core6 | libqt6core6t64, libqt6gui6, libqt6widgets6, libqt6printsupport6, libqt6network6, libqt6multimedia6, libqpdf29 | libqpdf29t64, libgnutls30 | libgnutls30t64, libp11-kit0, libtesseract5 | libtesseract5t64, zlib1g, qt6-image-formats-plugins")
     # libqt6pdf6 ist raus: die PDF-Engine ist PDFium und liegt im Paket.
     # ffmpeg only converts video while embedding it and is genuinely optional.
     set(CPACK_DEBIAN_PACKAGE_SUGGESTS "ffmpeg")

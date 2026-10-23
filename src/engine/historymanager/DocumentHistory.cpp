@@ -201,6 +201,22 @@ void DocumentHistory::adopt(QList<Entry> entries, int current,
     Q_EMIT changed();
 }
 
+void DocumentHistory::resume(QList<Entry> entries, int current)
+{
+    reset();
+    if (entries.isEmpty()) return;
+
+    current = qBound(0, current, static_cast<int>(entries.size()) - 1);
+    while (entries.size() > current + 1)
+        SessionStore::discardSnapshot(entries.takeLast().snapshot);
+    for (const Entry &e : std::as_const(entries))
+        m_baseCounter = qMax(m_baseCounter, e.base);
+
+    m_entries = std::move(entries);
+    m_current = current;
+    Q_EMIT changed();
+}
+
 QString DocumentHistory::takeSnapshot(const QString &sourcePath)
 {
     if (sourcePath.isEmpty() || !QFile::exists(sourcePath)) return {};

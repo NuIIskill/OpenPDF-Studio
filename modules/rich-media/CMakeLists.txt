@@ -27,6 +27,8 @@ target_sources(OpenPDFStudio PRIVATE
     engine/MediaSpec.hpp
     engine/PosterFrame.cpp
     engine/PosterFrame.hpp
+    engine/SystemEncoder.cpp
+    engine/SystemEncoder.hpp
     engine/VideoStill.hpp
     engine/VideoStillQt.cpp
     engine/VideoStillDirectShow.cpp

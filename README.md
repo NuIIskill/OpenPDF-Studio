@@ -50,8 +50,8 @@ so nothing in the dependency stack forces the GPL onto a distribution.
 
 **Opening other formats**
 
-* Word `.docx`, OpenDocument `.odt` and images open like a PDF, by dropping
-  them onto the window or through Open
+* Word `.docx`, OpenDocument `.odt` and images (JPEG, PNG, GIF, BMP, TIFF,
+  WebP) open like a PDF, by dropping them onto the window or through Open
 * Converted in the background, with no external converter and nothing sent anywhere:
   the container and its XML are read directly, so the result is real vector
   text that can be selected, searched and edited like any other document
@@ -128,7 +128,7 @@ so nothing in the dependency stack forces the GPL onto a distribution.
   the document gets a page of its own
 * Only embedded assets play, and the first playback in a document asks first
 * Video that is not H.264 is caught before it is embedded and a conversion is
-  offered (needs ffmpeg)
+  offered (Windows converts with its own encoders, Linux needs ffmpeg)
 * Needs qpdf, and Qt Multimedia except on Windows, which uses DirectShow and
   MFPlay. See [modules/rich-media/README.md](modules/rich-media/README.md).
 
@@ -187,8 +187,9 @@ chmod +x OpenPDF_Studio-0.3.1-x86_64.AppImage
 
 Run `OpenPDF-Studio-0.3.1-Setup.exe`, or unpack
 `OpenPDF-Studio-0.3.1-win64-portable.zip` and start `OpenPDFStudio.exe`.
-The Windows build carries PDFium and qpdf, so editing, export options, digital
-signatures and rich media all work. Tesseract is not in it, so scanned pages cannot be OCR'd.
+The Windows build carries PDFium, qpdf and Tesseract with German, English and
+French language data, so editing, export options, digital signatures, rich media and
+OCR all work.
 
 ## Build from source
 
@@ -218,10 +219,11 @@ behind each `HAVE_*` define still builds when the dependency is missing:
 | GnuTLS, p11-kit | digital signatures on Linux, with qpdf (`HAVE_DIGITAL_SIGNATURE`) | `gnutls-devel`, `p11-kit-devel` |
 | Qt Multimedia | media playback and posters, with qpdf (`HAVE_RICH_MEDIA`) | `qt6-qtmultimedia-devel` |
 | zlib | opening `.docx` and `.odt` (`HAVE_ZLIB`) | `zlib-devel` |
-| Tesseract | OCR on scanned pages (`HAVE_TESSERACT`) | `tesseract-devel`, `tesseract-langpack-deu` |
+| Tesseract | OCR on scanned pages (`HAVE_TESSERACT`) | `tesseract-devel`, `tesseract-langpack-deu`, `tesseract-langpack-fra` |
 | `Qt6::PrintSupport` | printing (`HAVE_QT_PRINT`) | part of `qt6-qtbase-devel` |
 | `Qt6::LinguistTools` | the `update_translations` target | `qt6-qttools-devel` |
-| ffmpeg | converting video to H.264 while embedding it | `ffmpeg` (runtime only) |
+| ffmpeg | converting video to H.264 on Linux; on Windows only the fallback | `ffmpeg` (runtime only) |
+| Qt Image Formats | opening TIFF and WebP images | `qt6-qtimageformats` (runtime only) |
 
 The rich-media module is the one case that is all or nothing: it needs qpdf,
 and Qt Multimedia except on Windows. If one is missing, configure warns and
@@ -239,6 +241,10 @@ packaging/windows/build-qpdf-mingw.sh  # once: qpdf for mingw64 → third_party/
 packaging/windows/package-win.sh       # portable ZIP + NSIS installer → dist/
 packaging/linux/package-linux.sh       # RPM + DEB via CPack → dist/
 ```
+
+OCR in the Windows build needs `mingw64-tesseract`; the language data comes
+from the host's `tesseract-langpack-deu`, `-eng` and `-fra`. TIFF and WebP
+images need `mingw64-qt6-qtimageformats`.
 
 ## Headless entry points
 

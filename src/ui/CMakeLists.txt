@@ -9,6 +9,8 @@ target_sources(OpenPDFStudio PRIVATE
     PresentationWindow.hpp
     SaveIndicator.cpp
     SaveIndicator.hpp
+    ShellFileDrop.cpp
+    ShellFileDrop.hpp
 )
 
 add_subdirectory(bars)

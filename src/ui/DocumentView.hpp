@@ -155,6 +155,7 @@ public:
     void        clearHistory();
     bool        writeTimeline(const QString &path);
     bool        adoptTimeline(const QString &path);
+    bool        resumeTimeline(const QString &archive, const QString &target);
     bool        hasUnsavedEdits()  const { return m_journal.hasUnsavedEdits(); }
     bool        pdfRenderingAvailable() const;
     QList<DocxPage> allPageContent(const QList<int> &pages, const DocxExportOptions &options,

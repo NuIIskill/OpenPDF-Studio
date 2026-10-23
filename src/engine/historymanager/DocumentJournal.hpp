@@ -6,6 +6,7 @@
 
 #include <functional>
 #include <memory>
+#include <optional>
 
 class DocumentSource;
 class EditSession;
@@ -87,6 +88,16 @@ public:
 
     bool writeArchive(const QString &path);
     bool adoptArchive(const QString &path);
+
+    /// An archived timeline that carries every state since its base file.
+    struct Resumable {
+        QList<DocumentHistory::Entry> entries;
+        int     current { -1 };
+        int     anchor  { -1 };
+        QString baseFile;
+    };
+    static std::optional<Resumable> readResumable(const QString &archive);
+    void resume(Resumable timeline, const QString &archive);
 
 private:
     void recordSaved(const QString &path, const QString &snapshotSource);

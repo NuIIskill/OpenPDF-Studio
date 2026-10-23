@@ -3,6 +3,7 @@
 #include "ui/view/PageCanvas.hpp"
 #include "ui/view/TextSelectionController.hpp"
 
+#include <QByteArray>
 #include <QList>
 #include <QObject>
 #include <QPoint>
@@ -41,6 +42,9 @@ public:
     void addPage(int page, const QList<PdfBackend::Link> &links);
 #endif
     void setBeforeChange(std::function<void()> hook) { m_beforeChange = std::move(hook); }
+
+    QByteArray encodedState() const;
+    void       restoreEncoded(const QByteArray &data);
     void clear();
     void setToolActive(bool active);
     void relayout();

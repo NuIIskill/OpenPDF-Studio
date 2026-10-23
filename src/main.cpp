@@ -19,6 +19,7 @@
 
 #ifdef Q_OS_WIN
 #  include <windows.h>
+#  include <ole2.h>
 #  include <string>
 
 static void initFontconfigWindows()
@@ -58,6 +59,15 @@ int main(int argc, char *argv[])
         QCoreApplication helper(argc, argv);
         return RenderServer::run(QString::fromLocal8Bit(argv[2]));
     }
+#endif
+
+#ifdef Q_OS_WIN
+    // The window thread is an OLE apartment before any library can claim it
+    // otherwise; Explorer drops need it and Qt does not check its own call.
+    struct OleScope {
+        HRESULT result = OleInitialize(nullptr);
+        ~OleScope() { if (SUCCEEDED(result)) OleUninitialize(); }
+    } ole;
 #endif
 
     QApplication::setHighDpiScaleFactorRoundingPolicy(

@@ -22,6 +22,9 @@ public:
     explicit DrawingLayer(PageCanvas *canvas, QObject *parent = nullptr);
 
     void setSource(EditSession *session, QUndoStack *undo);
+
+    QByteArray encodedState() const;
+    void       restoreEncoded(const QByteArray &data);
     void setActive(bool active);
     void setTool(DrawTool tool);
     void setColor(const QColor &color);

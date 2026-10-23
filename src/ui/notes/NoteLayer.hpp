@@ -3,6 +3,7 @@
 #include "ui/notes/Note.hpp"
 #include "ui/view/PageCanvas.hpp"
 
+#include <QByteArray>
 #include <QList>
 #include <QObject>
 #include <QString>
@@ -39,6 +40,9 @@ public:
     void addPage(int page, const QList<PdfBackend::Note> &notes);
 #endif
     void setBeforeChange(std::function<void()> hook) { m_beforeChange = std::move(hook); }
+
+    QByteArray encodedState() const;
+    void       restoreEncoded(const QByteArray &data);
     void clear();
     void relayout();
     void setToolActive(bool active);

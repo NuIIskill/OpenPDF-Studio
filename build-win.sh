@@ -3,7 +3,11 @@
 # Uses the mingw-w64 + Qt6-for-Windows toolchain installed on this system.
 #
 # Install dependencies (Fedora):
-#   sudo dnf install mingw64-filesystem mingw64-qt6-qtbase mingw64-qt6-qtsvg
+#   sudo dnf install mingw64-filesystem mingw64-qt6-qtbase mingw64-qt6-qtsvg \
+#                    mingw64-qt6-qtimageformats
+#
+# OCR needs mingw64-tesseract plus the language data, which is taken from the
+# host's tesseract-langpack-deu, -eng and -fra.
 #
 # Qt Multimedia is not needed for Windows: the media module plays through
 # DirectShow with MFPlay behind it, both part of Windows itself.
@@ -149,11 +153,15 @@ if [[ -d "$QT_BIN" ]]; then
         cp -u "${PLUGIN_DIR}/platforms/qwindows.dll" "${BUILD_DIR}/platforms/" 2>/dev/null || true
     fi
 
-    # Image format plugins (JPEG, PNG, SVG, GIF, ICO)
+    # Image format plugins (JPEG, GIF, ICO, SVG; TIFF and WebP from qtimageformats)
     if [[ -d "${PLUGIN_DIR}/imageformats" ]]; then
         mkdir -p "${BUILD_DIR}/imageformats"
         cp -u "${PLUGIN_DIR}/imageformats/"*.dll "${BUILD_DIR}/imageformats/" 2>/dev/null || true
     fi
+    for plugin in qtiff qwebp; do
+        [[ -f "${PLUGIN_DIR}/imageformats/${plugin}.dll" ]] \
+            || echo "WARNING: ${plugin}.dll missing, image import will reject it (dnf install mingw64-qt6-qtimageformats)" >&2
+    done
 
     # Icon engine for SVG icons
     if [[ -d "${PLUGIN_DIR}/iconengines" ]]; then
@@ -183,6 +191,22 @@ if [[ -d "$QT_BIN" ]]; then
     if [[ -d "${PLUGIN_DIR}/networkinformation" ]]; then
         mkdir -p "${BUILD_DIR}/networkinformation"
         cp -u "${PLUGIN_DIR}/networkinformation/"*.dll "${BUILD_DIR}/networkinformation/" 2>/dev/null || true
+    fi
+
+    # OCR language data, read from share/tessdata next to the .exe
+    # (OcrEngine). The files are the same on every platform.
+    if x86_64-w64-mingw32-objdump -p "${BUILD_DIR}/OpenPDFStudio.exe" 2>/dev/null \
+            | grep -i 'DLL Name: libtesseract' >/dev/null; then
+        TESSDATA_SRC="${TESSDATA_SRC:-/usr/share/tesseract/tessdata}"
+        mkdir -p "${BUILD_DIR}/share/tessdata"
+        for lang in deu eng fra; do
+            if [[ -f "${TESSDATA_SRC}/${lang}.traineddata" ]]; then
+                cp -u "${TESSDATA_SRC}/${lang}.traineddata" "${BUILD_DIR}/share/tessdata/"
+            else
+                echo "  WARNUNG: ${lang}.traineddata fehlt (sudo dnf install tesseract-langpack-${lang})"
+            fi
+        done
+        echo "  tesseract: $(ls "${BUILD_DIR}/share/tessdata" | tr '\n' ' ')"
     fi
 
     # ── fontconfig config (fixes fontconfig init crash on Windows) ──────────

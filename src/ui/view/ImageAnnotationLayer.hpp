@@ -78,6 +78,7 @@ Q_SIGNALS:
 
     void imageAdded(int page);
     void imageRemoved(int page);
+    void imageChanged(int page, const QString &what);
 
 private:
     void connectAnnotation(ImageAnnotation *ann);

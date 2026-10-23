@@ -11,7 +11,7 @@ namespace HistoryArchive {
 namespace {
 
 constexpr quint32 kMagic   = 0x4f504853;
-constexpr quint16 kVersion = 1;
+constexpr quint16 kVersion = 2;
 
 void writeBookmarks(QDataStream &out, const QList<PdfBookmark> &bookmarks)
 {
@@ -48,10 +48,10 @@ void writeEntry(QDataStream &out, const DocumentHistory::Entry &e)
     for (const DocumentHistory::ImageState &image : e.state.images)
         out << static_cast<qint32>(image.page) << image.pdfBounds << image.image;
     writeBookmarks(out, e.state.bookmarks);
-    out << e.state.overlays;
+    out << e.state.overlays << e.state.edits;
 }
 
-bool readEntry(QDataStream &in, DocumentHistory::Entry *e)
+bool readEntry(QDataStream &in, quint16 version, DocumentHistory::Entry *e)
 {
     qint32 kind = 0, page = 0, count = 0, value = 0, undoIndex = 0, base = 0;
     in >> e->time >> kind >> page >> count >> value >> e->text
@@ -75,6 +75,7 @@ bool readEntry(QDataStream &in, DocumentHistory::Entry *e)
     }
     if (!readBookmarks(in, &e->state.bookmarks)) return false;
     in >> e->state.overlays;
+    if (version >= 2) in >> e->state.edits;
     return in.status() == QDataStream::Ok;
 }
 
@@ -109,13 +110,13 @@ bool read(const QString &path, Timeline *timeline)
     quint16 version = 0;
     qint32 current = -1, count = 0;
     in >> magic >> version >> current >> count;
-    if (magic != kMagic || version != kVersion || count < 0) return false;
+    if (magic != kMagic || version < 1 || version > kVersion || count < 0) return false;
 
     Timeline read;
     read.current = current;
     for (qint32 i = 0; i < count; ++i) {
         DocumentHistory::Entry e;
-        if (!readEntry(in, &e)) return false;
+        if (!readEntry(in, version, &e)) return false;
         read.entries.append(std::move(e));
     }
     if (read.entries.isEmpty()) return false;

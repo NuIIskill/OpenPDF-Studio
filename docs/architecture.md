@@ -5,7 +5,8 @@ and the build are in [CLAUDE.md](../CLAUDE.md).
 
 ## Startup
 
-`main.cpp` applies theme and language from `config.ini`, then hands the
+`main.cpp` applies theme and language from `config.ini` (on Windows it first
+makes the main thread an OLE apartment, which Explorer drops need), then hands the
 arguments to `Cli::run()`. A recognised command runs without a window and
 exits. Otherwise `App` builds the `MainWindow`, opens a file named on the
 command line, and `MainWindow::restoreSession()` offers what a crashed run
@@ -17,6 +18,8 @@ running window (see `RenderPool`) and does nothing else.
 `MainWindow` owns the frame: `TopToolbar`, `FormatBar`, `DrawBar`,
 `LeftSidebar`, `BookmarkPanel`, the tool panels, `RightSidebar` and
 `StatusBar`. Every tab is one `DocumentView` in a `QStackedWidget`.
+Where Windows has no OLE drop target on the window, `ShellFileDrop` takes
+the shell's `WM_DROPFILES` instead.
 
 The window only forwards. Bars and panels act on the current `DocumentView`,
 and the view's signals update bars and panels. Work that runs through a dialog
@@ -269,9 +272,14 @@ journal: undo stack, change log, and snapshots in the session folder.
 
 `SessionStore` (`app/`) keeps working copies, snapshots and a list of the open
 documents. `SessionRecovery` (`ui/session/`) watches every view and writes a
-recovery copy and a history archive for each one. The recovery copy is written
-on the view's worker, so the window keeps working meanwhile. At the next start it offers
-what an abandoned session left. `App` removes snapshots older than seven days
+history archive half a second after each change, and a recovery copy on the
+view's worker every half minute at most. Every history entry keeps, besides
+images, bookmarks and overlays, what the undo stack holds: text edits, notes,
+links, drawings and changes to the page's own images (`DocumentState::edits`).
+At the next start the document is taken up on its base file with the last
+entry's state, and the undo stack is rebuilt from the entries
+(`DocumentView::resumeTimeline()`), so the steps before the crash can be undone;
+an archive without those states falls back to the recovery copy. `App` removes snapshots older than seven days
 on startup.
 
 ## Import, export, OCR and signing

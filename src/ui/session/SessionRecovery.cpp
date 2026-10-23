@@ -18,6 +18,7 @@ namespace {
 constexpr int kTickMs     = 5000;
 constexpr int kSettleMs   = 5000;
 constexpr int kMinApartMs = 30000;
+constexpr int kArchiveMs  = 500;
 
 QString displayName(const SessionStore::OpenDocument &doc)
 {
@@ -34,6 +35,12 @@ SessionRecovery::SessionRecovery(QWidget *parent)
     m_timer = new QTimer(this);
     m_timer->setInterval(kTickMs);
     connect(m_timer, &QTimer::timeout, this, &SessionRecovery::tick);
+    // The change log is small next to the document and is all a restore needs,
+    // so it follows every change at once.
+    m_archiveTimer = new QTimer(this);
+    m_archiveTimer->setSingleShot(true);
+    m_archiveTimer->setInterval(kArchiveMs);
+    connect(m_archiveTimer, &QTimer::timeout, this, &SessionRecovery::writeArchives);
 }
 
 SessionRecovery::~SessionRecovery()
@@ -116,6 +123,7 @@ void SessionRecovery::forget(DocumentView *view)
 void SessionRecovery::finish()
 {
     m_timer->stop();
+    m_archiveTimer->stop();
     for (auto it = m_copies.cbegin(); it != m_copies.cend(); ++it) {
         SessionStore::discard(it.value().path);
         SessionStore::discard(it.value().writing);
@@ -129,8 +137,21 @@ void SessionRecovery::finish()
 void SessionRecovery::noteChange(DocumentView *view)
 {
     Copy &copy = m_copies[view];
-    copy.stale     = true;
-    copy.changedAt = QDateTime::currentMSecsSinceEpoch();
+    copy.stale        = true;
+    copy.archiveStale = true;
+    copy.changedAt    = QDateTime::currentMSecsSinceEpoch();
+    if (m_active) m_archiveTimer->start();
+}
+
+void SessionRecovery::writeArchives()
+{
+    for (DocumentView *view : std::as_const(m_views)) {
+        const auto it = m_copies.find(view);
+        if (it == m_copies.end() || !it->archiveStale) continue;
+        if (view->pageCount() <= 0 || view->history()->count() <= 1) continue;
+        if (writeArchive(view, *it)) it->archiveStale = false;
+    }
+    syncManifest();
 }
 
 void SessionRecovery::dropCopy(DocumentView *view)
@@ -157,7 +178,7 @@ void SessionRecovery::tick()
 
         auto it = m_copies.find(view);
         if (it == m_copies.end())
-            it = m_copies.insert(view, Copy { QString(), QString(), true, now, 0, QString() });
+            it = m_copies.insert(view, Copy { QString(), QString(), true, now, 0, QString(), true });
         if (!it->stale || !it->writing.isEmpty()) continue;
         if (now - it->changedAt < kSettleMs) continue;
         if (it->writtenAt != 0 && now - it->writtenAt < kMinApartMs) continue;
@@ -218,6 +239,7 @@ void SessionRecovery::writeRest(DocumentView *view, Copy &copy, qint64 changedAt
 {
     if (view->history()->count() > 1) {
         if (!writeArchive(view, copy)) return;
+        copy.archiveStale = false;
     } else {
         SessionStore::discardSnapshot(copy.archive);
         copy.archive.clear();
@@ -254,7 +276,7 @@ void SessionRecovery::syncManifest()
         doc.history = m_copies.value(view).archive;
         doc.page    = view->currentPage();
         doc.dirty   = view->hasUnsavedEdits();
-        if (doc.target.isEmpty() && doc.content.isEmpty()) continue;
+        if (doc.target.isEmpty() && doc.content.isEmpty() && doc.history.isEmpty()) continue;
         documents.append(doc);
     }
     SessionStore::updateSession(documents);

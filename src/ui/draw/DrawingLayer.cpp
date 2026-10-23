@@ -1,5 +1,7 @@
 #include "ui/draw/DrawingLayer.hpp"
 
+#include "engine/edit/EditCodec.hpp"
+
 #include <QLabel>
 #include <QLineF>
 #include <QPainter>
@@ -328,6 +330,18 @@ void DrawingLayer::restoreState(const QList<EditSession::DrawStroke> &strokes)
         if (!pages.contains(stroke.page)) pages.append(stroke.page);
     m_session->replaceDrawStrokes(strokes);
     for (int page : pages) Q_EMIT pageNeedsRerender(page);
+}
+
+QByteArray DrawingLayer::encodedState() const
+{
+    return m_session ? EditCodec::encode(m_session->drawStrokes()) : QByteArray();
+}
+
+void DrawingLayer::restoreEncoded(const QByteArray &data)
+{
+    QList<EditSession::DrawStroke> strokes;
+    if (!m_session || !EditCodec::decode(data, &strokes)) return;
+    if (strokes != m_session->drawStrokes()) restoreState(strokes);
 }
 
 void DrawingLayer::pushUndo(const QList<EditSession::DrawStroke> &before,

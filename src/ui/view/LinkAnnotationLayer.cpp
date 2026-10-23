@@ -8,6 +8,7 @@
 #include <QAction>
 #include <QApplication>
 #include <QClipboard>
+#include <QDataStream>
 #include <QDesktopServices>
 #include <QFrame>
 #include <QIcon>
@@ -409,6 +410,41 @@ void LinkAnnotationLayer::restoreState(const QList<State> &restored)
     syncSession();
     for (int page : std::as_const(pages))
         if (page >= 0) Q_EMIT pageNeedsRerender(page);
+}
+
+QByteArray LinkAnnotationLayer::encodedState() const
+{
+    QByteArray data;
+    QDataStream out(&data, QIODevice::WriteOnly);
+    out.setVersion(QDataStream::Qt_6_0);
+    const QList<State> links = state();
+    out << quint8(1) << qint32(links.size());
+    for (const State &l : links)
+        out << qint32(l.page) << l.originalBounds << l.bounds << l.originalUrl << l.url
+            << l.textRects << l.existing << l.removed << l.colorText;
+    return data;
+}
+
+void LinkAnnotationLayer::restoreEncoded(const QByteArray &data)
+{
+    QDataStream in(data);
+    in.setVersion(QDataStream::Qt_6_0);
+    quint8 version = 0;
+    qint32 count = 0;
+    in >> version >> count;
+    if (version != 1 || count < 0) return;
+    QList<State> links;
+    for (qint32 i = 0; i < count && in.status() == QDataStream::Ok; ++i) {
+        State l;
+        qint32 page = -1;
+        in >> page >> l.originalBounds >> l.bounds >> l.originalUrl >> l.url
+           >> l.textRects >> l.existing >> l.removed >> l.colorText;
+        l.page = page;
+        links.append(std::move(l));
+    }
+    if (in.status() != QDataStream::Ok) return;
+    if (m_beforeChange) m_beforeChange();
+    if (links != state()) restoreState(links);
 }
 
 void LinkAnnotationLayer::pushUndo(const QList<State> &before, const QString &text)

@@ -1,5 +1,6 @@
 #pragma once
 
+#include <QByteArray>
 #include <QColor>
 #include <QHash>
 #include <QList>
@@ -53,6 +54,9 @@ public:
 #ifdef HAVE_PDF_RENDERING
     void setSession(EditSession *session) { m_session = session; m_opener.setSession(session); }
     void clearOcrCache() { m_opener.clearOcrCache(); }
+
+    QByteArray encodedEdits() const;
+    void       restoreEncodedEdits(const QByteArray &data);
 #endif
 
     void refreshFontLive();

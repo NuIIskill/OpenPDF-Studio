@@ -67,10 +67,13 @@
 #include <QMenu>
 #include <QRegularExpression>
 #include <QUndoCommand>
+#include <QUndoStack>
 #include <QStringList>
 #include <QKeyEvent>
 #include <algorithm>
+#include <functional>
 #include <limits>
+#include <optional>
 
 namespace {
 
@@ -490,6 +493,16 @@ bool DocumentView::detachSourceFrom(const QString &saveTarget)
 
 #endif
 
+namespace {
+
+// What the undo stack holds, kept with every history entry so it outlives a crash.
+const QString kTextKey     = QStringLiteral("text");
+const QString kNotesKey    = QStringLiteral("notes");
+const QString kLinksKey    = QStringLiteral("links");
+const QString kDrawingsKey = QStringLiteral("drawings");
+
+}
+
 DocumentHistory::DocumentState DocumentView::documentState() const
 {
     DocumentHistory::DocumentState state;
@@ -498,8 +511,13 @@ DocumentHistory::DocumentState DocumentView::documentState() const
     for (const auto &p : placed)
         state.images.append({ p.page, p.pdfBounds, p.image });
     state.bookmarks = m_bookmarks;
-    if (const QByteArray changes = m_imageLayer->changeState(); !changes.isEmpty())
-        state.overlays.insert(ImageAnnotationLayer::changesKey(), changes);
+#ifdef HAVE_PDF_RENDERING
+    state.edits.insert(ImageAnnotationLayer::changesKey(), m_imageLayer->changeState());
+    state.edits.insert(kTextKey, m_edit.encodedEdits());
+    state.edits.insert(kDrawingsKey, m_drawingLayer->encodedState());
+#endif
+    state.edits.insert(kNotesKey, m_noteLayer->encodedState());
+    state.edits.insert(kLinksKey, m_linkLayer->encodedState());
     for (const PageOverlay *overlay : std::as_const(m_overlays)) {
         const QString key = overlay->stateKey();
         if (!key.isEmpty()) state.overlays.insert(key, overlay->state());
@@ -515,8 +533,13 @@ void DocumentView::applyState(const DocumentHistory::DocumentState &state)
     for (const DocumentHistory::ImageState &s : state.images)
         images.append({ s.page, s.pdfBounds, s.image });
     m_imageLayer->restoreImages(images);
-    m_imageLayer->restoreChanges(state.overlays.value(ImageAnnotationLayer::changesKey()));
+    m_imageLayer->restoreChanges(state.edits.value(ImageAnnotationLayer::changesKey()));
+    // Entries from before these were kept leave them to the undo stack.
+    if (state.edits.contains(kTextKey))     m_edit.restoreEncodedEdits(state.edits.value(kTextKey));
+    if (state.edits.contains(kDrawingsKey)) m_drawingLayer->restoreEncoded(state.edits.value(kDrawingsKey));
 #endif
+    if (state.edits.contains(kNotesKey)) m_noteLayer->restoreEncoded(state.edits.value(kNotesKey));
+    if (state.edits.contains(kLinksKey)) m_linkLayer->restoreEncoded(state.edits.value(kLinksKey));
     if (state.bookmarks != m_bookmarks) {
         m_bookmarks      = state.bookmarks;
         m_bookmarksDirty = true;
@@ -563,6 +586,71 @@ bool DocumentView::writeTimeline(const QString &path)
 bool DocumentView::adoptTimeline(const QString &path)
 {
     return m_journal.adoptArchive(path);
+}
+
+namespace {
+
+/// An undo step rebuilt from the change log, from one kept state to the next.
+class ResumedStep : public QUndoCommand
+{
+public:
+    using Apply = std::function<void(const DocumentHistory::DocumentState &)>;
+
+    ResumedStep(Apply apply, DocumentHistory::DocumentState before,
+                DocumentHistory::DocumentState after)
+        : m_apply(std::move(apply)), m_before(std::move(before)), m_after(std::move(after)) {}
+
+    void undo() override { m_apply(m_before); }
+    void redo() override
+    {
+        if (m_first) { m_first = false; return; }
+        m_apply(m_after);
+    }
+
+private:
+    Apply m_apply;
+    DocumentHistory::DocumentState m_before;
+    DocumentHistory::DocumentState m_after;
+    bool  m_first { true };
+};
+
+}
+
+bool DocumentView::resumeTimeline(const QString &archive, const QString &target)
+{
+#ifdef HAVE_PDF_RENDERING
+    std::optional<DocumentJournal::Resumable> timeline = DocumentJournal::readResumable(archive);
+    if (!timeline) return false;
+    const QString work = m_journal.copyToWorkingFile(timeline->baseFile, target);
+    if (work.isEmpty()) return false;
+    if (!openWorkingCopy(work, target)) {
+        m_journal.discardCopy(work);
+        return false;
+    }
+
+    // The undo stack is gone with the crash; each index gets back the state
+    // its entries kept, so restoring them works as before.
+    const QList<DocumentHistory::Entry> &entries = timeline->entries;
+    const auto apply = [this](const DocumentHistory::DocumentState &s) { applyState(s); };
+    m_undoStack->clear();
+    DocumentHistory::DocumentState previous = entries[timeline->anchor].state;
+    for (int k = 1; k <= entries[timeline->current].undoIndex; ++k) {
+        DocumentHistory::DocumentState next = previous;
+        for (int i = timeline->anchor; i <= timeline->current; ++i)
+            if (entries[i].undoIndex == k) next = entries[i].state;
+        m_undoStack->push(new ResumedStep(apply, previous, next));
+        previous = std::move(next);
+    }
+
+    const DocumentHistory::DocumentState now = entries[timeline->current].state;
+    m_journal.resume(std::move(*timeline), archive);
+    const DocumentJournal::RestoreGuard guard = m_journal.restoring();
+    applyState(now);
+    return true;
+#else
+    Q_UNUSED(archive) Q_UNUSED(target)
+    return false;
+#endif
 }
 
 DocumentSource::PasswordAsker DocumentView::askPassword()

@@ -536,8 +536,7 @@ void PdfOrganizerDialog::moveCardTo(int from, int to)
     const PageEntry e = m_pages.takeAt(from);
     m_pages.insert(to, e);
 
-    m_pages[to].selected = true;
-    m_lastClickedIndex   = to;
+    m_lastClickedIndex = to;
 
     syncCards();
 }
@@ -558,6 +557,10 @@ int PdfOrganizerDialog::dropIndexAt(const QPoint &pos) const
 void PdfOrganizerDialog::startDrag(int fromIndex)
 {
     if (fromIndex < 0 || fromIndex >= m_cards.size()) return;
+
+    m_pages[fromIndex].selected = false;
+    m_cards[fromIndex]->setSelected(false);
+    updateSelectionButtons();
 
     auto *mime = new QMimeData;
     mime->setData(QStringLiteral("application/x-page-index"),
