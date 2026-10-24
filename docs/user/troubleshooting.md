@@ -3,8 +3,8 @@
 [README](../../README.md) · [User documentation](../../README.md#user-documentation)
 
 Start with the application version, operating system, package type and exact
-error. Version 0.3.1 is an alpha; use copies when reproducing an editing or saving
-problem. For source builds, consult [Dependencies](../dev/dependencies.md).
+error. Version 0.3.2 is an alpha and saving replaces the original file, so
+reproduce an editing or saving problem on a backup. For source builds, consult [Dependencies](../dev/dependencies.md).
 
 ## No PDF opens or a feature is missing
 

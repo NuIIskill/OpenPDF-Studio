@@ -3,8 +3,8 @@
 [README](../../README.md) · [User documentation](../../README.md#user-documentation)
 
 OpenPDF Studio is a native desktop PDF viewer and editor for Linux and Windows.
-Version 0.3.1 is an alpha; use a copy of an important document and inspect the
-saved result in another PDF viewer.
+Version 0.3.2 is an alpha. Saving replaces the original file, so keep a backup
+of important PDFs and check edited text in a second viewer.
 
 ## Open a document
 

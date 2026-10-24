@@ -5,20 +5,20 @@
 Packages are provided for Linux x86_64 and Windows x86_64. Download them from
 [GitHub Releases](https://github.com/NuIIskill/OpenPDF-Studio/releases) or the
 [download page](https://openpdf-studio.nullskill.de/download.html).
-The examples below use version 0.3.1; use the filename of the package you downloaded.
+The examples below use version 0.3.2; use the filename of the package you downloaded.
 
 ## Linux packages
 
 Install an RPM with your distribution's package manager. For Fedora:
 
 ```bash
-sudo dnf install ./openpdf-studio-0.3.1-1.x86_64.rpm
+sudo dnf install ./openpdf-studio-0.3.2-1.x86_64.rpm
 ```
 
 For Debian or Ubuntu:
 
 ```bash
-sudo apt install ./openpdf-studio_0.3.1_amd64.deb
+sudo apt install ./openpdf-studio_0.3.2_amd64.deb
 ```
 
 The package manager resolves the declared runtime dependencies. Installing a
@@ -29,8 +29,8 @@ package built on another distribution still requires compatible library versions
 Make the file executable and run it:
 
 ```bash
-chmod +x OpenPDF_Studio-0.3.1-x86_64.AppImage
-./OpenPDF_Studio-0.3.1-x86_64.AppImage
+chmod +x OpenPDF_Studio-0.3.2-x86_64.AppImage
+./OpenPDF_Studio-0.3.2-x86_64.AppImage
 ```
 
 The AppImage bundles application libraries and Qt plugins. Its packaging removes
@@ -40,14 +40,14 @@ if it fails to start.
 
 ## Windows installer
 
-Run `OpenPDF-Studio-0.3.1-Setup.exe` and follow the installer. The packaged build
+Run `OpenPDF-Studio-0.3.2-Setup.exe` and follow the installer. The packaged build
 includes PDFium, qpdf and Tesseract with German, English and French OCR data.
 Windows media playback uses the system's DirectShow and Media Foundation
 components; Windows N installations may need the Media Feature Pack for playback.
 
 ## Windows portable ZIP
 
-Extract `OpenPDF-Studio-0.3.1-win64-portable.zip` into a writable folder and
+Extract `OpenPDF-Studio-0.3.2-win64-portable.zip` into a writable folder and
 start `OpenPDFStudio.exe` inside it. Keep the DLLs and subfolders alongside the
 executable; copying only the executable leaves out its dependencies.
 
