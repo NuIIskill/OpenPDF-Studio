@@ -9,7 +9,7 @@ set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS version.txt)
 project(OpenPDFStudio
     VERSION ${OPENPDF_VERSION}
     DESCRIPTION "OpenPDF Studio - Modern PDF Editor"
-    LANGUAGES CXX
+    LANGUAGES C CXX
 )
 
 set(CMAKE_CXX_STANDARD 20)
@@ -301,7 +301,8 @@ if(MINGW)
     # for ratio template params, but atto/femto/pico/tera/peta/exa need 64-bit values.
     # GCC reports this as [-Wnarrowing]/[-Wtemplate-body] errors in C++20. Our code is
     # fine, so suppress only these system header diagnostics.
-    target_compile_options(OpenPDFStudio PRIVATE -Wno-narrowing -Wno-template-body)
+    target_compile_options(OpenPDFStudio PRIVATE
+        "$<$<COMPILE_LANGUAGE:CXX>:-Wno-narrowing;-Wno-template-body>")
 endif()
 
 install(TARGETS OpenPDFStudio

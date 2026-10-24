@@ -2,6 +2,8 @@
 
 #include "ui/DocumentView.hpp"
 #include "ui/SaveIndicator.hpp"
+#include "ui/export/ExportCopy.hpp"
+#include "app/SafeWrite.hpp"
 #include "engine/export/DocxExporter.hpp"
 #include "engine/export/PdfExporter.hpp"
 
@@ -10,6 +12,7 @@
 #include <QElapsedTimer>
 #include <QEvent>
 #include <QEventLoop>
+#include <QFile>
 #include <QFileInfo>
 #include <QMessageBox>
 #include <QThread>
@@ -46,33 +49,16 @@ private:
     std::atomic<bool> m_requested { false };
 };
 
-bool writePdf(DocumentView *view, const ExportRequest &request, QString *failure)
+bool copyFile(const QString &source, const QString &target)
 {
-    const QString shownName = QFileInfo(request.path).fileName();
-    const QString source = view->contentFile();
-    PdfExportOptions opt;
-    opt.pages           = request.pages;
-    opt.includeComments = request.includeComments;
-    opt.keepForms       = request.keepForms;
-    opt.embedFonts      = request.embedFonts;
-    opt.compressImages  = request.compressImages;
-    opt.imageQuality    = request.imageQuality;
-
-    const bool plainRequest = request.pages.size() == view->pageCount()
-                           && request.includeComments && request.keepForms
-                           && request.embedFonts;
-    bool ok = pdfExportAvailable() && exportPdf(source, request.path, opt);
-    if (!ok && plainRequest) ok = view->saveToFile(request.path);
-    *failure = ok ? QString{}
-                  : pdfExportAvailable()
-                      ? Exporting::tr("Could not write \"%1\".").arg(shownName)
-
-                      : Exporting::tr("Could not write \"%1\".\n\n"
-                                      "Selecting pages for a PDF needs qpdf, which this "
-                                      "build does not include. "
-                                      "Exporting as Word or PNG is unaffected.")
-                            .arg(shownName);
-    return ok;
+    const QString staging = SafeWrite::stagingPath(target);
+    if (staging.isEmpty()) return false;
+    QFile::remove(staging);
+    if (!QFile::copy(source, staging)) {
+        SafeWrite::discard(staging);
+        return false;
+    }
+    return SafeWrite::commit(staging, target);
 }
 
 void runInBackground(const std::function<void()> &work)
@@ -84,6 +70,37 @@ void runInBackground(const std::function<void()> &work)
     loop.exec(QEventLoop::ExcludeUserInputEvents);
     thread->wait();
     delete thread;
+}
+
+bool writePdf(const QString &source, int pageCount, const ExportRequest &request,
+              QString *failure)
+{
+    const QString shownName = QFileInfo(request.path).fileName();
+    PdfExportOptions opt;
+    opt.pages           = request.pages;
+    opt.includeComments = request.includeComments;
+    opt.keepForms       = request.keepForms;
+    opt.embedFonts      = request.embedFonts;
+    opt.compressImages  = request.compressImages;
+    opt.imageQuality    = request.imageQuality;
+
+    const bool plainRequest = request.pages.size() == pageCount
+                           && request.includeComments && request.keepForms
+                           && request.embedFonts;
+    bool ok = false;
+    if (pdfExportAvailable())
+        runInBackground([&] { ok = exportPdf(source, request.path, opt); });
+    if (!ok && plainRequest) ok = copyFile(source, request.path);
+    *failure = ok ? QString{}
+                  : pdfExportAvailable()
+                      ? Exporting::tr("Could not write \"%1\".").arg(shownName)
+
+                      : Exporting::tr("Could not write \"%1\".\n\n"
+                                      "Selecting pages for a PDF needs qpdf, which this "
+                                      "build does not include. "
+                                      "Exporting as Word or PNG is unaffected.")
+                            .arg(shownName);
+    return ok;
 }
 
 }
@@ -119,14 +136,31 @@ void Exporting::run(QWidget *parent, DocumentView *view, const ExportRequest &re
         return !guard.requested();
     };
 
-    if (request.format == QLatin1String("word")) {
+    const bool word  = request.format == QLatin1String("word");
+    const bool jpeg  = request.format == QLatin1String("jpeg");
+    const bool image = jpeg || request.format == QLatin1String("image");
+
+    ExportCopy copy(view);
+    // Writing the copy hands the spinner back to the view's own state.
+    view->setBusy(true);
+    bool readable = !copy.path().isEmpty();
+#ifdef HAVE_PDF_RENDERING
+    if (readable && (word || image)) readable = copy.open();
+    const DocumentExporter exporter(copy.sources());
+#endif
+
+    if (!readable) {
+        failure = tr("Could not write \"%1\".").arg(shownName);
+
+    } else if (word) {
+#ifdef HAVE_PDF_RENDERING
         DocxExportOptions docxOpt;
         docxOpt.compressImages = request.compressImages;
         docxOpt.imageQuality   = request.imageQuality;
 
         QList<DocxPage> content;
         runInBackground([&] {
-            content = view->allPageContent(request.pages, docxOpt, reportPage);
+            content = exporter.allPageContent(request.pages, docxOpt, reportPage);
         });
         if (guard.requested()) {
             closeWindow();
@@ -136,18 +170,22 @@ void Exporting::run(QWidget *parent, DocumentView *view, const ExportRequest &re
         indicator->showProgress(tr("Writing \"%1\"…").arg(shownName));
         const QString title = QFileInfo(view->currentFile()).completeBaseName();
         runInBackground([&] { ok = DocxExporter::exportToDocx(request.path, content, title); });
+#endif
         failure = tr("Could not write to \"%1\".").arg(request.path);
 
-    } else if (request.format == QLatin1String("image")) {
+    } else if (image) {
+#ifdef HAVE_PDF_RENDERING
         runInBackground([&] {
-            ok = view->exportPagesToImages(request.path, request.imageQuality, request.pages,
-                                           reportPage);
+            ok = exporter.exportPagesToImages(request.path, request.imageQuality, request.pages,
+                                              reportPage);
         });
-        failure = tr("Could not export PNG images to \"%1\".")
-                      .arg(QFileInfo(request.path).absolutePath());
+#endif
+        const QString folder = QFileInfo(request.path).absolutePath();
+        failure = jpeg ? tr("Could not export JPEG images to \"%1\".").arg(folder)
+                       : tr("Could not export PNG images to \"%1\".").arg(folder);
 
     } else {
-        ok = writePdf(view, request, &failure);
+        ok = writePdf(copy.path(), view->pageCount(), request, &failure);
     }
 
     if (busy.elapsed() < MinBusyMs) {
@@ -168,13 +206,12 @@ void Exporting::run(QWidget *parent, DocumentView *view, const ExportRequest &re
     }
 
     const int pages = request.pages.size();
-    indicator->showDone(request.format == QLatin1String("image") && pages > 1
-                            ? tr("%1 pages exported as PNG images").arg(pages)
-                            : tr("Exported \"%1\"").arg(shownName));
+    const bool many = image && pages > 1;
+    indicator->showDone(!many ? tr("Exported \"%1\"").arg(shownName)
+                        : jpeg ? tr("%1 pages exported as JPEG images").arg(pages)
+                               : tr("%1 pages exported as PNG images").arg(pages));
 
     if (request.openAfterExport) {
-
-        const bool many = request.format == QLatin1String("image") && pages > 1;
         const QString target = many ? QFileInfo(request.path).absolutePath() : request.path;
         QDesktopServices::openUrl(QUrl::fromLocalFile(target));
     }

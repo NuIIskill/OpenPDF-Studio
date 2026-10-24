@@ -1,5 +1,6 @@
 #include "ui/export/ExportDialog.hpp"
 #include "ui/export/ExportFormatList.hpp"
+#include "ui/export/PageRange.hpp"
 #include "ui/theme/Theme.hpp"
 #include "ui/widgets/CheckBoxStyle.hpp"
 #include "engine/export/PdfExporter.hpp"
@@ -91,6 +92,19 @@ QPixmap wordIcon(qreal dpr)
     return pm;
 }
 
+bool isImageFormat(const QString &id)
+{
+    return id == QLatin1String("image") || id == QLatin1String("jpeg");
+}
+
+QString extensionFor(const QString &id)
+{
+    if (id == QLatin1String("word"))  return QStringLiteral(".docx");
+    if (id == QLatin1String("image")) return QStringLiteral(".png");
+    if (id == QLatin1String("jpeg"))  return QStringLiteral(".jpg");
+    return QStringLiteral(".pdf");
+}
+
 QWidget *scrolling(QWidget *content)
 {
     content->setObjectName(QStringLiteral("XPage"));
@@ -123,34 +137,7 @@ ExportDialog::ExportDialog(const QString &currentFile, int pageCount,
 
 QList<int> ExportDialog::parseRange(bool *ok) const
 {
-    if (ok) *ok = false;
-    QList<int> pages;
-    const QString text = m_rangeEdit ? m_rangeEdit->text().trimmed() : QString{};
-    if (text.isEmpty()) return pages;
-
-    const QStringList parts = text.split(QLatin1Char(','), Qt::SkipEmptyParts);
-    for (const QString &rawPart : parts) {
-        const QString part = rawPart.trimmed();
-        if (part.isEmpty()) continue;
-        bool okFrom = false, okTo = false;
-        int from = 0, to = 0;
-        const int dash = part.indexOf(QLatin1Char('-'));
-        if (dash < 0) {
-            from = to = part.toInt(&okFrom);
-            okTo = okFrom;
-        } else {
-            from = part.left(dash).trimmed().toInt(&okFrom);
-            to   = part.mid(dash + 1).trimmed().toInt(&okTo);
-        }
-        if (!okFrom || !okTo) return {};
-        if (from > to) std::swap(from, to);
-        if (from < 1 || to > m_pageCount) return {};
-        for (int p = from; p <= to; ++p)
-            if (!pages.contains(p - 1)) pages.append(p - 1);
-    }
-    if (pages.isEmpty()) return pages;
-    if (ok) *ok = true;
-    return pages;
+    return PageRange::parse(m_rangeEdit ? m_rangeEdit->text() : QString{}, m_pageCount, ok);
 }
 
 QList<int> ExportDialog::selectedPages() const
@@ -185,7 +172,7 @@ ExportRequest ExportDialog::request() const
 void ExportDialog::updateOptionAvailability()
 {
     const bool pdf   = m_selectedFormat == QLatin1String("pdf");
-    const bool image = m_selectedFormat == QLatin1String("image");
+    const bool image = isImageFormat(m_selectedFormat);
 
     m_contentColumn->setVisible(pdf);
     m_compressRow->setVisible(!image);
@@ -225,12 +212,18 @@ void ExportDialog::updateEstimate()
     const double imageShare = qBound(0.0, (perPage - 20000.0) / 200000.0, 0.9);
     double bytes = 0.0;
 
-    if (m_selectedFormat == QLatin1String("image")) {
+    if (isImageFormat(m_selectedFormat)) {
         const double scale = quality >= 95 ? 3.0 : quality >= 80 ? 2.0
                            : quality >= 55 ? 1.5 : 1.0;
         const double pixels = 595.0 * 842.0 * scale * scale;
 
-        bytes = pixels * (0.10 + qMin(0.15, perPage / 4.0e6)) * pages;
+        const double rich = qMin(1.0, perPage / 2.0e6);
+        const double perPixel = m_selectedFormat != QLatin1String("jpeg")
+            ? 0.10 + qMin(0.15, perPage / 4.0e6)
+            : quality >= 95 ? 0.04 + 1.1 * rich
+            : quality >= 80 ? 0.027 + 0.29 * rich
+                            : 0.025 + 0.19 * rich;
+        bytes = pixels * perPixel * pages;
     } else if (m_selectedFormat == QLatin1String("word")) {
 
         const double base = 20000.0 + perPage * 0.35;
@@ -280,11 +273,12 @@ QString ExportDialog::selectedPath() const
     QString name = m_filenameEdit->text().trimmed();
     if (dir.isEmpty() || name.isEmpty()) return {};
 
-    if (m_selectedFormat == QLatin1String("word") && !name.endsWith(QLatin1String(".docx"), Qt::CaseInsensitive))
-        name += QStringLiteral(".docx");
-    else if (m_selectedFormat == QLatin1String("image")
-             && !name.endsWith(QLatin1String(".png"), Qt::CaseInsensitive))
-        name += QStringLiteral(".png");
+    const QString ext = extensionFor(m_selectedFormat);
+    const bool jpegName = m_selectedFormat == QLatin1String("jpeg")
+                       && name.endsWith(QLatin1String(".jpeg"), Qt::CaseInsensitive);
+    if (m_selectedFormat != QLatin1String("pdf") && !jpegName
+        && !name.endsWith(ext, Qt::CaseInsensitive))
+        name += ext;
     return QDir(dir).filePath(name);
 }
 
@@ -301,13 +295,11 @@ void ExportDialog::onFormatSelected(const QString &id)
 
     QString name = m_filenameEdit->text();
 
-    for (const QString &ext : {".pdf", ".docx", ".png"}) {
+    for (const QString &ext : {".pdf", ".docx", ".png", ".jpg", ".jpeg"}) {
         if (name.endsWith(ext, Qt::CaseInsensitive)) { name.chop(ext.length()); break; }
     }
     if (!name.isEmpty())
-        name += id == QLatin1String("word")  ? QStringLiteral(".docx")
-              : id == QLatin1String("image") ? QStringLiteral(".png")
-                                             : QStringLiteral(".pdf");
+        name += extensionFor(id);
     m_filenameEdit->setText(name);
     updateOptionAvailability();
     updateEstimate();
@@ -355,11 +347,12 @@ void ExportDialog::onExport()
     const QString path = selectedPath();
     QStringList existing;
     const QList<int> pages = selectedPages();
-    if (m_selectedFormat == QLatin1String("image") && pages.size() > 1) {
+    if (isImageFormat(m_selectedFormat) && pages.size() > 1) {
         const QFileInfo out(path);
         for (int page : pages) {
             const QString candidate = out.dir().filePath(
-                out.completeBaseName() + QStringLiteral("_page_%1.png").arg(page + 1));
+                out.completeBaseName() + QStringLiteral("_page_%1.").arg(page + 1)
+                + out.suffix().toLower());
             if (QFileInfo::exists(candidate)) existing.append(candidate);
         }
     } else if (QFileInfo::exists(path)) {
@@ -470,9 +463,11 @@ QWidget *ExportDialog::buildFormatList()
                          QStringLiteral("PDF/A"), tr("Long-term archiving"), false);
     m_formats->addFormat(QStringLiteral("word"), wordIcon(dpr), QStringLiteral("Word"),
                          tr("Edit in Microsoft Word"), true);
-    m_formats->addFormat(QStringLiteral("image"),
-                         Theme::renderSvg(QStringLiteral("image"), Theme::Primary, 32, dpr),
-                         tr("Image"), tr("PNG images"), true);
+    const QPixmap imageIcon = Theme::renderSvg(QStringLiteral("image"), Theme::Primary, 32, dpr);
+    m_formats->addFormat(QStringLiteral("image"), imageIcon, QStringLiteral("PNG"),
+                         tr("Lossless page images"), true);
+    m_formats->addFormat(QStringLiteral("jpeg"), imageIcon, QStringLiteral("JPEG"),
+                         tr("Smaller files for photos and scans"), true);
     connect(m_formats, &ExportFormatList::formatChanged, this, &ExportDialog::onFormatSelected);
 
     auto *side = new QWidget;

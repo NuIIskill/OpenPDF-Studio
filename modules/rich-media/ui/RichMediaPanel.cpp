@@ -5,18 +5,16 @@
 #include "rich-media/engine/PosterFrame.hpp"
 #include "ui/theme/Theme.hpp"
 
-#include <QButtonGroup>
 #include <QCheckBox>
+#include <QComboBox>
 #include <QEvent>
 #include <QFileDialog>
 #include <QFileInfo>
 #include <QGridLayout>
 #include <QHBoxLayout>
 #include <QLabel>
-#include <QLineEdit>
 #include <QPainter>
 #include <QPushButton>
-#include <QRadioButton>
 #include <QScrollArea>
 #include <QVBoxLayout>
 
@@ -51,9 +49,9 @@ protected:
     }
 };
 
-QLabel *sectionLabel(const QString &text, QWidget *parent)
+QLabel *sectionLabel(QWidget *parent)
 {
-    auto *label = new QLabel(text, parent);
+    auto *label = new QLabel(parent);
     label->setObjectName(QStringLiteral("MediaPanelSection"));
     return label;
 }
@@ -66,16 +64,26 @@ QFrame *divider(QWidget *parent)
     return line;
 }
 
-void addSwitchRow(QGridLayout *layout, int row, const QString &text,
-                  QWidget *parent, QLabel **label, QCheckBox **toggle)
+void addSwitchRow(QGridLayout *layout, int row, QWidget *parent,
+                  QLabel **label, QCheckBox **toggle)
 {
-    *label = new QLabel(text, parent);
+    *label = new QLabel(parent);
     *toggle = new Switch(parent);
     (*toggle)->setObjectName(QStringLiteral("MediaPanelSwitch"));
     (*toggle)->setFixedSize(32, 20);
     (*toggle)->setCursor(Qt::PointingHandCursor);
     layout->addWidget(*label, row, 0);
     layout->addWidget(*toggle, row, 1, Qt::AlignRight | Qt::AlignVCenter);
+}
+
+QPushButton *actionButton(const QString &name, QWidget *parent)
+{
+    auto *button = new QPushButton(parent);
+    button->setObjectName(name);
+    button->setFixedHeight(34);
+    button->setCursor(Qt::PointingHandCursor);
+    button->setIconSize(QSize(16, 16));
+    return button;
 }
 
 }
@@ -88,8 +96,8 @@ RichMediaPanel::RichMediaPanel(QWidget *parent)
     setFixedWidth(kWidth);
     setSizePolicy(QSizePolicy::Fixed, QSizePolicy::Expanding);
     buildUi();
+    retranslateUi();
     applyStyle();
-    updateInsertEnabled();
 }
 
 void RichMediaPanel::buildUi()
@@ -110,173 +118,115 @@ void RichMediaPanel::buildUi()
     scroll->setWidget(content);
 
     auto *root = new QVBoxLayout(content);
-    root->setContentsMargins(16, 16, 16, 18);
-    root->setSpacing(10);
+    root->setContentsMargins(16, 16, 16, 16);
+    root->setSpacing(0);
 
     auto *header = new QHBoxLayout;
     header->setContentsMargins(0, 0, 0, 0);
-    header->setSpacing(8);
-    m_title = new QLabel(tr("Rich Media"), content);
+    header->setSpacing(12);
+    m_icon = new QLabel(content);
+    m_icon->setFixedSize(24, 24);
+    header->addWidget(m_icon, 0, Qt::AlignTop);
+    auto *titles = new QVBoxLayout;
+    titles->setContentsMargins(0, 0, 0, 0);
+    titles->setSpacing(4);
+    m_title = new QLabel(content);
     m_title->setObjectName(QStringLiteral("MediaPanelTitle"));
-    header->addWidget(m_title);
-    header->addStretch(1);
+    titles->addWidget(m_title);
+    m_subtitle = new QLabel(content);
+    m_subtitle->setObjectName(QStringLiteral("MediaPanelSubtitle"));
+    titles->addWidget(m_subtitle);
+    header->addLayout(titles, 1);
     m_close = new QPushButton(content);
     m_close->setObjectName(QStringLiteral("MediaPanelClose"));
     m_close->setFixedSize(24, 24);
     m_close->setCursor(Qt::PointingHandCursor);
-    m_close->setIcon(Theme::makeIcon(QStringLiteral("x"), Theme::IconMuted));
-    m_close->setToolTip(tr("Close"));
     connect(m_close, &QPushButton::clicked, this,
             [this]() { Q_EMIT closeRequested(); });
-    header->addWidget(m_close);
+    header->addWidget(m_close, 0, Qt::AlignTop);
     root->addLayout(header);
-    m_subtitle = new QLabel(tr("Edit media or add a new source"), content);
-    m_subtitle->setObjectName(QStringLiteral("MediaPanelSubtitle"));
-    root->addWidget(m_subtitle);
-    root->addSpacing(12);
+    root->addSpacing(22);
 
-    m_sourceLabel = sectionLabel(tr("Source"), content);
-    root->addWidget(m_sourceLabel);
-
-    auto *sourceRow = new QHBoxLayout;
-    sourceRow->setSpacing(8);
-    m_source = new QLineEdit(content);
-    m_source->setObjectName(QStringLiteral("MediaPanelSource"));
-    m_source->setPlaceholderText(tr("Choose a media file"));
-    m_source->setReadOnly(true);
-    m_source->setFixedHeight(32);
-    m_source->setMinimumWidth(1);
-    sourceRow->addWidget(m_source, 1);
-
-    m_browse = new QPushButton(tr("Browse"), content);
-    m_browse->setObjectName(QStringLiteral("MediaPanelSecondary"));
-    m_browse->setFixedHeight(32);
-    m_browse->setFixedWidth(88);
-    m_browse->setCursor(Qt::PointingHandCursor);
-    m_browse->setIcon(Theme::makeIcon(QStringLiteral("folder-open"), Theme::IconMuted));
-    connect(m_browse, &QPushButton::clicked, this, &RichMediaPanel::chooseSource);
-    sourceRow->addWidget(m_browse);
-    root->addLayout(sourceRow);
-    root->addSpacing(6);
-
-    m_posterLabel = sectionLabel(tr("Poster / Thumbnail"), content);
+    m_posterLabel = sectionLabel(content);
     root->addWidget(m_posterLabel);
+    root->addSpacing(10);
 
-    auto *posterRow = new QHBoxLayout;
-    posterRow->setSpacing(10);
     m_posterView = new QLabel(content);
     m_posterView->setObjectName(QStringLiteral("MediaPanelPoster"));
-    m_posterView->setFixedSize(174, 86);
+    m_posterView->setFixedSize(kWidth - 32, 150);
     m_posterView->setAlignment(Qt::AlignCenter);
-    m_posterView->setScaledContents(false);
-    posterRow->addWidget(m_posterView);
+    root->addWidget(m_posterView);
+    root->addSpacing(12);
 
-    auto *posterActions = new QVBoxLayout;
+    auto *posterActions = new QHBoxLayout;
     posterActions->setContentsMargins(0, 0, 0, 0);
-    posterActions->setSpacing(8);
-
-    m_posterChange = new QPushButton(tr("Change"), content);
-    m_posterChange->setObjectName(QStringLiteral("MediaPanelSecondary"));
-    m_posterChange->setFixedHeight(34);
-    m_posterChange->setCursor(Qt::PointingHandCursor);
-    m_posterChange->setIcon(Theme::makeIcon(QStringLiteral("image"), Theme::IconMuted));
+    posterActions->setSpacing(20);
+    m_posterChange = actionButton(QStringLiteral("MediaPanelPrimary"), content);
     connect(m_posterChange, &QPushButton::clicked, this, &RichMediaPanel::choosePoster);
-    posterActions->addWidget(m_posterChange);
-
-    m_posterRemove = new QPushButton(tr("Remove"), content);
-    m_posterRemove->setObjectName(QStringLiteral("MediaPanelSecondary"));
-    m_posterRemove->setFixedHeight(34);
-    m_posterRemove->setCursor(Qt::PointingHandCursor);
-    m_posterRemove->setIcon(Theme::makeIcon(QStringLiteral("trash-2"), Theme::IconMuted));
-    connect(m_posterRemove, &QPushButton::clicked, this, [this]() {
+    posterActions->addWidget(m_posterChange, 1);
+    m_posterReset = actionButton(QStringLiteral("MediaPanelDanger"), content);
+    connect(m_posterReset, &QPushButton::clicked, this, [this]() {
         m_posterFromUser = false;
-        m_poster = QImage();
         refreshPoster();
     });
-    posterActions->addWidget(m_posterRemove);
-    posterActions->addStretch(1);
-    posterRow->addLayout(posterActions, 1);
-    root->addLayout(posterRow);
+    posterActions->addWidget(m_posterReset, 1);
+    root->addLayout(posterActions);
 
-    root->addSpacing(6);
+    root->addSpacing(22);
     root->addWidget(divider(content));
+    root->addSpacing(20);
 
-    m_triggerLabel = sectionLabel(tr("Trigger"), content);
-    root->addWidget(m_triggerLabel);
-
-    auto *triggerRow = new QHBoxLayout;
-    triggerRow->setSpacing(18);
-    m_onClick    = new QRadioButton(tr("On click"), content);
-    m_onPageOpen = new QRadioButton(tr("On page open"), content);
-
-    auto *triggerGroup = new QButtonGroup(this);
-    triggerGroup->addButton(m_onClick);
-    triggerGroup->addButton(m_onPageOpen);
-    m_onClick->setChecked(true);
-    triggerRow->addWidget(m_onClick);
-    triggerRow->addWidget(m_onPageOpen);
-    triggerRow->addStretch(1);
-    root->addLayout(triggerRow);
-
-    root->addWidget(divider(content));
-
-    m_playbackLabel = sectionLabel(tr("Playback options"), content);
+    m_playbackLabel = new QLabel(content);
+    m_playbackLabel->setObjectName(QStringLiteral("MediaPanelHeading"));
     root->addWidget(m_playbackLabel);
+    root->addSpacing(14);
+
+    m_triggerLabel = new QLabel(content);
+    m_triggerLabel->setObjectName(QStringLiteral("MediaPanelFieldLabel"));
+    root->addWidget(m_triggerLabel);
+    root->addSpacing(8);
+    m_trigger = new QComboBox(content);
+    m_trigger->setObjectName(QStringLiteral("MediaPanelCombo"));
+    m_trigger->setFixedHeight(34);
+    m_trigger->setCursor(Qt::PointingHandCursor);
+    m_trigger->addItem(QString());
+    m_trigger->addItem(QString());
+    connect(m_trigger, &QComboBox::currentIndexChanged,
+            this, &RichMediaPanel::updateApplyEnabled);
+    root->addWidget(m_trigger);
+    root->addSpacing(16);
 
     auto *playbackGrid = new QGridLayout;
     playbackGrid->setContentsMargins(0, 0, 0, 0);
     playbackGrid->setHorizontalSpacing(12);
-    playbackGrid->setVerticalSpacing(8);
-    addSwitchRow(playbackGrid, 0, tr("Autoplay"), content,
-                 &m_autoPlayText, &m_autoPlay);
-    addSwitchRow(playbackGrid, 1, tr("Loop"), content,
-                 &m_loopText, &m_loop);
-    addSwitchRow(playbackGrid, 2, tr("Muted"), content,
-                 &m_mutedText, &m_muted);
-    addSwitchRow(playbackGrid, 3, tr("Show controls"), content,
-                 &m_controlsText, &m_controls);
+    playbackGrid->setVerticalSpacing(12);
+    addSwitchRow(playbackGrid, 0, content, &m_autoPlayText, &m_autoPlay);
+    addSwitchRow(playbackGrid, 1, content, &m_loopText, &m_loop);
+    addSwitchRow(playbackGrid, 2, content, &m_mutedText, &m_muted);
+    addSwitchRow(playbackGrid, 3, content, &m_controlsText, &m_controls);
     m_controls->setChecked(true);
     playbackGrid->setColumnStretch(0, 1);
     root->addLayout(playbackGrid);
-
-    root->addWidget(divider(content));
-
-    m_placementLabel = sectionLabel(tr("Placement"), content);
-    root->addWidget(m_placementLabel);
-
-    auto *placementRow = new QHBoxLayout;
-    placementRow->setSpacing(18);
-    m_inline   = new QRadioButton(tr("Inline"), content);
-    m_floating = new QRadioButton(tr("Floating"), content);
-    auto *placementGroup = new QButtonGroup(this);
-    placementGroup->addButton(m_inline);
-    placementGroup->addButton(m_floating);
-    m_inline->setChecked(true);
-    placementRow->addWidget(m_inline);
-    placementRow->addWidget(m_floating);
-    placementRow->addStretch(1);
-    root->addLayout(placementRow);
-
-    root->addWidget(divider(content));
-
-    root->addSpacing(10);
-
-    m_hint = new QLabel(tr("Drag a frame on the page to place the media."), content);
-    m_hint->setObjectName(QStringLiteral("MediaPanelHint"));
-    m_hint->setWordWrap(true);
-    root->addWidget(m_hint);
-
-    m_insert = new QPushButton(tr("Apply"), content);
-    m_insert->setObjectName(QStringLiteral("MediaPanelPrimary"));
-    m_insert->setFixedHeight(38);
-    m_insert->setCursor(Qt::PointingHandCursor);
-    connect(m_insert, &QPushButton::clicked, this, [this]() {
-        const MediaSpec current = spec();
-        if (current.isValid()) Q_EMIT applyRequested(current);
-    });
-    root->addWidget(m_insert);
+    for (QCheckBox *toggle : { m_autoPlay, m_loop, m_muted, m_controls })
+        connect(toggle, &QCheckBox::toggled, this, &RichMediaPanel::updateApplyEnabled);
 
     root->addStretch(1);
+
+    auto *footer = new QWidget(this);
+    footer->setObjectName(QStringLiteral("MediaPanelFooter"));
+    auto *footerLayout = new QVBoxLayout(footer);
+    footerLayout->setContentsMargins(16, 12, 16, 16);
+    m_apply = new QPushButton(footer);
+    m_apply->setObjectName(QStringLiteral("MediaPanelApply"));
+    m_apply->setFixedHeight(36);
+    m_apply->setCursor(Qt::PointingHandCursor);
+    connect(m_apply, &QPushButton::clicked, this, [this]() {
+        const MediaSpec current = spec();
+        if (m_editing && current.isValid()) Q_EMIT applyRequested(current);
+    });
+    footerLayout->addWidget(m_apply);
+    outer->addWidget(footer);
+
     refreshPoster();
 }
 
@@ -289,56 +239,59 @@ void RichMediaPanel::applyStyle()
 
     struct Palette {
         const char *panel, *text, *muted, *line, *field, *fieldLine,
-                   *accent, *accentSoft, *primaryText, *sunken;
+                   *accent, *accentSoft, *primaryText, *sunken, *danger;
     };
     const Palette light {
         "#FFFFFF", "#0F172A", "#64748B", "#E5EAF1", "#FFFFFF", "#CBD5E1",
-        "#2563EB", "#EFF4FF", "#FFFFFF", "#F1F5F9"
+        "#2563EB", "#EFF4FF", "#FFFFFF", "#F1F5F9", "#DC2626"
     };
     const Palette night {
         "#353535", "#E5E7EB", "#9CA3AF", "#484848", "#2C2C2C", "#565656",
-        "#2563EB", "#24303F", "#FFFFFF", "#2C2C2C"
+        "#2563EB", "#24303F", "#FFFFFF", "#2C2C2C", "#DC2626"
     };
     const Palette &p = dark ? night : light;
 
     setStyleSheet(QStringLiteral(R"(
-QFrame#MediaPanel, QWidget#MediaPanelContent, QScrollArea#MediaPanelScroll {
+QFrame#MediaPanel, QWidget#MediaPanelContent, QScrollArea#MediaPanelScroll,
+QWidget#MediaPanelFooter {
     background: %1; border: none;
 }
 QFrame#MediaPanel { border-left: 1px solid %4; }
-QLabel#MediaPanelTitle { color: %2; font-size: 16px; font-weight: 700; }
-QLabel#MediaPanelSubtitle { color: %3; font-size: 12px; }
-QLabel#MediaPanelSection { color: %2; font-size: 12px; font-weight: 600; }
-QLabel#MediaPanelFieldLabel { color: %3; font-size: 11px; }
-QLabel#MediaPanelHint { color: %3; font-size: 11px; }
+QFrame#MediaPanel QLabel { color: %2; font-size: 13px; }
+QFrame#MediaPanel QLabel#MediaPanelTitle { font-size: 15px; font-weight: 700; }
+QFrame#MediaPanel QLabel#MediaPanelSubtitle { color: %3; font-size: 12px; }
+QFrame#MediaPanel QLabel#MediaPanelSection { font-weight: 600; }
+QFrame#MediaPanel QLabel#MediaPanelHeading { font-size: 17px; font-weight: 600; }
+QFrame#MediaPanel QLabel#MediaPanelFieldLabel { color: %3; }
 QFrame#MediaPanelDivider { color: %4; background: %4; max-height: 1px;
     min-height: 1px; border: none; }
-QFrame#MediaPanel QLabel { color: %2; font-size: 12px; }
-QFrame#MediaPanel QLineEdit {
-    background: %5; color: %2; border: 1px solid %6; border-radius: 6px;
-    padding: 4px 8px; font-size: 12px;
-}
-QFrame#MediaPanel QLineEdit:focus {
-    border: 1px solid %7;
-}
-QFrame#MediaPanel QRadioButton {
-    color: %2; font-size: 12px; spacing: 7px;
-}
 QLabel#MediaPanelPoster {
-    background: %10; border: 1px solid %6; border-radius: 6px;
+    background: %10; border: 1px solid %4; border-radius: 8px;
 }
-QPushButton#MediaPanelSecondary {
+QComboBox#MediaPanelCombo {
     background: %5; color: %2; border: 1px solid %6; border-radius: 6px;
-    padding: 0 12px; font-size: 12px;
+    padding: 0 10px; font-size: 13px;
 }
-QPushButton#MediaPanelSecondary:hover { border-color: %7; color: %7; }
-QPushButton#MediaPanelSecondary:disabled { color: %3; border-color: %4; }
-QPushButton#MediaPanelPrimary {
-    background: %7; color: %9; border: none; border-radius: 7px;
+QComboBox#MediaPanelCombo:focus { border-color: %7; }
+QComboBox#MediaPanelCombo::drop-down { border: none; width: 30px; }
+QComboBox#MediaPanelCombo::down-arrow { image: url(:/icons/chevron-down.svg);
+    width: 12px; height: 12px; }
+QPushButton#MediaPanelPrimary, QPushButton#MediaPanelDanger {
+    color: %9; border: none; border-radius: 6px;
+    padding: 0 12px; font-size: 13px; font-weight: 600;
+}
+QPushButton#MediaPanelPrimary { background: %7; }
+QPushButton#MediaPanelPrimary:hover { background: #1D4ED8; }
+QPushButton#MediaPanelDanger { background: %11; }
+QPushButton#MediaPanelDanger:hover { background: #B91C1C; }
+QPushButton#MediaPanelDanger:disabled { background: rgba(220, 38, 38, 0.4);
+    color: rgba(255, 255, 255, 0.75); }
+QPushButton#MediaPanelApply {
+    background: %7; color: %9; border: none; border-radius: 6px;
     font-size: 13px; font-weight: 600;
 }
-QPushButton#MediaPanelPrimary:hover { background: %7; }
-QPushButton#MediaPanelPrimary:disabled { background: %4; color: %3; }
+QPushButton#MediaPanelApply:hover { background: #1D4ED8; }
+QPushButton#MediaPanelApply:disabled { background: %4; color: %3; }
 QPushButton#MediaPanelClose {
     background: transparent; border: none; border-radius: 5px; padding: 2px;
 }
@@ -346,14 +299,18 @@ QPushButton#MediaPanelClose:hover { background: %8; }
 )").arg(QLatin1String(p.panel), QLatin1String(p.text), QLatin1String(p.muted),
         QLatin1String(p.line), QLatin1String(p.field), QLatin1String(p.fieldLine),
         QLatin1String(p.accent), QLatin1String(p.accentSoft),
-        QLatin1String(p.primaryText), QLatin1String(p.sunken)));
+        QLatin1String(p.primaryText), QLatin1String(p.sunken),
+        QLatin1String(p.danger)));
 
-    if (m_browse)
-        m_browse->setIcon(Theme::makeIcon(QStringLiteral("folder-open"), Theme::IconMuted));
+    const QColor white(Qt::white);
+    if (m_icon)
+        m_icon->setPixmap(Theme::renderSvg(QStringLiteral("film"), Theme::IconNormal,
+                                           24, devicePixelRatioF()));
     if (m_posterChange)
-        m_posterChange->setIcon(Theme::makeIcon(QStringLiteral("image"), Theme::IconMuted));
-    if (m_posterRemove)
-        m_posterRemove->setIcon(Theme::makeIcon(QStringLiteral("trash-2"), Theme::IconMuted));
+        m_posterChange->setIcon(Theme::makeIcon(QStringLiteral("image"), white, white, white));
+    if (m_posterReset)
+        m_posterReset->setIcon(Theme::makeIcon(QStringLiteral("rotate-ccw"), white, white,
+                                               QColor(255, 255, 255, 190)));
     if (m_close)
         m_close->setIcon(Theme::makeIcon(QStringLiteral("x"), Theme::IconMuted));
 
@@ -367,30 +324,6 @@ void RichMediaPanel::changeEvent(QEvent *event)
     else if (event->type() == QEvent::LanguageChange)
         retranslateUi();
     QFrame::changeEvent(event);
-}
-
-void RichMediaPanel::setSource(const QString &path, const QString &displayName)
-{
-    m_sourcePath = path;
-    m_sourceDisplayName = displayName.isEmpty() ? QFileInfo(path).fileName()
-                                                : displayName;
-    const QString mime = path.isEmpty() ? QString() : MediaDrop::mimeTypeFor(path);
-    m_type = mime.startsWith(QLatin1String("audio/")) ? MediaSpec::Type::Audio
-                                                      : MediaSpec::Type::Video;
-    if (m_source) m_source->setText(m_sourceDisplayName);
-    m_posterFromUser = false;
-    refreshPoster();
-    updateInsertEnabled();
-}
-
-void RichMediaPanel::chooseSource()
-{
-    const QString filter =
-        tr("Media files (*.mp4 *.m4v *.mov *.webm *.mkv *.avi *.mp3 *.m4a *.wav *.ogg *.opus *.flac);;All files (*)");
-    const QString path = QFileDialog::getOpenFileName(
-        this, tr("Choose media"), QString(), filter);
-    if (path.isEmpty()) return;
-    setSource(path);
 }
 
 void RichMediaPanel::choosePoster()
@@ -417,52 +350,42 @@ void RichMediaPanel::refreshPoster()
     }
 
     QImage shown = m_poster.isNull()
-        ? PosterFrame::placeholder(QSize(216, 120))
+        ? PosterFrame::placeholder(m_posterView->size() * 2,
+                                   Theme::DarkMode ? QColor(0x2C, 0x2C, 0x2C) : QColor())
         : m_poster;
-    if (m_posterView) {
-        m_posterView->setPixmap(QPixmap::fromImage(shown).scaled(
-            m_posterView->size() - QSize(2, 2),
-            Qt::KeepAspectRatio, Qt::SmoothTransformation));
-    }
-    if (m_posterRemove)
-        m_posterRemove->setEnabled(m_posterFromUser);
-    Q_EMIT previewChanged(shown);
+    m_posterView->setPixmap(QPixmap::fromImage(shown).scaled(
+        m_posterView->size() - QSize(2, 2),
+        Qt::KeepAspectRatio, Qt::SmoothTransformation));
+    m_posterReset->setEnabled(m_posterFromUser);
+    updateApplyEnabled();
 }
 
 void RichMediaPanel::setPlacement(int page, const QRectF &pdfBounds)
 {
     m_page   = page;
     m_bounds = pdfBounds;
-    updateInsertEnabled();
-}
-
-void RichMediaPanel::clearPlacement()
-{
-    m_page = -1;
-    m_bounds = QRectF();
-    updateInsertEnabled();
 }
 
 void RichMediaPanel::editMedia(const MediaSpec &media)
 {
-    m_editing = true;
+    m_editing = false;
     m_type = media.type;
     m_sourcePath = media.source;
     m_sourceDisplayName = media.displayName.isEmpty()
         ? QFileInfo(media.source).fileName() : media.displayName;
-    m_source->setText(m_sourceDisplayName);
     m_poster = media.poster;
     m_posterFromUser = !media.poster.isNull();
-    m_onPageOpen->setChecked(media.activateOnPageOpen);
-    m_onClick->setChecked(!media.activateOnPageOpen);
+    m_trigger->setCurrentIndex(media.activateOnPageOpen ? 1 : 0);
     m_autoPlay->setChecked(media.autoPlay);
     m_loop->setChecked(media.loop);
     m_muted->setChecked(media.muted);
     m_controls->setChecked(media.showControls);
-    m_floating->setChecked(media.floating);
-    m_inline->setChecked(!media.floating);
+    m_floating = media.floating;
     setPlacement(media.page, media.bounds);
     refreshPoster();
+    m_loaded = spec();
+    m_editing = true;
+    updateApplyEnabled();
 }
 
 void RichMediaPanel::resetForInsert()
@@ -471,37 +394,32 @@ void RichMediaPanel::resetForInsert()
     m_type = MediaSpec::Type::Video;
     m_sourcePath.clear();
     m_sourceDisplayName.clear();
-    m_source->clear();
     m_poster = QImage();
     m_posterFromUser = false;
-    m_onClick->setChecked(true);
+    m_trigger->setCurrentIndex(0);
     m_autoPlay->setChecked(false);
     m_loop->setChecked(false);
     m_muted->setChecked(false);
     m_controls->setChecked(true);
-    m_inline->setChecked(true);
-    clearPlacement();
+    m_floating = false;
+    setPlacement(-1, QRectF());
     refreshPoster();
 }
 
-void RichMediaPanel::updateInsertEnabled()
+bool RichMediaPanel::changed() const
 {
-    const bool hasSource = !m_sourcePath.isEmpty() && QFileInfo::exists(m_sourcePath);
-    const bool hasPlace  = m_page >= 0 && !m_bounds.isEmpty();
-    const bool supported = m_type == MediaSpec::Type::Video
-                        || m_type == MediaSpec::Type::Audio;
-    if (m_insert) m_insert->setEnabled(hasSource && hasPlace && supported);
+    const MediaSpec now = spec();
+    return now.activateOnPageOpen != m_loaded.activateOnPageOpen
+        || now.autoPlay != m_loaded.autoPlay
+        || now.loop != m_loaded.loop
+        || now.muted != m_loaded.muted
+        || now.showControls != m_loaded.showControls
+        || now.poster.cacheKey() != m_loaded.poster.cacheKey();
+}
 
-    if (!m_hint) return;
-    if (!hasPlace)
-        m_hint->setText(tr("Drag a frame on the page to place the media."));
-    else if (!hasSource)
-        m_hint->setText(tr("Choose a file to embed."));
-    else if (m_editing)
-        m_hint->setText(tr("Drag the handles on the page to resize the media."));
-    else
-        m_hint->setText(tr("Page %1. The file is copied into the document.")
-                            .arg(m_page + 1));
+void RichMediaPanel::updateApplyEnabled()
+{
+    if (m_apply) m_apply->setEnabled(m_editing && spec().isValid() && changed());
 }
 
 MediaSpec RichMediaPanel::spec() const
@@ -513,13 +431,13 @@ MediaSpec RichMediaPanel::spec() const
         ? QFileInfo(out.source).fileName() : m_sourceDisplayName;
     out.mimeType = out.source.isEmpty() ? QString()
                                          : MediaDrop::mimeTypeFor(out.source);
-    out.poster      = m_poster;
-    out.activateOnPageOpen = m_onPageOpen && m_onPageOpen->isChecked();
+    out.poster       = m_poster;
+    out.activateOnPageOpen = m_trigger && m_trigger->currentIndex() == 1;
     out.autoPlay     = m_autoPlay && m_autoPlay->isChecked();
     out.muted        = m_muted && m_muted->isChecked();
     out.loop         = m_loop && m_loop->isChecked();
     out.showControls = m_controls && m_controls->isChecked();
-    out.floating     = m_floating && m_floating->isChecked();
+    out.floating     = m_floating;
     out.page         = m_page;
     out.bounds       = m_bounds;
     return out;
@@ -528,26 +446,18 @@ MediaSpec RichMediaPanel::spec() const
 void RichMediaPanel::retranslateUi()
 {
     m_title->setText(tr("Rich Media"));
-    m_subtitle->setText(tr("Edit media or add a new source"));
-    m_sourceLabel->setText(tr("Source"));
+    m_subtitle->setText(tr("Embed video and audio"));
     m_posterLabel->setText(tr("Poster / Thumbnail"));
-    m_triggerLabel->setText(tr("Trigger"));
-    m_playbackLabel->setText(tr("Playback options"));
-    m_placementLabel->setText(tr("Placement"));
-
-    m_source->setPlaceholderText(tr("Choose a media file"));
-    m_browse->setText(tr("Browse"));
-    m_posterChange->setText(tr("Change"));
-    m_posterRemove->setText(tr("Remove"));
-    m_onClick->setText(tr("On click"));
-    m_onPageOpen->setText(tr("On page open"));
+    m_posterChange->setText(QLatin1Char(' ') + tr("Change image"));
+    m_posterReset->setText(QLatin1Char(' ') + tr("Reset"));
+    m_playbackLabel->setText(tr("Start & playback"));
+    m_triggerLabel->setText(tr("Activation"));
+    m_trigger->setItemText(0, tr("On click"));
+    m_trigger->setItemText(1, tr("On page open"));
     m_autoPlayText->setText(tr("Autoplay"));
-    m_mutedText->setText(tr("Muted"));
     m_loopText->setText(tr("Loop"));
+    m_mutedText->setText(tr("Muted"));
     m_controlsText->setText(tr("Show controls"));
-    m_inline->setText(tr("Inline"));
-    m_floating->setText(tr("Floating"));
-    m_insert->setText(tr("Apply"));
+    m_apply->setText(tr("Update"));
     m_close->setToolTip(tr("Close"));
-    updateInsertEnabled();
 }

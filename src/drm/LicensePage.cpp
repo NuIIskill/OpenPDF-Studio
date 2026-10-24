@@ -10,12 +10,13 @@
 #include <QHBoxLayout>
 #include <QLabel>
 #include <QLineEdit>
+#include <QLocale>
 #include <QPushButton>
 #include <QUrl>
 #include <QVBoxLayout>
 
 namespace {
-constexpr auto kBuyUrl = "https://openpdf-studio.nullskill.de/license";
+constexpr auto kBuyUrl = "https://openpdf-studio.nullskill.de/pricing.html";
 }
 
 LicensePage::LicensePage(QWidget *parent)
@@ -137,19 +138,34 @@ void LicensePage::buildUi()
 
 void LicensePage::refreshStatus()
 {
-    m_hasKey = License::hasKey();
+    m_hasKey = !License::key().isEmpty();
 
     if (m_hasKey) {
+        const License::KeyInfo info = License::keyInfo();
         m_keyInput->setText(License::key());
         const bool fromSetup = License::keyIsMachineWide();
         m_keyInput->setReadOnly(true);
         m_actionBtn->setVisible(!fromSetup);
         m_actionBtn->setEnabled(true);
         m_actionBtn->setText(tr("Remove License"));
-        m_statusTitle->setText(tr("License key on record"));
-        m_statusDesc->setText(fromSetup
-            ? tr("Set by the installer for every account on this machine.")
-            : tr("Entered in this application. Business use is covered."));
+        if (info.status == License::KeyStatus::Valid) {
+            m_statusTitle->setText(tr("License key on record"));
+            QString desc = fromSetup
+                ? tr("Set by the installer for every account on this machine.")
+                : tr("Entered in this application. Business use is covered.");
+            if (info.expires.isValid())
+                desc += QLatin1Char(' ') + tr("Valid until %1.")
+                    .arg(QLocale().toString(info.expires, QLocale::ShortFormat));
+            m_statusDesc->setText(desc);
+        } else {
+            m_statusTitle->setText(info.status == License::KeyStatus::Expired
+                ? tr("License expired on %1")
+                      .arg(QLocale().toString(info.expires, QLocale::ShortFormat))
+                : tr("License key not valid"));
+            m_statusDesc->setText(fromSetup
+                ? tr("Set by the installer for every account on this machine.")
+                : tr("Business use requires a license. Please enter a license key."));
+        }
     } else {
         m_keyInput->setReadOnly(false);
         m_actionBtn->setVisible(true);
@@ -176,6 +192,7 @@ void LicensePage::refreshStatus()
 
 void LicensePage::onActivateClicked()
 {
+    m_feedbackIsError = false;
     if (m_hasKey) {
         License::clearKey();
         m_keyInput->clear();
@@ -189,6 +206,21 @@ void LicensePage::onActivateClicked()
     if (key.isEmpty())
         return;
 
+    const License::KeyInfo info = License::inspectKey(key);
+    if (info.status != License::KeyStatus::Valid) {
+        m_feedbackIsError = true;
+        if (info.status == License::KeyStatus::Expired)
+            m_feedback->setText(tr("This license key expired on %1.")
+                .arg(QLocale().toString(info.expires, QLocale::ShortFormat)));
+        else if (info.status == License::KeyStatus::WrongProduct)
+            m_feedback->setText(tr("This license key is for another product."));
+        else
+            m_feedback->setText(tr("This license key is not valid."));
+        m_feedback->show();
+        applyTheme();
+        return;
+    }
+
     License::setKey(key);
     m_feedback->setText(tr("License key saved."));
     m_feedback->show();
@@ -198,7 +230,7 @@ void LicensePage::onActivateClicked()
 void LicensePage::applyTheme()
 {
     const bool dk = Theme::DarkMode;
-    const bool warn = !m_hasKey && License::evaluationDaysLeft() == 0;
+    const bool warn = m_hasKey ? !License::hasKey() : License::evaluationDaysLeft() == 0;
 
     const QString cardBg  = warn ? (dk ? "#3A2A12" : "#FFFBEB")
                                  : (dk ? "#2E2E2E" : "#FFFFFF");
@@ -258,7 +290,8 @@ void LicensePage::applyTheme()
     }
 
     m_feedback->setStyleSheet(QStringLiteral("font-size:12px; color:%1;")
-        .arg(dk ? "#4ADE80" : "#16A34A"));
+        .arg(m_feedbackIsError ? (dk ? "#F87171" : "#DC2626")
+                               : (dk ? "#4ADE80" : "#16A34A")));
 }
 
 void LicensePage::retranslateUi()

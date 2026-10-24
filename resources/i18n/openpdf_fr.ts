@@ -565,6 +565,7 @@ Utilisez une version qui inclut la prise en charge de Qt6::Pdf.
     <message>
         <location filename="../../src/ui/DocumentView.cpp" line="546"/>
         <location filename="../../src/ui/view/ImageAnnotationLayer.cpp" line="319"/>
+        <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="252"/>
         <source>Delete</source>
         <translation>Supprimer</translation>
     </message>
@@ -598,7 +599,7 @@ Utilisez une version qui inclut la prise en charge de Qt6::Pdf.
         <translation>Page %1</translation>
     </message>
     <message>
-        <location filename="../../src/ui/DocumentView_Document.cpp" line="252"/>
+        <location filename="../../src/ui/DocumentView_Document.cpp" line="255"/>
         <source>Signature removed</source>
         <translation>Signature supprimée</translation>
     </message>
@@ -652,12 +653,12 @@ Utilisez une version qui inclut la prise en charge de Qt6::Pdf.
 <context>
     <name>DrawingLayer</name>
     <message>
-        <location filename="../../src/ui/draw/DrawingLayer.cpp" line="291"/>
+        <location filename="../../src/ui/draw/DrawingLayer.cpp" line="293"/>
         <source>Erase drawing</source>
         <translation>Effacer le dessin</translation>
     </message>
     <message>
-        <location filename="../../src/ui/draw/DrawingLayer.cpp" line="292"/>
+        <location filename="../../src/ui/draw/DrawingLayer.cpp" line="294"/>
         <source>Draw stroke</source>
         <translation>Tracer un trait</translation>
     </message>
@@ -665,7 +666,7 @@ Utilisez une version qui inclut la prise en charge de Qt6::Pdf.
 <context>
     <name>EditController</name>
     <message>
-        <location filename="../../src/ui/edit/EditController.cpp" line="37"/>
+        <location filename="../../src/ui/edit/EditController.cpp" line="38"/>
         <source>Text bearbeiten</source>
         <translation>Modifier le texte</translation>
     </message>
@@ -700,7 +701,7 @@ Utilisez une version qui inclut la prise en charge de Qt6::Pdf.
         <translation type="vanished">Pas encore disponible.</translation>
     </message>
     <message>
-        <location filename="../../src/ui/export/ExportDialog.cpp" line="116"/>
+        <location filename="../../src/ui/export/ExportDialog.cpp" line="130"/>
         <source>Export - OpenPDF Studio</source>
         <translation>Exporter - OpenPDF Studio</translation>
     </message>
@@ -713,250 +714,258 @@ Utilisez une version qui inclut la prise en charge de Qt6::Pdf.
         <translation type="vanished">Non utilisé pour l&apos;export en images PNG.</translation>
     </message>
     <message>
-        <location filename="../../src/ui/export/ExportDialog.cpp" line="196"/>
+        <location filename="../../src/ui/export/ExportDialog.cpp" line="183"/>
         <source>Not available in this build: rewriting a PDF&apos;s annotations, forms, fonts or encryption needs qpdf.</source>
         <translation>Non disponible dans cette version : réécrire les annotations, formulaires, polices ou le chiffrement d&apos;un PDF nécessite qpdf.</translation>
     </message>
     <message>
-        <location filename="../../src/ui/export/ExportDialog.cpp" line="210"/>
-        <location filename="../../src/ui/export/ExportDialog.cpp" line="654"/>
+        <location filename="../../src/ui/export/ExportDialog.cpp" line="197"/>
+        <location filename="../../src/ui/export/ExportDialog.cpp" line="649"/>
         <source>Estimated file size: unknown</source>
         <translation>Taille estimée du fichier : inconnue</translation>
     </message>
     <message>
-        <location filename="../../src/ui/export/ExportDialog.cpp" line="217"/>
+        <location filename="../../src/ui/export/ExportDialog.cpp" line="204"/>
         <source>Estimated file size: unknown (check the page range)</source>
         <translation>Taille estimée du fichier : inconnue (vérifiez la plage de pages)</translation>
     </message>
     <message>
-        <location filename="../../src/ui/export/ExportDialog.cpp" line="267"/>
+        <location filename="../../src/ui/export/ExportDialog.cpp" line="260"/>
         <source>Estimated file size: ~%1  (%2 of %3 pages)</source>
         <translation>Taille estimée du fichier : ~%1  (%2 sur %3 pages)</translation>
     </message>
     <message>
-        <location filename="../../src/ui/export/ExportDialog.cpp" line="319"/>
+        <location filename="../../src/ui/export/ExportDialog.cpp" line="311"/>
         <source>Select Save Location</source>
         <translation>Choisir l&apos;emplacement</translation>
     </message>
     <message>
-        <location filename="../../src/ui/export/ExportDialog.cpp" line="330"/>
+        <location filename="../../src/ui/export/ExportDialog.cpp" line="322"/>
         <source>Missing filename</source>
         <translation>Nom de fichier manquant</translation>
     </message>
     <message>
-        <location filename="../../src/ui/export/ExportDialog.cpp" line="330"/>
+        <location filename="../../src/ui/export/ExportDialog.cpp" line="322"/>
         <source>Please enter a filename.</source>
         <translation>Saisissez un nom de fichier.</translation>
     </message>
     <message>
-        <location filename="../../src/ui/export/ExportDialog.cpp" line="334"/>
+        <location filename="../../src/ui/export/ExportDialog.cpp" line="326"/>
         <source>Missing location</source>
         <translation>Emplacement manquant</translation>
     </message>
     <message>
-        <location filename="../../src/ui/export/ExportDialog.cpp" line="334"/>
+        <location filename="../../src/ui/export/ExportDialog.cpp" line="326"/>
         <source>Please select a save location.</source>
         <translation>Choisissez un emplacement d&apos;enregistrement.</translation>
     </message>
     <message>
-        <location filename="../../src/ui/export/ExportDialog.cpp" line="339"/>
+        <location filename="../../src/ui/export/ExportDialog.cpp" line="331"/>
         <source>No document</source>
         <translation>Aucun document</translation>
     </message>
     <message>
-        <location filename="../../src/ui/export/ExportDialog.cpp" line="339"/>
+        <location filename="../../src/ui/export/ExportDialog.cpp" line="331"/>
         <source>Please open a PDF document first.</source>
         <translation>Ouvrez d&apos;abord un document PDF.</translation>
     </message>
     <message>
-        <location filename="../../src/ui/export/ExportDialog.cpp" line="347"/>
+        <location filename="../../src/ui/export/ExportDialog.cpp" line="339"/>
         <source>Invalid page range</source>
         <translation>Plage de pages non valide</translation>
     </message>
     <message>
-        <location filename="../../src/ui/export/ExportDialog.cpp" line="348"/>
+        <location filename="../../src/ui/export/ExportDialog.cpp" line="340"/>
         <source>&quot;%1&quot; is not a valid range for a document with %2 pages.
 Use page numbers like 1-3, 5, 8-10.</source>
         <translation>« %1 » n&apos;est pas une plage valide pour un document de %2 pages.
 Utilisez des numéros de page comme 1-3, 5, 8-10.</translation>
     </message>
     <message>
-        <location filename="../../src/ui/export/ExportDialog.cpp" line="371"/>
+        <location filename="../../src/ui/export/ExportDialog.cpp" line="364"/>
         <source>%1 image files</source>
         <translation>%1 fichiers image</translation>
     </message>
     <message>
-        <location filename="../../src/ui/export/ExportDialog.cpp" line="372"/>
+        <location filename="../../src/ui/export/ExportDialog.cpp" line="365"/>
         <source>Overwrite existing file?</source>
         <translation>Remplacer le fichier existant ?</translation>
     </message>
     <message>
-        <location filename="../../src/ui/export/ExportDialog.cpp" line="373"/>
+        <location filename="../../src/ui/export/ExportDialog.cpp" line="366"/>
         <source>%1 already exists. Do you want to overwrite it?</source>
         <translation>%1 existe déjà. Voulez-vous le remplacer ?</translation>
     </message>
     <message>
-        <location filename="../../src/ui/export/ExportDialog.cpp" line="467"/>
+        <location filename="../../src/ui/export/ExportDialog.cpp" line="460"/>
         <source>Best for sharing and printing</source>
         <translation>Idéal pour partager et imprimer</translation>
     </message>
     <message>
-        <location filename="../../src/ui/export/ExportDialog.cpp" line="470"/>
+        <location filename="../../src/ui/export/ExportDialog.cpp" line="463"/>
         <source>Long-term archiving</source>
         <translation>Archivage à long terme</translation>
     </message>
     <message>
-        <location filename="../../src/ui/export/ExportDialog.cpp" line="472"/>
+        <location filename="../../src/ui/export/ExportDialog.cpp" line="465"/>
         <source>Edit in Microsoft Word</source>
         <translation>Modifier dans Microsoft Word</translation>
     </message>
     <message>
-        <location filename="../../src/ui/export/ExportDialog.cpp" line="475"/>
         <source>Image</source>
-        <translation>Image</translation>
+        <translation type="vanished">Image</translation>
     </message>
     <message>
-        <location filename="../../src/ui/export/ExportDialog.cpp" line="475"/>
         <source>PNG images</source>
-        <translation>Images PNG</translation>
+        <translation type="vanished">Images PNG</translation>
     </message>
     <message>
-        <location filename="../../src/ui/export/ExportDialog.cpp" line="502"/>
+        <location filename="../../src/ui/export/ExportDialog.cpp" line="468"/>
+        <source>Lossless page images</source>
+        <translation>Images de page sans perte</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/export/ExportDialog.cpp" line="470"/>
+        <source>Smaller files for photos and scans</source>
+        <translation>Fichiers plus légers pour les photos et les scans</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/export/ExportDialog.cpp" line="497"/>
         <source>File</source>
         <translation>Fichier</translation>
     </message>
     <message>
-        <location filename="../../src/ui/export/ExportDialog.cpp" line="503"/>
+        <location filename="../../src/ui/export/ExportDialog.cpp" line="498"/>
         <source>Choose where to save your file.</source>
         <translation>Choisissez où enregistrer votre fichier.</translation>
     </message>
     <message>
-        <location filename="../../src/ui/export/ExportDialog.cpp" line="516"/>
+        <location filename="../../src/ui/export/ExportDialog.cpp" line="511"/>
         <source>Browse…</source>
         <translation>Parcourir…</translation>
     </message>
     <message>
-        <location filename="../../src/ui/export/ExportDialog.cpp" line="521"/>
+        <location filename="../../src/ui/export/ExportDialog.cpp" line="516"/>
         <source>Filename</source>
         <translation>Nom du fichier</translation>
     </message>
     <message>
-        <location filename="../../src/ui/export/ExportDialog.cpp" line="523"/>
+        <location filename="../../src/ui/export/ExportDialog.cpp" line="518"/>
         <source>Save location</source>
         <translation>Emplacement</translation>
     </message>
     <message>
-        <location filename="../../src/ui/export/ExportDialog.cpp" line="528"/>
+        <location filename="../../src/ui/export/ExportDialog.cpp" line="523"/>
         <source>Open file after export</source>
         <translation>Ouvrir le fichier après l&apos;export</translation>
     </message>
     <message>
-        <location filename="../../src/ui/export/ExportDialog.cpp" line="530"/>
+        <location filename="../../src/ui/export/ExportDialog.cpp" line="525"/>
         <source>Automatically open the exported file when the process completes.</source>
         <translation>Ouvrir automatiquement le fichier exporté une fois l&apos;opération terminée.</translation>
     </message>
     <message>
-        <location filename="../../src/ui/export/ExportDialog.cpp" line="537"/>
+        <location filename="../../src/ui/export/ExportDialog.cpp" line="532"/>
         <source>Pages</source>
         <translation>Pages</translation>
     </message>
     <message>
-        <location filename="../../src/ui/export/ExportDialog.cpp" line="538"/>
+        <location filename="../../src/ui/export/ExportDialog.cpp" line="533"/>
         <source>Select which pages to export.</source>
         <translation>Choisissez les pages à exporter.</translation>
     </message>
     <message>
-        <location filename="../../src/ui/export/ExportDialog.cpp" line="541"/>
+        <location filename="../../src/ui/export/ExportDialog.cpp" line="536"/>
         <source>All pages (%1)</source>
         <translation>Toutes les pages (%1)</translation>
     </message>
     <message>
-        <location filename="../../src/ui/export/ExportDialog.cpp" line="542"/>
+        <location filename="../../src/ui/export/ExportDialog.cpp" line="537"/>
         <source>All pages</source>
         <translation>Toutes les pages</translation>
     </message>
     <message>
-        <location filename="../../src/ui/export/ExportDialog.cpp" line="543"/>
+        <location filename="../../src/ui/export/ExportDialog.cpp" line="538"/>
         <source>Current page (%1)</source>
         <translation>Page actuelle (%1)</translation>
     </message>
     <message>
-        <location filename="../../src/ui/export/ExportDialog.cpp" line="544"/>
+        <location filename="../../src/ui/export/ExportDialog.cpp" line="539"/>
         <source>Current page</source>
         <translation>Page actuelle</translation>
     </message>
     <message>
-        <location filename="../../src/ui/export/ExportDialog.cpp" line="545"/>
+        <location filename="../../src/ui/export/ExportDialog.cpp" line="540"/>
         <source>Range</source>
         <translation>Plage</translation>
     </message>
     <message>
-        <location filename="../../src/ui/export/ExportDialog.cpp" line="549"/>
+        <location filename="../../src/ui/export/ExportDialog.cpp" line="544"/>
         <source>For example: 1-3, 5, 8-10</source>
         <translation>Par exemple : 1-3, 5, 8-10</translation>
     </message>
     <message>
-        <location filename="../../src/ui/export/ExportDialog.cpp" line="575"/>
+        <location filename="../../src/ui/export/ExportDialog.cpp" line="570"/>
         <source>Settings</source>
         <translation>Paramètres</translation>
     </message>
     <message>
-        <location filename="../../src/ui/export/ExportDialog.cpp" line="576"/>
+        <location filename="../../src/ui/export/ExportDialog.cpp" line="571"/>
         <source>Adjust quality and include additional content.</source>
         <translation>Réglez la qualité et ajoutez du contenu supplémentaire.</translation>
     </message>
     <message>
-        <location filename="../../src/ui/export/ExportDialog.cpp" line="581"/>
+        <location filename="../../src/ui/export/ExportDialog.cpp" line="576"/>
         <source>Compress images</source>
         <translation>Compresser les images</translation>
     </message>
     <message>
-        <location filename="../../src/ui/export/ExportDialog.cpp" line="585"/>
+        <location filename="../../src/ui/export/ExportDialog.cpp" line="580"/>
         <source>Quality</source>
         <translation>Qualité</translation>
     </message>
     <message>
-        <location filename="../../src/ui/export/ExportDialog.cpp" line="596"/>
+        <location filename="../../src/ui/export/ExportDialog.cpp" line="591"/>
         <source>Maximum</source>
         <translation>Maximale</translation>
     </message>
     <message>
-        <location filename="../../src/ui/export/ExportDialog.cpp" line="597"/>
+        <location filename="../../src/ui/export/ExportDialog.cpp" line="592"/>
         <source>High</source>
         <translation>Haute</translation>
     </message>
     <message>
-        <location filename="../../src/ui/export/ExportDialog.cpp" line="598"/>
+        <location filename="../../src/ui/export/ExportDialog.cpp" line="593"/>
         <source>Medium</source>
         <translation>Moyenne</translation>
     </message>
     <message>
-        <location filename="../../src/ui/export/ExportDialog.cpp" line="599"/>
+        <location filename="../../src/ui/export/ExportDialog.cpp" line="594"/>
         <source>Low</source>
         <translation>Basse</translation>
     </message>
     <message>
-        <location filename="../../src/ui/export/ExportDialog.cpp" line="605"/>
+        <location filename="../../src/ui/export/ExportDialog.cpp" line="600"/>
         <source>Reduces file size without noticeable quality loss.</source>
         <translation>Réduit la taille du fichier sans perte de qualité visible.</translation>
     </message>
     <message>
-        <location filename="../../src/ui/export/ExportDialog.cpp" line="620"/>
+        <location filename="../../src/ui/export/ExportDialog.cpp" line="615"/>
         <source>Keep forms</source>
         <translation>Conserver les formulaires</translation>
     </message>
     <message>
-        <location filename="../../src/ui/export/ExportDialog.cpp" line="621"/>
+        <location filename="../../src/ui/export/ExportDialog.cpp" line="616"/>
         <source>Include comments</source>
         <translation>Inclure les commentaires</translation>
     </message>
     <message>
-        <location filename="../../src/ui/export/ExportDialog.cpp" line="624"/>
+        <location filename="../../src/ui/export/ExportDialog.cpp" line="619"/>
         <source>Preserve form fields and data.</source>
         <translation>Conserver les champs de formulaire et leurs données.</translation>
     </message>
     <message>
-        <location filename="../../src/ui/export/ExportDialog.cpp" line="625"/>
+        <location filename="../../src/ui/export/ExportDialog.cpp" line="620"/>
         <source>Export comments and annotations.</source>
         <translation>Exporter les commentaires et les annotations.</translation>
     </message>
@@ -969,12 +978,12 @@ Utilisez des numéros de page comme 1-3, 5, 8-10.</translation>
         <translation type="vanished">Choisissez ce qui est conservé dans le fichier exporté.</translation>
     </message>
     <message>
-        <location filename="../../src/ui/export/ExportDialog.cpp" line="626"/>
+        <location filename="../../src/ui/export/ExportDialog.cpp" line="621"/>
         <source>Embed fonts</source>
         <translation>Incorporer les polices</translation>
     </message>
     <message>
-        <location filename="../../src/ui/export/ExportDialog.cpp" line="628"/>
+        <location filename="../../src/ui/export/ExportDialog.cpp" line="623"/>
         <source>Include all used fonts in the PDF file.</source>
         <translation>Inclure toutes les polices utilisées dans le fichier PDF.</translation>
     </message>
@@ -1011,12 +1020,12 @@ Utilisez des numéros de page comme 1-3, 5, 8-10.</translation>
         <translation type="vanished">Supprimer toutes les actions JavaScript du fichier.</translation>
     </message>
     <message>
-        <location filename="../../src/ui/export/ExportDialog.cpp" line="656"/>
+        <location filename="../../src/ui/export/ExportDialog.cpp" line="651"/>
         <source>Cancel</source>
         <translation>Annuler</translation>
     </message>
     <message>
-        <location filename="../../src/ui/export/ExportDialog.cpp" line="661"/>
+        <location filename="../../src/ui/export/ExportDialog.cpp" line="656"/>
         <source>Export</source>
         <translation>Exporter</translation>
     </message>
@@ -1049,32 +1058,38 @@ Utilisez des numéros de page comme 1-3, 5, 8-10.</translation>
         <translation type="vanished">Export de « %1 »…</translation>
     </message>
     <message>
-        <location filename="../../src/ui/export/Exporting.cpp" line="115"/>
+        <location filename="../../src/ui/export/Exporting.cpp" line="157"/>
         <source>Exporting page %1 of %2…</source>
         <translation>Exportation de la page %1 sur %2…</translation>
     </message>
     <message>
-        <location filename="../../src/ui/export/Exporting.cpp" line="136"/>
+        <location filename="../../src/ui/export/Exporting.cpp" line="200"/>
         <source>Writing &quot;%1&quot;…</source>
         <translation>Écriture de « %1 »…</translation>
     </message>
     <message>
-        <location filename="../../src/ui/export/Exporting.cpp" line="139"/>
+        <location filename="../../src/ui/export/Exporting.cpp" line="204"/>
         <source>Could not write to &quot;%1&quot;.</source>
         <translation>Impossible d&apos;écrire dans « %1 ».</translation>
     </message>
     <message>
-        <location filename="../../src/ui/export/Exporting.cpp" line="146"/>
+        <location filename="../../src/ui/export/Exporting.cpp" line="214"/>
+        <source>Could not export JPEG images to &quot;%1&quot;.</source>
+        <translation>Impossible d’exporter les images JPEG vers « %1 ».</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/export/Exporting.cpp" line="215"/>
         <source>Could not export PNG images to &quot;%1&quot;.</source>
         <translation>Impossible d&apos;exporter les images PNG vers « %1 ».</translation>
     </message>
     <message>
-        <location filename="../../src/ui/export/Exporting.cpp" line="68"/>
+        <location filename="../../src/ui/export/Exporting.cpp" line="121"/>
+        <location filename="../../src/ui/export/Exporting.cpp" line="183"/>
         <source>Could not write &quot;%1&quot;.</source>
         <translation>Impossible d&apos;écrire « %1 ».</translation>
     </message>
     <message>
-        <location filename="../../src/ui/export/Exporting.cpp" line="70"/>
+        <location filename="../../src/ui/export/Exporting.cpp" line="123"/>
         <source>Could not write &quot;%1&quot;.
 
 Selecting pages for a PDF needs qpdf, which this build does not include. Exporting as Word or PNG is unaffected.</source>
@@ -1083,17 +1098,22 @@ Selecting pages for a PDF needs qpdf, which this build does not include. Exporti
 La sélection de pages pour un PDF nécessite qpdf, absent de cette version. L&apos;export en Word ou PNG n&apos;est pas concerné.</translation>
     </message>
     <message>
-        <location filename="../../src/ui/export/Exporting.cpp" line="166"/>
+        <location filename="../../src/ui/export/Exporting.cpp" line="234"/>
         <source>Export failed</source>
         <translation>Échec de l&apos;export</translation>
     </message>
     <message>
-        <location filename="../../src/ui/export/Exporting.cpp" line="172"/>
+        <location filename="../../src/ui/export/Exporting.cpp" line="241"/>
+        <source>%1 pages exported as JPEG images</source>
+        <translation>%1 pages exportées en images JPEG</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/export/Exporting.cpp" line="242"/>
         <source>%1 pages exported as PNG images</source>
         <translation>%1 pages exportées en images PNG</translation>
     </message>
     <message>
-        <location filename="../../src/ui/export/Exporting.cpp" line="173"/>
+        <location filename="../../src/ui/export/Exporting.cpp" line="240"/>
         <source>Exported &quot;%1&quot;</source>
         <translation>« %1 » exporté</translation>
     </message>
@@ -2034,103 +2054,139 @@ Les modifications de texte, d&apos;images et de dessins faites depuis ne sont en
 <context>
     <name>LicensePage</name>
     <message>
-        <location filename="../../src/drm/LicensePage.cpp" line="148"/>
+        <location filename="../../src/drm/LicensePage.cpp" line="150"/>
         <source>Remove License</source>
         <translation>Supprimer la licence</translation>
     </message>
     <message>
-        <location filename="../../src/drm/LicensePage.cpp" line="149"/>
+        <location filename="../../src/drm/LicensePage.cpp" line="152"/>
         <source>License key on record</source>
         <translation>Clé de licence enregistrée</translation>
     </message>
     <message>
-        <location filename="../../src/drm/LicensePage.cpp" line="151"/>
+        <location filename="../../src/drm/LicensePage.cpp" line="154"/>
+        <location filename="../../src/drm/LicensePage.cpp" line="166"/>
         <source>Set by the installer for every account on this machine.</source>
         <translation>Définie par le programme d&apos;installation pour tous les comptes de cet ordinateur.</translation>
     </message>
     <message>
-        <location filename="../../src/drm/LicensePage.cpp" line="152"/>
+        <location filename="../../src/drm/LicensePage.cpp" line="155"/>
         <source>Entered in this application. Business use is covered.</source>
         <translation>Saisie dans cette application. L&apos;usage professionnel est couvert.</translation>
     </message>
     <message>
-        <location filename="../../src/drm/LicensePage.cpp" line="156"/>
+        <location filename="../../src/drm/LicensePage.cpp" line="172"/>
         <source>Activate License</source>
         <translation>Activer la licence</translation>
     </message>
     <message>
-        <location filename="../../src/drm/LicensePage.cpp" line="162"/>
+        <location filename="../../src/drm/LicensePage.cpp" line="178"/>
         <source>Evaluation: 1 day left</source>
         <translation>Évaluation : 1 jour restant</translation>
     </message>
     <message>
-        <location filename="../../src/drm/LicensePage.cpp" line="163"/>
+        <location filename="../../src/drm/LicensePage.cpp" line="179"/>
         <source>Evaluation: %1 days left</source>
         <translation>Évaluation : %1 jours restants</translation>
     </message>
     <message>
-        <location filename="../../src/drm/LicensePage.cpp" line="165"/>
+        <location filename="../../src/drm/LicensePage.cpp" line="181"/>
         <source>Business use is free to evaluate for %1 days. No key needed yet.</source>
         <translation>L&apos;usage professionnel peut être évalué gratuitement pendant %1 jours. Aucune clé n&apos;est encore nécessaire.</translation>
     </message>
     <message>
-        <location filename="../../src/drm/LicensePage.cpp" line="168"/>
+        <location filename="../../src/drm/LicensePage.cpp" line="184"/>
         <source>Evaluation period ended</source>
         <translation>Période d&apos;évaluation terminée</translation>
     </message>
     <message>
-        <location filename="../../src/drm/LicensePage.cpp" line="170"/>
+        <location filename="../../src/drm/LicensePage.cpp" line="167"/>
+        <location filename="../../src/drm/LicensePage.cpp" line="186"/>
         <source>Business use requires a license. Please enter a license key.</source>
         <translation>L&apos;usage professionnel nécessite une licence. Veuillez saisir une clé de licence.</translation>
     </message>
     <message>
-        <location filename="../../src/drm/LicensePage.cpp" line="182"/>
+        <source>Licensed to %1</source>
+        <translation type="vanished">Licence accordée à %1</translation>
+    </message>
+    <message>
+        <location filename="../../src/drm/LicensePage.cpp" line="157"/>
+        <source>Valid until %1.</source>
+        <translation>Valable jusqu&apos;au %1.</translation>
+    </message>
+    <message>
+        <location filename="../../src/drm/LicensePage.cpp" line="162"/>
+        <source>License expired on %1</source>
+        <translation>Licence expirée le %1</translation>
+    </message>
+    <message>
+        <location filename="../../src/drm/LicensePage.cpp" line="164"/>
+        <source>License key not valid</source>
+        <translation>Clé de licence non valide</translation>
+    </message>
+    <message>
+        <location filename="../../src/drm/LicensePage.cpp" line="199"/>
         <source>License key removed.</source>
         <translation>Clé de licence supprimée.</translation>
     </message>
     <message>
-        <location filename="../../src/drm/LicensePage.cpp" line="193"/>
+        <location filename="../../src/drm/LicensePage.cpp" line="213"/>
+        <source>This license key expired on %1.</source>
+        <translation>Cette clé de licence a expiré le %1.</translation>
+    </message>
+    <message>
+        <location filename="../../src/drm/LicensePage.cpp" line="216"/>
+        <source>This license key is for another product.</source>
+        <translation>Cette clé de licence est destinée à un autre produit.</translation>
+    </message>
+    <message>
+        <location filename="../../src/drm/LicensePage.cpp" line="218"/>
+        <source>This license key is not valid.</source>
+        <translation>Cette clé de licence n&apos;est pas valide.</translation>
+    </message>
+    <message>
+        <location filename="../../src/drm/LicensePage.cpp" line="225"/>
         <source>License key saved.</source>
         <translation>Clé de licence enregistrée.</translation>
     </message>
     <message>
-        <location filename="../../src/drm/LicensePage.cpp" line="266"/>
-        <location filename="../../src/drm/LicensePage.cpp" line="271"/>
+        <location filename="../../src/drm/LicensePage.cpp" line="299"/>
+        <location filename="../../src/drm/LicensePage.cpp" line="304"/>
         <source>License Key</source>
         <translation>Clé de licence</translation>
     </message>
     <message>
-        <location filename="../../src/drm/LicensePage.cpp" line="267"/>
+        <location filename="../../src/drm/LicensePage.cpp" line="300"/>
         <source>This installation is set up for business use. Enter your license key here.</source>
         <translation>Cette installation est configurée pour un usage professionnel. Saisissez ici votre clé de licence.</translation>
     </message>
     <message>
-        <location filename="../../src/drm/LicensePage.cpp" line="269"/>
+        <location filename="../../src/drm/LicensePage.cpp" line="302"/>
         <source>LICENSE STATUS</source>
         <translation>STATUT DE LA LICENCE</translation>
     </message>
     <message>
-        <location filename="../../src/drm/LicensePage.cpp" line="270"/>
+        <location filename="../../src/drm/LicensePage.cpp" line="303"/>
         <source>ACTIVATE LICENSE</source>
         <translation>ACTIVER LA LICENCE</translation>
     </message>
     <message>
-        <location filename="../../src/drm/LicensePage.cpp" line="272"/>
+        <location filename="../../src/drm/LicensePage.cpp" line="305"/>
         <source>Enter your license key</source>
         <translation>Saisissez votre clé de licence</translation>
     </message>
     <message>
-        <location filename="../../src/drm/LicensePage.cpp" line="273"/>
+        <location filename="../../src/drm/LicensePage.cpp" line="306"/>
         <source>NEED A LICENSE?</source>
         <translation>BESOIN D&apos;UNE LICENCE ?</translation>
     </message>
     <message>
-        <location filename="../../src/drm/LicensePage.cpp" line="274"/>
+        <location filename="../../src/drm/LicensePage.cpp" line="307"/>
         <source>A Business License covers business use of OpenPDF Studio and supports the development.</source>
         <translation>Une licence Business couvre l&apos;usage professionnel d&apos;OpenPDF Studio et soutient son développement.</translation>
     </message>
     <message>
-        <location filename="../../src/drm/LicensePage.cpp" line="276"/>
+        <location filename="../../src/drm/LicensePage.cpp" line="309"/>
         <source>Get License</source>
         <translation>Obtenir une licence</translation>
     </message>
@@ -2138,59 +2194,59 @@ Les modifications de texte, d&apos;images et de dessins faites depuis ne sont en
 <context>
     <name>LinkAnnotationLayer</name>
     <message>
-        <location filename="../../src/ui/view/LinkAnnotationLayer.cpp" line="174"/>
+        <location filename="../../src/ui/view/LinkAnnotationLayer.cpp" line="175"/>
         <source>Link</source>
         <translation>Lien</translation>
     </message>
     <message>
-        <location filename="../../src/ui/view/LinkAnnotationLayer.cpp" line="174"/>
+        <location filename="../../src/ui/view/LinkAnnotationLayer.cpp" line="175"/>
         <source>Link address:</source>
         <translation>Adresse du lien :</translation>
     </message>
     <message>
-        <location filename="../../src/ui/view/LinkAnnotationLayer.cpp" line="190"/>
+        <location filename="../../src/ui/view/LinkAnnotationLayer.cpp" line="191"/>
         <source>Open Link</source>
         <translation>Ouvrir le lien</translation>
     </message>
     <message>
-        <location filename="../../src/ui/view/LinkAnnotationLayer.cpp" line="192"/>
+        <location filename="../../src/ui/view/LinkAnnotationLayer.cpp" line="193"/>
         <source>Open Link in New Tab</source>
         <translation>Ouvrir le lien dans un nouvel onglet</translation>
     </message>
     <message>
-        <location filename="../../src/ui/view/LinkAnnotationLayer.cpp" line="194"/>
+        <location filename="../../src/ui/view/LinkAnnotationLayer.cpp" line="195"/>
         <source>Copy Link Address</source>
         <translation>Copier l&apos;adresse du lien</translation>
     </message>
     <message>
-        <location filename="../../src/ui/view/LinkAnnotationLayer.cpp" line="197"/>
+        <location filename="../../src/ui/view/LinkAnnotationLayer.cpp" line="198"/>
         <source>Edit Link</source>
         <translation>Modifier le lien</translation>
     </message>
     <message>
-        <location filename="../../src/ui/view/LinkAnnotationLayer.cpp" line="199"/>
+        <location filename="../../src/ui/view/LinkAnnotationLayer.cpp" line="200"/>
         <source>Delete Link</source>
         <translation>Supprimer le lien</translation>
     </message>
     <message>
-        <location filename="../../src/ui/view/LinkAnnotationLayer.cpp" line="201"/>
-        <location filename="../../src/ui/view/LinkAnnotationLayer.cpp" line="254"/>
+        <location filename="../../src/ui/view/LinkAnnotationLayer.cpp" line="202"/>
+        <location filename="../../src/ui/view/LinkAnnotationLayer.cpp" line="255"/>
         <source>Add Link...</source>
         <translation>Ajouter un lien…</translation>
     </message>
     <message>
-        <location filename="../../src/ui/view/LinkAnnotationLayer.cpp" line="223"/>
+        <location filename="../../src/ui/view/LinkAnnotationLayer.cpp" line="224"/>
         <source>Edit link</source>
         <translation>Modifier le lien</translation>
     </message>
     <message>
-        <location filename="../../src/ui/view/LinkAnnotationLayer.cpp" line="240"/>
+        <location filename="../../src/ui/view/LinkAnnotationLayer.cpp" line="241"/>
         <source>Delete link</source>
         <translation>Supprimer le lien</translation>
     </message>
     <message>
-        <location filename="../../src/ui/view/LinkAnnotationLayer.cpp" line="290"/>
-        <location filename="../../src/ui/view/LinkAnnotationLayer.cpp" line="332"/>
+        <location filename="../../src/ui/view/LinkAnnotationLayer.cpp" line="291"/>
+        <location filename="../../src/ui/view/LinkAnnotationLayer.cpp" line="333"/>
         <source>Add link</source>
         <translation>Ajouter un lien</translation>
     </message>
@@ -2202,48 +2258,48 @@ Les modifications de texte, d&apos;images et de dessins faites depuis ne sont en
         <translation type="vanished">Ouvrir un PDF</translation>
     </message>
     <message>
-        <location filename="../../src/ui/MainWindow.cpp" line="677"/>
+        <location filename="../../src/ui/MainWindow.cpp" line="692"/>
         <source>PDF files (*.pdf)</source>
         <translation>Fichiers PDF (*.pdf)</translation>
     </message>
     <message>
-        <location filename="../../src/ui/MainWindow.cpp" line="676"/>
+        <location filename="../../src/ui/MainWindow.cpp" line="691"/>
         <source>Save PDF As</source>
         <translation>Enregistrer le PDF sous</translation>
     </message>
     <message>
-        <location filename="../../src/ui/MainWindow.cpp" line="105"/>
+        <location filename="../../src/ui/MainWindow.cpp" line="114"/>
         <source>Update available</source>
         <translation>Mise à jour disponible</translation>
     </message>
     <message>
-        <location filename="../../src/ui/MainWindow.cpp" line="106"/>
+        <location filename="../../src/ui/MainWindow.cpp" line="115"/>
         <source>OpenPDF Studio %1 is available.</source>
         <translation>OpenPDF Studio %1 est disponible.</translation>
     </message>
     <message>
-        <location filename="../../src/ui/MainWindow.cpp" line="107"/>
+        <location filename="../../src/ui/MainWindow.cpp" line="116"/>
         <source>You are running %1.</source>
         <translation>Vous utilisez la version %1.</translation>
     </message>
     <message>
-        <location filename="../../src/ui/MainWindow.cpp" line="108"/>
+        <location filename="../../src/ui/MainWindow.cpp" line="117"/>
         <source>Open download page</source>
         <translation>Ouvrir la page de téléchargement</translation>
     </message>
     <message>
-        <location filename="../../src/ui/MainWindow.cpp" line="110"/>
+        <location filename="../../src/ui/MainWindow.cpp" line="119"/>
         <source>Later</source>
         <translation>Plus tard</translation>
     </message>
     <message>
-        <location filename="../../src/ui/MainWindow.cpp" line="661"/>
-        <location filename="../../src/ui/MainWindow.cpp" line="666"/>
+        <location filename="../../src/ui/MainWindow.cpp" line="676"/>
+        <location filename="../../src/ui/MainWindow.cpp" line="681"/>
         <source>Save failed</source>
         <translation>Échec de l&apos;enregistrement</translation>
     </message>
     <message>
-        <location filename="../../src/ui/MainWindow.cpp" line="667"/>
+        <location filename="../../src/ui/MainWindow.cpp" line="682"/>
         <source>Could not write &quot;%1&quot;.
 
 The file may be write-protected or open in another program. The document is unchanged. Try saving it under a different name.</source>
@@ -2252,58 +2308,58 @@ The file may be write-protected or open in another program. The document is unch
 Le fichier est peut-être protégé en écriture ou ouvert dans un autre programme. Le document n&apos;a pas été modifié. Essayez de l&apos;enregistrer sous un autre nom.</translation>
     </message>
     <message>
-        <location filename="../../src/ui/MainWindow.cpp" line="831"/>
+        <location filename="../../src/ui/MainWindow.cpp" line="846"/>
         <source>Edit Mode</source>
         <translation>Mode édition</translation>
     </message>
     <message>
-        <location filename="../../src/ui/MainWindow.cpp" line="832"/>
+        <location filename="../../src/ui/MainWindow.cpp" line="847"/>
         <source>Do you want to enable Edit Mode?</source>
         <translation>Voulez-vous activer le mode édition ?</translation>
     </message>
     <message>
-        <location filename="../../src/ui/MainWindow.cpp" line="1059"/>
+        <location filename="../../src/ui/MainWindow.cpp" line="1074"/>
         <source>Untitled</source>
         <translation>Sans titre</translation>
     </message>
     <message>
-        <location filename="../../src/ui/MainWindow.cpp" line="1063"/>
+        <location filename="../../src/ui/MainWindow.cpp" line="1078"/>
         <source>Unsaved Changes</source>
         <translation>Modifications non enregistrées</translation>
     </message>
     <message>
-        <location filename="../../src/ui/MainWindow.cpp" line="1064"/>
+        <location filename="../../src/ui/MainWindow.cpp" line="1079"/>
         <source>Save changes to &quot;%1&quot;?</source>
         <translation>Enregistrer les modifications de « %1 » ?</translation>
     </message>
     <message>
-        <location filename="../../src/ui/MainWindow.cpp" line="546"/>
+        <location filename="../../src/ui/MainWindow.cpp" line="555"/>
         <source>Open Document</source>
         <translation>Ouvrir un document</translation>
     </message>
     <message>
-        <location filename="../../src/ui/MainWindow.cpp" line="561"/>
+        <location filename="../../src/ui/MainWindow.cpp" line="570"/>
         <source>Cannot open file</source>
         <translation>Impossible d&apos;ouvrir le fichier</translation>
     </message>
     <message>
-        <location filename="../../src/ui/MainWindow.cpp" line="583"/>
+        <location filename="../../src/ui/MainWindow.cpp" line="592"/>
         <source>There is no room to put the converted file.</source>
         <translation>Il n&apos;y a pas de place pour le fichier converti.</translation>
     </message>
     <message>
-        <location filename="../../src/ui/MainWindow.cpp" line="597"/>
-        <location filename="../../src/ui/MainWindow.cpp" line="615"/>
+        <location filename="../../src/ui/MainWindow.cpp" line="606"/>
+        <location filename="../../src/ui/MainWindow.cpp" line="624"/>
         <source>Import failed</source>
         <translation>Échec de l&apos;importation</translation>
     </message>
     <message>
-        <location filename="../../src/ui/MainWindow.cpp" line="562"/>
+        <location filename="../../src/ui/MainWindow.cpp" line="571"/>
         <source>&quot;%1&quot; is not a PDF and cannot be turned into one.</source>
         <translation>« %1 » n&apos;est pas un PDF et ne peut pas être converti en PDF.</translation>
     </message>
     <message>
-        <location filename="../../src/ui/MainWindow.cpp" line="598"/>
+        <location filename="../../src/ui/MainWindow.cpp" line="607"/>
         <source>&quot;%1&quot; could not be turned into a PDF.
 
 %2</source>
@@ -2312,7 +2368,7 @@ Le fichier est peut-être protégé en écriture ou ouvert dans un autre program
 %2</translation>
     </message>
     <message>
-        <location filename="../../src/ui/MainWindow.cpp" line="616"/>
+        <location filename="../../src/ui/MainWindow.cpp" line="625"/>
         <source>&quot;%1&quot; was converted, but the result could not be opened.</source>
         <translation>« %1 » a été converti, mais le résultat n&apos;a pas pu être ouvert.</translation>
     </message>
@@ -2320,77 +2376,90 @@ Le fichier est peut-être protégé en écriture ou ouvert dans un autre program
 <context>
     <name>MediaLayer</name>
     <message>
-        <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="210"/>
         <source>Edit properties</source>
-        <translation>Modifier les propriétés</translation>
+        <translation type="vanished">Modifier les propriétés</translation>
     </message>
     <message>
-        <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="212"/>
+        <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="242"/>
         <source>Play</source>
         <translation>Lire</translation>
     </message>
     <message>
-        <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="213"/>
+        <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="244"/>
         <source>Save media as...</source>
         <translation>Enregistrer le média sous…</translation>
     </message>
     <message>
-        <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="215"/>
         <source>Remove</source>
-        <translation>Supprimer</translation>
+        <translation type="vanished">Supprimer</translation>
     </message>
     <message>
-        <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="254"/>
-        <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="264"/>
+        <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="247"/>
+        <source>Replace media</source>
+        <translation>Remplacer le média</translation>
+    </message>
+    <message>
+        <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="288"/>
+        <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="298"/>
         <source>Media removed</source>
         <translation>Média supprimé</translation>
     </message>
     <message>
-        <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="355"/>
+        <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="389"/>
         <source>Save media as</source>
         <translation>Enregistrer le média sous</translation>
     </message>
     <message>
-        <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="360"/>
-        <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="748"/>
-        <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="759"/>
+        <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="394"/>
+        <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="770"/>
         <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="781"/>
-        <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="795"/>
-        <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="887"/>
-        <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="904"/>
-        <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="920"/>
-        <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="935"/>
-        <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="958"/>
-        <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="991"/>
-        <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="999"/>
-        <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="1023"/>
-        <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="1058"/>
-        <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="1131"/>
+        <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="803"/>
+        <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="817"/>
+        <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="907"/>
+        <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="924"/>
+        <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="940"/>
+        <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="955"/>
+        <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="978"/>
+        <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="1011"/>
+        <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="1019"/>
+        <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="1043"/>
+        <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="1078"/>
+        <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="1151"/>
         <source>Rich Media</source>
         <translation>Rich Media</translation>
     </message>
     <message>
-        <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="361"/>
+        <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="395"/>
         <source>Could not write &quot;%1&quot;.</source>
         <translation>Impossible d&apos;écrire « %1 ».</translation>
     </message>
     <message>
-        <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="731"/>
+        <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="589"/>
+        <source>Media files (*.mp4 *.m4v *.mov *.webm *.mkv *.avi *.mp3 *.m4a *.wav *.ogg *.opus *.flac);;All files (*)</source>
+        <translation>Fichiers multimédias (*.mp4 *.m4v *.mov *.webm *.mkv *.avi *.mp3 *.m4a *.wav *.ogg *.opus *.flac);;Tous les fichiers (*)</translation>
+    </message>
+    <message>
+        <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="591"/>
+        <source>Choose media</source>
+        <translation>Choisir un média</translation>
+    </message>
+    <message>
+        <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="753"/>
         <source>Media changed</source>
         <translation>Média modifié</translation>
     </message>
     <message>
-        <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="743"/>
+        <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="765"/>
         <source>%1, an unsupported format</source>
         <translation>%1, un format non pris en charge</translation>
     </message>
     <message>
-        <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="744"/>
+        <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="766"/>
         <source>%1 in %2</source>
         <translation>%1 dans %2</translation>
     </message>
     <message>
-        <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="749"/>
+        <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="771"/>
         <source>This file is %1. Most PDF viewers play only H.264 video in an MP4 container, so for many people the video will be a still image.
 
 Install ffmpeg to convert it, or embed it as it is.</source>
@@ -2399,134 +2468,134 @@ Install ffmpeg to convert it, or embed it as it is.</source>
 Installez ffmpeg pour la convertir, ou intégrez-la telle quelle.</translation>
     </message>
     <message>
-        <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="760"/>
+        <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="782"/>
         <source>This file is %1.</source>
         <translation>Ce fichier est %1.</translation>
     </message>
     <message>
-        <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="762"/>
+        <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="784"/>
         <source>H.264 in an MP4 container is what plays everywhere: in PDF viewers, in browsers and on phones. Convert it now so the video works for everyone who opens the document?</source>
         <translation>Le H.264 dans un conteneur MP4 se lit partout : dans les lecteurs PDF, les navigateurs et les téléphones. Le convertir maintenant pour que la vidéo fonctionne pour tous ceux qui ouvrent le document ?</translation>
     </message>
     <message>
-        <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="765"/>
+        <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="787"/>
         <source>Convert</source>
         <translation>Convertir</translation>
     </message>
     <message>
-        <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="766"/>
+        <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="788"/>
         <source>Embed as is</source>
         <translation>Intégrer tel quel</translation>
     </message>
     <message>
-        <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="779"/>
+        <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="801"/>
         <source>Converting %1...</source>
         <translation>Conversion de %1…</translation>
     </message>
     <message>
-        <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="780"/>
-        <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="918"/>
+        <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="802"/>
+        <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="938"/>
         <source>Cancel</source>
         <translation>Annuler</translation>
     </message>
     <message>
-        <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="796"/>
+        <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="818"/>
         <source>The file could not be converted.</source>
         <translation>Impossible de convertir le fichier.</translation>
     </message>
     <message>
-        <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="836"/>
-        <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="1122"/>
+        <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="856"/>
+        <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="1142"/>
         <source>Media inserted</source>
         <translation>Média inséré</translation>
     </message>
     <message>
-        <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="873"/>
+        <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="893"/>
         <source>%1 in %2, %3 by %4 pixels.</source>
         <translation>%1 dans %2, %3 × %4 pixels.</translation>
     </message>
     <message>
-        <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="876"/>
+        <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="896"/>
         <source>%1 in %2.</source>
         <translation>%1 dans %2.</translation>
     </message>
     <message>
-        <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="880"/>
+        <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="900"/>
         <source>Video this large is more than some systems will decode. A smaller copy usually plays, and the document keeps the original.</source>
         <translation>Une vidéo aussi grande dépasse ce que certains systèmes peuvent décoder. Une copie plus petite se lit généralement, et le document conserve l&apos;original.</translation>
     </message>
     <message>
-        <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="888"/>
+        <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="908"/>
         <source>This video could not be played here: %1</source>
         <translation>Impossible de lire cette vidéo ici : %1</translation>
     </message>
     <message>
-        <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="895"/>
+        <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="915"/>
         <source>Play a smaller copy</source>
         <translation>Lire une copie plus petite</translation>
     </message>
     <message>
-        <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="897"/>
+        <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="917"/>
         <source>Open in system player</source>
         <translation>Ouvrir dans le lecteur du système</translation>
     </message>
     <message>
-        <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="905"/>
+        <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="925"/>
         <source>No media player was found on this system.</source>
         <translation>Aucun lecteur multimédia n&apos;a été trouvé sur ce système.</translation>
     </message>
     <message>
-        <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="918"/>
+        <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="938"/>
         <source>Preparing a smaller copy...</source>
         <translation>Préparation d&apos;une copie plus petite…</translation>
     </message>
     <message>
-        <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="936"/>
+        <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="956"/>
         <source>The smaller copy could not be made.</source>
         <translation>Impossible de créer la copie plus petite.</translation>
     </message>
     <message>
-        <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="959"/>
+        <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="979"/>
         <source>Play &quot;%1&quot; from this document?</source>
         <translation>Lire « %1 » depuis ce document ?</translation>
     </message>
     <message>
-        <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="961"/>
+        <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="981"/>
         <source>Media in a PDF is chosen by whoever made the file. Playing it hands the data to a decoder, in this build possibly to a player outside OpenPDF Studio. Play it only if you trust the document.</source>
         <translation>Les médias d&apos;un PDF sont choisis par l&apos;auteur du fichier. Les lire transmet les données à un décodeur, dans cette version peut-être à un lecteur extérieur à OpenPDF Studio. Ne les lisez que si vous faites confiance au document.</translation>
     </message>
     <message>
-        <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="964"/>
+        <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="984"/>
         <source>Play once</source>
         <translation>Lire une fois</translation>
     </message>
     <message>
-        <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="965"/>
+        <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="985"/>
         <source>Always for this document</source>
         <translation>Toujours pour ce document</translation>
     </message>
     <message>
-        <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="992"/>
+        <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="1012"/>
         <source>This media points to a file outside the document, so OpenPDF Studio does not open it.</source>
         <translation>Ce média renvoie à un fichier extérieur au document ; OpenPDF Studio ne l&apos;ouvre donc pas.</translation>
     </message>
     <message>
-        <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="1000"/>
+        <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="1020"/>
         <source>The media could not be read from the document.</source>
         <translation>Impossible de lire le média depuis le document.</translation>
     </message>
     <message>
-        <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="1024"/>
+        <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="1044"/>
         <source>The page this media sits on is not on screen, so it cannot be played here.</source>
         <translation>La page de ce média n&apos;est pas affichée ; il ne peut donc pas être lu ici.</translation>
     </message>
     <message>
-        <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="1059"/>
+        <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="1079"/>
         <source>No media player was found. Install VLC or mpv, or set a custom player under Settings, Media Playback.</source>
         <translation>Aucun lecteur multimédia trouvé. Installez VLC ou mpv, ou définissez un lecteur personnalisé dans Paramètres, Lecture des médias.</translation>
     </message>
     <message>
-        <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="1132"/>
+        <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="1152"/>
         <source>The video could not be added as a new page.</source>
         <translation>Impossible d&apos;ajouter la vidéo comme nouvelle page.</translation>
     </message>
@@ -2547,47 +2616,47 @@ Installez ffmpeg pour la convertir, ou intégrez-la telle quelle.</translation>
 <context>
     <name>NoteLayer</name>
     <message>
-        <location filename="../../src/ui/notes/NoteLayer.cpp" line="106"/>
+        <location filename="../../src/ui/notes/NoteLayer.cpp" line="107"/>
         <source>Note</source>
         <translation>Note</translation>
     </message>
     <message>
-        <location filename="../../src/ui/notes/NoteLayer.cpp" line="139"/>
+        <location filename="../../src/ui/notes/NoteLayer.cpp" line="140"/>
         <source>New note</source>
         <translation>Nouvelle note</translation>
     </message>
     <message>
-        <location filename="../../src/ui/notes/NoteLayer.cpp" line="145"/>
+        <location filename="../../src/ui/notes/NoteLayer.cpp" line="146"/>
         <source>Add note</source>
         <translation>Ajouter une note</translation>
     </message>
     <message>
-        <location filename="../../src/ui/notes/NoteLayer.cpp" line="182"/>
+        <location filename="../../src/ui/notes/NoteLayer.cpp" line="183"/>
         <source>Untitled note</source>
         <translation>Note sans titre</translation>
     </message>
     <message>
-        <location filename="../../src/ui/notes/NoteLayer.cpp" line="189"/>
+        <location filename="../../src/ui/notes/NoteLayer.cpp" line="190"/>
         <source>Edit note</source>
         <translation>Modifier la note</translation>
     </message>
     <message>
-        <location filename="../../src/ui/notes/NoteLayer.cpp" line="214"/>
+        <location filename="../../src/ui/notes/NoteLayer.cpp" line="215"/>
         <source>Delete note</source>
         <translation>Supprimer la note</translation>
     </message>
     <message>
-        <location filename="../../src/ui/notes/NoteLayer.cpp" line="228"/>
+        <location filename="../../src/ui/notes/NoteLayer.cpp" line="229"/>
         <source>Pin note</source>
         <translation>Épingler la note</translation>
     </message>
     <message>
-        <location filename="../../src/ui/notes/NoteLayer.cpp" line="228"/>
+        <location filename="../../src/ui/notes/NoteLayer.cpp" line="229"/>
         <source>Unpin note</source>
         <translation>Détacher la note</translation>
     </message>
     <message>
-        <location filename="../../src/ui/notes/NoteLayer.cpp" line="373"/>
+        <location filename="../../src/ui/notes/NoteLayer.cpp" line="411"/>
         <source>Page %1</source>
         <translation>Page %1</translation>
     </message>
@@ -2732,7 +2801,7 @@ Saisissez le mot de passe pour l&apos;ouvrir :</translation>
     </message>
     <message>
         <location filename="../../src/ui/organizer/PdfOrganizerDialog.cpp" line="63"/>
-        <location filename="../../src/ui/organizer/PdfOrganizerDialog.cpp" line="839"/>
+        <location filename="../../src/ui/organizer/PdfOrganizerDialog.cpp" line="842"/>
         <source>PDF Organizer - OpenPDF Studio</source>
         <translation>Organiseur de PDF - OpenPDF Studio</translation>
     </message>
@@ -2756,7 +2825,7 @@ Saisissez le mot de passe pour l&apos;ouvrir :</translation>
     <message>
         <location filename="../../src/ui/organizer/PdfOrganizerDialog.cpp" line="142"/>
         <location filename="../../src/ui/organizer/PdfOrganizerDialog.cpp" line="148"/>
-        <location filename="../../src/ui/organizer/PdfOrganizerDialog.cpp" line="758"/>
+        <location filename="../../src/ui/organizer/PdfOrganizerDialog.cpp" line="761"/>
         <source>PDF files (*.pdf)</source>
         <translation>Fichiers PDF (*.pdf)</translation>
     </message>
@@ -2843,45 +2912,45 @@ Saisissez le mot de passe pour l&apos;ouvrir :</translation>
         <translation>Page %1</translation>
     </message>
     <message>
-        <location filename="../../src/ui/organizer/PdfOrganizerDialog.cpp" line="684"/>
-        <location filename="../../src/ui/organizer/PdfOrganizerDialog.cpp" line="691"/>
+        <location filename="../../src/ui/organizer/PdfOrganizerDialog.cpp" line="687"/>
+        <location filename="../../src/ui/organizer/PdfOrganizerDialog.cpp" line="694"/>
         <source>Save failed</source>
         <translation>Échec de l&apos;enregistrement</translation>
     </message>
     <message>
-        <location filename="../../src/ui/organizer/PdfOrganizerDialog.cpp" line="685"/>
+        <location filename="../../src/ui/organizer/PdfOrganizerDialog.cpp" line="688"/>
         <source>%1 of %2 pages could not be rendered, so the document would have been saved blank. Your PDF was not changed.</source>
         <translation>%1 pages sur %2 n&apos;ont pas pu être rendues ; le document aurait donc été enregistré vide. Votre PDF n&apos;a pas été modifié.</translation>
     </message>
     <message>
-        <location filename="../../src/ui/organizer/PdfOrganizerDialog.cpp" line="692"/>
+        <location filename="../../src/ui/organizer/PdfOrganizerDialog.cpp" line="695"/>
         <source>The organized document could not be written to &quot;%1&quot;. Your PDF was not changed.</source>
         <translation>Impossible d&apos;écrire le document réorganisé dans « %1 ». Votre PDF n&apos;a pas été modifié.</translation>
     </message>
     <message>
-        <location filename="../../src/ui/organizer/PdfOrganizerDialog.cpp" line="698"/>
+        <location filename="../../src/ui/organizer/PdfOrganizerDialog.cpp" line="701"/>
         <source>PDF writing requires a PDF backend (Qt6Pdf or Poppler).</source>
         <translation>L&apos;écriture de PDF nécessite un moteur PDF (Qt6Pdf ou Poppler).</translation>
     </message>
     <message>
-        <location filename="../../src/ui/organizer/PdfOrganizerDialog.cpp" line="731"/>
-        <location filename="../../src/ui/organizer/PdfOrganizerDialog.cpp" line="752"/>
+        <location filename="../../src/ui/organizer/PdfOrganizerDialog.cpp" line="734"/>
+        <location filename="../../src/ui/organizer/PdfOrganizerDialog.cpp" line="755"/>
         <source>Empty</source>
         <translation>Vide</translation>
     </message>
     <message>
-        <location filename="../../src/ui/organizer/PdfOrganizerDialog.cpp" line="732"/>
-        <location filename="../../src/ui/organizer/PdfOrganizerDialog.cpp" line="753"/>
+        <location filename="../../src/ui/organizer/PdfOrganizerDialog.cpp" line="735"/>
+        <location filename="../../src/ui/organizer/PdfOrganizerDialog.cpp" line="756"/>
         <source>Add at least one page before saving.</source>
         <translation>Ajoutez au moins une page avant d&apos;enregistrer.</translation>
     </message>
     <message>
-        <location filename="../../src/ui/organizer/PdfOrganizerDialog.cpp" line="758"/>
+        <location filename="../../src/ui/organizer/PdfOrganizerDialog.cpp" line="761"/>
         <source>Save PDF As</source>
         <translation>Enregistrer le PDF sous</translation>
     </message>
     <message>
-        <location filename="../../src/ui/organizer/PdfOrganizerDialog.cpp" line="697"/>
+        <location filename="../../src/ui/organizer/PdfOrganizerDialog.cpp" line="700"/>
         <source>Not Available</source>
         <translation>Non disponible</translation>
     </message>
@@ -2910,15 +2979,306 @@ Saisissez le mot de passe pour l&apos;ouvrir :</translation>
     </message>
 </context>
 <context>
-    <name>Printing</name>
+    <name>PrintDialog</name>
     <message>
-        <location filename="../../src/ui/export/Printing.cpp" line="76"/>
-        <location filename="../../src/ui/export/Printing.cpp" line="86"/>
+        <location filename="../../src/ui/export/PrintDialog.cpp" line="38"/>
+        <source>1 page</source>
+        <translation>1 page</translation>
+    </message>
+    <message numerus="yes">
+        <location filename="../../src/ui/export/PrintDialog.cpp" line="38"/>
+        <source>%n pages</source>
+        <translation>
+            <numerusform>%n page</numerusform>
+            <numerusform>%n pages</numerusform>
+        </translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/export/PrintDialog.cpp" line="43"/>
+        <source>1 sheet</source>
+        <translation>1 feuille</translation>
+    </message>
+    <message numerus="yes">
+        <location filename="../../src/ui/export/PrintDialog.cpp" line="43"/>
+        <source>%n sheets</source>
+        <translation>
+            <numerusform>%n feuille</numerusform>
+            <numerusform>%n feuilles</numerusform>
+        </translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/export/PrintDialog.cpp" line="48"/>
+        <source>1 copy</source>
+        <translation>1 copie</translation>
+    </message>
+    <message numerus="yes">
+        <location filename="../../src/ui/export/PrintDialog.cpp" line="48"/>
+        <source>%n copies</source>
+        <translation>
+            <numerusform>%n copie</numerusform>
+            <numerusform>%n copies</numerusform>
+        </translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/export/PrintDialog.cpp" line="121"/>
+        <source>Print - OpenPDF Studio</source>
+        <translation>Imprimer - OpenPDF Studio</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/export/PrintDialog.cpp" line="283"/>
+        <location filename="../../src/ui/export/PrintDialog.cpp" line="564"/>
         <source>Print</source>
         <translation>Imprimer</translation>
     </message>
     <message>
-        <location filename="../../src/ui/export/Printing.cpp" line="87"/>
+        <location filename="../../src/ui/export/PrintDialog.cpp" line="329"/>
+        <source>Printer</source>
+        <translation>Imprimante</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/export/PrintDialog.cpp" line="342"/>
+        <source>No printer found</source>
+        <translation>Aucune imprimante trouvée</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/export/PrintDialog.cpp" line="365"/>
+        <source>Pages &amp; copies</source>
+        <translation>Pages et copies</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/export/PrintDialog.cpp" line="367"/>
+        <source>All %1</source>
+        <translation>Toutes (%1)</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/export/PrintDialog.cpp" line="368"/>
+        <source>Current page</source>
+        <translation>Page actuelle</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/export/PrintDialog.cpp" line="369"/>
+        <source>Range</source>
+        <translation>Plage</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/export/PrintDialog.cpp" line="373"/>
+        <source>For example: 1-3, 5, 8-10</source>
+        <translation>Par exemple : 1-3, 5, 8-10</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/export/PrintDialog.cpp" line="396"/>
+        <source>Copies</source>
+        <translation>Copies</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/export/PrintDialog.cpp" line="403"/>
+        <source>Collate</source>
+        <translation>Assembler</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/export/PrintDialog.cpp" line="420"/>
+        <source>Paper &amp; layout</source>
+        <translation>Papier et mise en page</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/export/PrintDialog.cpp" line="424"/>
+        <source>Portrait</source>
+        <translation>Portrait</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/export/PrintDialog.cpp" line="425"/>
+        <source>Landscape</source>
+        <translation>Paysage</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/export/PrintDialog.cpp" line="427"/>
+        <source>Fit to printable area</source>
+        <translation>Ajuster à la zone imprimable</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/export/PrintDialog.cpp" line="428"/>
+        <source>Shrink oversized pages</source>
+        <translation>Réduire les pages trop grandes</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/export/PrintDialog.cpp" line="429"/>
+        <source>Actual size</source>
+        <translation>Taille réelle</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/export/PrintDialog.cpp" line="434"/>
+        <source>Paper size</source>
+        <translation>Format du papier</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/export/PrintDialog.cpp" line="435"/>
+        <source>Orientation</source>
+        <translation>Orientation</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/export/PrintDialog.cpp" line="436"/>
+        <source>Scaling</source>
+        <translation>Mise à l&apos;échelle</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/export/PrintDialog.cpp" line="453"/>
+        <source>Output</source>
+        <translation>Sortie</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/export/PrintDialog.cpp" line="460"/>
+        <source>1 page on %1 sheets</source>
+        <translation>1 page sur %1 feuilles</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/export/PrintDialog.cpp" line="467"/>
+        <source>Pages per sheet</source>
+        <translation>Pages par feuille</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/export/PrintDialog.cpp" line="468"/>
+        <location filename="../../src/ui/export/PrintDialog.cpp" line="740"/>
+        <source>Two-sided</source>
+        <translation>Recto verso</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/export/PrintDialog.cpp" line="473"/>
+        <source>Print in black and white</source>
+        <translation>Imprimer en noir et blanc</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/export/PrintDialog.cpp" line="482"/>
+        <source>Output in black and white</source>
+        <translation>Sortie en noir et blanc</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/export/PrintDialog.cpp" line="502"/>
+        <source>More settings</source>
+        <translation>Plus de paramètres</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/export/PrintDialog.cpp" line="514"/>
+        <source>Cut marks on posters</source>
+        <translation>Traits de coupe pour les affiches</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/export/PrintDialog.cpp" line="517"/>
+        <source>Print with the system dialog…</source>
+        <translation>Imprimer avec la boîte de dialogue du système…</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/export/PrintDialog.cpp" line="522"/>
+        <source>For paper tray, print quality and other settings of the printer driver.</source>
+        <translation>Pour le bac à papier, la qualité d&apos;impression et les autres réglages du pilote.</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/export/PrintDialog.cpp" line="559"/>
+        <source>Cancel</source>
+        <translation>Annuler</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/export/PrintDialog.cpp" line="584"/>
+        <source>Set up a printer in the system settings.</source>
+        <translation>Configurez une imprimante dans les paramètres du système.</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/export/PrintDialog.cpp" line="593"/>
+        <source>Ready</source>
+        <translation>Prête</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/export/PrintDialog.cpp" line="594"/>
+        <source>Printing</source>
+        <translation>Impression en cours</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/export/PrintDialog.cpp" line="596"/>
+        <source>Paused</source>
+        <translation>En pause</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/export/PrintDialog.cpp" line="601"/>
+        <source>Not ready</source>
+        <translation>Non prête</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/export/PrintDialog.cpp" line="609"/>
+        <source>Color printer</source>
+        <translation>Imprimante couleur</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/export/PrintDialog.cpp" line="609"/>
+        <source>Black-and-white printer</source>
+        <translation>Imprimante noir et blanc</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/export/PrintDialog.cpp" line="637"/>
+        <source>Off</source>
+        <translation>Désactivé</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/export/PrintDialog.cpp" line="639"/>
+        <source>Long edge</source>
+        <translation>Bord long</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/export/PrintDialog.cpp" line="641"/>
+        <source>Short edge</source>
+        <translation>Bord court</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/export/PrintDialog.cpp" line="728"/>
+        <source>Check the page range</source>
+        <translation>Vérifiez la plage de pages</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/export/PrintDialog.cpp" line="729"/>
+        <source>Use page numbers like 1-3, 5, 8-10.</source>
+        <translation>Utilisez des numéros de page comme 1-3, 5, 8-10.</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/export/PrintDialog.cpp" line="740"/>
+        <source>One-sided</source>
+        <translation>Recto</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/export/PrintDialog.cpp" line="741"/>
+        <source>Sheets overlap by 10 mm</source>
+        <translation>Chevauchement de 10 mm</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/export/PrintDialog.cpp" line="742"/>
+        <source>Black and white</source>
+        <translation>Noir et blanc</translation>
+    </message>
+</context>
+<context>
+    <name>PrintPreview</name>
+    <message>
+        <location filename="../../src/ui/export/PrintPreview.cpp" line="89"/>
+        <source>Print preview</source>
+        <translation>Aperçu avant impression</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/export/PrintPreview.cpp" line="156"/>
+        <source>Sheet %1 of %2</source>
+        <translation>Feuille %1 sur %2</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/export/PrintPreview.cpp" line="157"/>
+        <source>Page %1 of %2</source>
+        <translation>Page %1 sur %2</translation>
+    </message>
+</context>
+<context>
+    <name>Printing</name>
+    <message>
+        <location filename="../../src/ui/export/Printing.cpp" line="30"/>
+        <source>Print</source>
+        <translation>Imprimer</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/export/Printing.cpp" line="31"/>
         <source>The document could not be printed.</source>
         <translation>Impossible d&apos;imprimer le document.</translation>
     </message>
@@ -3245,171 +3605,161 @@ Saisissez le mot de passe pour l&apos;ouvrir :</translation>
 <context>
     <name>RichMediaPanel</name>
     <message>
-        <location filename="../../modules/rich-media/ui/RichMediaPanel.cpp" line="119"/>
-        <location filename="../../modules/rich-media/ui/RichMediaPanel.cpp" line="530"/>
+        <location filename="../../modules/rich-media/ui/RichMediaPanel.cpp" line="448"/>
         <source>Rich Media</source>
         <translation>Rich Media</translation>
     </message>
     <message>
-        <location filename="../../modules/rich-media/ui/RichMediaPanel.cpp" line="128"/>
-        <location filename="../../modules/rich-media/ui/RichMediaPanel.cpp" line="551"/>
+        <location filename="../../modules/rich-media/ui/RichMediaPanel.cpp" line="449"/>
+        <source>Embed video and audio</source>
+        <translation>Intégrer vidéo et audio</translation>
+    </message>
+    <message>
+        <location filename="../../modules/rich-media/ui/RichMediaPanel.cpp" line="451"/>
+        <source>Change image</source>
+        <translation>Changer l&apos;image</translation>
+    </message>
+    <message>
+        <location filename="../../modules/rich-media/ui/RichMediaPanel.cpp" line="452"/>
+        <source>Reset</source>
+        <translation>Réinitialiser</translation>
+    </message>
+    <message>
+        <location filename="../../modules/rich-media/ui/RichMediaPanel.cpp" line="453"/>
+        <source>Start &amp; playback</source>
+        <translation>Démarrage et lecture</translation>
+    </message>
+    <message>
+        <location filename="../../modules/rich-media/ui/RichMediaPanel.cpp" line="454"/>
+        <source>Activation</source>
+        <translation>Activation</translation>
+    </message>
+    <message>
+        <location filename="../../modules/rich-media/ui/RichMediaPanel.cpp" line="461"/>
+        <source>Update</source>
+        <translation>Mettre à jour</translation>
+    </message>
+    <message>
+        <location filename="../../modules/rich-media/ui/RichMediaPanel.cpp" line="462"/>
         <source>Close</source>
         <translation>Fermer</translation>
     </message>
     <message>
-        <location filename="../../modules/rich-media/ui/RichMediaPanel.cpp" line="133"/>
-        <location filename="../../modules/rich-media/ui/RichMediaPanel.cpp" line="531"/>
         <source>Edit media or add a new source</source>
-        <translation>Modifier le média ou ajouter une source</translation>
+        <translation type="vanished">Modifier le média ou ajouter une source</translation>
     </message>
     <message>
-        <location filename="../../modules/rich-media/ui/RichMediaPanel.cpp" line="138"/>
-        <location filename="../../modules/rich-media/ui/RichMediaPanel.cpp" line="532"/>
         <source>Source</source>
-        <translation>Source</translation>
+        <translation type="vanished">Source</translation>
     </message>
     <message>
-        <location filename="../../modules/rich-media/ui/RichMediaPanel.cpp" line="145"/>
-        <location filename="../../modules/rich-media/ui/RichMediaPanel.cpp" line="538"/>
         <source>Choose a media file</source>
-        <translation>Choisir un fichier multimédia</translation>
+        <translation type="vanished">Choisir un fichier multimédia</translation>
     </message>
     <message>
-        <location filename="../../modules/rich-media/ui/RichMediaPanel.cpp" line="151"/>
-        <location filename="../../modules/rich-media/ui/RichMediaPanel.cpp" line="539"/>
         <source>Browse</source>
-        <translation>Parcourir</translation>
+        <translation type="vanished">Parcourir</translation>
     </message>
     <message>
-        <location filename="../../modules/rich-media/ui/RichMediaPanel.cpp" line="162"/>
-        <location filename="../../modules/rich-media/ui/RichMediaPanel.cpp" line="533"/>
+        <location filename="../../modules/rich-media/ui/RichMediaPanel.cpp" line="450"/>
         <source>Poster / Thumbnail</source>
         <translation>Affiche / vignette</translation>
     </message>
     <message>
-        <location filename="../../modules/rich-media/ui/RichMediaPanel.cpp" line="178"/>
-        <location filename="../../modules/rich-media/ui/RichMediaPanel.cpp" line="540"/>
         <source>Change</source>
-        <translation>Modifier</translation>
+        <translation type="vanished">Modifier</translation>
     </message>
     <message>
-        <location filename="../../modules/rich-media/ui/RichMediaPanel.cpp" line="186"/>
-        <location filename="../../modules/rich-media/ui/RichMediaPanel.cpp" line="541"/>
         <source>Remove</source>
-        <translation>Supprimer</translation>
+        <translation type="vanished">Supprimer</translation>
     </message>
     <message>
-        <location filename="../../modules/rich-media/ui/RichMediaPanel.cpp" line="204"/>
-        <location filename="../../modules/rich-media/ui/RichMediaPanel.cpp" line="534"/>
         <source>Trigger</source>
-        <translation>Déclencheur</translation>
+        <translation type="vanished">Déclencheur</translation>
     </message>
     <message>
-        <location filename="../../modules/rich-media/ui/RichMediaPanel.cpp" line="209"/>
-        <location filename="../../modules/rich-media/ui/RichMediaPanel.cpp" line="542"/>
+        <location filename="../../modules/rich-media/ui/RichMediaPanel.cpp" line="455"/>
         <source>On click</source>
         <translation>Au clic</translation>
     </message>
     <message>
-        <location filename="../../modules/rich-media/ui/RichMediaPanel.cpp" line="210"/>
-        <location filename="../../modules/rich-media/ui/RichMediaPanel.cpp" line="543"/>
+        <location filename="../../modules/rich-media/ui/RichMediaPanel.cpp" line="456"/>
         <source>On page open</source>
         <translation>À l&apos;ouverture de la page</translation>
     </message>
     <message>
-        <location filename="../../modules/rich-media/ui/RichMediaPanel.cpp" line="223"/>
-        <location filename="../../modules/rich-media/ui/RichMediaPanel.cpp" line="535"/>
         <source>Playback options</source>
-        <translation>Options de lecture</translation>
+        <translation type="vanished">Options de lecture</translation>
     </message>
     <message>
-        <location filename="../../modules/rich-media/ui/RichMediaPanel.cpp" line="230"/>
-        <location filename="../../modules/rich-media/ui/RichMediaPanel.cpp" line="544"/>
+        <location filename="../../modules/rich-media/ui/RichMediaPanel.cpp" line="457"/>
         <source>Autoplay</source>
         <translation>Lecture automatique</translation>
     </message>
     <message>
-        <location filename="../../modules/rich-media/ui/RichMediaPanel.cpp" line="232"/>
-        <location filename="../../modules/rich-media/ui/RichMediaPanel.cpp" line="546"/>
+        <location filename="../../modules/rich-media/ui/RichMediaPanel.cpp" line="458"/>
         <source>Loop</source>
         <translation>En boucle</translation>
     </message>
     <message>
-        <location filename="../../modules/rich-media/ui/RichMediaPanel.cpp" line="234"/>
-        <location filename="../../modules/rich-media/ui/RichMediaPanel.cpp" line="545"/>
+        <location filename="../../modules/rich-media/ui/RichMediaPanel.cpp" line="459"/>
         <source>Muted</source>
         <translation>Muet</translation>
     </message>
     <message>
-        <location filename="../../modules/rich-media/ui/RichMediaPanel.cpp" line="236"/>
-        <location filename="../../modules/rich-media/ui/RichMediaPanel.cpp" line="547"/>
+        <location filename="../../modules/rich-media/ui/RichMediaPanel.cpp" line="460"/>
         <source>Show controls</source>
         <translation>Afficher les commandes</translation>
     </message>
     <message>
-        <location filename="../../modules/rich-media/ui/RichMediaPanel.cpp" line="244"/>
-        <location filename="../../modules/rich-media/ui/RichMediaPanel.cpp" line="536"/>
         <source>Placement</source>
-        <translation>Placement</translation>
+        <translation type="vanished">Placement</translation>
     </message>
     <message>
-        <location filename="../../modules/rich-media/ui/RichMediaPanel.cpp" line="249"/>
-        <location filename="../../modules/rich-media/ui/RichMediaPanel.cpp" line="548"/>
         <source>Inline</source>
-        <translation>Intégré</translation>
+        <translation type="vanished">Intégré</translation>
     </message>
     <message>
-        <location filename="../../modules/rich-media/ui/RichMediaPanel.cpp" line="250"/>
-        <location filename="../../modules/rich-media/ui/RichMediaPanel.cpp" line="549"/>
         <source>Floating</source>
-        <translation>Flottant</translation>
+        <translation type="vanished">Flottant</translation>
     </message>
     <message>
-        <location filename="../../modules/rich-media/ui/RichMediaPanel.cpp" line="264"/>
-        <location filename="../../modules/rich-media/ui/RichMediaPanel.cpp" line="497"/>
         <source>Drag a frame on the page to place the media.</source>
-        <translation>Tracez un cadre sur la page pour placer le média.</translation>
+        <translation type="vanished">Tracez un cadre sur la page pour placer le média.</translation>
     </message>
     <message>
-        <location filename="../../modules/rich-media/ui/RichMediaPanel.cpp" line="269"/>
-        <location filename="../../modules/rich-media/ui/RichMediaPanel.cpp" line="550"/>
         <source>Apply</source>
-        <translation>Appliquer</translation>
+        <translation type="vanished">Appliquer</translation>
     </message>
     <message>
-        <location filename="../../modules/rich-media/ui/RichMediaPanel.cpp" line="389"/>
         <source>Media files (*.mp4 *.m4v *.mov *.webm *.mkv *.avi *.mp3 *.m4a *.wav *.ogg *.opus *.flac);;All files (*)</source>
-        <translation>Fichiers multimédias (*.mp4 *.m4v *.mov *.webm *.mkv *.avi *.mp3 *.m4a *.wav *.ogg *.opus *.flac);;Tous les fichiers (*)</translation>
+        <translation type="vanished">Fichiers multimédias (*.mp4 *.m4v *.mov *.webm *.mkv *.avi *.mp3 *.m4a *.wav *.ogg *.opus *.flac);;Tous les fichiers (*)</translation>
     </message>
     <message>
-        <location filename="../../modules/rich-media/ui/RichMediaPanel.cpp" line="391"/>
         <source>Choose media</source>
-        <translation>Choisir un média</translation>
+        <translation type="vanished">Choisir un média</translation>
     </message>
     <message>
-        <location filename="../../modules/rich-media/ui/RichMediaPanel.cpp" line="399"/>
+        <location filename="../../modules/rich-media/ui/RichMediaPanel.cpp" line="332"/>
         <source>Choose a poster image</source>
         <translation>Choisir une image d&apos;affiche</translation>
     </message>
     <message>
-        <location filename="../../modules/rich-media/ui/RichMediaPanel.cpp" line="400"/>
+        <location filename="../../modules/rich-media/ui/RichMediaPanel.cpp" line="333"/>
         <source>Images (*.png *.jpg *.jpeg *.webp *.bmp);;All files (*)</source>
         <translation>Images (*.png *.jpg *.jpeg *.webp *.bmp);;Tous les fichiers (*)</translation>
     </message>
     <message>
-        <location filename="../../modules/rich-media/ui/RichMediaPanel.cpp" line="499"/>
         <source>Choose a file to embed.</source>
-        <translation>Choisissez un fichier à intégrer.</translation>
+        <translation type="vanished">Choisissez un fichier à intégrer.</translation>
     </message>
     <message>
-        <location filename="../../modules/rich-media/ui/RichMediaPanel.cpp" line="501"/>
         <source>Drag the handles on the page to resize the media.</source>
-        <translation>Faites glisser les poignées sur la page pour redimensionner le média.</translation>
+        <translation type="vanished">Faites glisser les poignées sur la page pour redimensionner le média.</translation>
     </message>
     <message>
-        <location filename="../../modules/rich-media/ui/RichMediaPanel.cpp" line="503"/>
         <source>Page %1. The file is copied into the document.</source>
-        <translation>Page %1. Le fichier est copié dans le document.</translation>
+        <translation type="vanished">Page %1. Le fichier est copié dans le document.</translation>
     </message>
 </context>
 <context>
@@ -3489,37 +3839,37 @@ Saisissez le mot de passe pour l&apos;ouvrir :</translation>
 <context>
     <name>SessionRecovery</name>
     <message>
-        <location filename="../../src/ui/session/SessionRecovery.cpp" line="25"/>
+        <location filename="../../src/ui/session/SessionRecovery.cpp" line="26"/>
         <source>Untitled</source>
         <translation>Sans titre</translation>
     </message>
     <message>
-        <location filename="../../src/ui/session/SessionRecovery.cpp" line="58"/>
+        <location filename="../../src/ui/session/SessionRecovery.cpp" line="65"/>
         <source>Restore Session</source>
         <translation>Restaurer la session</translation>
     </message>
     <message>
-        <location filename="../../src/ui/session/SessionRecovery.cpp" line="59"/>
+        <location filename="../../src/ui/session/SessionRecovery.cpp" line="66"/>
         <source>OpenPDF Studio did not shut down properly last time.</source>
         <translation>OpenPDF Studio ne s&apos;est pas fermé correctement la dernière fois.</translation>
     </message>
     <message>
-        <location filename="../../src/ui/session/SessionRecovery.cpp" line="60"/>
+        <location filename="../../src/ui/session/SessionRecovery.cpp" line="67"/>
         <source>Restore the documents that were open?</source>
         <translation>Restaurer les documents qui étaient ouverts ?</translation>
     </message>
     <message>
-        <location filename="../../src/ui/session/SessionRecovery.cpp" line="53"/>
+        <location filename="../../src/ui/session/SessionRecovery.cpp" line="60"/>
         <source>%1 (unsaved changes)</source>
         <translation>%1 (modifications non enregistrées)</translation>
     </message>
     <message>
-        <location filename="../../src/ui/session/SessionRecovery.cpp" line="62"/>
+        <location filename="../../src/ui/session/SessionRecovery.cpp" line="69"/>
         <source>Restore</source>
         <translation>Restaurer</translation>
     </message>
     <message>
-        <location filename="../../src/ui/session/SessionRecovery.cpp" line="63"/>
+        <location filename="../../src/ui/session/SessionRecovery.cpp" line="70"/>
         <source>Discard</source>
         <translation>Abandonner</translation>
     </message>

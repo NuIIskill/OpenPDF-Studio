@@ -1,324 +1,90 @@
 # OpenPDF Studio
 
-A native Qt 6 PDF viewer and editor for Linux and Windows: read a document,
-edit the text that is already in it, reorder its pages, annotate and sign it,
-play and embed media, and export it to PDF, Word or PNG. Word, OpenDocument and image
-files open as well, converted in process. One application, no web stack.
+A native Qt 6 PDF viewer and editor for Linux and Windows. Read PDFs, edit
+existing text, organize pages, annotate, sign and export documents in one
+desktop application. Word, OpenDocument and image files open as PDF working
+copies, converted locally.
 
-Current version: **0.3.1**, alpha. Work on copies of important documents
-and check exported files with a second PDF viewer.
+Current version: **0.3.1 — alpha**. Work on copies of important documents and
+check saved or exported files with a second PDF viewer.
 
-## Licensing
+## Key features
 
-OpenPDF Studio Core is dual-licensed under **GPL-3.0-only** or the **OpenPDF
-Studio Commercial License**.
+- Read several documents in tabs, search text, browse bookmarks and present pages.
+- Edit text in place, add text and images, draw, highlight and leave notes; OCR
+  supports editing scanned pages.
+- Reorder, rotate, insert, delete and merge pages, with undo, history and crash recovery.
+- Place handwritten or digital signatures and manage passwords and permissions.
+- Export to PDF, Word, PNG or JPEG, and print with a page preview.
+- Play and embed video through the separately licensed Rich Media module.
+- Choose light or dark themes, customize shortcuts and tools, and use English
+  or one of 11 translations.
 
-Certain additional components, currently only `modules/rich-media/`, are
-distributed under the **OpenPDF Studio Business License**. Those components are
-free for personal use; commercial use requires a Business License after a
-30-day evaluation period. The first start asks once which of the two this is,
-personal preselected; personal use never asks for a key.
+Feature availability depends on the components included in a build. PDF/A
+export, redaction and a complete form editor are not available yet. The
+[user documentation](#user-documentation) explains workflows and limitations.
 
-[LICENSE](LICENSE) is the overview and [COPYING](COPYING) the full GPL-3.0
-text. See [LICENSES/](LICENSES/) for the other license texts, and
-[LICENSES/README.md](LICENSES/README.md) for the path-by-path map.
+## Supported operating systems
 
-Everything you need to build, run and modify the full viewer and editor is
-Core, and Core is free software. The PDF engine is PDFium under BSD-3-Clause,
-so nothing in the dependency stack forces the GPL onto a distribution.
+| System | Packages |
+| --- | --- |
+| Linux, x86_64 | RPM, DEB and AppImage; the AppImage requires a Wayland session |
+| Windows, x86_64 | Installer and portable ZIP |
 
-## Features
+## Installation
 
-**Viewing**
+Download a package from [GitHub Releases](https://github.com/NuIIskill/OpenPDF-Studio/releases)
+or the [download page](https://openpdf-studio.nullskill.de/download.html).
 
-* Several documents open at once, one tab each
-* Single-page and grid view, thumbnail sidebar, presentation mode
-* Bookmark panel: the document's outline, searchable, click to jump
-* Zoom via toolbar or Ctrl + mouse wheel. Step size, zoom towards the pointer
-  and the wheel action without a modifier are configurable
-* Large documents stay responsive: pages render in the background, and a
-  heavy document is rendered by helper processes in parallel on a machine
-  with several cores. Mouse wheel scrolling glides instead of jumping
-* Text search with `Ctrl+F`: a bar over the page with a hit counter, Enter and
-  Shift+Enter step through the matches
-* Password-protected documents: the password is asked once and kept in memory
-  for the renderer, editor and exporters; it is never written to disk
-* Document information from the status bar: file, security and permissions,
-  signatures, form fields, attachments and PDF/A, with a shield for the state
-  of the signatures and a lock for encrypted files
-* Printing (needs `Qt6::PrintSupport`)
-
-**Opening other formats**
-
-* Word `.docx`, OpenDocument `.odt` and images (JPEG, PNG, GIF, BMP, TIFF,
-  WebP) open like a PDF, by dropping them onto the window or through Open
-* Converted in the background, with no external converter and nothing sent anywhere:
-  the container and its XML are read directly, so the result is real vector
-  text that can be selected, searched and edited like any other document
-* Paragraph and character formatting, headings, lists, tables with their
-  shading and borders, embedded pictures, page size and margins, and the fixed
-  boxes and bands a document converted out of a PDF is made of
-* An image becomes a single page the size of the image, without a second round
-  of lossy encoding: a JPEG is passed into the PDF untouched, everything else
-  keeps every pixel
-* The converted document opens as an unnamed working copy in its own tab. The
-  file you opened is never written to, and saving asks for a name
-* `.docx` and `.odt` need zlib; images do not
-
-**Editing**
-
-* Inline text editing: click a text run, type, and the change is written back
-  into the page's content stream as vector text (needs qpdf)
-* Every character keeps the font, size, colour and style of the one it
-  replaces; text in any script falls back to a font that can write it
-* Shift + drag marks exactly the characters to change, also where the
-  paragraph was detected wrongly
-* A short note says when an edit cannot match the page exactly, on a scan or
-  in a font that cannot be written
-* New text: drag a box with the Text tool and type into it
-* Scanned pages fall back to OCR (needs Tesseract), so text can be edited there
-  too
-* Images: place a new one, or move, scale, rotate, replace, copy, paste and
-  delete images already in the page. They are changed in place, so text
-  above an image stays above it
-* Links: the *Attachment* tool puts a link area over selected text or a drawn
-  rectangle, and edits or removes the ones already there
-* Bookmarks: add one for the current page, rename, delete and reorder, written
-  back into the document's outline (needs qpdf)
-* Drawing: pen, highlighter and eraser, with colour and width, written into the
-  page as vector paths
-* Notes: put a comment on the page and manage the lot in the notes panel
-* Text selection with the Select tool, hover highlighting of what is editable
-* Page organizer: reorder by drag & drop, rotate, delete, insert blank pages
-  and merge further PDFs. Works on encrypted files as well
-* Change history per document, bookmarks and media included, with undo, redo
-  and restore to an earlier state
-* Edits to page structure go to a session working file; the file you opened is
-  untouched until you save. Saving is atomic.
-* Crash recovery: after a crash the next start offers the open documents back,
-  with their unsaved changes and history
-
-**Signing**
-
-* Handwritten signature: draw it, type it or import an image, keep it as a
-  template and place it on the page
-* Digital signatures, visible with a stamp (name, date, reason, location,
-  logo) from reusable profiles, or invisible. They are written on save as an
-  incremental update, so earlier signatures stay valid
-* Certificates from PKCS#11 tokens through p11-kit on Linux and from the
-  Windows certificate store; a self-signed certificate can be created in the
-  dialog
-* Signatures already in a document are verified. A signer the system does
-  not trust can be trusted on this computer, by its certificate's fingerprint
-* A signature can be removed again, together with everything signed after it
-* Needs qpdf, and on Linux GnuTLS and p11-kit
-
-**Protecting**
-
-* Open password with AES-256, AES-128 or RC4, or the protection removed
-* Permissions: printing, changing content, copying, comments, forms,
-  assembling pages, accessibility, with their own password
-* Applied on the next save and kept in the change history (needs qpdf)
-
-**Rich media** (`modules/rich-media/`, Business License)
-
-* Finds `/RichMedia`, `/Screen` and `/Movie` annotations and plays them on the
-  page, or hands them to an external player if you ask it to
-* Embeds new video into a document, with a poster frame; a video dropped onto
-  the document gets a page of its own
-* Only embedded assets play, and the first playback in a document asks first
-* Video that is not H.264 is caught before it is embedded and a conversion is
-  offered (Windows converts with its own encoders, Linux needs ffmpeg)
-* Needs qpdf, and Qt Multimedia except on Windows, which uses DirectShow and
-  MFPlay. See [modules/rich-media/README.md](modules/rich-media/README.md).
-
-**Export**
-
-* PDF: page ranges, and switches for comments, form fields, embedded fonts
-  and image compression (honouring them needs qpdf)
-* Word `.docx`: text, layout and images
-* PNG: one file per page, adjustable quality
-* Estimated output size before you export
-
-**Interface**
-
-* Light and dark theme
-* Configurable keyboard shortcuts
-* The tool rail can be reordered and individual tools hidden
-* Update check against the repository's tags, manually in Settings › Advanced
-  or in the background at a chosen interval. It reports and links to
-  <https://openpdf-studio.nullskill.de/download.html>, never downloads or
-  installs anything, and can be switched off there
-* 11 translations besides English: German, French, Spanish, Italian,
-  Portuguese, Dutch, Polish, Russian, Chinese, Japanese, Korean
-
-## Not there yet
-
-* PDF/A export. The format is shown in the export dialog but greyed out
-* Form editing, redaction
-* On the signing side: timestamps and locking the document after signing
-* Opening Word or OpenDocument files drops headers and footers, footnotes,
-  fields such as page numbers or a table of contents, multi-column layout and
-  tracked changes. A document whose text reflows differently than Word laid it
-  out can show its fixed boxes a few points off. Legacy `.doc`, `.rtf`, `.xlsx`
-  and `.pptx` are not read at all
-* On the media side: playback in presentation mode, moving or resizing a medium
-  already in the document, and an export option to keep or drop media
-
-## Install
-
-### Linux
-
-Grab a package from the Releases page:
+On Linux, install the RPM or DEB with your package manager, or run the AppImage:
 
 ```bash
-sudo dnf install openpdf-studio-0.3.1-1.x86_64.rpm      # Fedora / RHEL / openSUSE
-sudo apt install ./openpdf-studio_0.3.1_amd64.deb       # Debian / Ubuntu
-```
-
-Or use the AppImage, which needs nothing installed:
-
-```bash
+sudo dnf install ./openpdf-studio-0.3.1-1.x86_64.rpm
+sudo apt install ./openpdf-studio_0.3.1_amd64.deb
+# Alternatively:
 chmod +x OpenPDF_Studio-0.3.1-x86_64.AppImage
 ./OpenPDF_Studio-0.3.1-x86_64.AppImage
 ```
 
-### Windows
-
-Run `OpenPDF-Studio-0.3.1-Setup.exe`, or unpack
+On Windows, run `OpenPDF-Studio-0.3.1-Setup.exe`, or extract
 `OpenPDF-Studio-0.3.1-win64-portable.zip` and start `OpenPDFStudio.exe`.
-The Windows build carries PDFium, qpdf and Tesseract with German, English and
-French language data, so editing, export options, digital signatures, rich media and
-OCR all work.
+See [Installation](docs/user/installation.md) for details.
 
-## Build from source
+## Licensing
 
-```bash
-git clone https://github.com/NuIIskill/OpenPDF-Studio.git
-cd OpenPDF-Studio
-packaging/fetch-pdfium.sh  # the PDF engine, without it nothing opens
-./build.sh                 # Release → build/OpenPDFStudio
-./build.sh --appimage      # additionally packs an AppImage
-```
+The **Core** is dual-licensed under **GPL-3.0-only** or the **OpenPDF Studio
+Commercial License**, which requires a separate written agreement. The Core
+contains the viewer, editor, annotations, organizer and exporters.
 
-`build.sh` honours `BUILD_DIR`, `BUILD_TYPE` and `JOBS`, and passes any other
-argument through to CMake.
+The **Rich Media module** is source-available under the **OpenPDF Studio
+Business License**: personal use is free; business use requires a Business
+License after a 30-day evaluation. See [Licensing](docs/user/licensing.md),
+the [license overview](LICENSE) and the [licensing map](LICENSES/README.md)
+for the terms and component boundaries.
 
-### Dependencies
+## User documentation
 
-Required: CMake ≥ 3.20, a C++20 compiler, and Qt 6 Core / Widgets / Gui /
-Network (Network only for the update check; it is part of qtbase).
+| Guide | Contents |
+| --- | --- |
+| [Getting started](docs/user/getting-started.md) | First document, navigation, settings and saving |
+| [Installation](docs/user/installation.md) | Linux packages, Windows setup and portable mode |
+| [Editing](docs/user/editing.md) | Text, scans, images, annotations, pages and media |
+| [Signatures](docs/user/signatures.md) | Handwritten and digital signatures, certificates and trust |
+| [Export](docs/user/export.md) | PDF, Word, images and printing |
+| [Licensing](docs/user/licensing.md) | Core, Rich Media, personal use and business licensing |
+| [Troubleshooting](docs/user/troubleshooting.md) | Missing features, rendering, OCR, media and recovery |
 
-Everything else is optional and only changes what gets compiled in. The code
-behind each `HAVE_*` define still builds when the dependency is missing:
+## Developer documentation
 
-| Dependency | Enables | Fedora package |
-| --- | --- | --- |
-| PDFium | the PDF engine: rendering, text, saving (`HAVE_PDFIUM`) | none, run `packaging/fetch-pdfium.sh` |
-| qpdf | PDF export options, organizer save, bookmarks, media, signing (`HAVE_QPDF`) | `qpdf-devel` |
-| GnuTLS, p11-kit | digital signatures on Linux, with qpdf (`HAVE_DIGITAL_SIGNATURE`) | `gnutls-devel`, `p11-kit-devel` |
-| Qt Multimedia | media playback and posters, with qpdf (`HAVE_RICH_MEDIA`) | `qt6-qtmultimedia-devel` |
-| zlib | opening `.docx` and `.odt` (`HAVE_ZLIB`) | `zlib-devel` |
-| Tesseract | OCR on scanned pages (`HAVE_TESSERACT`) | `tesseract-devel`, `tesseract-langpack-deu`, `tesseract-langpack-fra` |
-| `Qt6::PrintSupport` | printing (`HAVE_QT_PRINT`) | part of `qt6-qtbase-devel` |
-| `Qt6::LinguistTools` | the `update_translations` target | `qt6-qttools-devel` |
-| ffmpeg | converting video to H.264 on Linux; on Windows only the fallback | `ffmpeg` (runtime only) |
-| Qt Image Formats | opening TIFF and WebP images | `qt6-qtimageformats` (runtime only) |
+| Guide | Contents |
+| --- | --- |
+| [Architecture](docs/dev/architecture.md) | Startup, document state, rendering, saving and recovery |
+| [Building](docs/dev/building.md) | Linux builds, Windows cross-builds and CMake options |
+| [Dependencies](docs/dev/dependencies.md) | Required libraries, optional features and build defines |
+| [PDF engine](docs/dev/pdf-engine.md) | PDFium, coordinate spaces, editing and qpdf |
+| [Rich media](docs/dev/rich-media.md) | Module integration, playback, embedding and deployment |
+| [Testing](docs/dev/testing.md) | Headless commands, screenshots and regression checks |
+| [Releasing](docs/dev/releasing.md) | Versions, translations, Linux and Windows packaging |
 
-The rich-media module is the one case that is all or nothing: it needs qpdf,
-and Qt Multimedia except on Windows. If one is missing, configure warns and
-leaves the module out instead of building half of it.
-`-DOPENPDF_RICH_MEDIA=OFF` skips it deliberately.
-
-Without a PDF backend the application starts but shows nothing. CMake says so
-during configure (`PDF backend: none`).
-
-### Windows cross-build and packages
-
-```bash
-packaging/windows/build-qpdf-mingw.sh  # once: qpdf for mingw64 → third_party/
-./build-win.sh                         # mingw64 + Qt6 cross-build → build-win/
-packaging/windows/package-win.sh       # portable ZIP + NSIS installer → dist/
-packaging/linux/package-linux.sh       # RPM + DEB via CPack → dist/
-```
-
-OCR in the Windows build needs `mingw64-tesseract`; the language data comes
-from the host's `tesseract-langpack-deu`, `-eng` and `-fra`. TIFF and WebP
-images need `mingw64-qt6-qtimageformats`.
-
-## Headless entry points
-
-The binary can do a fair amount without a display, which is how exports,
-editing and the dialogs are regression-tested:
-
-```bash
-OpenPDFStudio --export-pdf    in.pdf out.pdf [pages=1,3-4] [nocomments] [noforms] \
-                                             [nofonts] [nocompress] [q=60] [pw=…] [srcpw=…]
-OpenPDFStudio --export-docx   in.pdf out.docx [pages=1,3-4] [q=60] [nocompress] [srcpw=…]
-OpenPDFStudio --export-images in.pdf out.png [pages=1,3-4] [q=85] [srcpw=…]
-OpenPDFStudio --import-pdf    in.docx out.pdf [dump=text.txt]
-OpenPDFStudio --select-text   in.pdf [page=1] [from=x,y] [to=x,y] [srcpw=…]
-OpenPDFStudio --apply-edit    in.pdf out.pdf at=x,y text=… [page=1] [preview=out.png] [srcpw=…]
-OpenPDFStudio --apply-edit    in.pdf out.pdf field=Name text=Value
-OpenPDFStudio --organize-save in.pdf out.pdf
-OpenPDFStudio --shot-window          out.png in.pdf [dark] [edit=x,y]
-OpenPDFStudio --shot-organizer       out.png in.pdf [dark]
-OpenPDFStudio --shot-presentation    out.png in.pdf [page=N]
-OpenPDFStudio --shot-export-dialog   out.png [word|image] [empty] [dark|light]
-OpenPDFStudio --shot-history-dialog  out.png [dark]
-OpenPDFStudio --shot-settings        out.png ["License Key"] [dark|light]
-OpenPDFStudio --shot-license-notice  out.png [dark|light]
-```
-
-`--import-pdf` takes `.docx`, `.odt` or an image and writes the PDF it would
-open. `dump=` additionally writes the plain text of the parsed document before
-the PDF is laid out, which separates a reading fault from a layout one.
-
-Coordinates are PDF points with the origin top left, the same as
-`--select-text` reports. `OPENPDF_USAGE=business|personal` overrides the
-recorded usage for the two licence shots, which report the state they find
-rather than declaring one.
-
-## Project layout
-
-```
-src/
-  cli/        command-line modes
-  app/        infrastructure: config.ini, settings, safe writes, session,
-              passwords, update check
-  drm/        business licence: state, settings page, the two notices
-  engine/     document logic, no widgets: document/, edit/, export/,
-              historymanager/, import/, ocr/, render/, sign/
-  ui/         everything that is a widget: bars/, panels/, theme/, view/,
-              edit/, draw/, notes/, bookmarks/, settings/, organizer/,
-              history/, info/, protect/, session/, export/, import/, sign/,
-              widgets/
-  3rdparty/   vendored (nanosvg)
-modules/
-  rich-media/ source-available module, Business License
-```
-
-`engine/` never includes `ui/` and never touches QWidget; `app/` never includes
-`engine/` or `ui/`; `src/` never includes `modules/`, the module registers itself with the
-Core through three small registers instead. Every folder under `ui/` names a
-task rather than a shape. Includes are root-relative to `src/`, and each source
-folder carries its own `CMakeLists.txt`. A new file is registered where it is
-created, not in a central list. [CLAUDE.md](CLAUDE.md) has the rules in full;
-[docs/](docs/) holds the architecture notes.
-
-## Contributing
-
-Bug reports, test documents, translations, UI work and pull requests are all
-welcome. For anything larger, please open an issue first so the approach can be
-discussed.
-
-Contributions to the Core are accepted under its dual license: by submitting
-one you grant the copyright holder the right to distribute it under both
-GPL-3.0-only and the Commercial License, while keeping the copyright in your
-own work. Without that the dual-licensing model could not hold.
-
-## Security
-
-Please do not attach private or sensitive PDFs to bug reports. If you find a
-security issue, report it privately to nullskilll@gmail.com instead of opening
-a public issue.
+See [CONTRIBUTING.md](CONTRIBUTING.md) for contribution guidelines, code rules
+and security reporting.

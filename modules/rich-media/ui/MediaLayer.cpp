@@ -17,6 +17,7 @@
 #ifdef HAVE_PDF_RENDERING
 #  include "engine/document/PdfBackend.hpp"
 #endif
+#include "ui/theme/Theme.hpp"
 #include "ui/view/PageCanvas.hpp"
 
 #include "rich-media/ui/MediaPlayerFrame.hpp"
@@ -25,6 +26,7 @@
 #include <QApplication>
 #include <QFile>
 #include <QFileDialog>
+#include <QFileInfo>
 #include <QMenu>
 #include <QPushButton>
 #include <QPixmap>
@@ -34,6 +36,7 @@
 #include <QLabel>
 #include <QMessageBox>
 #include <QMouseEvent>
+#include <QStyleOptionMenuItem>
 #include <QDir>
 #include <QProgressDialog>
 #include <QScopeGuard>
@@ -50,6 +53,32 @@ namespace {
 const QLatin1String kToolId { "video" };
 
 constexpr int kMinDrag = 12;
+
+QColor dangerColor()
+{
+    return Theme::DarkMode ? QColor(QStringLiteral("#F87171"))
+                           : QColor(QStringLiteral("#DC2626"));
+}
+
+/// Media context menu that draws its destructive entry in the danger colour.
+class MediaMenu : public QMenu
+{
+public:
+    using QMenu::QMenu;
+    QAction *danger { nullptr };
+
+protected:
+    void initStyleOption(QStyleOptionMenuItem *option, const QAction *action) const override
+    {
+        QMenu::initStyleOption(option, action);
+        if (!action->isEnabled()) return;
+        const QColor text = action == danger ? dangerColor()
+                                             : option->palette.color(QPalette::ButtonText);
+        for (const QPalette::ColorRole role : { QPalette::Text, QPalette::ButtonText,
+                                                QPalette::WindowText, QPalette::HighlightedText })
+            option->palette.setColor(role, text);
+    }
+};
 
 }
 
@@ -82,7 +111,6 @@ MediaLayer::~MediaLayer()
 void MediaLayer::setDocument(const QString &path)
 {
     closePlayer();
-    cancelPlacement();
     clearSelection();
     clearFrames();
     m_session.clear();
@@ -150,7 +178,6 @@ void MediaLayer::restoreState(const QByteArray &state)
     if (state == this->state() || m_documentPath.isEmpty()) return;
 
     closePlayer();
-    cancelPlacement();
     clearSelection();
     clearFrames();
     m_session     = state.isEmpty() ? MediaSession() : MediaSession::fromBytes(state);
@@ -191,7 +218,6 @@ void MediaLayer::setActiveTool(const QString &toolId)
     if (active) {
         bindPanel();
     } else {
-        cancelPlacement();
         clearSelection();
         unbindPanel();
     }
@@ -206,24 +232,32 @@ void MediaLayer::showMenuFor(MediaFrame *frame, const QPoint &globalPos)
     const Placed placed = m_placed.at(index);
     if (placed.removed) return;
 
-    QMenu menu;
-    QAction *edit = m_toolActive ? menu.addAction(tr("Edit properties")) : nullptr;
-    if (edit) menu.addSeparator();
-    QAction *play = menu.addAction(tr("Play"));
-    QAction *save = menu.addAction(tr("Save media as..."));
-    menu.addSeparator();
-    QAction *remove = menu.addAction(tr("Remove"));
-    remove->setShortcut(QKeySequence::Delete);
-
+    const auto icon = [](const char *name) {
+        return Theme::makeIcon(QString::fromLatin1(name));
+    };
     const bool playable = placed.pending || placed.asset.isEmbedded();
+
+    MediaMenu menu(m_canvas ? m_canvas->canvasWidget() : nullptr);
+    menu.setObjectName(QStringLiteral("ImageMenu"));
+    QAction *play = menu.addAction(icon("play"), tr("Play"));
     play->setEnabled(playable);
+    QAction *save = menu.addAction(icon("save"), tr("Save media as..."));
     save->setEnabled(playable);
+    menu.addSeparator();
+    QAction *replace = menu.addAction(icon("film"), tr("Replace media"));
+    replace->setEnabled(m_toolActive);
+    menu.addSeparator();
+    QAction *remove = menu.addAction(
+        Theme::makeIcon(QStringLiteral("trash-2"), dangerColor(), dangerColor()),
+        QCoreApplication::translate("DocumentView", "Delete"));
+    remove->setShortcut(QKeySequence(Qt::Key_Delete));
+    menu.danger = remove;
 
     QAction *chosen = menu.exec(globalPos);
-    if (edit && chosen == edit) selectFrame(frame);
-    else if (chosen == play)   playPlaced(placed);
-    else if (chosen == save)   saveMediaAs(placed);
-    else if (chosen == remove) removeFrame(frame);
+    if (chosen == play)          playPlaced(placed);
+    else if (chosen == save)     saveMediaAs(placed);
+    else if (chosen == replace)  replaceMedia(frame);
+    else if (chosen == remove)   removeFrame(frame);
 }
 
 void MediaLayer::removeFrame(MediaFrame *frame)
@@ -466,15 +500,6 @@ void MediaLayer::relayout()
 {
     rebuildFrames();
 
-    if (m_placement && m_placementPage >= 0) {
-        const QRect canvasRect = pdfToCanvas(m_placementPage, m_placementBounds);
-        if (!canvasRect.isNull()) {
-            m_placement->setGeometry(canvasRect);
-            if (QLabel *label = m_canvas->pageLabel(m_placementPage))
-                m_placement->setPageRect(label->geometry());
-        }
-    }
-
     if (m_player) {
         for (const Placed &placed : m_placed) {
             if (placed.frame != m_player->property("mediaFrame").value<QObject *>())
@@ -549,7 +574,7 @@ bool MediaLayer::eventFilter(QObject *watched, QEvent *event)
             clamped = dragged.intersected(label->geometry());
         if (clamped.width() < kMinDrag || clamped.height() < kMinDrag) return true;
 
-        beginPlacement(m_dragPage, canvasToPdf(m_dragPage, clamped));
+        insertAt(m_dragPage, canvasToPdf(m_dragPage, clamped));
         return true;
     }
     default:
@@ -558,42 +583,48 @@ bool MediaLayer::eventFilter(QObject *watched, QEvent *event)
     return false;
 }
 
-void MediaLayer::beginPlacement(int page, const QRectF &pdfBounds)
+QString MediaLayer::chooseMediaFile()
 {
-    cancelPlacement();
-    QWidget *canvasWidget = m_canvas ? m_canvas->canvasWidget() : nullptr;
-    if (!canvasWidget || pdfBounds.isEmpty()) return;
-
-    m_placementPage   = page;
-    m_placementBounds = pdfBounds;
-
-    m_placement = new MediaFrame(MediaFrame::Mode::Placement, canvasWidget);
-    if (const QLabel *label = m_canvas->pageLabel(page))
-        m_placement->setPageRect(label->geometry());
-    m_placement->setGeometry(pdfToCanvas(page, pdfBounds));
-    m_placement->show();
-    m_placement->raise();
-    m_placement->setFocus(Qt::OtherFocusReason);
-
-    connect(m_placement, &MediaFrame::geometryEdited, this, [this](const QRect &geometry) {
-        m_placementBounds = canvasToPdf(m_placementPage, geometry);
-        if (m_panel) m_panel->setPlacement(m_placementPage, m_placementBounds);
-    });
-    connect(m_placement, &MediaFrame::deleteRequested, this, [this]() { cancelPlacement(); });
-
-    bindPanel();
-    if (m_panel) m_panel->setPlacement(page, pdfBounds);
+    const QString filter =
+        tr("Media files (*.mp4 *.m4v *.mov *.webm *.mkv *.avi *.mp3 *.m4a *.wav *.ogg *.opus *.flac);;All files (*)");
+    return QFileDialog::getOpenFileName(m_canvas ? m_canvas->canvasWidget() : nullptr,
+                                        tr("Choose media"), QString(), filter);
 }
 
-void MediaLayer::cancelPlacement()
+void MediaLayer::useSource(MediaSpec &spec, const QString &path)
 {
-    if (m_placement) {
-        m_placement->deleteLater();
-        m_placement = nullptr;
-    }
-    m_placementPage = -1;
-    m_placementBounds = QRectF();
-    if (m_panel) m_panel->clearPlacement();
+    spec.source = path;
+    spec.mimeType = MediaDrop::mimeTypeFor(path);
+    spec.type = spec.mimeType.startsWith(QLatin1String("audio/"))
+        ? MediaSpec::Type::Audio : MediaSpec::Type::Video;
+    spec.displayName = QFileInfo(path).fileName();
+}
+
+void MediaLayer::insertAt(int page, const QRectF &pdfBounds)
+{
+    const QString path = chooseMediaFile();
+    if (path.isEmpty() || pdfBounds.isEmpty()) return;
+
+    bindPanel();
+    MediaSpec spec = m_panel ? m_panel->spec() : MediaSpec();
+    useSource(spec, path);
+    spec.page   = page;
+    spec.bounds = pdfBounds;
+    commitInsert(spec);
+}
+
+void MediaLayer::replaceMedia(MediaFrame *frame)
+{
+    const QPointer<MediaFrame> guard(frame);
+    const QString path = chooseMediaFile();
+    if (path.isEmpty() || !guard) return;
+
+    selectFrame(frame);
+    if (!m_panel || m_selected != frame) return;
+    MediaSpec media = m_panel->spec();
+    useSource(media, path);
+    media.poster = QImage();
+    applyPanel(media);
 }
 
 void MediaLayer::clearSelection(bool resetPanel)
@@ -616,7 +647,6 @@ void MediaLayer::clearSelection(bool resetPanel)
 void MediaLayer::selectFrame(MediaFrame *frame)
 {
     if (!frame) return;
-    cancelPlacement();
     for (const Placed &placed : std::as_const(m_placed))
         if (placed.frame && placed.frame != frame) placed.frame->setSelected(false);
 
@@ -664,14 +694,9 @@ void MediaLayer::bindPanel()
     m_panel = panel;
     connect(panel, &RichMediaPanel::applyRequested,
             this, &MediaLayer::applyPanel, Qt::UniqueConnection);
-    connect(panel, &RichMediaPanel::previewChanged, this, [this](const QImage &poster) {
-        if (m_placement) m_placement->setPoster(poster);
-    }, Qt::UniqueConnection);
 
     if (m_selected) {
         selectFrame(m_selected);
-    } else if (m_placementPage >= 0) {
-        panel->setPlacement(m_placementPage, m_placementBounds);
     } else {
         panel->resetForInsert();
     }
@@ -685,10 +710,7 @@ void MediaLayer::unbindPanel()
 
 void MediaLayer::applyPanel(const MediaSpec &requested)
 {
-    if (!m_selected) {
-        commitInsert(requested);
-        return;
-    }
+    if (!m_selected) return;
 
     for (Placed &placed : m_placed) {
         if (placed.frame != m_selected || placed.removed) continue;
@@ -804,8 +826,6 @@ QString MediaLayer::ensurePlayableSource(const QString &source)
 void MediaLayer::commitInsert(const MediaSpec &requested)
 {
     MediaSpec spec = requested;
-    spec.page   = m_placementPage;
-    spec.bounds = m_placementBounds;
     if (!spec.isValid()) return;
 
     if (spec.type == MediaSpec::Type::Video) {
@@ -831,8 +851,8 @@ void MediaLayer::commitInsert(const MediaSpec &requested)
     placed.page    = spec.page;
     placed.bounds  = spec.bounds;
     addFrame(std::move(placed));
-
-    cancelPlacement();
+    if (m_toolActive && !m_placed.isEmpty())
+        selectFrame(m_placed.constLast().frame);
     noteChanged(tr("Media inserted"), spec.page);
 }
 

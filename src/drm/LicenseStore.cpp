@@ -105,9 +105,14 @@ QString key()
     return userStore().value(QLatin1String(kUserKey)).toString().trimmed();
 }
 
+KeyInfo keyInfo()
+{
+    return inspectKey(key());
+}
+
 bool hasKey()
 {
-    return !key().isEmpty();
+    return keyInfo().status == KeyStatus::Valid;
 }
 
 bool keyIsMachineWide()

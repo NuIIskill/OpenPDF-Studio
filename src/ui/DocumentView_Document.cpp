@@ -728,15 +728,3 @@ bool DocumentView::exportPagesToImages(const QString &outputPath, int quality,
     return false;
 #endif
 }
-
-#ifdef HAVE_QT_PRINT
-bool DocumentView::printDocument(QPrinter *printer, const QList<int> &pages)
-{
-#  ifdef HAVE_PDF_RENDERING
-    return DocumentExporter(exportSources()).printPages(printer, pages);
-#  else
-    Q_UNUSED(printer) Q_UNUSED(pages)
-    return false;
-#  endif
-}
-#endif

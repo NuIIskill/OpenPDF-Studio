@@ -14,9 +14,6 @@ class QLabel;
 class QVBoxLayout;
 class QRubberBand;
 class QFrame;
-#ifdef HAVE_QT_PRINT
-class QPrinter;
-#endif
 QT_END_NAMESPACE
 
 class DigitalSignatureLayer;
@@ -164,10 +161,6 @@ public:
                              const QList<int> &pages = {},
                              const std::function<bool(int, int)> &progress = {});
     void setBusy(bool busy);
-#ifdef HAVE_QT_PRINT
-
-    bool printDocument(QPrinter *printer, const QList<int> &pages = {});
-#endif
 
     void        rerenderPage(int page);
 

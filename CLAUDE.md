@@ -4,7 +4,7 @@ Native Qt6 PDF viewer and editor: inline text editing, page organizer,
 annotations, OCR, export to PDF/DOCX/images.
 
 How the parts work together (startup, rendering, saving, crash recovery,
-modules) is described in [docs/architecture.md](docs/architecture.md). Keep it
+modules) is described in [docs/dev/architecture.md](docs/dev/architecture.md). Keep it
 in step when one of those flows changes.
 
 ## Build
@@ -37,7 +37,8 @@ src/
                   may use everything, only main.cpp includes it
   app/            infrastructure: config.ini, settings, safe writes, session,
                   passwords, update check
-  drm/            business licence: state, settings page, the two notices
+  drm/            business licence: state, key check, settings page, the two
+                  notices
   engine/         document logic, no widgets
     document/     PdfBackend + the PDFium implementation: opening, rendering,
                   text lookup, selection, the content model and saving
@@ -69,7 +70,7 @@ src/
     import/       turning a Word, OpenDocument or image file into a PDF
     sign/         signing: the sign dialog and the digital signing flow
     widgets/      shared widgets only - see the rule below
-  3rdparty/       vendored (nanosvg)
+  3rdparty/       vendored (nanosvg, Monocypher)
 modules/
   rich-media/     media playback and embedding - separately licensed, see
                   its README; same engine//ui/ split as src/

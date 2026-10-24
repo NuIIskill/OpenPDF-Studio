@@ -1,7 +1,10 @@
 # OpenPDF Studio architecture
 
-How the parts of the program work together. The folder layout, the layer rules
-and the build are in [CLAUDE.md](../CLAUDE.md).
+[README](../../README.md) · [Developer documentation](../../README.md#developer-documentation)
+
+How the parts of the program work together. See [Contributing](../../CONTRIBUTING.md)
+for the layer rules, [Building](building.md) for build commands and
+[PDF engine](pdf-engine.md) for the PDFium boundary.
 
 ## Startup
 
@@ -288,8 +291,12 @@ on startup.
   copy before opening, on a worker thread (`Importing`). The copy has no save
   target, so saving asks for a name.
 - **Export** (`engine/export/`): PDF with page selection through qpdf, DOCX
-  with layout detection, PNG per page, and printing. DOCX and PNG run on a
-  worker thread. DOCX pictures are compressed page by page while the content
+  with layout detection, PNG or JPEG per page, and printing. `Exporting` and
+  `Printing` read an `ExportCopy`, written by `writeRecoveryCopy()`, so unsaved
+  changes are exported and printed like a save would write them; the formats
+  run on a worker thread.
+  `PrintSheets` lays the pages out on sheets, for the preview
+  in `PrintDialog` and for the printer alike. DOCX pictures are compressed page by page while the content
   is collected, so long documents never hold their rasters all at once.
 - **OCR** (`engine/ocr/`): Tesseract, for text the page has no text layer for.
 - **Signing** (`engine/sign/`, `ui/sign/`): a handwritten signature is placed

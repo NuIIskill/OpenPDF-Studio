@@ -9,9 +9,6 @@
 #  include "engine/edit/EditSession.hpp"
 #  include "engine/ocr/OcrEngine.hpp"
 #  include "engine/render/PdfRenderer.hpp"
-#  ifdef HAVE_QT_PRINT
-#    include <QPrinter>
-#  endif
 #endif
 
 #include <QDir>
@@ -246,6 +243,8 @@ bool DocumentExporter::exportPagesToImages(const QString &outputPath,
     if (wanted.isEmpty()) return false;
 
     const QFileInfo out(outputPath);
+    const QString suffix = out.suffix().toLower();
+    const bool jpeg = suffix == QLatin1String("jpg") || suffix == QLatin1String("jpeg");
     const qreal scale = quality >= 95 ? 3.0 : quality >= 80 ? 2.0
                                       : quality >= 55 ? 1.5 : 1.0;
     for (int n = 0; n < wanted.size(); ++n) {
@@ -257,8 +256,20 @@ bool DocumentExporter::exportPagesToImages(const QString &outputPath,
         const QString path = wanted.size() == 1
             ? outputPath
             : out.dir().filePath(out.completeBaseName()
-                                 + QStringLiteral("_page_%1.png").arg(i + 1));
-        if (!image.save(path, "PNG", qBound(0, quality, 100))) return false;
+                                 + QStringLiteral("_page_%1.").arg(i + 1)
+                                 + (jpeg ? suffix : QStringLiteral("png")));
+        if (jpeg && image.hasAlphaChannel()) {
+            QImage opaque(image.size(), QImage::Format_RGB32);
+            opaque.fill(Qt::white);
+            QPainter painter(&opaque);
+            painter.drawImage(0, 0, image);
+            painter.end();
+            image = opaque;
+        }
+        // PNG is lossless, so the quality only decides the resolution above.
+        const bool saved = jpeg ? image.save(path, "JPEG", qBound(0, quality, 100))
+                                : image.save(path, "PNG");
+        if (!saved) return false;
     }
     return true;
 #else
@@ -269,67 +280,3 @@ bool DocumentExporter::exportPagesToImages(const QString &outputPath,
     return false;
 #endif
 }
-
-#if defined(HAVE_PDF_RENDERING) && defined(HAVE_QT_PRINT)
-bool DocumentExporter::printPages(QPrinter *printer, const QList<int> &pages) const
-{
-    if (!printer || !m_src.renderer || m_src.pageCount <= 0) return false;
-
-    QList<int> wanted;
-    for (int p : pages)
-        if (p >= 0 && p < m_src.pageCount) wanted.append(p);
-    if (pages.isEmpty())
-        for (int p = 0; p < m_src.pageCount; ++p) wanted.append(p);
-    if (wanted.isEmpty()) return false;
-
-    const qreal dpi   = qBound(72.0, qreal(printer->resolution()), 300.0);
-    const qreal scale = dpi / PdfRenderer::kPtsPerInch;
-
-    QPainter painter;
-    if (!painter.begin(printer)) return false;
-    painter.setRenderHint(QPainter::SmoothPixmapTransform, true);
-
-    bool firstPage = true;
-    for (int i : wanted) {
-
-        if (!firstPage && !printer->newPage()) {
-            painter.end();
-            return false;
-        }
-        firstPage = false;
-
-        QImage image = m_src.renderer->renderPage(i, scale, m_src.session);
-        if (image.isNull()) continue;
-
-        const QRectF target = painter.viewport();
-        if (target.isEmpty()) continue;
-
-        const QSizeF pageSz(image.size());
-        const auto fitScale = [&target](const QSizeF &s) {
-            return qMin(target.width() / s.width(), target.height() / s.height());
-        };
-        const bool rotate = fitScale(pageSz.transposed()) > fitScale(pageSz) * 1.05;
-
-        QSizeF drawn = rotate ? pageSz.transposed() : pageSz;
-        drawn.scale(target.size(), Qt::KeepAspectRatio);
-        const QRectF dest(target.x() + (target.width()  - drawn.width())  / 2.0,
-                          target.y() + (target.height() - drawn.height()) / 2.0,
-                          drawn.width(), drawn.height());
-
-        if (rotate) {
-            painter.save();
-            painter.translate(dest.center());
-            painter.rotate(90);
-
-            painter.drawImage(QRectF(-dest.height() / 2.0, -dest.width() / 2.0,
-                                     dest.height(), dest.width()), image);
-            painter.restore();
-        } else {
-            painter.drawImage(dest, image);
-        }
-    }
-
-    painter.end();
-    return true;
-}
-#endif

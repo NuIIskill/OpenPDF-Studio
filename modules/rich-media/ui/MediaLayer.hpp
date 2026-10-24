@@ -73,8 +73,10 @@ private:
     void ensureBackgroundPatch(Placed &placed);
     QImage backgroundWithoutMedia(const MediaAsset &asset) const;
 
-    void beginPlacement(int page, const QRectF &pdfBounds);
-    void cancelPlacement();
+    QString chooseMediaFile();
+    static void useSource(MediaSpec &spec, const QString &path);
+    void insertAt(int page, const QRectF &pdfBounds);
+    void replaceMedia(MediaFrame *frame);
     void selectFrame(MediaFrame *frame);
     void clearSelection(bool resetPanel = true);
     void applyPanel(const MediaSpec &spec);
@@ -129,10 +131,7 @@ private:
     QPoint       m_dragStart;
     int          m_dragPage  { -1 };
 
-    MediaFrame *m_placement     { nullptr };
     MediaFrame *m_selected      { nullptr };
-    int         m_placementPage { -1 };
-    QRectF      m_placementBounds;
 
     QPointer<RichMediaPanel> m_panel;
 

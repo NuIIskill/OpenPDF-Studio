@@ -14,11 +14,6 @@ class EditSession;
 class OcrEngine;
 class PdfRenderer;
 class PdfBackend;
-#  ifdef HAVE_QT_PRINT
-QT_BEGIN_NAMESPACE
-class QPrinter;
-QT_END_NAMESPACE
-#  endif
 #endif
 
 /// Pulls page content out of renderer + session for the DOCX and image exports.
@@ -47,10 +42,6 @@ public:
     bool exportPagesToImages(const QString &outputPath, int quality = 85,
                              const QList<int> &pages = {},
                              const std::function<bool(int, int)> &progress = {}) const;
-#if defined(HAVE_PDF_RENDERING) && defined(HAVE_QT_PRINT)
-
-    bool printPages(QPrinter *printer, const QList<int> &pages = {}) const;
-#endif
 
 private:
 

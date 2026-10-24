@@ -9,6 +9,8 @@ target_sources(OpenPDFStudio PRIVATE
     DocxXml.hpp
     PdfExporter.cpp
     PdfExporter.hpp
+    PrintSheets.cpp
+    PrintSheets.hpp
     ZipWriter.cpp
     ZipWriter.hpp
 )

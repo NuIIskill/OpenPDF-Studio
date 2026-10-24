@@ -47,4 +47,5 @@ private:
     QPushButton *m_getBtn       { nullptr };
 
     bool m_hasKey { false };
+    bool m_feedbackIsError { false };
 };

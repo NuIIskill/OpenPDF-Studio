@@ -10,6 +10,7 @@ build you make yourself.
 | everything not listed below - `src/`, `resources/`, `packaging/`, the build scripts | dual: GPL-3.0-only **or** OpenPDF Studio Commercial | `GPL-3.0-only OR LicenseRef-OpenPDF-Commercial` |
 | `modules/rich-media/` | OpenPDF Studio Business (source-available) | `LicenseRef-OpenPDF-Business` |
 | `src/3rdparty/nanosvg/` | zlib (vendored, upstream terms) | `Zlib` |
+| `src/3rdparty/monocypher/` | CC0 or BSD-2-Clause (vendored, upstream terms) | `CC0-1.0 OR BSD-2-Clause` |
 
 The Core is the whole application as it stands: viewer, renderer, editor, UI,
 exporters, packaging. It is real free software under GPL-3.0-only - that path
@@ -41,7 +42,8 @@ RPM `License:` field says.
 
 ## Third-party dependencies
 
-None of these is vendored except nanosvg; the rest are linked from the system.
+None of these is vendored except nanosvg and Monocypher; the rest are linked
+from the system.
 
 | Component | License | Notes |
 | --- | --- | --- |
@@ -50,6 +52,7 @@ None of these is vendored except nanosvg; the rest are linked from the system.
 | qpdf | Apache-2.0 | optional, vector PDF save and export options |
 | Tesseract (+ Leptonica) | Apache-2.0 / BSD-2-Clause | optional, OCR; texts in `TESSERACT.txt` |
 | nanosvg | zlib | vendored in `src/3rdparty/nanosvg/` |
+| Monocypher 4.0.2 | CC0-1.0 or BSD-2-Clause | vendored in `src/3rdparty/monocypher/`, checks license keys |
 
 
 Everything else in the table above is GPL-compatible and also usable in a
