@@ -5,8 +5,8 @@ existing text, organize pages, annotate, sign and export documents in one
 desktop application. Word, OpenDocument and image files open as PDF working
 copies, converted locally.
 
-Current version: **0.3.2 — alpha**. Work on copies of important documents and
-check saved or exported files with a second PDF viewer.
+Current version: **0.3.2, alpha**. Saving replaces the original file, so keep a
+backup of important PDFs and check edited text in a second viewer.
 
 ## Key features
 
