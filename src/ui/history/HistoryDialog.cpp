@@ -408,7 +408,7 @@ QString HistoryDialog::iconFor(DocumentHistory::Kind kind)
     case Kind::ImageRemoved:
     case Kind::ImageChanged:   return QStringLiteral("image");
     case Kind::LinkAdded:
-    case Kind::LinkEdited:     return QStringLiteral("paperclip");
+    case Kind::LinkEdited:     return QStringLiteral("link");
     case Kind::LinkRemoved:    return QStringLiteral("trash-2");
     case Kind::NoteAdded:
     case Kind::NoteEdited:     return QStringLiteral("message-square");

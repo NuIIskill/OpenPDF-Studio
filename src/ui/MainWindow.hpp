@@ -85,6 +85,7 @@ private:
     void onStartPresentation();
 
     void openImported(const QString &path, OpenMode mode);
+    void applyOpeningMode();
     bool appendPages(const QString &pdf, const QString &shownName);
     QString askSavePath(DocumentView *dv);
     bool saveDocument(DocumentView *dv, const QString &path);

@@ -50,6 +50,7 @@ public:
     void relayout();
 
     void addInRect(const QRect &canvasRect);
+    bool addSelection(const QList<TextSelectionController::SelectionPart> &selection);
     bool showEmptyContextMenu(
         const QPoint &canvasPos, const QPoint &globalPos,
         const QList<TextSelectionController::SelectionPart> &selection);
@@ -93,8 +94,8 @@ private:
 
     void addEntry(Entry entry, bool position = true);
     void addAt(const QPoint &canvasPos);
-    bool addSelection(const QList<TextSelectionController::SelectionPart> &selection);
     void showContextMenu(QFrame *widget, const QPoint &globalPos);
+    void openExternal(const QString &address);
     QString askForUrl(const QString &current = {});
     void syncSession();
     QList<State> state() const;

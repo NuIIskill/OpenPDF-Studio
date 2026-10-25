@@ -2209,6 +2209,11 @@ Text, image and drawing edits made since then are not part of any file yet and w
         <translation>链接地址：</translation>
     </message>
     <message>
+        <location filename="../../src/ui/view/LinkAnnotationLayer.cpp" line="180"/>
+        <source>Set Link</source>
+        <translation>设置链接</translation>
+    </message>
+    <message>
         <location filename="../../src/ui/view/LinkAnnotationLayer.cpp" line="191"/>
         <source>Open Link</source>
         <translation>打开链接</translation>
@@ -2254,6 +2259,11 @@ Text, image and drawing edits made since then are not part of any file yet and w
         <location filename="../../src/ui/view/LinkAnnotationLayer.cpp" line="333"/>
         <source>Add link</source>
         <translation>添加链接</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/view/LinkAnnotationLayer.cpp"/>
+        <source>Open this link in the browser?</source>
+        <translation>在浏览器中打开此链接？</translation>
     </message>
 </context>
 <context>
@@ -4437,6 +4447,89 @@ Enter the password to open it:</source>
         <location filename="../../src/ui/settings/SettingsPanel.cpp" line="585"/>
         <source>Add to Current Document</source>
         <translation>添加到当前文档</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/settings/SettingsPanel_Security.cpp"/>
+        <source>Security</source>
+        <translation>安全</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/settings/SettingsPanel_Security.cpp"/>
+        <source>Protection for documents and external content.</source>
+        <translation>保护文档和外部内容。</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/settings/SettingsPanel_Security.cpp"/>
+        <source>Edit Protection</source>
+        <translation>编辑保护</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/settings/SettingsPanel_Security.cpp"/>
+        <source>Open new documents in reading mode</source>
+        <translation>以阅读模式打开新文档</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/settings/SettingsPanel_Security.cpp"/>
+        <source>Changes require explicit approval.</source>
+        <translation>更改需要明确授权。</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/settings/SettingsPanel_Security.cpp"/>
+        <source>External Content</source>
+        <translation>外部内容</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/settings/SettingsPanel_Security.cpp"/>
+        <source>Open external links</source>
+        <translation>打开外部链接</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/settings/SettingsPanel_Security.cpp"/>
+        <source>Ask</source>
+        <translation>询问</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/settings/SettingsPanel_Security.cpp"/>
+        <source>Always open</source>
+        <translation>始终打开</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/settings/SettingsPanel_Security.cpp"/>
+        <source>Never open</source>
+        <translation>从不打开</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/settings/SettingsPanel_Security.cpp"/>
+        <source>Links open in the browser right away.</source>
+        <translation>链接直接在浏览器中打开。</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/settings/SettingsPanel_Security.cpp"/>
+        <source>Links in documents are not opened.</source>
+        <translation>不打开文档中的链接。</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/settings/SettingsPanel_Security.cpp"/>
+        <source>Confirmation before switching to the browser.</source>
+        <translation>切换到浏览器前先确认。</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/settings/SettingsPanel.cpp"/>
+        <source>Log file: %1</source>
+        <translation>日志文件：%1</translation>
+    </message>
+</context>
+<context>
+    <name>SettingsSearch</name>
+    <message>
+        <location filename="../../src/ui/settings/SettingsSearch.cpp"/>
+        <source>Search…</source>
+        <translation>搜索…</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/settings/SettingsSearch.cpp"/>
+        <source>No results</source>
+        <translation>无结果</translation>
     </message>
 </context>
 <context>

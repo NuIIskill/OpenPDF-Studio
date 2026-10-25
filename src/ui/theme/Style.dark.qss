@@ -689,6 +689,16 @@ QLineEdit#ShortcutSearch {
     font-size: 13px;
 }
 
+QLineEdit#SettingsSearchField {
+    border: 1px solid #555555;
+    border-radius: 8px;
+    padding: 4px 6px;
+    background: #404040;
+    color: #D8D8D8;
+    font-size: 13px;
+}
+QLineEdit#SettingsSearchField:focus { border-color: #3B82F6; }
+
 QWidget#ShortcutTableHeader {
     background: #2E2E2E;
 }

@@ -2209,6 +2209,11 @@ Text, image and drawing edits made since then are not part of any file yet and w
         <translation>링크 주소:</translation>
     </message>
     <message>
+        <location filename="../../src/ui/view/LinkAnnotationLayer.cpp" line="180"/>
+        <source>Set Link</source>
+        <translation>링크 설정</translation>
+    </message>
+    <message>
         <location filename="../../src/ui/view/LinkAnnotationLayer.cpp" line="191"/>
         <source>Open Link</source>
         <translation>링크 열기</translation>
@@ -2254,6 +2259,11 @@ Text, image and drawing edits made since then are not part of any file yet and w
         <location filename="../../src/ui/view/LinkAnnotationLayer.cpp" line="333"/>
         <source>Add link</source>
         <translation>링크 추가</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/view/LinkAnnotationLayer.cpp"/>
+        <source>Open this link in the browser?</source>
+        <translation>이 링크를 브라우저에서 여시겠습니까?</translation>
     </message>
 </context>
 <context>
@@ -4437,6 +4447,89 @@ Enter the password to open it:</source>
         <location filename="../../src/ui/settings/SettingsPanel.cpp" line="585"/>
         <source>Add to Current Document</source>
         <translation>현재 문서에 추가</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/settings/SettingsPanel_Security.cpp"/>
+        <source>Security</source>
+        <translation>보안</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/settings/SettingsPanel_Security.cpp"/>
+        <source>Protection for documents and external content.</source>
+        <translation>문서와 외부 콘텐츠를 보호합니다.</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/settings/SettingsPanel_Security.cpp"/>
+        <source>Edit Protection</source>
+        <translation>편집 보호</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/settings/SettingsPanel_Security.cpp"/>
+        <source>Open new documents in reading mode</source>
+        <translation>새 문서를 읽기 모드로 열기</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/settings/SettingsPanel_Security.cpp"/>
+        <source>Changes require explicit approval.</source>
+        <translation>변경하려면 명시적인 허용이 필요합니다.</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/settings/SettingsPanel_Security.cpp"/>
+        <source>External Content</source>
+        <translation>외부 콘텐츠</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/settings/SettingsPanel_Security.cpp"/>
+        <source>Open external links</source>
+        <translation>외부 링크 열기</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/settings/SettingsPanel_Security.cpp"/>
+        <source>Ask</source>
+        <translation>묻기</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/settings/SettingsPanel_Security.cpp"/>
+        <source>Always open</source>
+        <translation>항상 열기</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/settings/SettingsPanel_Security.cpp"/>
+        <source>Never open</source>
+        <translation>열지 않음</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/settings/SettingsPanel_Security.cpp"/>
+        <source>Links open in the browser right away.</source>
+        <translation>링크가 바로 브라우저에서 열립니다.</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/settings/SettingsPanel_Security.cpp"/>
+        <source>Links in documents are not opened.</source>
+        <translation>문서의 링크를 열지 않습니다.</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/settings/SettingsPanel_Security.cpp"/>
+        <source>Confirmation before switching to the browser.</source>
+        <translation>브라우저로 전환하기 전에 확인합니다.</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/settings/SettingsPanel.cpp"/>
+        <source>Log file: %1</source>
+        <translation>로그 파일: %1</translation>
+    </message>
+</context>
+<context>
+    <name>SettingsSearch</name>
+    <message>
+        <location filename="../../src/ui/settings/SettingsSearch.cpp"/>
+        <source>Search…</source>
+        <translation>검색…</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/settings/SettingsSearch.cpp"/>
+        <source>No results</source>
+        <translation>결과 없음</translation>
     </message>
 </context>
 <context>

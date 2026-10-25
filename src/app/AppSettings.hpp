@@ -73,6 +73,12 @@ public:
     [[nodiscard]] QString customPlayerCommand() const;
     void setCustomPlayerCommand(const QString &command);
 
+    [[nodiscard]] bool openInReadMode() const;
+    void setOpenInReadMode(bool enabled);
+
+    [[nodiscard]] QString externalLinks() const;
+    void setExternalLinks(const QString &policy);
+
     [[nodiscard]] bool noticeHidden(const QString &key) const;
     void setNoticeHidden(const QString &key, bool hidden);
 
@@ -84,12 +90,6 @@ public:
 
     [[nodiscard]] QDateTime lastUpdateCheck() const;
     void setLastUpdateCheck(const QDateTime &when);
-
-    [[nodiscard]] bool hardwareAcceleration() const;
-    void setHardwareAcceleration(bool enabled);
-
-    [[nodiscard]] bool limitMemoryUsage() const;
-    void setLimitMemoryUsage(bool enabled);
 
     [[nodiscard]] bool debugLogging() const;
     void setDebugLogging(bool enabled);

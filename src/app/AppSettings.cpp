@@ -239,22 +239,23 @@ void AppSettings::setCustomPlayerCommand(const QString &command)
     settings().setValue(QStringLiteral("media/customPlayer"), command);
 }
 
-bool AppSettings::hardwareAcceleration() const
+bool AppSettings::openInReadMode() const
 {
-    return settings().value(QStringLiteral("advanced/hardwareAcceleration"), false).toBool();
+    return settings().value(QStringLiteral("security/openInReadMode"), true).toBool();
 }
-void AppSettings::setHardwareAcceleration(bool v)
+void AppSettings::setOpenInReadMode(bool v)
 {
-    settings().setValue(QStringLiteral("advanced/hardwareAcceleration"), v);
+    settings().setValue(QStringLiteral("security/openInReadMode"), v);
 }
 
-bool AppSettings::limitMemoryUsage() const
+QString AppSettings::externalLinks() const
 {
-    return settings().value(QStringLiteral("advanced/limitMemoryUsage"), false).toBool();
+    return settings().value(QStringLiteral("security/externalLinks"),
+                            QStringLiteral("ask")).toString();
 }
-void AppSettings::setLimitMemoryUsage(bool v)
+void AppSettings::setExternalLinks(const QString &policy)
 {
-    settings().setValue(QStringLiteral("advanced/limitMemoryUsage"), v);
+    settings().setValue(QStringLiteral("security/externalLinks"), policy);
 }
 
 bool AppSettings::debugLogging() const

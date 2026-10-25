@@ -2209,6 +2209,11 @@ Text, image and drawing edits made since then are not part of any file yet and w
         <translation>リンクのアドレス:</translation>
     </message>
     <message>
+        <location filename="../../src/ui/view/LinkAnnotationLayer.cpp" line="180"/>
+        <source>Set Link</source>
+        <translation>リンクを設定</translation>
+    </message>
+    <message>
         <location filename="../../src/ui/view/LinkAnnotationLayer.cpp" line="191"/>
         <source>Open Link</source>
         <translation>リンクを開く</translation>
@@ -2254,6 +2259,11 @@ Text, image and drawing edits made since then are not part of any file yet and w
         <location filename="../../src/ui/view/LinkAnnotationLayer.cpp" line="333"/>
         <source>Add link</source>
         <translation>リンクを追加</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/view/LinkAnnotationLayer.cpp"/>
+        <source>Open this link in the browser?</source>
+        <translation>このリンクをブラウザーで開きますか？</translation>
     </message>
 </context>
 <context>
@@ -4437,6 +4447,89 @@ Enter the password to open it:</source>
         <location filename="../../src/ui/settings/SettingsPanel.cpp" line="585"/>
         <source>Add to Current Document</source>
         <translation>現在のドキュメントに追加</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/settings/SettingsPanel_Security.cpp"/>
+        <source>Security</source>
+        <translation>セキュリティ</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/settings/SettingsPanel_Security.cpp"/>
+        <source>Protection for documents and external content.</source>
+        <translation>ドキュメントと外部コンテンツの保護。</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/settings/SettingsPanel_Security.cpp"/>
+        <source>Edit Protection</source>
+        <translation>編集保護</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/settings/SettingsPanel_Security.cpp"/>
+        <source>Open new documents in reading mode</source>
+        <translation>新しいドキュメントを閲覧モードで開く</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/settings/SettingsPanel_Security.cpp"/>
+        <source>Changes require explicit approval.</source>
+        <translation>変更には明示的な許可が必要です。</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/settings/SettingsPanel_Security.cpp"/>
+        <source>External Content</source>
+        <translation>外部コンテンツ</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/settings/SettingsPanel_Security.cpp"/>
+        <source>Open external links</source>
+        <translation>外部リンクを開く</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/settings/SettingsPanel_Security.cpp"/>
+        <source>Ask</source>
+        <translation>確認する</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/settings/SettingsPanel_Security.cpp"/>
+        <source>Always open</source>
+        <translation>常に開く</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/settings/SettingsPanel_Security.cpp"/>
+        <source>Never open</source>
+        <translation>開かない</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/settings/SettingsPanel_Security.cpp"/>
+        <source>Links open in the browser right away.</source>
+        <translation>リンクはすぐにブラウザーで開きます。</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/settings/SettingsPanel_Security.cpp"/>
+        <source>Links in documents are not opened.</source>
+        <translation>ドキュメント内のリンクは開きません。</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/settings/SettingsPanel_Security.cpp"/>
+        <source>Confirmation before switching to the browser.</source>
+        <translation>ブラウザーに切り替える前に確認します。</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/settings/SettingsPanel.cpp"/>
+        <source>Log file: %1</source>
+        <translation>ログファイル: %1</translation>
+    </message>
+</context>
+<context>
+    <name>SettingsSearch</name>
+    <message>
+        <location filename="../../src/ui/settings/SettingsSearch.cpp"/>
+        <source>Search…</source>
+        <translation>検索…</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/settings/SettingsSearch.cpp"/>
+        <source>No results</source>
+        <translation>見つかりません</translation>
     </message>
 </context>
 <context>

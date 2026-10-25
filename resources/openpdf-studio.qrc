@@ -27,7 +27,7 @@
         <file>icons/eraser.svg</file>
         <file>icons/image.svg</file>
         <file>icons/bookmark.svg</file>
-        <file>icons/paperclip.svg</file>
+        <file>icons/link.svg</file>
         <file>icons/settings.svg</file>
         <file>icons/save.svg</file>
         <file>icons/printer.svg</file>
@@ -67,6 +67,7 @@
         <file>icons/map-pin.svg</file>
         <file>icons/copy.svg</file>
         <file>icons/file-badge.svg</file>
+        <file>icons/shield.svg</file>
         <file>icons/shield-check.svg</file>
         <file>icons/shield-alert.svg</file>
         <file>icons/folder-open.svg</file>

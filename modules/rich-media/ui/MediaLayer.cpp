@@ -215,6 +215,11 @@ void MediaLayer::setActiveTool(const QString &toolId)
     for (const Placed &placed : m_placed)
         if (placed.frame) placed.frame->setInteractive(active && !placed.removed);
 
+    if (QWidget *canvasWidget = m_canvas ? m_canvas->canvasWidget() : nullptr) {
+        if (active) canvasWidget->setCursor(Qt::CrossCursor);
+        else        canvasWidget->unsetCursor();
+    }
+
     if (active) {
         bindPanel();
     } else {

@@ -137,7 +137,7 @@ void DocumentView::repositionEditorFrame()
 
 void DocumentView::setTool(Tool tool)
 {
-    if (tool != Tool::Select) m_selection->clear();
+    if (tool != Tool::Select && tool != Tool::Attach) m_selection->clear();
     m_tool = tool;
 
     m_holdKeys->setPanTool(tool == Tool::Pan);
@@ -177,6 +177,13 @@ void DocumentView::setActiveToolId(const QString &toolId)
 QString DocumentView::selectedText() const
 {
     return m_selection->selectedText();
+}
+
+void DocumentView::linkSelection()
+{
+    if (m_selection->hasSelection()
+            && m_linkLayer->addSelection(m_selection->selectedParts()))
+        m_selection->clear();
 }
 
 void DocumentView::copySelectedText()

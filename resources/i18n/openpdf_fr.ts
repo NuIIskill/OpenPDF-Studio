@@ -2209,6 +2209,11 @@ Les modifications de texte, d&apos;images et de dessins faites depuis ne sont en
         <translation>Adresse du lien :</translation>
     </message>
     <message>
+        <location filename="../../src/ui/view/LinkAnnotationLayer.cpp" line="180"/>
+        <source>Set Link</source>
+        <translation>Définir le lien</translation>
+    </message>
+    <message>
         <location filename="../../src/ui/view/LinkAnnotationLayer.cpp" line="191"/>
         <source>Open Link</source>
         <translation>Ouvrir le lien</translation>
@@ -2254,6 +2259,11 @@ Les modifications de texte, d&apos;images et de dessins faites depuis ne sont en
         <location filename="../../src/ui/view/LinkAnnotationLayer.cpp" line="333"/>
         <source>Add link</source>
         <translation>Ajouter un lien</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/view/LinkAnnotationLayer.cpp"/>
+        <source>Open this link in the browser?</source>
+        <translation>Ouvrir ce lien dans le navigateur ?</translation>
     </message>
 </context>
 <context>
@@ -4440,6 +4450,89 @@ Saisissez le mot de passe pour l&apos;ouvrir :</translation>
         <location filename="../../src/ui/settings/SettingsPanel.cpp" line="585"/>
         <source>Add to Current Document</source>
         <translation>Ajouter au document actuel</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/settings/SettingsPanel_Security.cpp"/>
+        <source>Security</source>
+        <translation>Sécurité</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/settings/SettingsPanel_Security.cpp"/>
+        <source>Protection for documents and external content.</source>
+        <translation>Protection des documents et des contenus externes.</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/settings/SettingsPanel_Security.cpp"/>
+        <source>Edit Protection</source>
+        <translation>Protection contre la modification</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/settings/SettingsPanel_Security.cpp"/>
+        <source>Open new documents in reading mode</source>
+        <translation>Ouvrir les nouveaux documents en mode lecture</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/settings/SettingsPanel_Security.cpp"/>
+        <source>Changes require explicit approval.</source>
+        <translation>Les modifications nécessitent une autorisation explicite.</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/settings/SettingsPanel_Security.cpp"/>
+        <source>External Content</source>
+        <translation>Contenus externes</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/settings/SettingsPanel_Security.cpp"/>
+        <source>Open external links</source>
+        <translation>Ouvrir les liens externes</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/settings/SettingsPanel_Security.cpp"/>
+        <source>Ask</source>
+        <translation>Demander</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/settings/SettingsPanel_Security.cpp"/>
+        <source>Always open</source>
+        <translation>Toujours ouvrir</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/settings/SettingsPanel_Security.cpp"/>
+        <source>Never open</source>
+        <translation>Ne jamais ouvrir</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/settings/SettingsPanel_Security.cpp"/>
+        <source>Links open in the browser right away.</source>
+        <translation>Les liens s&apos;ouvrent directement dans le navigateur.</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/settings/SettingsPanel_Security.cpp"/>
+        <source>Links in documents are not opened.</source>
+        <translation>Les liens des documents ne sont pas ouverts.</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/settings/SettingsPanel_Security.cpp"/>
+        <source>Confirmation before switching to the browser.</source>
+        <translation>Confirmation avant de passer au navigateur.</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/settings/SettingsPanel.cpp"/>
+        <source>Log file: %1</source>
+        <translation>Fichier journal : %1</translation>
+    </message>
+</context>
+<context>
+    <name>SettingsSearch</name>
+    <message>
+        <location filename="../../src/ui/settings/SettingsSearch.cpp"/>
+        <source>Search…</source>
+        <translation>Rechercher…</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/settings/SettingsSearch.cpp"/>
+        <source>No results</source>
+        <translation>Aucun résultat</translation>
     </message>
 </context>
 <context>

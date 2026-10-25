@@ -4,6 +4,16 @@ target_sources(OpenPDFStudio PRIVATE
     SettingCheckBox.hpp
     SettingsPanel.cpp
     SettingsPanel.hpp
+    SettingsPanel_About.cpp
+    SettingsPanel_Advanced.cpp
+    SettingsPanel_Appearance.cpp
+    SettingsPanel_Language.cpp
+    SettingsPanel_Media.cpp
+    SettingsPanel_Security.cpp
+    SettingsPanel_Shortcuts.cpp
+    SettingsPanel_Zoom.cpp
+    SettingsSearch.cpp
+    SettingsSearch.hpp
     ShortcutRow.hpp
     ToggleSwitch.hpp
 )

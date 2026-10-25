@@ -8,7 +8,9 @@ for the layer rules, [Building](building.md) for build commands and
 
 ## Startup
 
-`main.cpp` applies theme and language from `config.ini` (on Windows it first
+`main.cpp` applies theme and language from `config.ini` and, with debug
+logging on, has `app/LogFile` copy Qt's messages into `openpdf-studio.log`
+beside it (on Windows it first
 makes the main thread an OLE apartment, which Explorer drops need), then hands the
 arguments to `Cli::run()`. A recognised command runs without a window and
 exits. Otherwise `App` builds the `MainWindow`, opens a file named on the

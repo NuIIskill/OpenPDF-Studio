@@ -5,6 +5,8 @@ target_sources(OpenPDFStudio PRIVATE
     AppSettings.hpp
     DefaultPdfApp.cpp
     DefaultPdfApp.hpp
+    LogFile.cpp
+    LogFile.hpp
     PdfPwStore.cpp
     PdfPwStore.hpp
     SafeWrite.cpp

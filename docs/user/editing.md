@@ -6,6 +6,10 @@ Enable **Edit Mode** before changing existing page content. The file you opened
 stays untouched until you save. Use `Ctrl+S` to save, `Ctrl+Shift+S` to choose
 another name, and undo, redo or **History** to review your changes.
 
+Every opened document starts without Edit Mode. To open documents ready for
+editing, clear **Open new documents in reading mode** under Settings →
+**Security**.
+
 ## Existing text and new text
 
 With the **Text** tool, click a text run and type into the inline editor.
@@ -42,12 +46,11 @@ French language data are used when installed, with English as a fallback.
 | Image | Insert an image; move, scale, rotate, replace, copy, paste or delete an existing page image |
 | Draw | Use pen, highlighter and eraser with adjustable colour and width; strokes save as vector paths |
 | Notes | Place a page comment and manage comments in the notes panel |
-| Attachment | Add a link over selected text or a drawn rectangle; edit or remove existing links |
+| Link | Select text, click Link, enter the address and choose Set Link; edit or remove existing links by right-clicking them |
 | Bookmark | Navigate the outline; add the current page, rename, remove and reorder bookmarks |
 
 Existing images are changed in place, preserving their ordering relative to
-text. Bookmark changes require qpdf. The Attachment tool creates link areas;
-its name does not imply a general file-attachment editor.
+text. Bookmark changes require qpdf.
 
 ## Organize pages
 

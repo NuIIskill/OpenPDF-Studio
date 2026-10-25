@@ -117,6 +117,12 @@ otherwise they use the platform's generic configuration directory under
 location. Recovery files use Qt's application data directory, in `session/`,
 independently of portable settings.
 
+For a problem that is hard to describe, turn on **Enable debug logging** under
+Settings → **Advanced** and reproduce it. Messages at the chosen log level go
+to `openpdf-studio.log` beside `config.ini`; Settings → **About** shows its
+path. Above 5 MB the file is moved to `openpdf-studio.log.1` at the next start.
+Check the log for file names before attaching it to a report.
+
 Report reproducible bugs through [GitHub Issues](https://github.com/NuIIskill/OpenPDF-Studio/issues)
 with the version, package, steps, expected result and actual result. Attach
 only a non-sensitive example you are allowed to share. Report security issues

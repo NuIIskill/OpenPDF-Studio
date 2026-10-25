@@ -69,9 +69,16 @@ Japanese and Korean. **Customize Tools** reorders or hides tools in the rail.
 
 *Settings → Appearance selects the theme; the other settings pages are listed on the left.*
 
+The search field above the page list (`Ctrl+F`) keeps only the pages that
+contain the typed words, opens the first and marks the matching option; `Esc`
+clears it.
+
 Settings → **Advanced** can check for updates manually or at a chosen interval.
 The check compares repository tags and links to the download page; it never
 downloads or installs an update. Automatic checks can be switched off there.
+
+Settings → **Security** decides whether clicking a link in a document asks
+first, opens the browser right away or does nothing.
 
 On first use, the installer or application asks whether usage is personal or
 business. Personal is preselected. This relates to the separately licensed

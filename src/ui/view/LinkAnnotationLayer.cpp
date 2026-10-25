@@ -1,4 +1,5 @@
 #include "ui/view/LinkAnnotationLayer.hpp"
+#include "app/AppSettings.hpp"
 
 #ifdef HAVE_PDF_RENDERING
 #  include "engine/document/PdfBackend.hpp"
@@ -16,6 +17,8 @@
 #include <QLabel>
 #include <QLineEdit>
 #include <QMenu>
+#include <QMessageBox>
+#include <QPushButton>
 #include <QMouseEvent>
 #include <QUndoCommand>
 #include <QUndoStack>
@@ -149,9 +152,7 @@ bool LinkAnnotationLayer::eventFilter(QObject *watched, QEvent *event)
             m_pressedLink = nullptr;
             if (open) {
                 const int index = indexOf(frame);
-                if (index >= 0)
-                    QDesktopServices::openUrl(
-                        QUrl::fromUserInput(m_entries.at(index).url));
+                if (index >= 0) openExternal(m_entries.at(index).url);
             }
             return true;
         }
@@ -166,15 +167,39 @@ int LinkAnnotationLayer::indexOf(QFrame *widget) const
     return -1;
 }
 
+void LinkAnnotationLayer::openExternal(const QString &address)
+{
+    const QString policy = AppSettings().externalLinks();
+    if (policy == QLatin1String("never")) return;
+
+    const QUrl url = QUrl::fromUserInput(address);
+    if (policy != QLatin1String("always")) {
+        QMessageBox question(m_canvas->canvasWidget());
+        question.setIcon(QMessageBox::Question);
+        question.setWindowTitle(tr("Link"));
+        question.setText(tr("Open this link in the browser?"));
+        question.setInformativeText(url.toDisplayString());
+        QAbstractButton *openButton =
+            question.addButton(tr("Open Link"), QMessageBox::AcceptRole);
+        question.addButton(QMessageBox::Cancel);
+        question.setDefaultButton(QMessageBox::Cancel);
+        question.exec();
+        if (question.clickedButton() != openButton) return;
+    }
+    QDesktopServices::openUrl(url);
+}
+
 QString LinkAnnotationLayer::askForUrl(const QString &current)
 {
-    bool accepted = false;
-    const QString shown = current.isEmpty()
-        ? QStringLiteral("https://") : QUrl(current).toDisplayString();
-    const QString value = QInputDialog::getText(
-        m_canvas->canvasWidget(), tr("Link"), tr("Link address:"),
-        QLineEdit::Normal, shown, &accepted).trimmed();
-    if (!accepted || value.isEmpty()) return {};
+    QInputDialog dialog(m_canvas->canvasWidget());
+    dialog.setWindowTitle(tr("Link"));
+    dialog.setLabelText(tr("Link address:"));
+    dialog.setTextValue(current.isEmpty()
+        ? QStringLiteral("https://") : QUrl(current).toDisplayString());
+    dialog.setOkButtonText(tr("Set Link"));
+    if (dialog.exec() != QDialog::Accepted) return {};
+    const QString value = dialog.textValue().trimmed();
+    if (value.isEmpty()) return {};
 
     const QUrl url = QUrl::fromUserInput(value);
     if (!url.isValid() || url.scheme().isEmpty()) return {};
@@ -191,6 +216,9 @@ void LinkAnnotationLayer::showContextMenu(QFrame *widget, const QPoint &globalPo
                                    tr("Open Link"));
     QAction *newTab = menu.addAction(QIcon::fromTheme(QStringLiteral("tab-new")),
                                      tr("Open Link in New Tab"));
+    const bool opens = AppSettings().externalLinks() != QLatin1String("never");
+    open->setEnabled(opens);
+    newTab->setEnabled(opens);
     QAction *copy = menu.addAction(QIcon::fromTheme(QStringLiteral("edit-copy")),
                                    tr("Copy Link Address"));
     menu.addSeparator();
@@ -205,7 +233,7 @@ void LinkAnnotationLayer::showContextMenu(QFrame *widget, const QPoint &globalPo
     if (!chosen) return;
 
     if (chosen == open || chosen == newTab) {
-        QDesktopServices::openUrl(QUrl::fromUserInput(m_entries.at(index).url));
+        openExternal(m_entries.at(index).url);
         return;
     }
     if (chosen == copy) {

@@ -267,7 +267,11 @@ void MainWindow::connectBars()
             dv->setViewMode(grid ? DocumentView::ViewMode::Grid : DocumentView::ViewMode::Single);
     });
 
-    connect(m_leftSidebar, &LeftSidebar::toolSelected,        this, &MainWindow::onToolSelected);
+    connect(m_leftSidebar, &LeftSidebar::toolSelected,        this, [this](const QString &tool) {
+        onToolSelected(tool);
+        if (m_activeTool == QLatin1String("attach"))
+            if (DocumentView *dv = currentDocView()) dv->linkSelection();
+    });
     connect(m_leftSidebar, &LeftSidebar::settingsRequested, this, [this]() { openSettings(); });
     connect(m_rightSidebar, &RightSidebar::modeSelected, this, &MainWindow::onModeSelected);
 
@@ -640,6 +644,7 @@ void MainWindow::openPath(const QString &path, OpenMode mode)
         return;
     }
     onTabActivated(m_docViews.indexOf(dv));
+    applyOpeningMode();
     m_appSettings->setLastOpenedFile(path);
     m_appSettings->sync();
 }
@@ -710,6 +715,13 @@ void MainWindow::openImported(const QString &path, OpenMode mode)
         return;
     }
     onTabActivated(m_docViews.indexOf(dv));
+    applyOpeningMode();
+}
+
+void MainWindow::applyOpeningMode()
+{
+    if (m_editMode == m_appSettings->openInReadMode())
+        onModeSelected(QStringLiteral("edit"));
 }
 
 void MainWindow::restoreSession()

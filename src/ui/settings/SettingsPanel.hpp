@@ -17,6 +17,7 @@ QT_END_NAMESPACE
 
 class AppSettings;
 class LicensePage;
+class SettingsSearch;
 class ShortcutRow;
 class UpdateChecker;
 struct UpdateCheckResult;
@@ -49,6 +50,7 @@ private:
     void buildNav(QWidget *parent, QVBoxLayout *layout);
 
     void selectPage(int navIndex);
+    void showSearchHits(const QList<int> &pages);
     void applyNavItemStyle(int i, bool selected);
     void refreshThemeColors();
 
@@ -57,6 +59,7 @@ private:
     QWidget *buildMediaPage();
     QWidget *buildShortcutsPage();
     QWidget *buildZoomPage();
+    QWidget *buildSecurityPage();
     QWidget *buildAdvancedPage();
 
     QVBoxLayout *buildScrollPage(QWidget *&page, const QString &title,
@@ -75,7 +78,6 @@ private:
 
     void buildAdvancedUpdates(QVBoxLayout *vl);
     void buildAdvancedInterface(QVBoxLayout *vl);
-    void buildAdvancedPerformance(QVBoxLayout *vl);
     void buildAdvancedDiagnostics(QVBoxLayout *vl);
     void buildAdvancedReset(QVBoxLayout *vl);
     QWidget *buildAboutPage();
@@ -106,7 +108,8 @@ private:
     QList<NavItem> m_navItems;
     int m_currentNav { 0 };
 
-    LicensePage *m_licensePage { nullptr };
+    LicensePage    *m_licensePage { nullptr };
+    SettingsSearch *m_search      { nullptr };
 
     QList<QWidget *> m_themeCards;
     QList<QString>   m_themeIds;
@@ -134,11 +137,12 @@ private:
     QComboBox       *m_wheelActionCombo { nullptr };
     QLabel          *m_zoomExampleLabel { nullptr };
 
+    QAbstractButton *m_readModeCheck       { nullptr };
+    QComboBox       *m_externalLinksCombo  { nullptr };
+
     QAbstractButton *m_autoUpdateCheck     { nullptr };
     QComboBox       *m_updateIntervalCombo { nullptr };
     QAbstractButton *m_preserveLayoutCheck { nullptr };
-    QAbstractButton *m_hwAccelCheck        { nullptr };
-    QAbstractButton *m_limitMemoryCheck    { nullptr };
     QAbstractButton *m_debugLogCheck       { nullptr };
     QComboBox       *m_logLevelCombo       { nullptr };
 

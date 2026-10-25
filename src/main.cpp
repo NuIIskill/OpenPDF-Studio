@@ -1,6 +1,7 @@
 #include "App.hpp"
 #include "app/AppConfig.hpp"
 #include "app/AppSettings.hpp"
+#include "app/LogFile.hpp"
 #include "cli/Cli.hpp"
 #include "ui/MainWindow.hpp"
 #include "ui/theme/Theme.hpp"
@@ -78,6 +79,11 @@ int main(int argc, char *argv[])
     qapp.setOrganizationName(QStringLiteral("OpenPDF"));
     qapp.setOrganizationDomain(QStringLiteral("openpdf.io"));
     qapp.setApplicationVersion(QStringLiteral(APP_VERSION));
+
+    {
+        const AppSettings settings;
+        LogFile::configure(settings.debugLogging(), settings.logLevel());
+    }
 
     QApplication::setStyle(QStringLiteral("Fusion"));
     {

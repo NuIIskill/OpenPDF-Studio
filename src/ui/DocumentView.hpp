@@ -165,6 +165,7 @@ public:
     void        rerenderPage(int page);
 
     QString     selectedText() const;
+    void        linkSelection();
     void        copySelectedText();
     void        openFind();
     QList<NoteData> notes() const;
