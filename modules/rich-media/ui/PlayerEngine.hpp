@@ -33,6 +33,8 @@ public:
     virtual void setMuted(bool muted) = 0;
     virtual bool isMuted() const = 0;
 
+    virtual void setVolume(qreal volume) = 0;
+
     virtual bool drawsItself() const { return false; }
 
     virtual void setVideoRect(const QRect &rect) { Q_UNUSED(rect) }

@@ -8,6 +8,11 @@ copies, converted locally.
 Current version: **0.3.2, alpha**. Saving replaces the original file, so keep a
 backup of important PDFs and check edited text in a second viewer.
 
+![OpenPDF Studio displaying the NLBK test PDF, with editing tools on the left and document actions on the right](docs/images/screenshots/overview.png)
+
+*The document view. See [Getting started](docs/user/getting-started.md).
+Sample document: [NLBK Niedersachsen test PDF](https://www.nlbk.niedersachsen.de/download/164891/Test-pdf_3.pdf).*
+
 ## Key features
 
 - Read several documents in tabs, search text, browse bookmarks and present pages.

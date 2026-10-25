@@ -14,6 +14,10 @@ digital signature also records a cryptographic signature over a PDF revision.
 3. Save it as a reusable template if desired, then choose **Place** and position
    it on the page. Adjust its size and location and save the document.
 
+![Add signature dialog with Type selected, the example name Alex Example, and Save and Place buttons](../images/screenshots/handwritten-signature.png)
+
+*Type creates a signature appearance from a name. Choose Place to position it in the PDF.*
+
 ## Sign digitally
 
 1. Finish the content changes you want included in the signature.
@@ -23,6 +27,11 @@ digital signature also records a cryptographic signature over a PDF revision.
    and logo, or enable **Invisible signature** in **Advanced**.
 4. Place a visible signature, or choose **Sign** for an invisible one.
 5. Save the PDF. Pending digital signatures are written during saving.
+
+![Sign digitally tab with certificate selection, appearance profile, invisible signature and trusted signer controls](../images/screenshots/digital-signature.png)
+
+*Choose a certificate at the top and an appearance profile below it.
+This example has no certificate installed, so Place is disabled.*
 
 Digital signing requires qpdf and, on Linux, GnuTLS and p11-kit. Linux uses
 PKCS#11 providers through p11-kit and local certificate files; Windows uses

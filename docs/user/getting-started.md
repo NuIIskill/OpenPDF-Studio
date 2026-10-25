@@ -10,9 +10,16 @@ of important PDFs and check edited text in a second viewer.
 
 1. [Install OpenPDF Studio](installation.md) and start the application.
 2. Choose **Open** (`Ctrl+O`) or drop a file onto the window. Each document gets
-   its own tab. Enter the opening password if the PDF requires one.
+   its own tab; `Ctrl+Shift+O` instead adds the file's pages to the end of the
+   document in the current tab. Enter the opening password if the PDF requires
+   one.
 3. Read with the **Select** or **Pan** tool. Use the toolbar for single-page
    or grid view and the bookmark panel to jump through the document outline.
+
+![The document view with the PDF page in the centre, tool rail on the left and Edit, Sign, Protect, Export, Organize and History on the right](../images/screenshots/overview.png)
+
+*Choose a page tool on the left or a document action on the right.
+The example uses the [NLBK test PDF](https://www.nlbk.niedersachsen.de/download/164891/Test-pdf_3.pdf).*
 
 You can also open `.docx`, `.odt`, JPEG, PNG, GIF, BMP, TIFF and WebP files.
 They are converted locally in the background and open as unnamed PDF working
@@ -43,6 +50,11 @@ Edits and page changes use working copies until you save. Undo (`Ctrl+Z`),
 redo (`Ctrl+Y`) and **History** let you review changes and restore earlier states.
 After a crash, the next start offers recoverable documents and their history.
 
+![Change history showing the opened test PDF, added and edited notes, and controls for Undo, Redo and returning to a previous state](../images/screenshots/change-history.png)
+
+*History lists changes newest first. Select an earlier entry to return to that
+state, or use Undo and Redo for individual steps.*
+
 Use [Signatures](signatures.md) for signing and [Export](export.md) for other
 formats and printing. Export includes unsaved document changes.
 
@@ -52,6 +64,10 @@ Settings offers light and dark themes, keyboard shortcuts, zoom behavior and
 language selection. Besides English, the interface is available in German,
 French, Spanish, Italian, Portuguese, Dutch, Polish, Russian, Chinese,
 Japanese and Korean. **Customize Tools** reorders or hides tools in the rail.
+
+![Appearance settings with System, Light and Dark theme choices and navigation to language, shortcuts and zoom settings](../images/screenshots/appearance-settings.png)
+
+*Settings → Appearance selects the theme; the other settings pages are listed on the left.*
 
 Settings → **Advanced** can check for updates manually or at a chosen interval.
 The check compares repository tags and links to the download page; it never

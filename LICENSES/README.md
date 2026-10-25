@@ -39,6 +39,7 @@ RPM `License:` field says.
 - `OPENPDF-COMMERCIAL.txt` - the commercial option for the Core.
 - `OPENPDF-BUSINESS.txt` - the license of the source-available components.
 - `TESSERACT.txt` - Tesseract, its language data and Leptonica, as shipped in the Windows packages.
+- `FFMPEG.txt` - FFmpeg, shipped as ffmpeg.exe in the Windows packages.
 
 ## Third-party dependencies
 
@@ -51,6 +52,7 @@ from the system.
 | PDFium (+ FreeType, libjpeg-turbo, lcms, OpenJPEG, libpng, zlib, ICU, AGG 2.3, abseil, simdutf, fast_float) | BSD-3-Clause und weitere permissive | die PDF-Engine; vollständige Sammlung in `PDFIUM.txt` |
 | qpdf | Apache-2.0 | optional, vector PDF save and export options |
 | Tesseract (+ Leptonica) | Apache-2.0 / BSD-2-Clause | optional, OCR; texts in `TESSERACT.txt` |
+| FFmpeg 7.1.1 (+ dav1d 1.5.1) | LGPL-2.1-or-later (dav1d BSD-2-Clause) | Windows packages only, a separate ffmpeg.exe for video conversion, built without GPL parts; texts and sources in `FFMPEG.txt` |
 | nanosvg | zlib | vendored in `src/3rdparty/nanosvg/` |
 | Monocypher 4.0.2 | CC0-1.0 or BSD-2-Clause | vendored in `src/3rdparty/monocypher/`, checks license keys |
 

@@ -1638,6 +1638,11 @@ Text, image and drawing edits made since then are not part of any file yet and w
         <source>Converting &quot;%1&quot;…</source>
         <translation>正在转换“%1”…</translation>
     </message>
+    <message>
+        <location filename="../../modules/rich-media/MediaModule.cpp" line="55"/>
+        <source>Videos</source>
+        <translation>视频</translation>
+    </message>
 </context>
 <context>
     <name>InfoCenter</name>
@@ -2254,6 +2259,37 @@ Text, image and drawing edits made since then are not part of any file yet and w
 <context>
     <name>MainWindow</name>
     <message>
+        <location filename="../../src/ui/MainWindow.cpp" line="120"/>
+        <location filename="../../src/ui/MainWindow.cpp" line="134"/>
+        <source>Default PDF Application</source>
+        <translation>默认 PDF 应用程序</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/MainWindow.cpp" line="121"/>
+        <source>OpenPDF Studio is not your default application for PDF files. Would you like to make it the default?</source>
+        <translation>OpenPDF Studio 不是 PDF 文件的默认应用程序。是否将其设为默认？</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/MainWindow.cpp" line="124"/>
+        <source>Windows then opens its settings for default apps, where you choose OpenPDF Studio for PDF files.</source>
+        <translation>随后 Windows 会打开默认应用设置，您可以在其中为 PDF 文件选择 OpenPDF Studio。</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/MainWindow.cpp" line="126"/>
+        <source>Make Default</source>
+        <translation>设为默认</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/MainWindow.cpp" line="127"/>
+        <source>No</source>
+        <translation>否</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/MainWindow.cpp" line="135"/>
+        <source>OpenPDF Studio could not be made the default application for PDF files.</source>
+        <translation>无法将 OpenPDF Studio 设为 PDF 文件的默认应用程序。</translation>
+    </message>
+    <message>
         <source>Open PDF</source>
         <translation type="vanished">打开PDF</translation>
     </message>
@@ -2371,6 +2407,16 @@ The file may be write-protected or open in another program. The document is unch
         <location filename="../../src/ui/MainWindow.cpp" line="625"/>
         <source>&quot;%1&quot; was converted, but the result could not be opened.</source>
         <translation>“%1”已转换，但无法打开结果。</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/MainWindow.cpp" line="620"/>
+        <source>Cannot add pages</source>
+        <translation>无法添加页面</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/MainWindow.cpp" line="621"/>
+        <source>The pages of &quot;%1&quot; could not be added.</source>
+        <translation>无法添加“%1”中的页面。</translation>
     </message>
 </context>
 <context>
@@ -2599,6 +2645,11 @@ Install ffmpeg to convert it, or embed it as it is.</source>
         <source>The video could not be added as a new page.</source>
         <translation>无法将视频添加为新页面。</translation>
     </message>
+    <message>
+        <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="987"/>
+        <source>Trust</source>
+        <translation>信任</translation>
+    </message>
 </context>
 <context>
     <name>MediaPlayerFrame</name>
@@ -2611,6 +2662,11 @@ Install ffmpeg to convert it, or embed it as it is.</source>
         <location filename="../../modules/rich-media/ui/MediaPlayerFrame.cpp" line="105"/>
         <source>nothing was decoded within six seconds</source>
         <translation>六秒内未解码任何内容</translation>
+    </message>
+    <message>
+        <location filename="../../modules/rich-media/ui/MediaPlayerFrame.cpp" line="97"/>
+        <source>Volume</source>
+        <translation>音量</translation>
     </message>
 </context>
 <context>
@@ -4376,6 +4432,11 @@ Enter the password to open it:</source>
         <location filename="../../src/ui/settings/SettingsPanel.cpp" line="1027"/>
         <source>A modern, open-source PDF editor built with Qt.</source>
         <translation>使用Qt构建的现代开源PDF编辑器。</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/settings/SettingsPanel.cpp" line="585"/>
+        <source>Add to Current Document</source>
+        <translation>添加到当前文档</translation>
     </message>
 </context>
 <context>

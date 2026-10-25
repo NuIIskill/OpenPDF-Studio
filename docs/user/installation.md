@@ -62,8 +62,22 @@ The installer or application asks whether usage is personal or business.
 Personal use needs no key. Read [Licensing](licensing.md) for business use and
 administrator deployment.
 
+![First-start dialog asking whether the installation is Personal or Business, with Personal preselected](../images/screenshots/first-start-usage.png)
+
+*On packages without an installer declaration, this question appears on first start.
+Choose the usage that applies to your installation.*
+
+On first start the application also asks whether it should open PDF files by
+default, unless it already does. On Windows, the default-apps settings open
+for the final choice.
+
 Follow [Getting started](getting-started.md) to open your first document.
 Update checks in Settings → **Advanced** link to a download; install the
 replacement package yourself.
+
+![Advanced settings showing automatic update checks, the check interval and the Check now button](../images/screenshots/update-settings.png)
+
+*Settings → Advanced offers Check now for a manual check. Enable automatic checks
+to choose an interval; the example has them switched off.*
 
 For a source build, use the separate [Building](../dev/building.md) guide.

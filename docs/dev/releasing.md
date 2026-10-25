@@ -16,6 +16,9 @@ installation examples, [Installation](../user/installation.md), and any changed
 feature documentation. Keep
 [Architecture](architecture.md) aligned when document flows change.
 
+Refresh affected [documentation screenshots](../images/screenshots/README.md)
+when the visible interface changes, keeping captions and example sources aligned.
+
 The update checker compares repository tags. A published release tag must
 identify the intended source revision and version. Build distributable artifacts
 from that revision so their source reference is accurate.
@@ -116,6 +119,11 @@ package in a clean target environment. Check PDF opening, editing, saved output,
 export, OCR, signing and printing as included, plus media playback and conversion
 for a full build. Check settings persistence and the portable folder's behavior.
 Confirm optional runtime plugins, language data and license texts are present.
+
+![About page detail showing the application name and version 0.3.2](../images/screenshots/about-version.png)
+
+*Open Settings → About in the installed artifact and compare its version with
+`version.txt`. This reference shows version 0.3.2.*
 
 Include the [license overview](../../LICENSE), the full `LICENSES/` directory
 and the notices for shipped dependencies. The official distribution combines

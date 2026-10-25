@@ -16,6 +16,10 @@ The [rich-media developer documentation](../../docs/dev/rich-media.md) covers
 its architecture, platform decoders, conversion, embedding, history and license
 key deployment. User instructions are in [Editing](../../docs/user/editing.md#rich-media).
 
+![Rich Media insertion panel with poster, activation and playback options](../../docs/images/screenshots/rich-media-panel.png)
+
+*The module's panel supplies options for new and selected media.*
+
 The module needs qpdf and, on Linux, Qt Multimedia. Disable it with
 `-DOPENPDF_RICH_MEDIA=OFF`; the Core also builds with this directory absent.
 The Core never includes module headers: `MediaModule.cpp` registers its tool,

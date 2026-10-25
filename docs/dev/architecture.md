@@ -13,8 +13,11 @@ makes the main thread an OLE apartment, which Explorer drops need), then hands t
 arguments to `Cli::run()`. A recognised command runs without a window and
 exits. Otherwise `App` builds the `MainWindow`, opens a file named on the
 command line, and `MainWindow::restoreSession()` offers what a crashed run
-left behind. Started with `--render-server`, the program is a render helper of a
-running window (see `RenderPool`) and does nothing else.
+left behind. After the license usage question, `MainWindow::offerDefaultPdfApp()`
+asks once whether the program should become the default for PDF files;
+`DefaultPdfApp` in `app/` asks `xdg-mime` or the Windows association. Started
+with `--render-server`, the program is a render helper of a running window (see
+`RenderPool`) and does nothing else.
 
 ## Main window
 
@@ -30,6 +33,11 @@ lives in its task folder: `Exporting` and `Printing` in `ui/export/`,
 `Importing` in `ui/import/`,
 `HistoryDialog::openFor()` in `ui/history/`, `DigitalSigning` in `ui/sign/`,
 `ProtectDialog::run()` in `ui/protect/`.
+
+![Main window showing the top toolbar, left tool rail, central document view, right action rail and bottom status bar](../images/screenshots/overview.png)
+
+*`LeftSidebar` is on the left, `RightSidebar` on the right and `DocumentView` in
+the centre. The top and bottom frame belong to the main window.*
 
 ## One open document
 
@@ -324,9 +332,10 @@ on startup.
 
 ## Modules
 
-`modules/rich-media/` plugs in through three registers the Core names nothing
-media-related in: `LeftSidebar::registerTool()`, `ToolPanels::add()` and
-`PageOverlays::add()`, all filled from one static initializer in
+`modules/rich-media/` plugs in through four registers the Core names nothing
+media-related in: `LeftSidebar::registerTool()`, `ToolPanels::add()`,
+`PageOverlays::add()` and `Importing::addFormat()`, all filled from one static
+initializer in
 `MediaModule.cpp`. A `PageOverlay` follows the document (`setDocument()`),
 takes dropped files, writes itself on save (`writeTo()`), keeps its state for
 history and recovery (`state()`, `restoreState()`) and reports changes to the

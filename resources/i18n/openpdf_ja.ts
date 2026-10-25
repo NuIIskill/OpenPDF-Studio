@@ -1638,6 +1638,11 @@ Text, image and drawing edits made since then are not part of any file yet and w
         <source>Converting &quot;%1&quot;…</source>
         <translation>「%1」を変換中…</translation>
     </message>
+    <message>
+        <location filename="../../modules/rich-media/MediaModule.cpp" line="55"/>
+        <source>Videos</source>
+        <translation>動画</translation>
+    </message>
 </context>
 <context>
     <name>InfoCenter</name>
@@ -2254,6 +2259,37 @@ Text, image and drawing edits made since then are not part of any file yet and w
 <context>
     <name>MainWindow</name>
     <message>
+        <location filename="../../src/ui/MainWindow.cpp" line="120"/>
+        <location filename="../../src/ui/MainWindow.cpp" line="134"/>
+        <source>Default PDF Application</source>
+        <translation>既定の PDF アプリケーション</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/MainWindow.cpp" line="121"/>
+        <source>OpenPDF Studio is not your default application for PDF files. Would you like to make it the default?</source>
+        <translation>OpenPDF Studio は PDF ファイルの既定のアプリケーションではありません。既定に設定しますか？</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/MainWindow.cpp" line="124"/>
+        <source>Windows then opens its settings for default apps, where you choose OpenPDF Studio for PDF files.</source>
+        <translation>Windows の既定のアプリの設定が開くので、そこで PDF ファイルに OpenPDF Studio を選択してください。</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/MainWindow.cpp" line="126"/>
+        <source>Make Default</source>
+        <translation>既定に設定</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/MainWindow.cpp" line="127"/>
+        <source>No</source>
+        <translation>いいえ</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/MainWindow.cpp" line="135"/>
+        <source>OpenPDF Studio could not be made the default application for PDF files.</source>
+        <translation>OpenPDF Studio を PDF ファイルの既定のアプリケーションに設定できませんでした。</translation>
+    </message>
+    <message>
         <source>Open PDF</source>
         <translation type="vanished">PDFを開く</translation>
     </message>
@@ -2371,6 +2407,16 @@ The file may be write-protected or open in another program. The document is unch
         <location filename="../../src/ui/MainWindow.cpp" line="625"/>
         <source>&quot;%1&quot; was converted, but the result could not be opened.</source>
         <translation>「%1」は変換されましたが、結果を開けませんでした。</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/MainWindow.cpp" line="620"/>
+        <source>Cannot add pages</source>
+        <translation>ページを追加できません</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/MainWindow.cpp" line="621"/>
+        <source>The pages of &quot;%1&quot; could not be added.</source>
+        <translation>「%1」のページを追加できませんでした。</translation>
     </message>
 </context>
 <context>
@@ -2599,6 +2645,11 @@ Install ffmpeg to convert it, or embed it as it is.</source>
         <source>The video could not be added as a new page.</source>
         <translation>動画を新しいページとして追加できませんでした。</translation>
     </message>
+    <message>
+        <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="987"/>
+        <source>Trust</source>
+        <translation>信頼する</translation>
+    </message>
 </context>
 <context>
     <name>MediaPlayerFrame</name>
@@ -2611,6 +2662,11 @@ Install ffmpeg to convert it, or embed it as it is.</source>
         <location filename="../../modules/rich-media/ui/MediaPlayerFrame.cpp" line="105"/>
         <source>nothing was decoded within six seconds</source>
         <translation>6 秒以内に何もデコードされませんでした</translation>
+    </message>
+    <message>
+        <location filename="../../modules/rich-media/ui/MediaPlayerFrame.cpp" line="97"/>
+        <source>Volume</source>
+        <translation>音量</translation>
     </message>
 </context>
 <context>
@@ -4376,6 +4432,11 @@ Enter the password to open it:</source>
         <location filename="../../src/ui/settings/SettingsPanel.cpp" line="1027"/>
         <source>A modern, open-source PDF editor built with Qt.</source>
         <translation>Qtで構築された最新のオープンソースPDFエディター。</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/settings/SettingsPanel.cpp" line="585"/>
+        <source>Add to Current Document</source>
+        <translation>現在のドキュメントに追加</translation>
     </message>
 </context>
 <context>

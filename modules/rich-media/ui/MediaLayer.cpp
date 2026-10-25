@@ -721,7 +721,7 @@ void MediaLayer::applyPanel(const MediaSpec &requested)
                 ? MediaExtractor::extract(m_documentPath, placed.asset) : QString());
         const bool sourceChanged = media.source != previousSource;
         if (media.type == MediaSpec::Type::Video && sourceChanged) {
-            const QString playable = ensurePlayableSource(media.source);
+            const QString playable = ensurePlayableSource(media.source, &m_tempFiles);
             if (playable.isEmpty()) return;
             if (playable != media.source) {
                 media.displayName = MediaDrop::displayNameFor(media.source, playable);
@@ -755,7 +755,7 @@ void MediaLayer::applyPanel(const MediaSpec &requested)
     }
 }
 
-QString MediaLayer::ensurePlayableSource(const QString &source)
+QString MediaLayer::ensurePlayableSource(const QString &source, QStringList *tempFiles)
 {
     const MediaFormat::Info info = MediaFormat::inspect(source);
     if (!info.readable || info.playsEverywhere()) return source;
@@ -810,16 +810,18 @@ QString MediaLayer::ensurePlayableSource(const QString &source)
         QApplication::processEvents();
         return !progress.wasCanceled();
     });
+    // Closing a QProgressDialog marks it canceled, so ask before.
+    const bool cancelled = progress.wasCanceled();
     progress.close();
 
     if (!ok) {
-        if (!progress.wasCanceled())
+        if (!cancelled)
             QMessageBox::warning(parent, tr("Rich Media"),
                                  tr("The file could not be converted."));
         return QString();
     }
 
-    m_tempFiles << target;
+    if (tempFiles) *tempFiles << target;
     return target;
 }
 
@@ -829,7 +831,7 @@ void MediaLayer::commitInsert(const MediaSpec &requested)
     if (!spec.isValid()) return;
 
     if (spec.type == MediaSpec::Type::Video) {
-        const QString playable = ensurePlayableSource(spec.source);
+        const QString playable = ensurePlayableSource(spec.source, &m_tempFiles);
         if (playable.isEmpty()) return;
         if (playable != spec.source) {
             spec.displayName = MediaDrop::displayNameFor(spec.source, playable);
@@ -948,10 +950,11 @@ void MediaLayer::playSmallerCopy(const QString &filePath)
             QApplication::processEvents();
             return !progress.wasCanceled();
         },  1080);
+        const bool cancelled = progress.wasCanceled();
         progress.close();
 
         if (!ok) {
-            if (!progress.wasCanceled())
+            if (!cancelled)
                 QMessageBox::warning(parent, tr("Rich Media"),
                                      tr("The smaller copy could not be made."));
             return;
@@ -981,19 +984,14 @@ bool MediaLayer::confirmPlayback(const Placed &placed)
         tr("Media in a PDF is chosen by whoever made the file. Playing it "
            "hands the data to a decoder, in this build possibly to a player "
            "outside OpenPDF Studio. Play it only if you trust the document."));
-    QAbstractButton *once  = question.addButton(tr("Play once"), QMessageBox::AcceptRole);
-    QAbstractButton *trust = question.addButton(tr("Always for this document"),
-                                                QMessageBox::AcceptRole);
+    QAbstractButton *trust = question.addButton(tr("Trust"), QMessageBox::AcceptRole);
     question.addButton(QMessageBox::Cancel);
 
     question.setDefaultButton(QMessageBox::Cancel);
     question.exec();
 
-    if (question.clickedButton() == trust) {
-        m_playbackTrusted = true;
-        return true;
-    }
-    return question.clickedButton() == once;
+    m_playbackTrusted = question.clickedButton() == trust;
+    return m_playbackTrusted;
 }
 
 void MediaLayer::playPlaced(const Placed &placed)
@@ -1101,7 +1099,7 @@ bool MediaLayer::handleDroppedFile(const QString &path, int page,
     if (!acceptsDroppedFile(path)) return false;
     if (newDocument) newDocument->clear();
 
-    const QString source = ensurePlayableSource(path);
+    const QString source = ensurePlayableSource(path, &m_tempFiles);
     if (source.isEmpty()) return true;
 
     if (page >= 0 && m_canvas) {

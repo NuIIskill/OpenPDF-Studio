@@ -21,6 +21,11 @@ and [licensing map](../../LICENSES/README.md).
 The module is built. It finds media in a PDF, plays it, and embeds new media
 into one.
 
+![RichMediaPanel showing its poster preview and controls for activation, autoplay, looping, mute and player controls](../images/screenshots/rich-media-panel.png)
+
+*`RichMediaPanel` supplies the options for insertion and edits of the selected
+medium; `MediaLayer` applies them to the document overlay.*
+
 ```
 modules/rich-media/
   MediaModule.cpp          the only place that registers with the Core
@@ -64,7 +69,7 @@ Everything the module does works the same on every platform it builds on:
 | poster | one frame through the same decoder that plays | see above |
 | format check | the container and codec read out of the file | nothing |
 | reading, writing | qpdf | qpdf |
-| conversion to H.264 | Media Foundation on Windows, ffmpeg as fallback and on Linux | ffmpeg, where the system has no encoder |
+| conversion to H.264 | Media Foundation on Windows, ffmpeg as fallback and on Linux | ffmpeg on Linux; shipped in the Windows packages |
 
 On Windows the conversion uses the H.264 and AAC encoders Windows ships
 (`SystemEncoder`: Source Reader into Sink Writer, NV12, High profile, AAC
@@ -73,12 +78,19 @@ On Windows the conversion uses the H.264 and AAC encoders Windows ships
 to finish or writes a file whose sample offsets point nowhere. WebM and MKV
 report half their frame rate to Media Foundation, so the rate is taken from
 the frame durations; given the reported one, the video processor drops every
-other frame. A conversion that still comes out a quarter or more short of its
-frames counts as failed rather than delivering half a video. ffmpeg stays the
-fallback: when the system encoder fails or is
+other frame. ffmpeg stays the fallback: when the system encoder fails or is
 missing (Windows N), and first when an H.264 stream only needs a new container,
 because ffmpeg repackages it without encoding it again. On Linux ffmpeg is the
-only way, as before. It behaves identically everywhere: with an encoder the
+only way, as before.
+
+The Windows packages ship their own `ffmpeg.exe` next to the program
+(`packaging/windows/build-ffmpeg-mingw.sh`), for what Media Foundation cannot
+read: AC3 sound, which this Windows does not decode at all, and AV1, which it
+decodes only with a graphics adapter and otherwise hands out as empty frames;
+`SystemEncoder` treats an empty frame as failure. It is an LGPL build without
+x264, with dav1d for AV1; on Windows `MediaConvert` has it encode
+through Windows' own H.264 encoder (`h264_mf`) and ffmpeg's AAC encoder. The
+shipped one is found before any ffmpeg on `PATH`, whose features are unknown. It behaves identically everywhere: with an encoder the
 offer appears, without one the user is told what the consequence is. Reading a file's format used to ask ffprobe and no longer does:
 `MediaFormat` walks the ISO base media boxes far enough to name the container
 and the codec, which is exactly the question being asked.
@@ -143,6 +155,13 @@ A page cannot be a session change, so this writes a working copy and hands it
 to the view, the same route the page organizer takes, and the user's file
 stays untouched until they save.
 
+**Opening a video** with File > Open makes a new document of one page in the
+video's proportions, the same page a drop between pages gives it
+(`MediaDrop::newDocument`). The module adds videos to the open dialog through
+`Importing::addFormat()`; the conversion runs on the GUI thread, because it
+may ask the same question as inserting does, and the result opens as an
+unnamed working copy like an imported Word file.
+
 Both the drag and the drop ask the overlays. That is not redundancy: a file
 turned away when it enters the view never reaches the drop handler at all, and
 an MP4 was refused with a no-entry cursor until `dragEnterEvent` learned to ask
@@ -155,10 +174,15 @@ starting a foreign process against that decision is worse than not playing.
 The other two settings are the user asking for an outside player, and there it
 is allowed.
 
+![Media Playback settings with choices for in-app playback, the system player and a custom player command](../images/screenshots/media-playback-settings.png)
+
+*The playback setting is the user's choice of destination. Keep that choice
+consistent across extraction, playback and failure handling.*
+
 Playback starts with a question. A document that is merely open must not be
 able to start a decoder (let alone a player process outside this program) on
-a single click, so the first playback in a document asks: play once, always for
-this document, or not at all. The careful answer is the preset one, and trust
+a single click, so the first playback in a document asks: trust this document,
+or do not play. The careful answer is the preset one, and trust
 lasts for the session and covers exactly that document. Media the user has just
 inserted is exempt; they picked the file a moment ago.
 
@@ -166,6 +190,8 @@ inserted is exempt; they picked the file a moment ago.
 Multimedia everywhere and a Windows engine on Windows. The frame above them is
 the same: transport bar, poster, geometry. An engine that hands over pictures
 is painted here; one that draws into a window of its own is only told where.
+A click on the timeline or the volume slider jumps there instead of stepping;
+the volume slider hides when the frame is narrower than 360 pixels.
 
 Windows needs its own because the only backend packaged for MinGW is
 `windowsmediaplugin`, which builds a Media Foundation session with an EVR

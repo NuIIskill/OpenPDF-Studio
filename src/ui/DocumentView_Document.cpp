@@ -224,9 +224,15 @@ bool DocumentView::openWorkingCopy(const QString &contentPath,
     if (!targetPath.isEmpty() && !PdfPwStore::has(contentPath))
         PdfPwStore::set(contentPath, PdfPwStore::get(targetPath));
 
+    // A working copy of the same document keeps the name an unsaved import was
+    // given, or its tab would lose its label.
+    const QString suggested = suggestedPath.isEmpty()
+                                  && change.kind != DocumentHistory::Kind::Opened
+                              ? suggestedSavePath() : suggestedPath;
+
     if (change.kind != DocumentHistory::Kind::Opened && pageCount() > 0)
         m_journal.prepareAnchor([this](const QString &path) { return writeRecoveryCopy(path); });
-    if (!openContent(contentPath, suggestedPath, change)) {
+    if (!openContent(contentPath, suggested, change)) {
         m_journal.dropPendingAnchor();
         return false;
     }

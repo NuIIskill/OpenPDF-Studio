@@ -67,6 +67,7 @@ private:
     QPushButton  *m_mute      { nullptr };
     QPushButton  *m_close     { nullptr };
     QSlider      *m_position  { nullptr };
+    QSlider      *m_volume    { nullptr };
     QLabel       *m_time      { nullptr };
 
     QTimer       *m_watchdog { nullptr };

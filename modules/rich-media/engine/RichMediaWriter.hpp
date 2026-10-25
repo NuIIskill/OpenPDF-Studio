@@ -13,4 +13,6 @@ bool available();
 bool apply(const QString &pdfPath, const MediaSession &session,
            const QString &password = QString());
 
+bool writeEmpty(const QString &pdfPath);
+
 }

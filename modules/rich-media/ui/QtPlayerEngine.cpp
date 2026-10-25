@@ -78,6 +78,8 @@ public:
     void setMuted(bool muted) override { m_audio->setMuted(muted); }
     bool isMuted() const override { return m_audio->isMuted(); }
 
+    void setVolume(qreal volume) override { m_audio->setVolume(float(volume)); }
+
     QImage image() const override { return m_image; }
     QSize  frameSize() const override { return m_image.size(); }
 

@@ -386,6 +386,11 @@ private:
                 return fail("frame size changed");
             if (flags & MF_SOURCE_READERF_STREAMTICK)
                 m_writer->SendStreamTick(target, time);
+            // Without a graphics adapter the AV1 decoder hands out empty frames,
+            // which the encoder refuses; ffmpeg decodes those itself.
+            DWORD bytes = 0;
+            if (sample && video && SUCCEEDED(sample->GetTotalLength(&bytes)) && bytes == 0)
+                return fail("empty frame");
             if (sample && !ok(m_writer->WriteSample(target, sample.Get())))
                 return fail("encoding");
 

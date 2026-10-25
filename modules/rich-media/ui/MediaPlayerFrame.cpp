@@ -9,12 +9,45 @@
 #include <QPainter>
 #include <QPushButton>
 #include <QSlider>
+#include <QStyle>
+#include <QStyleOptionSlider>
 #include <QTime>
 #include <QTimer>
 
 namespace {
 
 constexpr int kBarHeight = 34;
+constexpr int kVolumeWidth = 64;
+
+const QString kSliderStyle = QStringLiteral(
+    "QSlider::groove:horizontal { height:3px; background:#475569; border-radius:1px; }"
+    "QSlider::sub-page:horizontal { background:#3B82F6; border-radius:1px; }"
+    "QSlider::handle:horizontal { background:#FFFFFF; width:11px; height:11px;"
+    " margin:-4px 0; border-radius:5px; }");
+
+/// A slider that jumps to where it is clicked instead of stepping towards it.
+class JumpSlider : public QSlider
+{
+public:
+    using QSlider::QSlider;
+
+protected:
+    void mousePressEvent(QMouseEvent *event) override
+    {
+        if (event->button() == Qt::LeftButton && maximum() > minimum()) {
+            QStyleOptionSlider option;
+            initStyleOption(&option);
+            const QRect handle = style()->subControlRect(
+                QStyle::CC_Slider, &option, QStyle::SC_SliderHandle, this);
+            if (!handle.contains(event->position().toPoint())) {
+                const int x = qRound(event->position().x()) - handle.width() / 2;
+                setSliderPosition(QStyle::sliderValueFromPosition(
+                    minimum(), maximum(), x, width() - handle.width()));
+            }
+        }
+        QSlider::mousePressEvent(event);
+    }
+};
 
 QPushButton *barButton(const QString &icon, QWidget *parent)
 {
@@ -54,18 +87,19 @@ void MediaPlayerFrame::buildUi()
     m_bar->setStyleSheet(QStringLiteral("background: rgba(15,23,42,225);"));
 
     m_playPause = barButton(QStringLiteral("pause"), m_bar);
-    m_position  = new QSlider(Qt::Horizontal, m_bar);
+    m_position  = new JumpSlider(Qt::Horizontal, m_bar);
     m_position->setRange(0, 0);
-    m_position->setStyleSheet(QStringLiteral(
-        "QSlider::groove:horizontal { height:3px; background:#475569; border-radius:1px; }"
-        "QSlider::sub-page:horizontal { background:#3B82F6; border-radius:1px; }"
-        "QSlider::handle:horizontal { background:#FFFFFF; width:11px; height:11px;"
-        " margin:-4px 0; border-radius:5px; }"));
+    m_position->setStyleSheet(kSliderStyle);
 
     m_time = new QLabel(QStringLiteral("0:00 / 0:00"), m_bar);
     m_time->setStyleSheet(QStringLiteral("color:#CBD5E1; font-size:11px;"
                                          "background:transparent;"));
     m_mute  = barButton(QStringLiteral("volume-2"), m_bar);
+    m_volume = new JumpSlider(Qt::Horizontal, m_bar);
+    m_volume->setRange(0, 100);
+    m_volume->setValue(100);
+    m_volume->setStyleSheet(kSliderStyle);
+    m_volume->setToolTip(tr("Volume"));
     m_close = barButton(QStringLiteral("x"), m_bar);
     m_close->setToolTip(tr("Close the player"));
 
@@ -115,6 +149,8 @@ void MediaPlayerFrame::buildUi()
             QColor(0xE5, 0xE7, 0xEB), QColor(0xE5, 0xE7, 0xEB),
             QColor(0x6B, 0x72, 0x80), 16));
     });
+    connect(m_volume, &QSlider::valueChanged, this,
+            [this](int value) { m_engine->setVolume(value / 100.0); });
     connect(m_close, &QPushButton::clicked, this, &MediaPlayerFrame::closeRequested);
 
     connect(m_position, &QSlider::sliderPressed,  this, [this]() { m_seeking = true; });
@@ -193,13 +229,21 @@ void MediaPlayerFrame::layOutBar()
 
     const int timeWidth = qMax(64, m_time->fontMetrics()
                                    .horizontalAdvance(QStringLiteral("00:00 / 00:00")) + 4);
-    const int tail = timeWidth + gap + m_mute->width() + gap + m_close->width() + pad;
+    const bool roomForVolume = width() >= 360;
+    m_volume->setVisible(roomForVolume);
+    const int volumeWidth = roomForVolume ? kVolumeWidth + gap : 0;
+    const int tail = timeWidth + gap + m_mute->width() + gap + volumeWidth
+                   + m_close->width() + pad;
     const int sliderWidth = qMax(20, width() - x - tail);
     m_position->setFixedHeight(16);
     place(m_position, sliderWidth);
     m_time->setFixedHeight(barHeight - 8);
     place(m_time, timeWidth);
     place(m_mute, m_mute->width());
+    if (roomForVolume) {
+        m_volume->setFixedHeight(16);
+        place(m_volume, kVolumeWidth);
+    }
     place(m_close, m_close->width());
 }
 

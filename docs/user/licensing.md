@@ -47,6 +47,11 @@ key there; a personal installation has no key page and no key prompt.
 After the evaluation ends, a business installation without a valid key shows
 a reminder at startup and continues to work.
 
+![License Key settings for a business installation, showing a 30-day evaluation and an empty license key field](../images/screenshots/business-license-settings.png)
+
+*The License Key page appears for business use. This example is at the start of
+the evaluation and contains no license key.*
+
 Administrators can pass `/S /KEY=…` to the Windows installer for silent
 deployment with a machine-wide key. A machine key takes precedence over a
 per-user key. Technical storage and deployment details are in

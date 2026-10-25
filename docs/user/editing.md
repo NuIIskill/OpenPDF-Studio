@@ -13,6 +13,10 @@ Text is written back as vector content. Characters retain the original font,
 size, colour and style where possible; characters the font cannot encode use
 a fallback font. Use the format bar and text properties to adjust formatting.
 
+![A paragraph selected in the inline editor, with its blue text frame and the font, size, colour and alignment controls above it](../images/screenshots/inline-text-editing.png)
+
+*The open text block has a blue frame. Its formatting controls appear above the page.*
+
 If automatic paragraph detection selects the wrong area, hold Shift and drag
 a frame around the characters you want to change. This can select part of a
 text run. To add text, drag a new box with the Text tool and type into it.
@@ -53,12 +57,22 @@ documents after their passwords are supplied. Page operations use a session
 working file; saving commits them to the chosen destination. Vector organizer
 output requires qpdf.
 
+![Page organizer showing three page thumbnails, the first page selected, and controls to move, rotate, delete and save pages](../images/screenshots/page-organizer.png)
+
+*Select a page to enable its actions, or drag its dotted handle to reorder it.
+This example repeats the test page three times.*
+
 ## Passwords and permissions
 
 The protection dialog sets or removes an opening password and permissions for
 printing, editing content, copying, comments, forms, page assembly and
 accessibility, with a separate permissions password. AES-256, AES-128 and RC4
 are available. Protection changes require qpdf and take effect on save.
+
+![Protect dialog with password protection enabled, masked example passwords and AES-256 selected](../images/screenshots/password-protection.png)
+
+*Enable password protection and confirm the password. The Permissions tab controls
+reader restrictions; Apply stages the change for the next save.*
 
 Passwords are held in memory and are not stored in recovery history. After a
 crash, a pending protection change returns as unprotected; set it again before
@@ -86,9 +100,15 @@ open as unnamed PDF working copies, leaving the source unchanged.
 The separately licensed Rich Media module plays embedded video in the page
 and inserts new video with a poster. Choose **Rich Media**, drag a frame and
 pick the file. Dropping video onto a page places it there; dropping between
-pages creates a page for it. Select a medium with the tool to move it, resize
+pages creates a page for it, and opening a video with **Open** (Ctrl+O) makes
+a new document of that one page. Select a medium with the tool to move it, resize
 it with its handles, replace it through the context menu, or delete it.
 Media changes participate in undo, history and recovery.
+
+![Rich Media panel with poster selection, activation mode, autoplay, loop, mute and playback control options](../images/screenshots/rich-media-panel.png)
+
+*The Rich Media tool opens this panel. Its options apply to the next insertion;
+Update applies changed options to a selected medium.*
 
 The first playback of existing media asks for permission, with trust limited to
 that document and session. Only embedded assets play; media pointing to an
@@ -97,7 +117,7 @@ an in-app failure does not silently launch another player.
 
 H.264 in MP4 is the intended insertion format. Other codecs prompt for a
 conversion when an encoder is available: Windows uses its system encoders with
-ffmpeg as fallback, and Linux uses ffmpeg. A playback failure may offer a 1080p
+the bundled ffmpeg as fallback, and Linux uses ffmpeg. A playback failure may offer a 1080p
 playback copy or an external player; the document retains the original asset.
 Presentation mode currently displays only the poster, and export has no switch
 to keep or drop media. See [Licensing](licensing.md) for the module's terms.

@@ -536,6 +536,14 @@ void sendInput(const Shot &s)
         } else if (o.startsWith(QLatin1String("drop="))) {
             dropFile(s, o.mid(5));
             continue;
+        } else if (o.startsWith(QLatin1String("open="))) {
+            s.win->openPath(o.mid(5));
+            settle(1500);
+            continue;
+        } else if (o.startsWith(QLatin1String("append="))) {
+            s.win->openPath(o.mid(7), MainWindow::OpenMode::Append);
+            settle(1500);
+            continue;
         } else if (o == QLatin1String("view=grid")) {
             if (DocumentView *dv = s.win->findChild<DocumentView *>())
                 dv->setViewMode(DocumentView::ViewMode::Grid);

@@ -18,9 +18,6 @@ QString locate(const char *name)
 {
     const QString tool = QLatin1String(name);
 
-    const QString onPath = QStandardPaths::findExecutable(tool);
-    if (!onPath.isEmpty()) return onPath;
-
     const QDir app(QCoreApplication::applicationDirPath());
     const QStringList nearby {
         app.absolutePath(),
@@ -30,6 +27,9 @@ QString locate(const char *name)
     };
     const QString found = QStandardPaths::findExecutable(tool, nearby);
     if (!found.isEmpty()) return found;
+
+    const QString onPath = QStandardPaths::findExecutable(tool);
+    if (!onPath.isEmpty()) return onPath;
 
 #ifdef Q_OS_WIN
 
@@ -63,6 +63,15 @@ bool runFfmpeg(const QString &ffmpeg, const QString &in, const QString &out,
 
         arguments << QStringLiteral("-c:v") << QStringLiteral("copy");
     } else {
+#ifdef Q_OS_WIN
+        // Windows' own H.264 encoder: the ffmpeg shipped with the program
+        // carries no x264 and stays LGPL.
+        arguments << QStringLiteral("-c:v")          << QStringLiteral("h264_mf")
+                  << QStringLiteral("-rate_control") << QStringLiteral("quality")
+                  << QStringLiteral("-quality")      << QStringLiteral("60")
+                  << QStringLiteral("-profile:v")    << QStringLiteral("100")
+                  << QStringLiteral("-pix_fmt")      << QStringLiteral("nv12");
+#else
         arguments << QStringLiteral("-c:v")       << QStringLiteral("libx264")
                   << QStringLiteral("-preset")    << QStringLiteral("veryfast")
                   << QStringLiteral("-crf")       << QStringLiteral("22")
@@ -70,6 +79,7 @@ bool runFfmpeg(const QString &ffmpeg, const QString &in, const QString &out,
                   << QStringLiteral("-level")     << QStringLiteral("4.1")
 
                   << QStringLiteral("-pix_fmt")   << QStringLiteral("yuv420p");
+#endif
         if (scaling) {
 
             arguments << QStringLiteral("-vf")

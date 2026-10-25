@@ -319,7 +319,8 @@ QPDFPageObjectHelper addBlankPage(QPDF &pdf, std::vector<QPDFPageObjectHelper> &
 bool insertOne(QPDF &pdf, std::vector<QPDFPageObjectHelper> &pages,
                const MediaSpec &spec)
 {
-    if (spec.page < 0 || spec.page >= static_cast<int>(pages.size())) {
+    const bool firstPage = spec.ownPage && pages.empty();
+    if (!firstPage && (spec.page < 0 || spec.page >= static_cast<int>(pages.size()))) {
         qWarning() << "[rich-media] no such page:" << spec.page;
         return false;
     }
@@ -330,8 +331,8 @@ bool insertOne(QPDF &pdf, std::vector<QPDFPageObjectHelper> &pages,
 
     MediaSpec placement = spec;
     if (spec.ownPage) {
-        addBlankPage(pdf, pages, spec.page, spec.pageSizePt);
-        placement.page   = spec.page + 1;
+        addBlankPage(pdf, pages, firstPage ? -1 : spec.page, spec.pageSizePt);
+        placement.page   = firstPage ? 0 : spec.page + 1;
         placement.bounds = QRectF(QPointF(0, 0), spec.pageSizePt);
     }
 
@@ -418,6 +419,20 @@ void removeOne(std::vector<QPDFPageObjectHelper> &pages, const MediaAsset &asset
 
 }
 
+bool RichMediaWriter::writeEmpty(const QString &pdfPath)
+{
+    try {
+        QPDF pdf;
+        pdf.emptyPDF();
+        QPDFWriter writer(pdf, pdfPath.toLocal8Bit().constData());
+        writer.write();
+    } catch (const std::exception &e) {
+        qWarning() << "[rich-media] empty document failed:" << e.what();
+        return false;
+    }
+    return true;
+}
+
 bool RichMediaWriter::apply(const QString &pdfPath, const MediaSession &session,
                             const QString &password)
 {
@@ -468,6 +483,11 @@ bool RichMediaWriter::apply(const QString &pdfPath, const MediaSession &session,
 #else
 
 bool RichMediaWriter::apply(const QString &, const MediaSession &, const QString &)
+{
+    return false;
+}
+
+bool RichMediaWriter::writeEmpty(const QString &)
 {
     return false;
 }

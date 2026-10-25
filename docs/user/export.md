@@ -18,6 +18,10 @@ another format and output options.
 The size shown before export is an estimate. Check the actual file and its
 appearance before sharing it.
 
+![PDF export dialog with format selection on the left and filename, save location, page selection, quality and content options on the right](../images/screenshots/export-pdf.png)
+
+*Choose the format on the left, then the destination, pages and output options on the right.*
+
 ## Formats and options
 
 | Format | Output and options |
@@ -47,6 +51,11 @@ the render resolution; PNG remains lossless at the chosen resolution.
 Press `Ctrl+P` or choose **Print**. Review the page preview before sending
 the job. Printing requires a build with Qt PrintSupport and a printer configured
 in the operating system.
+
+![Print dialog with a page preview on the left and printer, page range, copies, paper, scaling and pages per sheet on the right](../images/screenshots/print-preview.png)
+
+*The preview shows the chosen paper layout. In this example no system printer is
+configured; add one in the operating system to enable Print.*
 
 The print dialog offers page ranges, copies and collation, paper size,
 orientation, fit to printable area, shrink oversized pages or actual size.

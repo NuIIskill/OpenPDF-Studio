@@ -62,6 +62,11 @@ PDFium regeneration can lose original constructs such as Type3 text, spacing,
 soft masks and non-RGB colours. `OriginalContent` uses qpdf to preserve untouched
 operators where it can; `KeptText` restores certain text operators on other paths.
 
+![Inline text editor showing the original page text inside an editable frame with formatting controls above it](../images/screenshots/inline-text-editing.png)
+
+*Use the inline preview as a visual reference when checking saved output:
+glyph positions, line breaks and surrounding page content should agree.*
+
 The view stages backend changes, overlay data, bookmarks, protection and
 pending signatures before `SafeWrite::commit()` replaces the destination.
 When saving over the loaded file, it first detaches onto a working copy.

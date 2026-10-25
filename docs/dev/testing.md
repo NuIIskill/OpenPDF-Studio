@@ -93,6 +93,11 @@ Inspect the generated images for clipping, spacing and both themes.
 The implementation in [src/cli/ShotWindow.cpp](../../src/cli/ShotWindow.cpp)
 has further interaction options for focused regression checks.
 
+![Dark-theme document window displaying the NLBK test PDF with visible toolbar and sidebar icons](../images/screenshots/overview-dark.png)
+
+*Example output from `--shot-window` with `dark`. Compare text, icons and page
+alignment with the [light-theme reference](../images/screenshots/overview.png).*
+
 `OPENPDF_USAGE=business|personal` overrides recorded usage for license-related
 tests and screenshots. These modes report the state they find; the license
 notice shot only succeeds when an expiry reminder is actually due, and the

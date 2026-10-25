@@ -15,6 +15,7 @@
 #include "ui/panels/RightSidebar.hpp"
 #include "ui/panels/TextPropertiesPanel.hpp"
 #include "ui/settings/SettingsPanel.hpp"
+#include "ui/organizer/PageAppend.hpp"
 #include "ui/organizer/PdfOrganizerDialog.hpp"
 #include "ui/export/ExportDialog.hpp"
 #include "ui/export/Exporting.hpp"
@@ -30,6 +31,7 @@
 #include "engine/import/DocumentImport.hpp"
 #include "ui/theme/Theme.hpp"
 #include "app/AppSettings.hpp"
+#include "app/DefaultPdfApp.hpp"
 #include "app/SessionStore.hpp"
 #include "app/UpdateChecker.hpp"
 #include "drm/LicenseNotice.hpp"
@@ -92,9 +94,48 @@ SettingsPanel *MainWindow::openSettings()
 
 void MainWindow::showLicenseNotices()
 {
-    LicenseNotice::askUsageIfUnknown(this);
+    LicenseNotice::askUsageIfUnknown(this, [this]() { offerDefaultPdfApp(); });
     LicenseNotice::showExpiryReminderIfDue(this, [this]() {
         openSettings()->showLicensePage();
+    });
+}
+
+void MainWindow::offerDefaultPdfApp()
+{
+    static const QString kNotice = QStringLiteral("defaultPdfApp");
+    if (m_appSettings->noticeHidden(kNotice))
+        return;
+
+    DefaultPdfApp::query(this, [this](DefaultPdfApp::State state) {
+        if (state == DefaultPdfApp::State::Unknown)
+            return;
+        if (state == DefaultPdfApp::State::Default) {
+            m_appSettings->setNoticeHidden(kNotice, true);
+            return;
+        }
+
+        auto *box = new QMessageBox(this);
+        box->setAttribute(Qt::WA_DeleteOnClose);
+        box->setIcon(QMessageBox::Question);
+        box->setWindowTitle(tr("Default PDF Application"));
+        box->setText(tr("OpenPDF Studio is not your default application for PDF files. "
+                        "Would you like to make it the default?"));
+        if (DefaultPdfApp::needsSystemSettings())
+            box->setInformativeText(tr("Windows then opens its settings for default apps, "
+                                       "where you choose OpenPDF Studio for PDF files."));
+        QPushButton *makeBtn = box->addButton(tr("Make Default"), QMessageBox::AcceptRole);
+        box->addButton(tr("No"), QMessageBox::RejectRole);
+        box->setDefaultButton(makeBtn);
+        connect(box, &QMessageBox::finished, this, [this, box, makeBtn]() {
+            if (!box->clickedButton())
+                return;
+            m_appSettings->setNoticeHidden(kNotice, true);
+            if (box->clickedButton() == makeBtn && !DefaultPdfApp::makeDefault())
+                QMessageBox::warning(this, tr("Default PDF Application"),
+                                     tr("OpenPDF Studio could not be made the default "
+                                        "application for PDF files."));
+        });
+        box->open();
     });
 }
 
@@ -214,7 +255,7 @@ void MainWindow::connectBars()
     connect(m_topToolbar, &TopToolbar::newTabRequested,       this, &MainWindow::onNewTab);
     connect(m_topToolbar, &TopToolbar::tabActivated,          this, &MainWindow::onTabActivated);
     connect(m_topToolbar, &TopToolbar::tabCloseRequested,     this, &MainWindow::onTabCloseRequested);
-    connect(m_topToolbar, &TopToolbar::openFileRequested,     this, &MainWindow::onOpenFile);
+    connect(m_topToolbar, &TopToolbar::openFileRequested,     this, [this]() { onOpenFile(); });
     connect(m_topToolbar, &TopToolbar::saveRequested,         this, &MainWindow::onSave);
     connect(m_topToolbar, &TopToolbar::printRequested,        this, &MainWindow::onPrint);
     connect(m_topToolbar, &TopToolbar::undoRequested,         this, &MainWindow::onUndo);
@@ -365,6 +406,7 @@ void MainWindow::setupShortcuts()
         { "saveas",       "Ctrl+Shift+S", [this]() { onSaveAs(); } },
         { "print",        "Ctrl+P",       [this]() { onPrint(); } },
         { "open",         "Ctrl+O",       [this]() { onOpenFile(); } },
+        { "openhere",     "Ctrl+Shift+O", [this]() { onOpenFile(OpenMode::Append); } },
         { "undo",         "Ctrl+Z",       [this]() { onUndo(); } },
         { "redo",         "Ctrl+Y",       [this]() { onRedo(); } },
         { "find",         "Ctrl+F",       [this]() {
@@ -400,7 +442,8 @@ DocumentView *MainWindow::addDocView()
 
     // Queued: a dropped Word file takes long enough to convert that the
     // dragging application would sit and wait inside its own drop event.
-    connect(dv, &DocumentView::fileDropped, this, &MainWindow::openPath,
+    connect(dv, &DocumentView::fileDropped, this,
+            [this](const QString &path) { openPath(path, OpenMode::Replace); },
             Qt::QueuedConnection);
 
     connect(dv, &DocumentView::fileOpened, this, [this, dv](const QString &path, int pages) {
@@ -549,21 +592,24 @@ void MainWindow::onTabCloseRequested(int index)
     onTabActivated(qMin(index, m_docViews.size() - 1));
 }
 
-void MainWindow::onOpenFile()
+void MainWindow::onOpenFile(OpenMode mode)
 {
     const QString path = QFileDialog::getOpenFileName(
-        this, tr("Open Document"), {}, DocumentImport::openFilter());
+        this, tr("Open Document"), {}, Importing::openFilter());
     if (path.isEmpty()) return;
-    openPath(path);
+    openPath(path, mode);
 }
 
-void MainWindow::openPath(const QString &path)
+void MainWindow::openPath(const QString &path, OpenMode mode)
 {
     if (path.isEmpty()) return;
 
+    if (mode == OpenMode::Append && (!currentDocView() || currentDocView()->pageCount() <= 0))
+        mode = OpenMode::NewTab;
+
     if (!DocumentImport::isPdf(path)) {
-        if (DocumentImport::isSupported(path)) {
-            openImported(path);
+        if (DocumentImport::isSupported(path) || Importing::formatFor(path)) {
+            openImported(path, mode);
             return;
         }
         QMessageBox::warning(
@@ -573,16 +619,47 @@ void MainWindow::openPath(const QString &path)
         return;
     }
 
+    if (mode == OpenMode::Append) {
+        appendPages(path, QFileInfo(path).fileName());
+        return;
+    }
+
+    // A new tab is only made when the current one already holds a document.
     DocumentView *dv = currentDocView();
+    bool added = false;
+    if (mode == OpenMode::Replace) {
+        if (!confirmAndSave(dv)) return;
+    } else if (!dv || dv->pageCount() > 0) {
+        dv = addDocView();
+        added = true;
+    }
     if (!dv) return;
 
-    dv->openFile(path);
+    if (!dv->openFile(path) && added) {
+        onTabCloseRequested(m_docViews.indexOf(dv));
+        return;
+    }
+    onTabActivated(m_docViews.indexOf(dv));
     m_appSettings->setLastOpenedFile(path);
     m_appSettings->sync();
 }
 
-void MainWindow::openImported(const QString &path)
+bool MainWindow::appendPages(const QString &pdf, const QString &shownName)
 {
+    DocumentView *dv = currentDocView();
+    if (PageAppend::append(dv, pdf)) {
+        onTabActivated(m_docViews.indexOf(dv));
+        return true;
+    }
+    QMessageBox::warning(this, tr("Cannot add pages"),
+                         tr("The pages of \"%1\" could not be added.").arg(shownName));
+    return false;
+}
+
+void MainWindow::openImported(const QString &path, OpenMode mode)
+{
+    if (mode == OpenMode::Replace && !confirmAndSave(currentDocView())) return;
+
     const QFileInfo source(path);
     const QString working = SessionStore::newWorkingFile(path);
     QString error;
@@ -593,7 +670,8 @@ void MainWindow::openImported(const QString &path)
     } else {
         const Importing::Result result = Importing::convert(
             this, currentDocView(), m_saveIndicator, path, working, &error);
-        if (result == Importing::Result::WindowClosing) {
+        if (result == Importing::Result::WindowClosing
+            || result == Importing::Result::Cancelled) {
             SessionStore::discard(working);
             return;
         }
@@ -609,10 +687,15 @@ void MainWindow::openImported(const QString &path)
         return;
     }
 
-    // An open document is never replaced: the import has nowhere else to go,
-    // while a PDF the user drops still has its own file on disk.
+    if (mode == OpenMode::Append) {
+        appendPages(working, source.fileName());
+        SessionStore::discard(working);
+        return;
+    }
+
     DocumentView *dv = currentDocView();
-    if (!dv || dv->pageCount() > 0) dv = addDocView();
+    if (mode == OpenMode::NewTab && (!dv || dv->pageCount() > 0)) dv = addDocView();
+    if (!dv) dv = addDocView();
 
     // The target stays empty on purpose, so saving asks for a name instead of
     // writing next to the original without being told to.

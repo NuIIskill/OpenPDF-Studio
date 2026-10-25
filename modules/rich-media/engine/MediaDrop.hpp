@@ -6,9 +6,12 @@
 #include <QSize>
 #include <QSizeF>
 #include <QString>
+#include <QStringList>
 
 /// Geometry and file handling for videos dropped onto a PDF.
 namespace MediaDrop {
+
+const QStringList &videoSuffixes();
 
 bool isVideoFile(const QString &path);
 
@@ -23,5 +26,8 @@ QString displayNameFor(const QString &original, const QString &actual);
 
 QString addAsOwnPage(const QString &pdfPath, const QString &source, int afterPage,
                      const QString &displayName = QString());
+
+bool newDocument(const QString &source, const QString &outPdf,
+                 const QString &displayName = QString());
 
 }

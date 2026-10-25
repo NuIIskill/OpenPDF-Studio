@@ -34,6 +34,7 @@ mkdir -p "$APP_DIR"
 
 cp "$BUILD_DIR/OpenPDFStudio.exe" "$APP_DIR/"
 cp "$BUILD_DIR"/*.dll "$APP_DIR/"
+[[ -f "$BUILD_DIR/ffmpeg.exe" ]] && cp "$BUILD_DIR/ffmpeg.exe" "$APP_DIR/"
 for d in platforms imageformats iconengines styles tls networkinformation etc share; do
     [[ -d "$BUILD_DIR/$d" ]] && cp -r "$BUILD_DIR/$d" "$APP_DIR/"
 done

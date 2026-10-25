@@ -5,10 +5,13 @@
 #include <QMessageBox>
 #include <QPushButton>
 
-void LicenseNotice::askUsageIfUnknown(QWidget *parent)
+void LicenseNotice::askUsageIfUnknown(QWidget *parent, std::function<void()> then)
 {
-    if (!License::usage().isEmpty())
+    if (!License::usage().isEmpty()) {
+        if (then)
+            then();
         return;
+    }
 
     auto *box = new QMessageBox(parent);
     box->setAttribute(Qt::WA_DeleteOnClose);
@@ -22,12 +25,13 @@ void LicenseNotice::askUsageIfUnknown(QWidget *parent)
     QPushButton *businessBtn = box->addButton(tr("Business"), QMessageBox::AcceptRole);
     box->setDefaultButton(personalBtn);
     QObject::connect(box, &QMessageBox::finished, box,
-                     [box, personalBtn, businessBtn]() {
+                     [box, personalBtn, businessBtn, then = std::move(then)]() {
         if (box->clickedButton() == businessBtn)
             License::setUsage(QStringLiteral("business"));
         else if (box->clickedButton() == personalBtn)
             License::setUsage(QStringLiteral("personal"));
-
+        if (then)
+            then();
     });
     box->open();
 }

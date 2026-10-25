@@ -2,6 +2,9 @@
 
 #include <QCoreApplication>
 #include <QString>
+#include <QStringList>
+
+#include <functional>
 
 class DocumentView;
 class SaveIndicator;
@@ -16,7 +19,19 @@ class Importing
     Q_DECLARE_TR_FUNCTIONS(Importing)
 
 public:
-    enum class Result { Converted, Failed, WindowClosing };
+    enum class Result { Converted, Failed, Cancelled, WindowClosing };
+
+    struct Format
+    {
+        QString     name;
+        QStringList suffixes;
+        std::function<Result(QWidget *window, const QString &path,
+                             const QString &working, QString *error)> toPdf;
+    };
+
+    static void addFormat(Format format);
+    static const Format *formatFor(const QString &path);
+    static QString openFilter();
 
     static Result convert(QWidget *window, DocumentView *busyView, SaveIndicator *indicator,
                           const QString &path, const QString &working, QString *error);

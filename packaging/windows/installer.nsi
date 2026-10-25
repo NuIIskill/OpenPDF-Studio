@@ -240,6 +240,13 @@ Section "Uninstall"
   ; hinterlässt keinen Schlüssel auf dem Rechner. Beim erneuten Ausrollen
   ; also wieder /KEY= mitgeben.
   DeleteRegKey HKLM "Software\OpenPDFStudio"
+
+  ; Written by the program when the user makes it the default PDF application.
+  DeleteRegKey   HKCU "Software\Classes\OpenPDFStudio.Document"
+  DeleteRegValue HKCU "Software\Classes\.pdf\OpenWithProgids" "OpenPDFStudio.Document"
+  DeleteRegValue HKCU "Software\RegisteredApplications" "${APP_NAME}"
+  DeleteRegKey   HKCU "Software\OpenPDFStudio\Capabilities"
+  DeleteRegKey /ifempty HKCU "Software\OpenPDFStudio"
 SectionEnd
 
 ; ── Localised strings ─────────────────────────────────────────────────────────

@@ -582,6 +582,7 @@ QWidget *SettingsPanel::buildShortcutsPage()
             { QT_TR_NOOP("Save As"),       "saveas",   "Ctrl+Shift+S" },
             { QT_TR_NOOP("Print"),         "print",    "Ctrl+P"       },
             { QT_TR_NOOP("Open"),          "open",     "Ctrl+O"       },
+            { QT_TR_NOOP("Add to Current Document"), "openhere", "Ctrl+Shift+O" },
             { QT_TR_NOOP("Undo"),          "undo",     "Ctrl+Z"       },
             { QT_TR_NOOP("Redo"),          "redo",     "Ctrl+Y"       },
             { QT_TR_NOOP("Find"),          "find",     "Ctrl+F"       },

@@ -46,6 +46,8 @@ public:
     QByteArray state() const override;
     void restoreState(const QByteArray &state) override;
 
+    static QString ensurePlayableSource(const QString &source, QStringList *tempFiles);
+
 protected:
     bool eventFilter(QObject *watched, QEvent *event) override;
 
@@ -81,8 +83,6 @@ private:
     void clearSelection(bool resetPanel = true);
     void applyPanel(const MediaSpec &spec);
     void commitInsert(const MediaSpec &spec);
-
-    QString ensurePlayableSource(const QString &source);
 
     void showMenuFor(MediaFrame *frame, const QPoint &globalPos);
     void removeFrame(MediaFrame *frame);

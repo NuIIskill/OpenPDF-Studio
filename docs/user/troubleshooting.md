@@ -26,6 +26,11 @@ If a tool was hidden, use **Customize Tools** to show it again.
 PDF/A export, redaction, a complete form editor, signing timestamps and locking
 after signing are not implemented.
 
+![Customize Tools menu with visibility checkboxes beside each tool and drag handles for reordering](../images/screenshots/customize-tools.png)
+
+*Open the plus button at the bottom of the tool rail. A checked tool is visible;
+Reset to default restores the standard arrangement.*
+
 ## Linux startup and Qt platform errors
 
 The Linux application defaults to Wayland unless `QT_QPA_PLATFORM` is set.
@@ -76,8 +81,13 @@ For a decoder failure, use the offered 1080p playback copy or explicitly
 choose an external player. In-app playback settings do not silently fall back
 to an external process. H.264 in MP4 is the intended format; Linux conversion
 needs ffmpeg and playback needs a working Qt Multimedia backend. On Windows,
-system encoders are used first with ffmpeg as fallback. Copy the diagnostic
+system encoders are used first with the bundled ffmpeg as fallback. Copy the diagnostic
 details from a playback error when reporting it.
+
+![Media Playback settings offering In OpenPDF Studio, System player and Custom command](../images/screenshots/media-playback-settings.png)
+
+*Settings → Media Playback chooses where media opens. Check this selection when
+a file opens in a different player than expected.*
 
 ## Saving and exporting
 
@@ -92,6 +102,13 @@ recovered document before saving. Enter opening passwords again as needed.
 Pending protection passwords are not persisted; reapply protection before saving.
 
 ## Settings and reports
+
+Open Settings → **About** to find the running version and the configuration file
+the application is using. Include the version when reporting a problem.
+
+![About page detail showing the application name and version 0.3.2](../images/screenshots/about-version.png)
+
+*Check Settings → About for the running version before reporting a problem.*
 
 Settings use a writable `config.ini` beside the executable when present;
 otherwise they use the platform's generic configuration directory under

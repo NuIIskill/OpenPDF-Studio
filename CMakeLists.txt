@@ -284,7 +284,7 @@ endif()
 
 if(WIN32)
     set_target_properties(OpenPDFStudio PROPERTIES WIN32_EXECUTABLE TRUE)
-    target_link_libraries(OpenPDFStudio PRIVATE ole32 shell32)
+    target_link_libraries(OpenPDFStudio PRIVATE ole32 shell32 shlwapi)
     configure_file(resources/windows/openpdf-studio.rc.in
                    "${CMAKE_CURRENT_BINARY_DIR}/openpdf-studio.rc" @ONLY)
     target_sources(OpenPDFStudio PRIVATE "${CMAKE_CURRENT_BINARY_DIR}/openpdf-studio.rc")

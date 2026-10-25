@@ -14,7 +14,7 @@ class LicenseNotice
 
 public:
 
-    static void askUsageIfUnknown(QWidget *parent);
+    static void askUsageIfUnknown(QWidget *parent, std::function<void()> then = {});
 
     static void showExpiryReminderIfDue(QWidget *parent,
                                         std::function<void()> onEnterKey);

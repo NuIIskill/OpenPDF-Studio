@@ -46,7 +46,7 @@ with `-DOPENPDF_RICH_MEDIA=OFF`.
 | Tesseract language data | OCR uses `deu+eng+fra` where available and falls back to `eng`; Fedora packages are `tesseract-langpack-deu`, `-eng` and `-fra` |
 | Qt image format plugins | TIFF and WebP import; Fedora `qt6-qtimageformats`, Windows cross-build `mingw64-qt6-qtimageformats` |
 | Qt Multimedia backend plugins | Actual Linux playback and decoding; shipping only the Qt Multimedia library is insufficient |
-| ffmpeg executable | Video conversion on Linux and fallback or remuxing on Windows; not needed to open a PDF |
+| ffmpeg executable | Video conversion on Linux and fallback or remuxing on Windows, where the packages ship an LGPL build (`packaging/windows/build-ffmpeg-mingw.sh`); not needed to open a PDF |
 | Wayland platform plugin and client libraries | Default Linux display platform; required by the packaged AppImage |
 
 Windows uses system H.264/AAC encoders when available. Media Foundation DLLs

@@ -17,6 +17,7 @@
 #
 #   packaging/fetch-pdfium.sh                  PDF-Anzeige, -Text und -Speichern
 #   packaging/windows/build-qpdf-mingw.sh      PDF-Export mit Optionen, Organizer
+#   packaging/windows/build-ffmpeg-mingw.sh    video Windows cannot read (AC3 sound)
 #
 # Poppler und Qt6::Pdf werden nicht mehr gebraucht: beide Plattformen laufen
 # auf PDFium.
@@ -145,6 +146,15 @@ if [[ -d "$QT_BIN" ]]; then
     if [[ -d "${QPDF_PREFIX}/bin" ]]; then
         cp -u "${QPDF_PREFIX}"/bin/qpdf*.dll "${BUILD_DIR}/" 2>/dev/null && \
             echo "  qpdf: $(basename "$(ls "${QPDF_PREFIX}"/bin/qpdf*.dll | head -1)") deployed"
+    fi
+
+    # ffmpeg.exe sits next to the program, where MediaConvert looks first.
+    if [[ -f "${QPDF_PREFIX}/bin/ffmpeg.exe" ]]; then
+        cp -u "${QPDF_PREFIX}/bin/ffmpeg.exe" "${BUILD_DIR}/"
+        echo "  ffmpeg: ffmpeg.exe deployed"
+    else
+        echo "  ffmpeg: not built, video Windows cannot decode is not converted"
+        echo "    Build with: packaging/windows/build-ffmpeg-mingw.sh"
     fi
 
     # Platform plugin

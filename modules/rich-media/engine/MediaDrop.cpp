@@ -23,7 +23,7 @@ constexpr double kMaxLongestSidePt = 420.0;
 
 }
 
-bool MediaDrop::isVideoFile(const QString &path)
+const QStringList &MediaDrop::videoSuffixes()
 {
     static const QStringList kSuffixes {
         QStringLiteral("mp4"),  QStringLiteral("m4v"),  QStringLiteral("mov"),
@@ -31,7 +31,12 @@ bool MediaDrop::isVideoFile(const QString &path)
         QStringLiteral("mpg"),  QStringLiteral("mpeg"), QStringLiteral("wmv"),
         QStringLiteral("flv"),  QStringLiteral("m2ts"), QStringLiteral("ts"),
     };
-    return kSuffixes.contains(QFileInfo(path).suffix().toLower());
+    return kSuffixes;
+}
+
+bool MediaDrop::isVideoFile(const QString &path)
+{
+    return videoSuffixes().contains(QFileInfo(path).suffix().toLower());
 }
 
 QSizeF MediaDrop::pageSizeFor(int videoWidth, int videoHeight)
@@ -93,18 +98,15 @@ QString MediaDrop::displayNameFor(const QString &original, const QString &actual
          + QFileInfo(actual).suffix().toLower();
 }
 
-QString MediaDrop::addAsOwnPage(const QString &pdfPath, const QString &source,
-                                int afterPage, const QString &displayName)
-{
-    if (pdfPath.isEmpty() || source.isEmpty()) return {};
-    if (!RichMediaWriter::available()) return {};
-    if (!QFileInfo::exists(pdfPath) || !QFileInfo::exists(source)) return {};
+namespace {
 
+MediaSpec ownPageSpec(const QString &source, int afterPage, const QString &displayName)
+{
     const MediaFormat::Info info = MediaFormat::inspect(source);
 
     const QImage poster = PosterFrame::grab(source, 1280);
     const QSize  pixels = info.size.isValid() ? info.size : poster.size();
-    const QSizeF pageSize = pageSizeFor(pixels.width(), pixels.height());
+    const QSizeF pageSize = MediaDrop::pageSizeFor(pixels.width(), pixels.height());
 
     MediaSpec spec;
     spec.type        = MediaSpec::Type::Video;
@@ -118,6 +120,19 @@ QString MediaDrop::addAsOwnPage(const QString &pdfPath, const QString &source,
     spec.poster      = poster;
     if (spec.poster.isNull())
         spec.poster = PosterFrame::placeholder(pageSize.toSize());
+    return spec;
+}
+
+}
+
+QString MediaDrop::addAsOwnPage(const QString &pdfPath, const QString &source,
+                                int afterPage, const QString &displayName)
+{
+    if (pdfPath.isEmpty() || source.isEmpty()) return {};
+    if (!RichMediaWriter::available()) return {};
+    if (!QFileInfo::exists(pdfPath) || !QFileInfo::exists(source)) return {};
+
+    const MediaSpec spec = ownPageSpec(source, afterPage, displayName);
 
     const QString work = SessionStore::newWorkingFile(pdfPath);
     if (work.isEmpty()) return {};
@@ -136,4 +151,15 @@ QString MediaDrop::addAsOwnPage(const QString &pdfPath, const QString &source,
         return {};
     }
     return work;
+}
+
+bool MediaDrop::newDocument(const QString &source, const QString &outPdf,
+                            const QString &displayName)
+{
+    if (source.isEmpty() || outPdf.isEmpty() || !QFileInfo::exists(source)) return false;
+    if (!RichMediaWriter::available() || !RichMediaWriter::writeEmpty(outPdf)) return false;
+
+    MediaSession once;
+    once.addInsert(ownPageSpec(source, 0, displayName));
+    return RichMediaWriter::apply(outPdf, once);
 }

@@ -3,6 +3,7 @@
 
 #include <QDebug>
 #include <QDesktopServices>
+#include <QDir>
 #include <QFileInfo>
 #include <QProcess>
 #include <QProcessEnvironment>
@@ -78,6 +79,9 @@ bool ExternalPlayer::play(const QString &filePath, const QString &command)
 {
     if (filePath.isEmpty() || !QFileInfo::exists(filePath)) return false;
 
+    // VLC on Windows opens nothing when given a path with forward slashes.
+    const QString path = QDir::toNativeSeparators(filePath);
+
     if (!command.trimmed().isEmpty()) {
         QStringList parts = splitCommand(command.trimmed());
         if (!parts.isEmpty()) {
@@ -85,10 +89,10 @@ bool ExternalPlayer::play(const QString &filePath, const QString &command)
             bool substituted = false;
             for (QString &arg : parts) {
                 if (!arg.contains(QLatin1String("%1"))) continue;
-                arg.replace(QLatin1String("%1"), filePath);
+                arg.replace(QLatin1String("%1"), path);
                 substituted = true;
             }
-            if (!substituted) parts << filePath;
+            if (!substituted) parts << path;
             if (start(program, parts)) return true;
             qWarning() << "[rich-media] custom player would not start:" << program;
         }
@@ -96,9 +100,9 @@ bool ExternalPlayer::play(const QString &filePath, const QString &command)
 
     struct Candidate { const char *program; QStringList args; };
     const Candidate candidates[] = {
-        { "vlc",     { QStringLiteral("--play-and-exit"), filePath } },
-        { "mpv",     { QStringLiteral("--force-window=yes"), filePath } },
-        { "mplayer", { filePath } },
+        { "vlc",     { QStringLiteral("--play-and-exit"), path } },
+        { "mpv",     { QStringLiteral("--force-window=yes"), path } },
+        { "mplayer", { path } },
     };
     for (const Candidate &c : candidates)
         if (start(QLatin1String(c.program), c.args)) return true;

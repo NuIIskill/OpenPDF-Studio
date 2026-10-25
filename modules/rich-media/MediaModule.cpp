@@ -3,10 +3,14 @@
 #include "rich-media/ui/MediaLayer.hpp"
 #include "rich-media/ui/RichMediaPanel.hpp"
 
+#include "rich-media/engine/MediaDrop.hpp"
+
+#include "ui/import/Importing.hpp"
 #include "ui/panels/LeftSidebar.hpp"
 #include "ui/panels/ToolPanels.hpp"
 #include "ui/view/PageOverlay.hpp"
 
+#include <QFile>
 #include <QPointer>
 #include <QWidget>
 
@@ -49,6 +53,21 @@ struct Registration
 
         PageOverlays::add([](PageCanvas *canvas, QObject *parent) -> PageOverlay * {
             return new MediaLayer(canvas, parent);
+        });
+
+        Importing::addFormat({
+            QStringLiteral(QT_TRANSLATE_NOOP("Importing", "Videos")),
+            MediaDrop::videoSuffixes(),
+            [](QWidget *, const QString &path, const QString &working, QString *) {
+                QStringList tempFiles;
+                const QString playable = MediaLayer::ensurePlayableSource(path, &tempFiles);
+                const bool made = !playable.isEmpty()
+                    && MediaDrop::newDocument(playable, working,
+                                              MediaDrop::displayNameFor(path, playable));
+                for (const QString &temp : std::as_const(tempFiles)) QFile::remove(temp);
+                if (playable.isEmpty()) return Importing::Result::Cancelled;
+                return made ? Importing::Result::Converted : Importing::Result::Failed;
+            },
         });
     }
 };

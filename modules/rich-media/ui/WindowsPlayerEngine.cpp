@@ -9,6 +9,8 @@
 #include <QTimer>
 #include <QWidget>
 
+#include <cmath>
+
 #include <windows.h>
 #include <dshow.h>
 #include <mfapi.h>
@@ -61,6 +63,13 @@ qint64 millisecondsFrom(const PROPVARIANT &value)
 }
 
 template <class T> void releaseCom(T *&p) { if (p) { p->Release(); p = nullptr; } }
+
+// DirectShow takes volume in hundredths of a decibel, -10000 being silence.
+long decibels(qreal volume)
+{
+    if (volume <= 0.0001) return -10000;
+    return qBound(-10000L, long(2000.0 * std::log10(volume)), 0L);
+}
 
 const GUID kMfpCallbackIid =
     { 0x766c8ffb, 0x5fdb, 0x4fea, { 0xa2, 0x8d, 0xb9, 0x12, 0x99, 0x6f, 0x51, 0xbd } };
@@ -161,8 +170,15 @@ public:
         if (m_video && m_video->size().isEmpty() && m_surface)
             m_video->setGeometry(m_surface->rect());
 
-        if (startDirectShow()) return;
-        if (startMediaFoundation()) return;
+        if (startDirectShow() || startMediaFoundation()) {
+            // The video window is the first native window on the page: making it
+            // turns the page widgets native too, and the first time they land
+            // above the player, which then plays sound without picture. Qt
+            // still counts the player as topmost, so only Windows can fix it.
+            SetWindowPos(reinterpret_cast<HWND>(m_surface->winId()), HWND_TOP, 0, 0, 0, 0,
+                         SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE);
+            return;
+        }
 
         Q_EMIT failed(describe(m_lastError));
     }
@@ -235,9 +251,16 @@ public:
         m_muted = muted;
         if (m_mfPlayer) m_mfPlayer->SetMute(muted ? TRUE : FALSE);
 
-        else if (m_audio) m_audio->put_Volume(muted ? -10000 : 0);
+        else if (m_audio) m_audio->put_Volume(muted ? -10000 : decibels(m_volume));
     }
     bool isMuted() const override { return m_muted; }
+
+    void setVolume(qreal volume) override
+    {
+        m_volume = qBound(0.0, volume, 1.0);
+        if (m_mfPlayer) m_mfPlayer->SetVolume(float(m_volume));
+        else if (m_audio && !m_muted) m_audio->put_Volume(decibels(m_volume));
+    }
 
     bool drawsItself() const override { return true; }
 
@@ -283,6 +306,7 @@ public:
             m_frameSize = QSize(int(size.cx), int(size.cy));
 
         m_mfPlayer->SetMute(m_muted ? TRUE : FALSE);
+        m_mfPlayer->SetVolume(float(m_volume));
         m_mfPlayer->Play();
         m_playing = true;
         m_pump->start();
@@ -460,6 +484,7 @@ private:
     qint64  m_duration { 0 };
     bool    m_loop { false };
     bool    m_muted { false };
+    qreal   m_volume { 1.0 };
     bool    m_playing { false };
     bool    m_comInitialised { false };
     bool    m_mfStarted { false };

@@ -8,11 +8,18 @@
 #include <QEvent>
 #include <QEventLoop>
 #include <QFileInfo>
+#include <QList>
 #include <QThread>
 #include <QTimer>
 #include <QWidget>
 
 namespace {
+
+QList<Importing::Format> &formats()
+{
+    static QList<Importing::Format> list;
+    return list;
+}
 
 /// Holds back closing the window while a conversion runs and remembers that it was asked for.
 class CloseGuard : public QObject
@@ -39,10 +46,43 @@ private:
 
 }
 
+void Importing::addFormat(Format format)
+{
+    formats().append(std::move(format));
+}
+
+const Importing::Format *Importing::formatFor(const QString &path)
+{
+    const QString suffix = QFileInfo(path).suffix().toLower();
+    for (const Format &format : std::as_const(formats()))
+        if (format.suffixes.contains(suffix)) return &format;
+    return nullptr;
+}
+
+QString Importing::openFilter()
+{
+    QStringList parts = DocumentImport::openFilter().split(QStringLiteral(";;"));
+    for (const Format &format : std::as_const(formats())) {
+        QStringList globs;
+        for (const QString &suffix : format.suffixes)
+            globs << QStringLiteral("*.") + suffix;
+        const QString list = globs.join(QLatin1Char(' '));
+        parts.first().insert(parts.first().size() - 1, QLatin1Char(' ') + list);
+        parts.insert(parts.size() - 1, tr(format.name.toUtf8().constData())
+                                           + QStringLiteral(" (") + list + QLatin1Char(')'));
+    }
+    return parts.join(QStringLiteral(";;"));
+}
+
 Importing::Result Importing::convert(QWidget *window, DocumentView *busyView,
                                      SaveIndicator *indicator, const QString &path,
                                      const QString &working, QString *error)
 {
+    // A format from an optional part may ask the user, so it runs here and
+    // not on the worker thread.
+    if (const Format *format = formatFor(path))
+        return format->toPdf(window, path, working, error);
+
     if (busyView) busyView->setBusy(true);
     indicator->showProgress(tr("Converting \"%1\"…").arg(QFileInfo(path).fileName()));
     QApplication::setOverrideCursor(Qt::WaitCursor);

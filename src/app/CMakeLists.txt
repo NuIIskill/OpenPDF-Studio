@@ -3,6 +3,8 @@ target_sources(OpenPDFStudio PRIVATE
     AppConfig.hpp
     AppSettings.cpp
     AppSettings.hpp
+    DefaultPdfApp.cpp
+    DefaultPdfApp.hpp
     PdfPwStore.cpp
     PdfPwStore.hpp
     SafeWrite.cpp

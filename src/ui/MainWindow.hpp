@@ -41,7 +41,8 @@ public:
     [[nodiscard]] RightSidebar *rightSidebar() const { return m_rightSidebar; }
     [[nodiscard]] StatusBar    *statusBar()    const { return m_statusBar;    }
 
-    void openPath(const QString &path);
+    enum class OpenMode { NewTab, Replace, Append };
+    void openPath(const QString &path, OpenMode mode = OpenMode::NewTab);
 
     void restoreSession();
 
@@ -68,7 +69,7 @@ private:
     void onNewTab();
     void onTabActivated(int index);
     void onTabCloseRequested(int index);
-    void onOpenFile();
+    void onOpenFile(OpenMode mode = OpenMode::NewTab);
     void onSave();
     void onSaveAs();
     void onPrint();
@@ -83,7 +84,8 @@ private:
     void onToolSelected(const QString &tool);
     void onStartPresentation();
 
-    void openImported(const QString &path);
+    void openImported(const QString &path, OpenMode mode);
+    bool appendPages(const QString &pdf, const QString &shownName);
     QString askSavePath(DocumentView *dv);
     bool saveDocument(DocumentView *dv, const QString &path);
     bool confirmAndSave(DocumentView *dv);
@@ -100,6 +102,8 @@ private:
     void showLicenseNotices();
 
     void checkForUpdates();
+
+    void offerDefaultPdfApp();
 
     void setRightSidebarCollapsed(bool collapsed);
     void applyPanelLayout();

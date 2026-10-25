@@ -1638,6 +1638,11 @@ Les modifications de texte, d&apos;images et de dessins faites depuis ne sont en
         <source>Converting &quot;%1&quot;…</source>
         <translation>Conversion de « %1 »…</translation>
     </message>
+    <message>
+        <location filename="../../modules/rich-media/MediaModule.cpp" line="55"/>
+        <source>Videos</source>
+        <translation>Vidéos</translation>
+    </message>
 </context>
 <context>
     <name>InfoCenter</name>
@@ -2254,6 +2259,37 @@ Les modifications de texte, d&apos;images et de dessins faites depuis ne sont en
 <context>
     <name>MainWindow</name>
     <message>
+        <location filename="../../src/ui/MainWindow.cpp" line="120"/>
+        <location filename="../../src/ui/MainWindow.cpp" line="134"/>
+        <source>Default PDF Application</source>
+        <translation>Application PDF par défaut</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/MainWindow.cpp" line="121"/>
+        <source>OpenPDF Studio is not your default application for PDF files. Would you like to make it the default?</source>
+        <translation>OpenPDF Studio n'est pas votre application par défaut pour les fichiers PDF. Voulez-vous en faire l'application par défaut ?</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/MainWindow.cpp" line="124"/>
+        <source>Windows then opens its settings for default apps, where you choose OpenPDF Studio for PDF files.</source>
+        <translation>Windows ouvre alors ses paramètres d'applications par défaut, où vous choisissez OpenPDF Studio pour les fichiers PDF.</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/MainWindow.cpp" line="126"/>
+        <source>Make Default</source>
+        <translation>Définir par défaut</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/MainWindow.cpp" line="127"/>
+        <source>No</source>
+        <translation>Non</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/MainWindow.cpp" line="135"/>
+        <source>OpenPDF Studio could not be made the default application for PDF files.</source>
+        <translation>OpenPDF Studio n'a pas pu être défini comme application par défaut pour les fichiers PDF.</translation>
+    </message>
+    <message>
         <source>Open PDF</source>
         <translation type="vanished">Ouvrir un PDF</translation>
     </message>
@@ -2371,6 +2407,16 @@ Le fichier est peut-être protégé en écriture ou ouvert dans un autre program
         <location filename="../../src/ui/MainWindow.cpp" line="625"/>
         <source>&quot;%1&quot; was converted, but the result could not be opened.</source>
         <translation>« %1 » a été converti, mais le résultat n&apos;a pas pu être ouvert.</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/MainWindow.cpp" line="620"/>
+        <source>Cannot add pages</source>
+        <translation>Impossible d&apos;ajouter les pages</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/MainWindow.cpp" line="621"/>
+        <source>The pages of &quot;%1&quot; could not be added.</source>
+        <translation>Les pages de « %1 » n&apos;ont pas pu être ajoutées.</translation>
     </message>
 </context>
 <context>
@@ -2599,6 +2645,11 @@ Installez ffmpeg pour la convertir, ou intégrez-la telle quelle.</translation>
         <source>The video could not be added as a new page.</source>
         <translation>Impossible d&apos;ajouter la vidéo comme nouvelle page.</translation>
     </message>
+    <message>
+        <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="987"/>
+        <source>Trust</source>
+        <translation>Faire confiance</translation>
+    </message>
 </context>
 <context>
     <name>MediaPlayerFrame</name>
@@ -2611,6 +2662,11 @@ Installez ffmpeg pour la convertir, ou intégrez-la telle quelle.</translation>
         <location filename="../../modules/rich-media/ui/MediaPlayerFrame.cpp" line="105"/>
         <source>nothing was decoded within six seconds</source>
         <translation>rien n&apos;a été décodé en six secondes</translation>
+    </message>
+    <message>
+        <location filename="../../modules/rich-media/ui/MediaPlayerFrame.cpp" line="97"/>
+        <source>Volume</source>
+        <translation>Volume</translation>
     </message>
 </context>
 <context>
@@ -4379,6 +4435,11 @@ Saisissez le mot de passe pour l&apos;ouvrir :</translation>
         <location filename="../../src/ui/settings/SettingsPanel.cpp" line="1027"/>
         <source>A modern, open-source PDF editor built with Qt.</source>
         <translation>Un éditeur PDF moderne et open-source construit avec Qt.</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/settings/SettingsPanel.cpp" line="585"/>
+        <source>Add to Current Document</source>
+        <translation>Ajouter au document actuel</translation>
     </message>
 </context>
 <context>
