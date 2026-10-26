@@ -34,7 +34,11 @@ and the view's signals update bars and panels. Work that runs through a dialog
 lives in its task folder: `Exporting` and `Printing` in `ui/export/`,
 `Importing` in `ui/import/`,
 `HistoryDialog::openFor()` in `ui/history/`, `DigitalSigning` in `ui/sign/`,
-`ProtectDialog::run()` in `ui/protect/`.
+`ProtectDialog::run()` in `ui/protect/`. Before printing, copying, editing,
+commenting, organizing, exporting, signing or changing the protection, the
+window asks `PermissionGate` in `ui/protect/`, which checks the reader
+permissions PDFium reports and lifts them for the view with the permissions
+password, unless Settings > Security switches that off.
 
 ![Main window showing the top toolbar, left tool rail, central document view, right action rail and bottom status bar](../images/screenshots/overview.png)
 
@@ -319,8 +323,9 @@ on startup.
   fingerprint is pinned in `app/TrustedSigners`; `ui/sign/SignerTrust` asks
   before pinning and lists the pinned signers (sign page, Advanced), where a
   certificate file can be added too. `SignatureRemover` takes one off, with everything
-  added after it, by cutting the file back to the revision before it, which
-  the view opens as a working copy.
+  added after it, by cutting the file back to the revision before it; one
+  without such a revision is cleared out of its own with qpdf. The view opens
+  the result as a working copy.
 - **Document information** (`engine/document/DocumentInfo`, `ui/info/`):
   `DocumentInfoLoader` reads version, encryption, permissions, form fields,
   attachments, PDF/A and verified signatures with qpdf on a

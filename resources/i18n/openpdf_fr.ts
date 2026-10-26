@@ -3337,6 +3337,59 @@ Saisissez le mot de passe pour l&apos;ouvrir :</translation>
     </message>
 </context>
 <context>
+    <name>PermissionGate</name>
+    <message>
+        <location filename="../../src/ui/protect/PermissionGate.cpp" line="15"/>
+        <source>This document does not allow printing.</source>
+        <translation>Ce document n&apos;autorise pas l&apos;impression.</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/protect/PermissionGate.cpp" line="16"/>
+        <source>This document does not allow copying text.</source>
+        <translation>Ce document n&apos;autorise pas la copie du texte.</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/protect/PermissionGate.cpp" line="17"/>
+        <source>This document does not allow changing its content.</source>
+        <translation>Ce document n&apos;autorise pas la modification de son contenu.</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/protect/PermissionGate.cpp" line="18"/>
+        <source>This document does not allow adding comments.</source>
+        <translation>Ce document n&apos;autorise pas l&apos;ajout de commentaires.</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/protect/PermissionGate.cpp" line="19"/>
+        <source>This document does not allow filling in forms.</source>
+        <translation>Ce document n&apos;autorise pas le remplissage des formulaires.</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/protect/PermissionGate.cpp" line="21"/>
+        <source>This document does not allow inserting, deleting and rotating pages.</source>
+        <translation>Ce document n&apos;autorise pas l&apos;insertion, la suppression et la rotation des pages.</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/protect/PermissionGate.cpp" line="23"/>
+        <source>The restrictions of this document can only be changed by its owner.</source>
+        <translation>Seul le propriétaire de ce document peut modifier ses restrictions.</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/protect/PermissionGate.cpp" line="52"/>
+        <source>Enter the permissions password to lift its restrictions:</source>
+        <translation>Saisissez le mot de passe des autorisations pour lever ses restrictions :</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/protect/PermissionGate.cpp" line="55"/>
+        <source>Restricted document</source>
+        <translation>Document restreint</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/protect/PermissionGate.cpp" line="59"/>
+        <source>Wrong permissions password. Please try again:</source>
+        <translation>Mot de passe des autorisations incorrect. Veuillez réessayer :</translation>
+    </message>
+</context>
+<context>
     <name>Printing</name>
     <message>
         <location filename="../../src/ui/export/Printing.cpp" line="30"/>
@@ -4473,6 +4526,36 @@ Saisissez le mot de passe pour l&apos;ouvrir :</translation>
     </message>
     <message>
         <location filename="../../src/ui/settings/SettingsPanel_Security.cpp"/>
+        <source>Restricted Documents</source>
+        <translation>Documents restreints</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/settings/SettingsPanel_Security.cpp"/>
+        <source>Follow document permissions</source>
+        <translation>Respecter les autorisations du document</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/settings/SettingsPanel_Security.cpp"/>
+        <source>Printing, copying and editing need the permissions password where a PDF restricts them.</source>
+        <translation>L&apos;impression, la copie et la modification demandent le mot de passe des autorisations lorsqu&apos;un PDF les restreint.</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/settings/SettingsPanel_Security.cpp"/>
+        <source>Digital Signatures</source>
+        <translation>Signatures numériques</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/settings/SettingsPanel_Security.cpp"/>
+        <source>Trust my own certificates</source>
+        <translation>Faire confiance à mes propres certificats</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/settings/SettingsPanel_Security.cpp"/>
+        <source>Signatures made with a certificate on this computer count as valid.</source>
+        <translation>Les signatures faites avec un certificat de cet ordinateur sont considérées comme valides.</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/settings/SettingsPanel_Security.cpp"/>
         <source>Changes require explicit approval.</source>
         <translation>Les modifications nécessitent une autorisation explicite.</translation>
     </message>
@@ -4919,8 +5002,8 @@ Saisissez le mot de passe pour l&apos;ouvrir :</translation>
     </message>
     <message>
         <location filename="../../src/ui/sign/SignatureRemoval.cpp" line="33"/>
-        <source>It is part of the file&apos;s first version.</source>
-        <translation>Elle fait partie de la première version du fichier.</translation>
+        <source>The file could not be read.</source>
+        <translation>Impossible de lire le fichier.</translation>
     </message>
     <message>
         <location filename="../../src/ui/sign/SignatureRemoval.cpp" line="41"/>
@@ -4946,6 +5029,11 @@ Saisissez le mot de passe pour l&apos;ouvrir :</translation>
         <location filename="../../src/ui/sign/SignatureRemoval.cpp" line="47"/>
         <source>The document goes back to how it was before this signature. The change is written when you save and can be undone until then.</source>
         <translation>Le document revient à son état d&apos;avant cette signature. La modification est écrite à l&apos;enregistrement et peut être annulée jusque-là.</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/sign/SignatureRemoval.cpp" line="47"/>
+        <source>The signature is taken out of the document, which otherwise stays as it is. The change is written when you save and can be undone until then.</source>
+        <translation>La signature est retirée du document, qui reste par ailleurs inchangé. La modification est écrite à l&apos;enregistrement et peut être annulée jusque-là.</translation>
     </message>
     <message>
         <location filename="../../src/ui/sign/SignatureRemoval.cpp" line="53"/>

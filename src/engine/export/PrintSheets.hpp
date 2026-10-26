@@ -26,6 +26,7 @@ struct PrintJob {
     Scaling    scaling       { Scaling::Fit };
     bool       grayscale     { false };
     bool       cutMarks      { false };
+    qreal      maxRenderDpi  { 300.0 };
 };
 
 /// Lays the pages of a print job out on sheets and paints them, for the preview and the printer alike.

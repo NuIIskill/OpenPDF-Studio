@@ -258,6 +258,24 @@ void AppSettings::setExternalLinks(const QString &policy)
     settings().setValue(QStringLiteral("security/externalLinks"), policy);
 }
 
+bool AppSettings::respectPermissions() const
+{
+    return settings().value(QStringLiteral("security/respectPermissions"), true).toBool();
+}
+void AppSettings::setRespectPermissions(bool v)
+{
+    settings().setValue(QStringLiteral("security/respectPermissions"), v);
+}
+
+bool AppSettings::trustOwnCertificates() const
+{
+    return settings().value(QStringLiteral("security/trustOwnCertificates"), true).toBool();
+}
+void AppSettings::setTrustOwnCertificates(bool v)
+{
+    settings().setValue(QStringLiteral("security/trustOwnCertificates"), v);
+}
+
 bool AppSettings::debugLogging() const
 {
     return settings().value(QStringLiteral("advanced/debugLogging"), false).toBool();

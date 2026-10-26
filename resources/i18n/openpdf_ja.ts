@@ -3334,6 +3334,59 @@ Enter the password to open it:</source>
     </message>
 </context>
 <context>
+    <name>PermissionGate</name>
+    <message>
+        <location filename="../../src/ui/protect/PermissionGate.cpp" line="15"/>
+        <source>This document does not allow printing.</source>
+        <translation>この文書は印刷を許可していません。</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/protect/PermissionGate.cpp" line="16"/>
+        <source>This document does not allow copying text.</source>
+        <translation>この文書はテキストのコピーを許可していません。</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/protect/PermissionGate.cpp" line="17"/>
+        <source>This document does not allow changing its content.</source>
+        <translation>この文書は内容の変更を許可していません。</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/protect/PermissionGate.cpp" line="18"/>
+        <source>This document does not allow adding comments.</source>
+        <translation>この文書はコメントの追加を許可していません。</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/protect/PermissionGate.cpp" line="19"/>
+        <source>This document does not allow filling in forms.</source>
+        <translation>この文書はフォームへの入力を許可していません。</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/protect/PermissionGate.cpp" line="21"/>
+        <source>This document does not allow inserting, deleting and rotating pages.</source>
+        <translation>この文書はページの挿入、削除、回転を許可していません。</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/protect/PermissionGate.cpp" line="23"/>
+        <source>The restrictions of this document can only be changed by its owner.</source>
+        <translation>この文書の制限を変更できるのは所有者だけです。</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/protect/PermissionGate.cpp" line="52"/>
+        <source>Enter the permissions password to lift its restrictions:</source>
+        <translation>制限を解除するには権限パスワードを入力してください:</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/protect/PermissionGate.cpp" line="55"/>
+        <source>Restricted document</source>
+        <translation>制限付き文書</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/protect/PermissionGate.cpp" line="59"/>
+        <source>Wrong permissions password. Please try again:</source>
+        <translation>権限パスワードが違います。もう一度入力してください:</translation>
+    </message>
+</context>
+<context>
     <name>Printing</name>
     <message>
         <location filename="../../src/ui/export/Printing.cpp" line="30"/>
@@ -4470,6 +4523,36 @@ Enter the password to open it:</source>
     </message>
     <message>
         <location filename="../../src/ui/settings/SettingsPanel_Security.cpp"/>
+        <source>Restricted Documents</source>
+        <translation>制限付き文書</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/settings/SettingsPanel_Security.cpp"/>
+        <source>Follow document permissions</source>
+        <translation>文書の権限に従う</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/settings/SettingsPanel_Security.cpp"/>
+        <source>Printing, copying and editing need the permissions password where a PDF restricts them.</source>
+        <translation>PDF が制限している場合、印刷、コピー、編集には権限パスワードが必要です。</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/settings/SettingsPanel_Security.cpp"/>
+        <source>Digital Signatures</source>
+        <translation>デジタル署名</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/settings/SettingsPanel_Security.cpp"/>
+        <source>Trust my own certificates</source>
+        <translation>自分の証明書を信頼する</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/settings/SettingsPanel_Security.cpp"/>
+        <source>Signatures made with a certificate on this computer count as valid.</source>
+        <translation>このコンピューターの証明書で作成した署名を有効とみなします。</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/settings/SettingsPanel_Security.cpp"/>
         <source>Changes require explicit approval.</source>
         <translation>変更には明示的な許可が必要です。</translation>
     </message>
@@ -4916,8 +4999,8 @@ Enter the password to open it:</source>
     </message>
     <message>
         <location filename="../../src/ui/sign/SignatureRemoval.cpp" line="33"/>
-        <source>It is part of the file&apos;s first version.</source>
-        <translation>ファイルの最初のバージョンに含まれています。</translation>
+        <source>The file could not be read.</source>
+        <translation>ファイルを読み込めませんでした。</translation>
     </message>
     <message>
         <location filename="../../src/ui/sign/SignatureRemoval.cpp" line="41"/>
@@ -4943,6 +5026,11 @@ Enter the password to open it:</source>
         <location filename="../../src/ui/sign/SignatureRemoval.cpp" line="47"/>
         <source>The document goes back to how it was before this signature. The change is written when you save and can be undone until then.</source>
         <translation>文書はこの署名の前の状態に戻ります。変更は保存時に書き込まれ、それまでは元に戻せます。</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/sign/SignatureRemoval.cpp" line="47"/>
+        <source>The signature is taken out of the document, which otherwise stays as it is. The change is written when you save and can be undone until then.</source>
+        <translation>署名は文書から取り除かれ、それ以外の内容は変わりません。変更は保存時に書き込まれ、それまでは元に戻せます。</translation>
     </message>
     <message>
         <location filename="../../src/ui/sign/SignatureRemoval.cpp" line="53"/>

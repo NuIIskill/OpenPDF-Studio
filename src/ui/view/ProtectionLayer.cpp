@@ -25,9 +25,9 @@ void ProtectionLayer::set(const PdfProtection &protection)
 
 void ProtectionLayer::setDocument(const QString &path)
 {
-    Q_UNUSED(path)
     m_pending.reset();
     m_token.clear();
+    if (path.isEmpty()) m_ownerPassword.clear();
 }
 
 QString ProtectionLayer::stateKey() const

@@ -79,6 +79,12 @@ public:
     [[nodiscard]] QString externalLinks() const;
     void setExternalLinks(const QString &policy);
 
+    [[nodiscard]] bool respectPermissions() const;
+    void setRespectPermissions(bool enabled);
+
+    [[nodiscard]] bool trustOwnCertificates() const;
+    void setTrustOwnCertificates(bool enabled);
+
     [[nodiscard]] bool noticeHidden(const QString &key) const;
     void setNoticeHidden(const QString &key, bool hidden);
 

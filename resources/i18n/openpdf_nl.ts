@@ -3337,6 +3337,59 @@ Voer het wachtwoord in om het te openen:</translation>
     </message>
 </context>
 <context>
+    <name>PermissionGate</name>
+    <message>
+        <location filename="../../src/ui/protect/PermissionGate.cpp" line="15"/>
+        <source>This document does not allow printing.</source>
+        <translation>Dit document staat afdrukken niet toe.</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/protect/PermissionGate.cpp" line="16"/>
+        <source>This document does not allow copying text.</source>
+        <translation>Dit document staat het kopiëren van tekst niet toe.</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/protect/PermissionGate.cpp" line="17"/>
+        <source>This document does not allow changing its content.</source>
+        <translation>Dit document staat het wijzigen van de inhoud niet toe.</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/protect/PermissionGate.cpp" line="18"/>
+        <source>This document does not allow adding comments.</source>
+        <translation>Dit document staat het toevoegen van opmerkingen niet toe.</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/protect/PermissionGate.cpp" line="19"/>
+        <source>This document does not allow filling in forms.</source>
+        <translation>Dit document staat het invullen van formulieren niet toe.</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/protect/PermissionGate.cpp" line="21"/>
+        <source>This document does not allow inserting, deleting and rotating pages.</source>
+        <translation>Dit document staat het invoegen, verwijderen en draaien van pagina&apos;s niet toe.</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/protect/PermissionGate.cpp" line="23"/>
+        <source>The restrictions of this document can only be changed by its owner.</source>
+        <translation>Alleen de eigenaar van dit document kan de beperkingen wijzigen.</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/protect/PermissionGate.cpp" line="52"/>
+        <source>Enter the permissions password to lift its restrictions:</source>
+        <translation>Voer het machtigingswachtwoord in om de beperkingen op te heffen:</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/protect/PermissionGate.cpp" line="55"/>
+        <source>Restricted document</source>
+        <translation>Beperkt document</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/protect/PermissionGate.cpp" line="59"/>
+        <source>Wrong permissions password. Please try again:</source>
+        <translation>Onjuist machtigingswachtwoord. Probeer het opnieuw:</translation>
+    </message>
+</context>
+<context>
     <name>Printing</name>
     <message>
         <location filename="../../src/ui/export/Printing.cpp" line="30"/>
@@ -4473,6 +4526,36 @@ Voer het wachtwoord in om het te openen:</translation>
     </message>
     <message>
         <location filename="../../src/ui/settings/SettingsPanel_Security.cpp"/>
+        <source>Restricted Documents</source>
+        <translation>Beperkte documenten</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/settings/SettingsPanel_Security.cpp"/>
+        <source>Follow document permissions</source>
+        <translation>Documentmachtigingen volgen</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/settings/SettingsPanel_Security.cpp"/>
+        <source>Printing, copying and editing need the permissions password where a PDF restricts them.</source>
+        <translation>Afdrukken, kopiëren en bewerken vragen het machtigingswachtwoord waar een PDF ze beperkt.</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/settings/SettingsPanel_Security.cpp"/>
+        <source>Digital Signatures</source>
+        <translation>Digitale handtekeningen</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/settings/SettingsPanel_Security.cpp"/>
+        <source>Trust my own certificates</source>
+        <translation>Mijn eigen certificaten vertrouwen</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/settings/SettingsPanel_Security.cpp"/>
+        <source>Signatures made with a certificate on this computer count as valid.</source>
+        <translation>Handtekeningen met een certificaat op deze computer gelden als geldig.</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/settings/SettingsPanel_Security.cpp"/>
         <source>Changes require explicit approval.</source>
         <translation>Wijzigingen vereisen uitdrukkelijke toestemming.</translation>
     </message>
@@ -4919,8 +5002,8 @@ Voer het wachtwoord in om het te openen:</translation>
     </message>
     <message>
         <location filename="../../src/ui/sign/SignatureRemoval.cpp" line="33"/>
-        <source>It is part of the file&apos;s first version.</source>
-        <translation>Deze hoort bij de eerste versie van het bestand.</translation>
+        <source>The file could not be read.</source>
+        <translation>Het bestand kon niet worden gelezen.</translation>
     </message>
     <message>
         <location filename="../../src/ui/sign/SignatureRemoval.cpp" line="41"/>
@@ -4946,6 +5029,11 @@ Voer het wachtwoord in om het te openen:</translation>
         <location filename="../../src/ui/sign/SignatureRemoval.cpp" line="47"/>
         <source>The document goes back to how it was before this signature. The change is written when you save and can be undone until then.</source>
         <translation>Het document gaat terug naar hoe het was vóór deze handtekening. De wijziging wordt bij het opslaan geschreven en kan tot dan ongedaan worden gemaakt.</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/sign/SignatureRemoval.cpp" line="47"/>
+        <source>The signature is taken out of the document, which otherwise stays as it is. The change is written when you save and can be undone until then.</source>
+        <translation>De handtekening wordt uit het document gehaald; verder blijft het ongewijzigd. De wijziging wordt bij het opslaan geschreven en kan tot dan ongedaan worden gemaakt.</translation>
     </message>
     <message>
         <location filename="../../src/ui/sign/SignatureRemoval.cpp" line="53"/>

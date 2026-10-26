@@ -3340,6 +3340,59 @@ Enter the password to open it:</source>
     </message>
 </context>
 <context>
+    <name>PermissionGate</name>
+    <message>
+        <location filename="../../src/ui/protect/PermissionGate.cpp" line="15"/>
+        <source>This document does not allow printing.</source>
+        <translation>Этот документ не разрешает печать.</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/protect/PermissionGate.cpp" line="16"/>
+        <source>This document does not allow copying text.</source>
+        <translation>Этот документ не разрешает копирование текста.</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/protect/PermissionGate.cpp" line="17"/>
+        <source>This document does not allow changing its content.</source>
+        <translation>Этот документ не разрешает изменение содержимого.</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/protect/PermissionGate.cpp" line="18"/>
+        <source>This document does not allow adding comments.</source>
+        <translation>Этот документ не разрешает добавление комментариев.</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/protect/PermissionGate.cpp" line="19"/>
+        <source>This document does not allow filling in forms.</source>
+        <translation>Этот документ не разрешает заполнение форм.</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/protect/PermissionGate.cpp" line="21"/>
+        <source>This document does not allow inserting, deleting and rotating pages.</source>
+        <translation>Этот документ не разрешает вставку, удаление и поворот страниц.</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/protect/PermissionGate.cpp" line="23"/>
+        <source>The restrictions of this document can only be changed by its owner.</source>
+        <translation>Ограничения этого документа может изменить только его владелец.</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/protect/PermissionGate.cpp" line="52"/>
+        <source>Enter the permissions password to lift its restrictions:</source>
+        <translation>Введите пароль прав, чтобы снять ограничения:</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/protect/PermissionGate.cpp" line="55"/>
+        <source>Restricted document</source>
+        <translation>Документ с ограничениями</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/protect/PermissionGate.cpp" line="59"/>
+        <source>Wrong permissions password. Please try again:</source>
+        <translation>Неверный пароль прав. Повторите попытку:</translation>
+    </message>
+</context>
+<context>
     <name>Printing</name>
     <message>
         <location filename="../../src/ui/export/Printing.cpp" line="30"/>
@@ -4476,6 +4529,36 @@ Enter the password to open it:</source>
     </message>
     <message>
         <location filename="../../src/ui/settings/SettingsPanel_Security.cpp"/>
+        <source>Restricted Documents</source>
+        <translation>Документы с ограничениями</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/settings/SettingsPanel_Security.cpp"/>
+        <source>Follow document permissions</source>
+        <translation>Соблюдать права документа</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/settings/SettingsPanel_Security.cpp"/>
+        <source>Printing, copying and editing need the permissions password where a PDF restricts them.</source>
+        <translation>Печать, копирование и изменение требуют пароль прав, если PDF их ограничивает.</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/settings/SettingsPanel_Security.cpp"/>
+        <source>Digital Signatures</source>
+        <translation>Цифровые подписи</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/settings/SettingsPanel_Security.cpp"/>
+        <source>Trust my own certificates</source>
+        <translation>Доверять моим сертификатам</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/settings/SettingsPanel_Security.cpp"/>
+        <source>Signatures made with a certificate on this computer count as valid.</source>
+        <translation>Подписи, сделанные сертификатом на этом компьютере, считаются действительными.</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/settings/SettingsPanel_Security.cpp"/>
         <source>Changes require explicit approval.</source>
         <translation>Изменения требуют явного разрешения.</translation>
     </message>
@@ -4922,8 +5005,8 @@ Enter the password to open it:</source>
     </message>
     <message>
         <location filename="../../src/ui/sign/SignatureRemoval.cpp" line="33"/>
-        <source>It is part of the file&apos;s first version.</source>
-        <translation>Она входит в первую версию файла.</translation>
+        <source>The file could not be read.</source>
+        <translation>Не удалось прочитать файл.</translation>
     </message>
     <message>
         <location filename="../../src/ui/sign/SignatureRemoval.cpp" line="41"/>
@@ -4949,6 +5032,11 @@ Enter the password to open it:</source>
         <location filename="../../src/ui/sign/SignatureRemoval.cpp" line="47"/>
         <source>The document goes back to how it was before this signature. The change is written when you save and can be undone until then.</source>
         <translation>Документ вернётся к состоянию до этой подписи. Изменение записывается при сохранении, до этого его можно отменить.</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/sign/SignatureRemoval.cpp" line="47"/>
+        <source>The signature is taken out of the document, which otherwise stays as it is. The change is written when you save and can be undone until then.</source>
+        <translation>Подпись будет удалена из документа, в остальном он останется без изменений. Изменение записывается при сохранении, до этого его можно отменить.</translation>
     </message>
     <message>
         <location filename="../../src/ui/sign/SignatureRemoval.cpp" line="53"/>

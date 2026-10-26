@@ -99,8 +99,9 @@ SignError SignatureManager::sign(const QString &source, const QString &target,
     return SafeWrite::commit(staging, target) ? SignError::None : SignError::WriteFailed;
 }
 
-QList<SignatureStatus> SignatureManager::verify(const QString &path, const std::string &password)
+QList<SignatureStatus> SignatureManager::verify(const QString &path, const std::string &password,
+                                                bool trustOwn)
 {
-    return m_provider ? SignatureVerifier::verify(path, *m_provider, password)
+    return m_provider ? SignatureVerifier::verify(path, *m_provider, password, trustOwn)
                       : QList<SignatureStatus>();
 }

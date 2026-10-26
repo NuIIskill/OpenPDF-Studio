@@ -29,7 +29,8 @@ public:
     QString                createCertificate(const NewCertificate &request, SignError *error);
     bool                   removeCertificate(const QString &certificateId);
     SignError              sign(const QString &source, const QString &target, const SignRequest &request);
-    QList<SignatureStatus> verify(const QString &path, const std::string &password = {});
+    QList<SignatureStatus> verify(const QString &path, const std::string &password = {},
+                                  bool trustOwn = true);
     CertificateFacts       readCertificate(const QByteArray &file);
 
 private:

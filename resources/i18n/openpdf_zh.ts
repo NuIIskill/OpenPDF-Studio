@@ -3334,6 +3334,59 @@ Enter the password to open it:</source>
     </message>
 </context>
 <context>
+    <name>PermissionGate</name>
+    <message>
+        <location filename="../../src/ui/protect/PermissionGate.cpp" line="15"/>
+        <source>This document does not allow printing.</source>
+        <translation>此文档不允许打印。</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/protect/PermissionGate.cpp" line="16"/>
+        <source>This document does not allow copying text.</source>
+        <translation>此文档不允许复制文本。</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/protect/PermissionGate.cpp" line="17"/>
+        <source>This document does not allow changing its content.</source>
+        <translation>此文档不允许更改内容。</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/protect/PermissionGate.cpp" line="18"/>
+        <source>This document does not allow adding comments.</source>
+        <translation>此文档不允许添加注释。</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/protect/PermissionGate.cpp" line="19"/>
+        <source>This document does not allow filling in forms.</source>
+        <translation>此文档不允许填写表单。</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/protect/PermissionGate.cpp" line="21"/>
+        <source>This document does not allow inserting, deleting and rotating pages.</source>
+        <translation>此文档不允许插入、删除和旋转页面。</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/protect/PermissionGate.cpp" line="23"/>
+        <source>The restrictions of this document can only be changed by its owner.</source>
+        <translation>只有此文档的所有者才能更改其限制。</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/protect/PermissionGate.cpp" line="52"/>
+        <source>Enter the permissions password to lift its restrictions:</source>
+        <translation>请输入权限密码以解除限制：</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/protect/PermissionGate.cpp" line="55"/>
+        <source>Restricted document</source>
+        <translation>受限文档</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/protect/PermissionGate.cpp" line="59"/>
+        <source>Wrong permissions password. Please try again:</source>
+        <translation>权限密码错误。请重试：</translation>
+    </message>
+</context>
+<context>
     <name>Printing</name>
     <message>
         <location filename="../../src/ui/export/Printing.cpp" line="30"/>
@@ -4470,6 +4523,36 @@ Enter the password to open it:</source>
     </message>
     <message>
         <location filename="../../src/ui/settings/SettingsPanel_Security.cpp"/>
+        <source>Restricted Documents</source>
+        <translation>受限文档</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/settings/SettingsPanel_Security.cpp"/>
+        <source>Follow document permissions</source>
+        <translation>遵守文档权限</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/settings/SettingsPanel_Security.cpp"/>
+        <source>Printing, copying and editing need the permissions password where a PDF restricts them.</source>
+        <translation>PDF 限制打印、复制和编辑时，需要输入权限密码。</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/settings/SettingsPanel_Security.cpp"/>
+        <source>Digital Signatures</source>
+        <translation>数字签名</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/settings/SettingsPanel_Security.cpp"/>
+        <source>Trust my own certificates</source>
+        <translation>信任我自己的证书</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/settings/SettingsPanel_Security.cpp"/>
+        <source>Signatures made with a certificate on this computer count as valid.</source>
+        <translation>使用此计算机上的证书所做的签名视为有效。</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/settings/SettingsPanel_Security.cpp"/>
         <source>Changes require explicit approval.</source>
         <translation>更改需要明确授权。</translation>
     </message>
@@ -4916,8 +4999,8 @@ Enter the password to open it:</source>
     </message>
     <message>
         <location filename="../../src/ui/sign/SignatureRemoval.cpp" line="33"/>
-        <source>It is part of the file&apos;s first version.</source>
-        <translation>它属于文件的第一个版本。</translation>
+        <source>The file could not be read.</source>
+        <translation>无法读取文件。</translation>
     </message>
     <message>
         <location filename="../../src/ui/sign/SignatureRemoval.cpp" line="41"/>
@@ -4943,6 +5026,11 @@ Enter the password to open it:</source>
         <location filename="../../src/ui/sign/SignatureRemoval.cpp" line="47"/>
         <source>The document goes back to how it was before this signature. The change is written when you save and can be undone until then.</source>
         <translation>文档将恢复到此签名之前的状态。更改在保存时写入，在此之前可以撤销。</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/sign/SignatureRemoval.cpp" line="47"/>
+        <source>The signature is taken out of the document, which otherwise stays as it is. The change is written when you save and can be undone until then.</source>
+        <translation>签名将从文档中移除，文档的其他内容保持不变。更改在保存时写入，在此之前可以撤销。</translation>
     </message>
     <message>
         <location filename="../../src/ui/sign/SignatureRemoval.cpp" line="53"/>

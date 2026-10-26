@@ -226,7 +226,7 @@ bool PrintSheets::print(QPrinter *printer) const
             return false;
         }
         if (order.at(i) >= 0)
-            paint(painter, order.at(i), printable, dpi, 300.0);
+            paint(painter, order.at(i), printable, dpi, m_job.maxRenderDpi);
     }
     painter.end();
     return true;

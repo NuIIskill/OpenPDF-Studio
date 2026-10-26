@@ -28,7 +28,7 @@ bool isOwn(CertificateProvider &provider, const QByteArray &fingerprint)
 }
 
 SignatureStatus check(const QString &name, const QPDFObjectHandle &sig,
-                      const QByteArray &data, CertificateProvider &provider)
+                      const QByteArray &data, CertificateProvider &provider, bool trustOwn)
 {
     SignatureStatus status;
     status.field    = name;
@@ -61,7 +61,7 @@ SignatureStatus check(const QString &name, const QPDFObjectHandle &sig,
     status.fingerprint     = cms.fingerprint;
     status.coversWholeFile = r[2] + r[3] == data.size();
     const bool trusted = cms.trusted || TrustedSigners::contains(cms.fingerprint)
-                      || (cms.intact && isOwn(provider, cms.fingerprint));
+                      || (trustOwn && cms.intact && isOwn(provider, cms.fingerprint));
     status.state = !cms.intact ? SignatureStatus::State::Invalid
                  : trusted     ? SignatureStatus::State::Valid
                                : SignatureStatus::State::Untrusted;
@@ -69,8 +69,8 @@ SignatureStatus check(const QString &name, const QPDFObjectHandle &sig,
 }
 
 void collect(const QPDFObjectHandle &field, const QString &parentName, QString type,
-             const QByteArray &data, CertificateProvider &provider, QList<SignatureStatus> &out,
-             int depth)
+             const QByteArray &data, CertificateProvider &provider, bool trustOwn,
+             QList<SignatureStatus> &out, int depth)
 {
     if (!field.isDictionary() || depth > 32) return;
     const QString part = text(field.getKey("/T"));
@@ -83,11 +83,11 @@ void collect(const QPDFObjectHandle &field, const QString &parentName, QString t
     const QPDFObjectHandle kids = field.getKey("/Kids");
     if (kids.isArray()) {
         for (const QPDFObjectHandle &kid : kids.getArrayAsVector())
-            collect(kid, name, type, data, provider, out, depth + 1);
+            collect(kid, name, type, data, provider, trustOwn, out, depth + 1);
     }
     const QPDFObjectHandle value = field.getKey("/V");
     if (type == QLatin1String("/Sig") && value.isDictionary())
-        out << check(name, value, data, provider);
+        out << check(name, value, data, provider, trustOwn);
 }
 
 }
@@ -96,7 +96,7 @@ void collect(const QPDFObjectHandle &field, const QString &parentName, QString t
 namespace SignatureVerifier {
 
 QList<SignatureStatus> verify(const QString &path, CertificateProvider &provider,
-                              const std::string &password)
+                              const std::string &password, bool trustOwn)
 {
     QList<SignatureStatus> out;
 #ifdef HAVE_QPDF
@@ -113,7 +113,7 @@ QList<SignatureStatus> verify(const QString &path, CertificateProvider &provider
                                                                 : QPDFObjectHandle::newNull();
         if (fields.isArray()) {
             for (const QPDFObjectHandle &field : fields.getArrayAsVector())
-                collect(field, {}, {}, data, provider, out, 0);
+                collect(field, {}, {}, data, provider, trustOwn, out, 0);
         }
     } catch (const std::exception &) {
         return {};
@@ -122,6 +122,7 @@ QList<SignatureStatus> verify(const QString &path, CertificateProvider &provider
     Q_UNUSED(path)
     Q_UNUSED(provider)
     Q_UNUSED(password)
+    Q_UNUSED(trustOwn)
 #endif
     return out;
 }

@@ -1,6 +1,7 @@
 #include "ui/export/Printing.hpp"
 
 #include "ui/DocumentView.hpp"
+#include "ui/protect/PermissionGate.hpp"
 
 #if defined(HAVE_QT_PRINT) && defined(HAVE_PDF_RENDERING)
 #include "ui/export/ExportCopy.hpp"
@@ -32,8 +33,11 @@ void Printing::run(QWidget *parent, DocumentView *view)
     PrintDialog dlg(&printer, view, copy.sources(), parent);
     if (dlg.exec() != QDialog::Accepted) return;
 
+    PrintJob job = dlg.job();
+    if (!PermissionGate::allowed(view, PermissionGate::Action::PrintHighQuality))
+        job.maxRenderDpi = 150.0;
     QApplication::setOverrideCursor(Qt::WaitCursor);
-    const bool ok = PrintSheets(copy.sources(), dlg.job()).print(&printer);
+    const bool ok = PrintSheets(copy.sources(), job).print(&printer);
     QApplication::restoreOverrideCursor();
 
     if (!ok)

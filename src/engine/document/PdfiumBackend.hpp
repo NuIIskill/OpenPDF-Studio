@@ -27,6 +27,8 @@ public:
 
     int    pageCount() const override;
     QList<PdfBookmark> bookmarks() const override;
+    DocumentInfo::Permissions permissions() const override;
+    bool isOwnerPassword(const QString &file, const QString &password) const override;
     QList<Link> pageLinks(int page) const override;
     QList<Note> pageNotes(int page) const override;
     QList<PageImage> pageImages(int page) const override;

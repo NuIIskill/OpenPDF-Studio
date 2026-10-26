@@ -95,6 +95,7 @@ private:
     void closeTextPanel();
     void refreshBookmarkPanel();
     void refreshDocumentInfo();
+    void refreshUndoRedo();
     void loadShortcuts();
     void loadZoomSettings();
 

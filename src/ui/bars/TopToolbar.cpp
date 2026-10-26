@@ -2,9 +2,11 @@
 #include "ui/widgets/IconButton.hpp"
 #include "ui/theme/Theme.hpp"
 
+#include <QApplication>
 #include <QHBoxLayout>
 #include <QLabel>
 #include <QFrame>
+#include <QMouseEvent>
 #include <QPushButton>
 #include <QScrollArea>
 #include <QScrollBar>
@@ -35,6 +37,12 @@ void TopToolbar::setViewMode(bool gridView)
 {
     m_viewSingleBtn->setChecked(!gridView);
     m_viewGridBtn->setChecked(gridView);
+}
+
+void TopToolbar::setUndoRedoAvailable(bool canUndo, bool canRedo)
+{
+    m_undoBtn->setEnabled(canUndo);
+    m_redoBtn->setEnabled(canRedo);
 }
 
 void TopToolbar::flashSaved()
@@ -84,6 +92,7 @@ int TopToolbar::addTab(const QString &label)
     btn->setFocusPolicy(Qt::NoFocus);
     btn->setCursor(Qt::PointingHandCursor);
     btn->setCheckable(true);
+    btn->installEventFilter(this);
 
     auto *inner = new QHBoxLayout(btn);
     inner->setContentsMargins(10, 0, 4, 0);
@@ -140,6 +149,10 @@ void TopToolbar::removeTab(int index)
 {
     if (index < 0 || index >= m_tabBtns.size()) return;
     QPushButton *btn = m_tabBtns.takeAt(index);
+    if (btn == m_dragTab) {
+        m_dragTab  = nullptr;
+        m_dragging = false;
+    }
     m_tabLabels.removeAt(index);
     m_tabEmpty.removeAt(index);
     m_tabLayout->removeWidget(btn);
@@ -196,6 +209,79 @@ void TopToolbar::scrollToTab(int index)
         hbar->setValue(btnX);
     else if (btnX + btnW > hbar->value() + vpW)
         hbar->setValue(btnX + btnW - vpW);
+}
+
+bool TopToolbar::eventFilter(QObject *watched, QEvent *event)
+{
+    auto *btn = qobject_cast<QPushButton *>(watched);
+    if (!btn || !m_tabBtns.contains(btn))
+        return QWidget::eventFilter(watched, event);
+
+    switch (event->type()) {
+    case QEvent::MouseButtonPress: {
+        const auto *me = static_cast<QMouseEvent *>(event);
+        if (me->button() == Qt::LeftButton) {
+            m_dragTab   = btn;
+            m_dragStart = me->globalPosition().toPoint();
+            m_dragging  = false;
+        }
+        break;
+    }
+    case QEvent::MouseMove: {
+        const auto *me = static_cast<QMouseEvent *>(event);
+        if (btn != m_dragTab || !(me->buttons() & Qt::LeftButton)) break;
+        const QPoint global = me->globalPosition().toPoint();
+        if (!m_dragging) {
+            if ((global - m_dragStart).manhattanLength() < QApplication::startDragDistance())
+                break;
+            m_dragging = true;
+            btn->setDown(false);
+            btn->setCursor(Qt::ClosedHandCursor);
+        }
+        dragTabTo(m_tabBar->mapFromGlobal(global).x());
+        return true;
+    }
+    case QEvent::MouseButtonRelease: {
+        const auto *me = static_cast<QMouseEvent *>(event);
+        if (me->button() != Qt::LeftButton || btn != m_dragTab) break;
+        const bool dragged = m_dragging;
+        m_dragTab  = nullptr;
+        m_dragging = false;
+        if (dragged) {
+            // Swallowed so that dropping a tab neither activates it nor,
+            // on an empty tab, opens the file dialog.
+            btn->setCursor(Qt::PointingHandCursor);
+            return true;
+        }
+        break;
+    }
+    default:
+        break;
+    }
+    return QWidget::eventFilter(watched, event);
+}
+
+void TopToolbar::dragTabTo(int x)
+{
+    const int from = m_tabBtns.indexOf(m_dragTab);
+    int to = 0;
+    for (const QPushButton *other : std::as_const(m_tabBtns))
+        if (other != m_dragTab && other->geometry().center().x() < x)
+            ++to;
+    if (from < 0 || to == from) return;
+
+    QPushButton *current = m_tabBtns.value(m_currentTab);
+    m_tabBtns.move(from, to);
+    m_tabLabels.move(from, to);
+    m_tabEmpty.move(from, to);
+    m_currentTab = m_tabBtns.indexOf(current);
+
+    m_tabLayout->removeWidget(m_dragTab);
+    m_tabLayout->insertWidget(to, m_dragTab);
+    m_tabLayout->activate();
+    scrollToTab(to);
+
+    Q_EMIT tabMoved(from, to);
 }
 
 void TopToolbar::buildLayout()
@@ -288,6 +374,7 @@ void TopToolbar::buildLayout()
     m_redoBtn->setToolTip(tr("Redo"));
     connect(m_redoBtn, &QPushButton::clicked, this, &TopToolbar::redoRequested);
     layout->addWidget(m_redoBtn);
+    setUndoRedoAvailable(false, false);
 
     layout->addSpacing(2);
     layout->addWidget(makeSeparator());

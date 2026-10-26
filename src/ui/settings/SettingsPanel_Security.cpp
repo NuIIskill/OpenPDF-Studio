@@ -18,6 +18,17 @@ QWidget *SettingsPanel::buildSecurityPage()
         tr("Changes require explicit approval."),
         m_settings->openInReadMode());
 
+    QVBoxLayout *restricted = addSettingsCard(vl, tr("Restricted Documents"));
+    m_permissionsCheck = addSettingsCheck(restricted, tr("Follow document permissions"),
+        tr("Printing, copying and editing need the permissions password where a PDF "
+           "restricts them."),
+        m_settings->respectPermissions());
+
+    QVBoxLayout *signatures = addSettingsCard(vl, tr("Digital Signatures"));
+    m_trustOwnCheck = addSettingsCheck(signatures, tr("Trust my own certificates"),
+        tr("Signatures made with a certificate on this computer count as valid."),
+        m_settings->trustOwnCertificates());
+
     QVBoxLayout *external = addSettingsCard(vl, tr("External Content"));
     QWidget *card = external->parentWidget();
     auto *row = new QHBoxLayout;

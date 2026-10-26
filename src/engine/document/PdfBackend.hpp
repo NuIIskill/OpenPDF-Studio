@@ -2,6 +2,7 @@
 
 #ifdef HAVE_PDF_RENDERING
 
+#include "engine/document/DocumentInfo.hpp"
 #include "engine/document/PdfBookmark.hpp"
 #include "engine/edit/EditSession.hpp"
 #include "engine/edit/TextBlock.hpp"
@@ -46,6 +47,10 @@ public:
     virtual int pageCount() const = 0;
 
     virtual QList<PdfBookmark> bookmarks() const { return {}; }
+
+    virtual DocumentInfo::Permissions permissions() const { return {}; }
+    virtual bool isOwnerPassword(const QString &file, const QString &password) const
+    { Q_UNUSED(file) Q_UNUSED(password) return false; }
 
     struct Link {
         QRectF  bounds;

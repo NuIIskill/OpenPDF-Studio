@@ -10,9 +10,9 @@ of important PDFs and check edited text in a second viewer.
 
 1. [Install OpenPDF Studio](installation.md) and start the application.
 2. Choose **Open** (`Ctrl+O`) or drop a file onto the window. Each document gets
-   its own tab; `Ctrl+Shift+O` instead adds the file's pages to the end of the
-   document in the current tab. Enter the opening password if the PDF requires
-   one.
+   its own tab, which you can drag to another position; `Ctrl+Shift+O` instead
+   adds the file's pages to the end of the document in the current tab. Enter
+   the opening password if the PDF requires one.
 3. Read with the **Select** or **Pan** tool. Use the toolbar for single-page
    or grid view and the bookmark panel to jump through the document outline.
 

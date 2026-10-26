@@ -19,6 +19,9 @@ public:
     void set(const PdfProtection &protection);
     const std::optional<PdfProtection> &pending() const { return m_pending; }
 
+    void unlock(const QString &ownerPassword) { m_ownerPassword = ownerPassword; }
+    const QString &ownerPassword() const { return m_ownerPassword; }
+
     void setDocument(const QString &path) override;
     void setActiveTool(const QString &toolId) override { Q_UNUSED(toolId) }
     void relayout() override {}
@@ -35,4 +38,5 @@ private:
     std::optional<PdfProtection> m_pending;
     QString                      m_token;
     QHash<QString, Secret>       m_secrets;
+    QString                      m_ownerPassword;
 };

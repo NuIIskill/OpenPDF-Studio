@@ -72,6 +72,11 @@ printing, editing content, copying, comments, forms, page assembly and
 accessibility, with a separate permissions password. AES-256, AES-128 and RC4
 are available. Protection changes require qpdf and take effect on save.
 
+OpenPDF Studio follows the permissions of a restricted PDF itself. A refused
+action asks for the permissions password; once entered, the document is
+unrestricted until it is closed. Without high-quality printing, pages print at
+150 dpi. Settings > Security > Follow document permissions turns this off.
+
 ![Protect dialog with password protection enabled, masked example passwords and AES-256 selected](../images/screenshots/password-protection.png)
 
 *Enable password protection and confirm the password. The Permissions tab controls

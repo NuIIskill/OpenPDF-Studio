@@ -155,6 +155,8 @@ void SettingsPanel::buildAdvancedReset(QVBoxLayout *vl)
         if (m_readModeCheck)       m_readModeCheck->setChecked(true);
         if (m_externalLinksCombo)  selectComboData(m_externalLinksCombo,
                                               QStringLiteral("ask"));
+        if (m_permissionsCheck)    m_permissionsCheck->setChecked(true);
+        if (m_trustOwnCheck)       m_trustOwnCheck->setChecked(true);
     });
     cl->addWidget(resetAllBtn, 0, Qt::AlignLeft);
 }

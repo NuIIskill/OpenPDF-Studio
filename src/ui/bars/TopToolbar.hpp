@@ -30,6 +30,7 @@ public:
     void setFileName(const QString &name);
     void setZoom(int percent);
     void setViewMode(bool gridView);
+    void setUndoRedoAvailable(bool canUndo, bool canRedo);
     void flashSaved();
     void refreshTheme();
     void retranslateUi();
@@ -37,6 +38,7 @@ public:
 Q_SIGNALS:
     void tabActivated(int index);
     void tabCloseRequested(int index);
+    void tabMoved(int from, int to);
     void newTabRequested();
     void openFileRequested();
     void zoomInRequested();
@@ -47,11 +49,15 @@ Q_SIGNALS:
     void printRequested();
     void viewModeChanged(bool gridView);
 
+protected:
+    bool eventFilter(QObject *watched, QEvent *event) override;
+
 private:
     void     buildLayout();
     QWidget *makeSeparator();
     void     syncTabBarWidth();
     void     scrollToTab(int index);
+    void     dragTabTo(int x);
 
     QScrollArea *m_tabScroll { nullptr };
     QWidget     *m_tabBar    { nullptr };
@@ -62,6 +68,10 @@ private:
     QList<QLabel*>      m_tabLabels;
     QList<bool>         m_tabEmpty;
     int m_currentTab { -1 };
+
+    QPushButton *m_dragTab   { nullptr };
+    QPoint       m_dragStart;
+    bool         m_dragging  { false };
 
     QLabel     *m_zoomLabel     { nullptr };
     IconButton *m_zoomInBtn     { nullptr };

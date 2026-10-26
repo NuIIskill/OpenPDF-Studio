@@ -23,6 +23,6 @@ struct SignatureStatus {
 namespace SignatureVerifier {
 
 QList<SignatureStatus> verify(const QString &path, CertificateProvider &provider,
-                              const std::string &password = {});
+                              const std::string &password = {}, bool trustOwn = true);
 
 }

@@ -429,6 +429,14 @@ void SettingsPanel::applyAndClose()
         m_settings->setOpenInReadMode(m_readModeCheck->isChecked());
     if (m_externalLinksCombo)
         m_settings->setExternalLinks(m_externalLinksCombo->currentData().toString());
+    if (m_permissionsCheck)
+        m_settings->setRespectPermissions(m_permissionsCheck->isChecked());
+    bool trustChanged = false;
+    if (m_trustOwnCheck) {
+        const bool trustOwn = m_trustOwnCheck->isChecked();
+        trustChanged = trustOwn != m_settings->trustOwnCertificates();
+        m_settings->setTrustOwnCertificates(trustOwn);
+    }
 
     if (m_autoUpdateCheck)
         m_settings->setAutoUpdateCheck(m_autoUpdateCheck->isChecked());
@@ -450,6 +458,8 @@ void SettingsPanel::applyAndClose()
 
     if (panelLayoutChanged)
         Q_EMIT panelLayoutSettingChanged();
+    if (trustChanged)
+        Q_EMIT signatureTrustChanged();
 
     accept();
 }

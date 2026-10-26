@@ -15,6 +15,7 @@ public:
     explicit DocumentInfoLoader(QObject *parent = nullptr);
 
     void load(const QString &path, const std::string &password);
+    void reverifySignatures();
     void clear();
 
     const DocumentInfo &info() const { return m_info; }

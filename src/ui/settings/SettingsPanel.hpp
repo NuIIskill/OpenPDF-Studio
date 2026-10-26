@@ -41,6 +41,7 @@ Q_SIGNALS:
     void shortcutsChanged();
     void zoomSettingsChanged();
     void panelLayoutSettingChanged();
+    void signatureTrustChanged();
 
 protected:
     void changeEvent(QEvent *e) override;
@@ -139,6 +140,8 @@ private:
 
     QAbstractButton *m_readModeCheck       { nullptr };
     QComboBox       *m_externalLinksCombo  { nullptr };
+    QAbstractButton *m_permissionsCheck    { nullptr };
+    QAbstractButton *m_trustOwnCheck       { nullptr };
 
     QAbstractButton *m_autoUpdateCheck     { nullptr };
     QComboBox       *m_updateIntervalCombo { nullptr };

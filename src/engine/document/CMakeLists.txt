@@ -21,6 +21,7 @@ target_sources(OpenPDFStudio PRIVATE
     PdfBookmark.hpp
     PdfiumBackend.cpp
     PdfiumBackend.hpp
+    PdfiumBackend_Permissions.cpp
     PdfiumBackend_Render.cpp
     PdfiumContentProvider.cpp
     PdfiumContentProvider.hpp

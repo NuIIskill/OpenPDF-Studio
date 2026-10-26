@@ -55,11 +55,17 @@ trusted signers, or add a certificate file. Trust changes trigger verification
 of open documents again. A self-signed certificate is not automatically trusted
 by other people's computers.
 
+Signatures made with a certificate on this computer count as valid. To treat
+them like anyone else's, clear **Settings > Security > Trust my own
+certificates**.
+
 ## Remove a digital signature
 
 Select the signature in document information and use the removal dialog.
 Removal restores the file revision before that signature, discarding subsequent
-revisions and signatures as well. Review the resulting working copy before saving.
+revisions and signatures as well. A signature that was part of the file from the
+start is cleared out of it instead, and an empty signature field stays in its place.
+Review the resulting working copy before saving.
 
 ## Current limits
 

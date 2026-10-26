@@ -129,6 +129,9 @@ public:
     DocumentInfoLoader *documentInfo() const { return m_info; }
     void setProtection(const PdfProtection &protection);
     const std::optional<PdfProtection> &pendingProtection() const;
+    DocumentInfo::Permissions permissions() const;
+    bool        unlockPermissions(const QString &ownerPassword);
+    QString     permissionsPassword() const;
     int         pageCount()        const override { return m_src->pageCount(); }
 
     int         currentPage()      const;

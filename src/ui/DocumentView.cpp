@@ -13,6 +13,7 @@
 #include "ui/draw/DrawingLayer.hpp"
 #include "ui/edit/InlineEditor.hpp"
 #include "ui/edit/TextToolInput.hpp"
+#include "ui/protect/PermissionGate.hpp"
 #include "ui/view/HoldKeys.hpp"
 #include "ui/view/HoverHighlight.hpp"
 #include "ui/view/DigitalSignatureLayer.hpp"
@@ -188,7 +189,8 @@ void DocumentView::linkSelection()
 
 void DocumentView::copySelectedText()
 {
-    m_selection->copyToClipboard();
+    if (PermissionGate::request(this, PermissionGate::Action::Copy, this))
+        m_selection->copyToClipboard();
 }
 
 void DocumentView::openFind()
@@ -743,6 +745,12 @@ void DocumentView::dropEvent(QDropEvent *e)
             return;
         }
 
+        const bool overlayTakes = std::any_of(m_overlays.cbegin(), m_overlays.cend(),
+            [&path](const PageOverlay *overlay) { return overlay->acceptsDroppedFile(path); });
+        if (overlayTakes && !PermissionGate::request(this, PermissionGate::Action::Annotate, this)) {
+            e->ignore();
+            return;
+        }
         if (!m_overlays.isEmpty()) {
             const QPoint scroll(horizontalScrollBar()->value(), verticalScrollBar()->value());
             const QPoint canvasPosition = e->position().toPoint() + scroll;

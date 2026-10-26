@@ -23,11 +23,13 @@
 #include "ui/history/HistoryDialog.hpp"
 #include "ui/import/Importing.hpp"
 #include "ui/info/InfoCenter.hpp"
+#include "ui/protect/PermissionGate.hpp"
 #include "ui/protect/ProtectDialog.hpp"
 #include "ui/sign/DigitalSigning.hpp"
 #include "ui/sign/SignDialog.hpp"
 #include "ui/session/SessionRecovery.hpp"
 #include "ui/view/DocumentInfoLoader.hpp"
+#include "engine/historymanager/DocumentHistory.hpp"
 #include "engine/import/DocumentImport.hpp"
 #include "ui/theme/Theme.hpp"
 #include "app/AppSettings.hpp"
@@ -88,6 +90,10 @@ SettingsPanel *MainWindow::openSettings()
     connect(panel, &SettingsPanel::zoomSettingsChanged,     this, &MainWindow::loadZoomSettings);
     connect(panel, &SettingsPanel::panelLayoutSettingChanged,
             this, &MainWindow::savePanelLayout);
+    connect(panel, &SettingsPanel::signatureTrustChanged, this, [this]() {
+        for (DocumentView *dv : std::as_const(m_docViews))
+            dv->documentInfo()->reverifySignatures();
+    });
     panel->open();
     return panel;
 }
@@ -255,6 +261,8 @@ void MainWindow::connectBars()
     connect(m_topToolbar, &TopToolbar::newTabRequested,       this, &MainWindow::onNewTab);
     connect(m_topToolbar, &TopToolbar::tabActivated,          this, &MainWindow::onTabActivated);
     connect(m_topToolbar, &TopToolbar::tabCloseRequested,     this, &MainWindow::onTabCloseRequested);
+    connect(m_topToolbar, &TopToolbar::tabMoved, this,
+            [this](int from, int to) { m_docViews.move(from, to); });
     connect(m_topToolbar, &TopToolbar::openFileRequested,     this, [this]() { onOpenFile(); });
     connect(m_topToolbar, &TopToolbar::saveRequested,         this, &MainWindow::onSave);
     connect(m_topToolbar, &TopToolbar::printRequested,        this, &MainWindow::onPrint);
@@ -316,7 +324,12 @@ void MainWindow::connectPanels()
     });
     connect(m_bookmarkPanel, &BookmarkPanel::bookmarksEdited, this,
             [this](const QList<PdfBookmark> &bookmarks) {
-        if (DocumentView *dv = currentDocView()) dv->setBookmarks(bookmarks);
+        DocumentView *dv = currentDocView();
+        if (!dv) return;
+        if (PermissionGate::request(dv, PermissionGate::Action::Modify, this))
+            dv->setBookmarks(bookmarks);
+        else
+            refreshBookmarkPanel();
     });
     connect(m_notesPanel, &NotesPanel::closeRequested, this, [this]() {
         onToolSelected(QStringLiteral("select"));
@@ -463,6 +476,9 @@ DocumentView *MainWindow::addDocView()
     connect(dv->documentInfo(), &DocumentInfoLoader::changed, this, [this, dv]() {
         if (dv == currentDocView()) refreshDocumentInfo();
     });
+    connect(dv->history(), &DocumentHistory::changed, this, [this, dv]() {
+        if (dv == currentDocView()) refreshUndoRedo();
+    });
 
     connect(dv, &DocumentView::hintChanged, this, [this, dv](const QString &text) {
         if (dv == currentDocView()) m_statusBar->setHint(text);
@@ -535,6 +551,7 @@ DocumentView *MainWindow::addDocView()
     m_topToolbar->setCurrentTab(idx);
     m_notesPanel->setNotes(dv->notes());
     m_notesPanel->setDocumentAvailable(dv->pageCount() > 0);
+    refreshUndoRedo();
     return dv;
 }
 
@@ -567,7 +584,10 @@ void MainWindow::onTabActivated(int index)
     m_notesPanel->setDocumentAvailable(dv->pageCount() > 0);
     InfoCenter::dismiss();
     refreshDocumentInfo();
-    onToolSelected(m_activeTool);
+    refreshUndoRedo();
+    const std::optional<PermissionGate::Action> needed = PermissionGate::forTool(m_activeTool);
+    onToolSelected(!needed || PermissionGate::allowed(dv, *needed) ? m_activeTool
+                                                                   : QStringLiteral("select"));
 }
 
 void MainWindow::onTabCloseRequested(int index)
@@ -652,6 +672,7 @@ void MainWindow::openPath(const QString &path, OpenMode mode)
 bool MainWindow::appendPages(const QString &pdf, const QString &shownName)
 {
     DocumentView *dv = currentDocView();
+    if (!PermissionGate::request(dv, PermissionGate::Action::Assemble, this)) return false;
     if (PageAppend::append(dv, pdf)) {
         onTabActivated(m_docViews.indexOf(dv));
         return true;
@@ -808,7 +829,8 @@ void MainWindow::onSaveAs()
 
 void MainWindow::onPrint()
 {
-    Printing::run(this, currentDocView());
+    if (PermissionGate::request(currentDocView(), PermissionGate::Action::Print, this))
+        Printing::run(this, currentDocView());
 }
 
 void MainWindow::onUndo()
@@ -875,7 +897,10 @@ void MainWindow::onModeSelected(const QString &mode)
     } else if (mode == QLatin1String("sign")) {
         SignDialog dlg(this);
         DocumentView *dv = currentDocView();
-        if (dlg.exec() == QDialog::Accepted && dv && dv->pageCount() > 0) {
+        if (dlg.exec() == QDialog::Accepted && dv && dv->pageCount() > 0
+                && PermissionGate::request(dv, dlg.isDigital() ? PermissionGate::Action::FillForms
+                                                               : PermissionGate::Action::Modify,
+                                           this)) {
             if (dlg.isDigital()) {
                 DigitalSigning::run(dv, dlg.signRequest(), dlg.appearance());
             } else {
@@ -886,6 +911,7 @@ void MainWindow::onModeSelected(const QString &mode)
         ProtectDialog::run(currentDocView(), this);
     } else if (mode == QLatin1String("export")) {
         DocumentView *dv   = currentDocView();
+        if (!PermissionGate::request(dv, PermissionGate::Action::Copy, this)) return;
         const QString file = dv ? dv->currentFile() : QString{};
         const int pageCount = dv ? dv->pageCount() : 1;
         ExportDialog dlg(file, pageCount, dv ? dv->currentPage() : 0, this);
@@ -893,6 +919,7 @@ void MainWindow::onModeSelected(const QString &mode)
             Exporting::run(this, dv, dlg.request(), m_saveIndicator);
     } else if (mode == QLatin1String("organize")) {
         DocumentView *dv = currentDocView();
+        if (!PermissionGate::request(dv, PermissionGate::Action::Assemble, this)) return;
 
         auto *dlg = new PdfOrganizerDialog(dv ? dv->contentFile() : QString{}, this);
         if (dv) dlg->setTargetPath(dv->currentFile());
@@ -935,6 +962,20 @@ void MainWindow::onToolSelected(const QString &tool)
         return false;
     };
 
+    const auto fallBackToSelect = [this]() {
+        m_activeTool = QStringLiteral("select");
+        m_leftSidebar->setActiveTool(m_activeTool);
+        m_bookmarkPanel->hide();
+        if (DocumentView *dv = currentDocView())
+            dv->setTool(DocumentView::Tool::Select);
+    };
+
+    const std::optional<PermissionGate::Action> needed = PermissionGate::forTool(tool);
+    if (needed && !PermissionGate::request(currentDocView(), *needed, this)) {
+        fallBackToSelect();
+        return;
+    }
+
     if (needsEditMode(tool) && !m_editMode) {
         const auto ans = QMessageBox::question(
             this,
@@ -944,11 +985,7 @@ void MainWindow::onToolSelected(const QString &tool)
             QMessageBox::Yes);
 
         if (ans == QMessageBox::No) {
-            m_activeTool = QStringLiteral("select");
-            m_leftSidebar->setActiveTool(m_activeTool);
-            m_bookmarkPanel->hide();
-            if (DocumentView *dv = currentDocView())
-                dv->setTool(DocumentView::Tool::Select);
+            fallBackToSelect();
             return;
         }
 
@@ -1139,6 +1176,15 @@ void MainWindow::closeTextPanel()
     m_textPanelOpen = false;
     m_textPanel->hide();
     m_textPanel->setFixedWidth(0);
+}
+
+void MainWindow::refreshUndoRedo()
+{
+    const DocumentView *dv = currentDocView();
+    const DocumentHistory *history = dv ? dv->history() : nullptr;
+    m_topToolbar->setUndoRedoAvailable(
+        history && history->canRestore(history->currentIndex() - 1),
+        history && history->canRestore(history->currentIndex() + 1));
 }
 
 void MainWindow::refreshDocumentInfo()

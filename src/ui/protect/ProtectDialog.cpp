@@ -2,6 +2,7 @@
 
 #include "app/PdfPwStore.hpp"
 #include "ui/DocumentView.hpp"
+#include "ui/protect/PermissionGate.hpp"
 #include "ui/theme/Theme.hpp"
 #include "ui/view/DocumentInfoLoader.hpp"
 #include "ui/widgets/CheckBoxStyle.hpp"
@@ -93,6 +94,7 @@ void ProtectDialog::run(DocumentView *view, QWidget *parent)
             tr("Protecting a PDF needs qpdf, which this build does not include."));
         return;
     }
+    if (!PermissionGate::request(view, PermissionGate::Action::ChangeProtection, parent)) return;
 
     const DocumentInfo &info = view->documentInfo()->info();
     const std::optional<PdfProtection> &pending = view->pendingProtection();
@@ -104,6 +106,7 @@ void ProtectDialog::run(DocumentView *view, QWidget *parent)
         current.cipher      = cipherOf(info.encryption);
         current.permissions = info.permissions;
         if (info.passwordUsed) current.userPassword = PdfPwStore::get(view->contentFile());
+        current.ownerPassword = view->permissionsPassword();
     }
     const bool isProtected = pending ? pending->encrypt : info.encrypted;
 

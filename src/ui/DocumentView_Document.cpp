@@ -142,7 +142,9 @@ QString DocumentView::displayName() const
 
 bool DocumentView::openFile(const QString &path, const QString &suggestedPath)
 {
-    return openContent(path, suggestedPath, {});
+    if (!openContent(path, suggestedPath, {})) return false;
+    m_protectionLayer->unlock(QString());
+    return true;
 }
 
 void DocumentView::setProtection(const PdfProtection &protection)
@@ -153,6 +155,34 @@ void DocumentView::setProtection(const PdfProtection &protection)
 const std::optional<PdfProtection> &DocumentView::pendingProtection() const
 {
     return m_protectionLayer->pending();
+}
+
+DocumentInfo::Permissions DocumentView::permissions() const
+{
+#ifdef HAVE_PDF_RENDERING
+    if (m_src->backend() && m_protectionLayer->ownerPassword().isEmpty())
+        return m_src->backend()->permissions();
+#endif
+    return {};
+}
+
+bool DocumentView::unlockPermissions(const QString &ownerPassword)
+{
+#ifdef HAVE_PDF_RENDERING
+    if (!m_src->backend()
+            || !m_src->backend()->isOwnerPassword(m_src->contentPath(), ownerPassword))
+        return false;
+    m_protectionLayer->unlock(ownerPassword);
+    return true;
+#else
+    Q_UNUSED(ownerPassword)
+    return false;
+#endif
+}
+
+QString DocumentView::permissionsPassword() const
+{
+    return m_protectionLayer->ownerPassword();
 }
 
 bool DocumentView::openContent(const QString &path, const QString &suggestedPath,
@@ -324,6 +354,7 @@ bool DocumentView::saveToFile(const QString &path)
     if (protecting) {
         if (newPassword.isEmpty()) PdfPwStore::forget(path);
         else PdfPwStore::set(path, newPassword);
+        m_protectionLayer->unlock(protection->encrypt ? protection->ownerPassword : QString());
     }
     discardEditHistory();
     const bool reopened = m_src->open(path, nullptr);
