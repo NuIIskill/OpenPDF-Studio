@@ -351,7 +351,7 @@ SignError PdfSignatureWriter::prepare(const QString &source, const Field &field,
             // empty so viewers that do draw them do not show it twice.
             const QByteArray w = num(field.bounds.width()), h = num(field.bounds.height());
             objects << Object { apId, 0, streamObject(
-                "/Type /XObject /Subtype /Form /BBox [0 0 " + w + ' ' + h + ']', {}) };
+                "/Type /XObject /Subtype /Form /BBox [0 0 " + w + ' ' + h + "] /Resources << >>", {}) };
             objects << Object { stampId, 0, streamObject(
                 "/Type /XObject /Subtype /Form /BBox [0 0 " + w + ' ' + h + "] /Matrix "
                     + rotationMatrix(rotate) + " /Resources << /XObject << /Img " + ref(imageId) + " >> >>",
@@ -386,7 +386,7 @@ SignError PdfSignatureWriter::prepare(const QString &source, const Field &field,
                         + " /Contents [" + ref(openId) + contents + ' ' + ref(drawId) + " ]";
             pageReplaced = { "/Resources", "/Contents" };
         } else {
-            objects << Object { apId, 0, streamObject("/Type /XObject /Subtype /Form /BBox [0 0 0 0]", {}) };
+            objects << Object { apId, 0, streamObject("/Type /XObject /Subtype /Form /BBox [0 0 0 0] /Resources << >>", {}) };
         }
 
         const QByteArray widgetRef = ref(widgetId);

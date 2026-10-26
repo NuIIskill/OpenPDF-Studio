@@ -66,7 +66,8 @@ certificates**.
 Select the signature in document information and use the removal dialog.
 Removal restores the file revision before that signature, discarding subsequent
 revisions and signatures as well. A signature that was part of the file from the
-start is cleared out of it instead, and an empty signature field stays in its place.
+start is cleared out of it instead; a signature made with OpenPDF Studio leaves no
+field behind, while a field the document already had stays empty.
 Review the resulting working copy before saving.
 
 ## Current limits

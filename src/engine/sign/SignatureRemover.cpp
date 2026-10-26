@@ -5,10 +5,13 @@
 
 #include <algorithm>
 #include <optional>
+#include <set>
 
 #ifdef HAVE_QPDF
 #  include <qpdf/QPDF.hh>
 #  include <qpdf/QPDFObjectHandle.hh>
+#  include <qpdf/QPDFPageDocumentHelper.hh>
+#  include <qpdf/QPDFTokenizer.hh>
 #  include <qpdf/QPDFWriter.hh>
 #endif
 
@@ -86,6 +89,132 @@ qint64 offset(QPDF &pdf, const QPDFObjectHandle &obj)
     if (it != table.end() && it->second.getType() == 2)
         it = table.find(QPDFObjGen(it->second.getObjStreamNumber(), 0));
     return it != table.end() && it->second.getType() == 1 ? it->second.getOffset() : -1;
+}
+
+QPDFObjectHandle without(const QPDFObjectHandle &array, const QPDFObjectHandle &drop)
+{
+    QPDFObjectHandle out = QPDFObjectHandle::newArray();
+    for (const QPDFObjectHandle &item : array.getArrayAsVector())
+        if (!item.isSameObjectAs(drop)) out.appendItem(item);
+    return out;
+}
+
+bool namesSignature(const QPDFObjectHandle &xobject, const QPDFObjectHandle &value)
+{
+    const QPDFObjectHandle owner = xobject.isStream() ? xobject.getDict().getKey("/OPDFSignature")
+                                                      : QPDFObjectHandle::newNull();
+    return owner.isIndirect() && owner.getObjGen() == value.getObjGen();
+}
+
+// PdfSignatureWriter's stamp: the form /OPDFSig<n> around an image whose /OPDFSignature names
+// the signature, or that image alone once an edit took it out of the form. Older stamps carry no
+// /OPDFSignature and are known by the form's name only.
+bool isStamp(const std::string &name, const QPDFObjectHandle &xobject, const QPDFObjectHandle &value)
+{
+    if (!xobject.isStream()) return false;
+    if (namesSignature(xobject, value)) return true;
+    const QPDFObjectHandle resources = xobject.getDict().getKey("/Resources");
+    const QPDFObjectHandle inner = resources.isDictionary() ? resources.getKey("/XObject")
+                                                            : QPDFObjectHandle::newNull();
+    if (inner.isDictionary()) {
+        for (const std::string &key : inner.getKeys()) {
+            const QPDFObjectHandle image = inner.getKey(key);
+            if (image.isStream() && image.getDict().hasKey("/OPDFSignature"))
+                return namesSignature(image, value);
+        }
+    }
+    return name == "/OPDFSig" + std::to_string(value.getObjectID());
+}
+
+// Passes the page content through except the Do operators that draw the given names.
+class DropDraws : public QPDFObjectHandle::TokenFilter
+{
+public:
+    explicit DropDraws(std::set<std::string> names) : m_names(std::move(names)) {}
+
+    void handleToken(const QPDFTokenizer::Token &token) override
+    {
+        if (token.getType() == QPDFTokenizer::tt_eof) return;
+        if (token.getType() != QPDFTokenizer::tt_word) {
+            m_operands.push_back(token);
+            return;
+        }
+        if (!(token.getValue() == "Do" && drawsDropped())) {
+            for (const QPDFTokenizer::Token &t : m_operands) writeToken(t);
+            writeToken(token);
+        }
+        m_operands.clear();
+    }
+
+    void handleEOF() override
+    {
+        for (const QPDFTokenizer::Token &t : m_operands) writeToken(t);
+        m_operands.clear();
+    }
+
+private:
+    bool drawsDropped() const
+    {
+        std::vector<QPDFTokenizer::Token> values;
+        for (const QPDFTokenizer::Token &t : m_operands)
+            if (t.getType() != QPDFTokenizer::tt_space && t.getType() != QPDFTokenizer::tt_comment)
+                values.push_back(t);
+        return values.size() == 1 && values[0].getType() == QPDFTokenizer::tt_name
+            && m_names.contains(values[0].getValue());
+    }
+
+    std::set<std::string>              m_names;
+    std::vector<QPDFTokenizer::Token>  m_operands;
+};
+
+bool dropStamps(const std::vector<QPDFPageObjectHelper> &pages, const QPDFObjectHandle &value)
+{
+    bool found = false;
+    for (QPDFPageObjectHelper page : pages) {
+        const QPDFObjectHandle resources = page.getAttribute("/Resources", false);
+        QPDFObjectHandle xobjects = resources.isDictionary() ? resources.getKey("/XObject")
+                                                             : QPDFObjectHandle::newNull();
+        if (!xobjects.isDictionary()) continue;
+        std::set<std::string> names;
+        for (const std::string &name : xobjects.getKeys())
+            if (isStamp(name, xobjects.getKey(name), value)) names.insert(name);
+        if (names.empty()) continue;
+        for (const std::string &name : names) xobjects.removeKey(name);
+        page.addContentTokenFilter(std::make_shared<DropDraws>(std::move(names)));
+        found = true;
+    }
+    return found;
+}
+
+bool invisible(const QList<QPDFObjectHandle> &widgets)
+{
+    for (const QPDFObjectHandle &widget : widgets) {
+        const QPDFObjectHandle rect = widget.getKey("/Rect");
+        if (!rect.isRectangle()) continue;
+        const QPDFObjectHandle::Rectangle r = rect.getArrayAsRectangle();
+        if (r.urx != r.llx && r.ury != r.lly) return false;
+    }
+    return true;
+}
+
+void dropField(QPDF &pdf, const std::vector<QPDFPageObjectHelper> &pages,
+               QPDFObjectHandle &field, const QList<QPDFObjectHandle> &widgets)
+{
+    for (const QPDFPageObjectHelper &page : pages) {
+        QPDFObjectHandle pageObj = page.getObjectHandle();
+        QPDFObjectHandle annots = pageObj.getKey("/Annots");
+        if (!annots.isArray()) continue;
+        for (const QPDFObjectHandle &widget : widgets) annots = without(annots, widget);
+        pageObj.replaceKey("/Annots", annots);
+    }
+    QPDFObjectHandle parent = field.getKey("/Parent");
+    if (parent.isDictionary() && parent.getKey("/Kids").isArray()) {
+        parent.replaceKey("/Kids", without(parent.getKey("/Kids"), field));
+    } else {
+        QPDFObjectHandle acroForm = pdf.getRoot().getKey("/AcroForm");
+        if (acroForm.isDictionary() && acroForm.getKey("/Fields").isArray())
+            acroForm.replaceKey("/Fields", without(acroForm.getKey("/Fields"), field));
+    }
 }
 #endif
 
@@ -200,12 +329,20 @@ bool clearField(const QByteArray &data, const QString &field, const std::string 
         const QPDFObjectHandle value = target.getKey("/V");
         target.removeKey("/V");
         const QPDFObjectHandle kids = target.getKey("/Kids");
-        QList<QPDFObjectHandle> widgets { target };
+        QList<QPDFObjectHandle> widgets;
+        if (target.getKey("/Subtype").isNameAndEquals("/Widget")) widgets << target;
         if (kids.isArray())
-            for (const QPDFObjectHandle &kid : kids.getArrayAsVector()) widgets << kid;
-        for (QPDFObjectHandle &widget : widgets)
-            if (widget.isDictionary() && widget.getKey("/Subtype").isNameAndEquals("/Widget"))
-                widget.removeKey("/AP");
+            for (const QPDFObjectHandle &kid : kids.getArrayAsVector())
+                if (kid.isDictionary() && kid.getKey("/Subtype").isNameAndEquals("/Widget")) widgets << kid;
+
+        // A field this program made for the signature goes with it; one the document
+        // already had stays, empty, for signing again elsewhere.
+        const std::vector<QPDFPageObjectHelper> pages = QPDFPageDocumentHelper(pdf).getAllPages();
+        if (dropStamps(pages, value) || invisible(widgets)) {
+            dropField(pdf, pages, target, widgets);
+        } else {
+            for (QPDFObjectHandle &widget : widgets) widget.removeKey("/AP");
+        }
 
         QPDFObjectHandle root = pdf.getRoot();
         QPDFObjectHandle perms = root.getKey("/Perms");

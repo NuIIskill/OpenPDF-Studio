@@ -324,7 +324,8 @@ on startup.
   before pinning and lists the pinned signers (sign page, Advanced), where a
   certificate file can be added too. `SignatureRemover` takes one off, with everything
   added after it, by cutting the file back to the revision before it; one
-  without such a revision is cleared out of its own with qpdf. The view opens
+  without such a revision is cleared out of its own with qpdf, together with its
+  field and stamp when `PdfSignatureWriter` made them. The view opens
   the result as a working copy.
 - **Document information** (`engine/document/DocumentInfo`, `ui/info/`):
   `DocumentInfoLoader` reads version, encryption, permissions, form fields,
