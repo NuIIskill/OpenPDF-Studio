@@ -3,7 +3,7 @@
 [README](../../README.md) · [User documentation](../../README.md#user-documentation)
 
 Start with the application version, operating system, package type and exact
-error. Version 0.3.2 is an alpha and saving replaces the original file, so
+error. Version 0.3.3 is an alpha and saving replaces the original file, so
 reproduce an editing or saving problem on a backup. For source builds, consult [Dependencies](../dev/dependencies.md).
 
 ## No PDF opens or a feature is missing
@@ -106,7 +106,7 @@ Pending protection passwords are not persisted; reapply protection before saving
 Open Settings → **About** to find the running version and the configuration file
 the application is using. Include the version when reporting a problem.
 
-![About page detail showing the application name and version 0.3.2](../images/screenshots/about-version.png)
+![About page detail showing the application name and version 0.3.3](../images/screenshots/about-version.png)
 
 *Check Settings → About for the running version before reporting a problem.*
 

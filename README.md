@@ -5,8 +5,8 @@ existing text, organize pages, annotate, sign and export documents in one
 desktop application. Word, OpenDocument and image files open as PDF working
 copies, converted locally.
 
-Current version: **0.3.2, alpha**. Saving replaces the original file, so keep a
-backup of important PDFs and check edited text in a second viewer.
+Current version: **0.3.3, alpha**. Saving replaces the original file, so keep a
+backup of important PDFs and check the result in a second viewer.
 
 ![OpenPDF Studio displaying the NLBK test PDF, with editing tools on the left and document actions on the right](docs/images/screenshots/overview.png)
 
@@ -18,11 +18,13 @@ Sample document: [NLBK Niedersachsen test PDF](https://www.nlbk.niedersachsen.de
 - Read several documents in tabs, search text, browse bookmarks and present pages.
 - Edit text in place, add text and images, draw, highlight and leave notes; OCR
   in English, German and French supports editing scanned pages.
-- Reorder, rotate, insert, delete and merge pages, with undo, history and crash recovery.
-- Place handwritten or digital signatures and manage passwords and permissions.
+- Reorder, rotate, insert, delete and merge pages, or append another file's pages,
+  with undo, history and crash recovery.
+- Place handwritten or digital signatures, see each signature's status on the page,
+  and manage passwords and permissions; restricted PDFs follow their permissions.
 - Export to PDF, Word, PNG or JPEG, and print with a preview, several pages per
   sheet or as a poster over 2, 4 or 9 sheets.
-- Play and embed video and audio through the separately licensed Rich Media module.
+- Play, embed and open video and audio through the separately licensed Rich Media module.
 - Choose light or dark themes, customize shortcuts and tools, and use English
   or one of 11 translations.
 
@@ -45,15 +47,15 @@ or the [download page](https://openpdf-studio.nullskill.de/download.html).
 On Linux, install the RPM or DEB with your package manager, or run the AppImage:
 
 ```bash
-sudo dnf install ./openpdf-studio-0.3.2-1.x86_64.rpm
-sudo apt install ./openpdf-studio_0.3.2_amd64.deb
+sudo dnf install ./openpdf-studio-0.3.3-1.x86_64.rpm
+sudo apt install ./openpdf-studio_0.3.3_amd64.deb
 # Alternatively:
-chmod +x OpenPDF_Studio-0.3.2-x86_64.AppImage
-./OpenPDF_Studio-0.3.2-x86_64.AppImage
+chmod +x OpenPDF_Studio-0.3.3-x86_64.AppImage
+./OpenPDF_Studio-0.3.3-x86_64.AppImage
 ```
 
-On Windows, run `OpenPDF-Studio-0.3.2-Setup.exe`, or extract
-`OpenPDF-Studio-0.3.2-win64-portable.zip` and start `OpenPDFStudio.exe`.
+On Windows, run `OpenPDF-Studio-0.3.3-Setup.exe`, or extract
+`OpenPDF-Studio-0.3.3-win64-portable.zip` and start `OpenPDFStudio.exe`.
 See [Installation](docs/user/installation.md) for details.
 
 ## Licensing
