@@ -46,7 +46,9 @@ file and its signature status after changes.
 ## Verify signatures and manage trust
 
 Open document information from the status bar, or click its signature shield,
-to see verification results. An untrusted certificate can be trusted on this
+to see verification results. A visible signature also carries a shield on the
+page; click the signature to see its result, the certificate details, or to
+verify it again. An untrusted certificate can be trusted on this
 computer after confirming its identity. The stored trust identifies the
 certificate by its SHA-256 fingerprint.
 

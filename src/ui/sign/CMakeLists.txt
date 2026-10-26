@@ -15,6 +15,8 @@ target_sources(OpenPDFStudio PRIVATE
     SignatureCard.hpp
     SignatureRemoval.cpp
     SignatureRemoval.hpp
+    SignatureStatusCard.cpp
+    SignatureStatusCard.hpp
     SignatureAppearance.cpp
     SignatureAppearance.hpp
     SignatureAppearanceDialog.cpp

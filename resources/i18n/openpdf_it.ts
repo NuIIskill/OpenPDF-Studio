@@ -5047,6 +5047,84 @@ Inserisci la password per aprirlo:</translation>
     </message>
 </context>
 <context>
+    <name>SignatureStatusCard</name>
+    <message>
+        <location filename="../../src/ui/sign/SignatureStatusCard.cpp" line="51"/>
+        <source>Signature invalid</source>
+        <translation>Firma non valida</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/sign/SignatureStatusCard.cpp" line="52"/>
+        <source>Changed after signing</source>
+        <translation>Modificato dopo la firma</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/sign/SignatureStatusCard.cpp" line="53"/>
+        <source>Signature valid</source>
+        <translation>Firma valida</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/sign/SignatureStatusCard.cpp" line="54"/>
+        <source>Signer not trusted</source>
+        <translation>Firmatario non attendibile</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/sign/SignatureStatusCard.cpp" line="57"/>
+        <source>The document was changed after signing or the signature is damaged</source>
+        <translation>Il documento è stato modificato dopo la firma o la firma è danneggiata</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/sign/SignatureStatusCard.cpp" line="59"/>
+        <source>The signed version is intact, but changes were saved after it</source>
+        <translation>La versione firmata è intatta, ma in seguito sono state salvate modifiche</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/sign/SignatureStatusCard.cpp" line="60"/>
+        <source>Document unchanged since signing</source>
+        <translation>Documento invariato dalla firma</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/sign/SignatureStatusCard.cpp" line="61"/>
+        <source>Certificate trusted on this computer</source>
+        <translation>Certificato attendibile su questo computer</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/sign/SignatureStatusCard.cpp" line="62"/>
+        <source>Certificate not trusted on this computer</source>
+        <translation>Certificato non attendibile su questo computer</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/sign/SignatureStatusCard.cpp" line="84"/>
+        <source>Close</source>
+        <translation>Chiudi</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/sign/SignatureStatusCard.cpp" line="89"/>
+        <source>Unknown signer</source>
+        <translation>Firmatario sconosciuto</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/sign/SignatureStatusCard.cpp" line="98"/>
+        <source>Trust this signer...</source>
+        <translation>Considera attendibile questo firmatario…</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/sign/SignatureStatusCard.cpp" line="109"/>
+        <source>Certificate details</source>
+        <translation>Dettagli del certificato</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/sign/SignatureStatusCard.cpp" line="113"/>
+        <source>Verify again</source>
+        <translation>Verifica di nuovo</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/sign/SignatureStatusCard.cpp" line="131"/>
+        <source>Checking...</source>
+        <translation>Verifica in corso…</translation>
+    </message>
+</context>
+<context>
     <name>SignerTrust</name>
     <message>
         <location filename="../../src/ui/sign/SignerTrust.cpp" line="49"/>
@@ -5161,6 +5239,26 @@ Inserisci la password per aprirlo:</translation>
         <location filename="../../src/ui/sign/SignerTrust.cpp" line="169"/>
         <source>The file is not a certificate.</source>
         <translation>Il file non è un certificato.</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/sign/SignerTrust.cpp" line="258"/>
+        <source>Signed</source>
+        <translation>Firmato</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/sign/SignerTrust.cpp" line="260"/>
+        <source>Reason</source>
+        <translation>Motivo</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/sign/SignerTrust.cpp" line="261"/>
+        <source>Location</source>
+        <translation>Luogo</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/sign/SignerTrust.cpp" line="266"/>
+        <source>Certificate details</source>
+        <translation>Dettagli del certificato</translation>
     </message>
 </context>
 <context>

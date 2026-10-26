@@ -253,6 +253,26 @@ bool SignerTrust::ask(const SignatureStatus &signature, QWidget *parent)
                      signature.validTo, {} }, parent);
 }
 
+void SignerTrust::details(const SignatureStatus &signature, QWidget *parent)
+{
+    QList<Fact> list { { tr("Signed"), QLocale().toString(signature.time.toLocalTime(),
+                                                          QLocale::ShortFormat) },
+                       { tr("Reason"), signature.reason },
+                       { tr("Location"), signature.location } };
+    if (!signature.time.isValid()) list.removeFirst();
+    list << facts(signature.issuer, signature.validTo, signature.fingerprint);
+
+    QMessageBox box(parent);
+    box.setWindowTitle(tr("Certificate details"));
+    box.setIcon(QMessageBox::Information);
+    box.setText(signature.signer.isEmpty() ? tr("Unknown signer")
+                                           : signature.signer.toHtmlEscaped());
+    box.setInformativeText(factsHtml(list));
+    box.setTextFormat(Qt::RichText);
+    box.addButton(QMessageBox::Close);
+    box.exec();
+}
+
 void SignerTrust::manage(QWidget *parent)
 {
     TrustedSignersDialog dialog(parent);

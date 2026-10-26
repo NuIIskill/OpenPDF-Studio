@@ -5044,6 +5044,84 @@ Enter the password to open it:</source>
     </message>
 </context>
 <context>
+    <name>SignatureStatusCard</name>
+    <message>
+        <location filename="../../src/ui/sign/SignatureStatusCard.cpp" line="51"/>
+        <source>Signature invalid</source>
+        <translation>서명이 유효하지 않음</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/sign/SignatureStatusCard.cpp" line="52"/>
+        <source>Changed after signing</source>
+        <translation>서명 후 변경됨</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/sign/SignatureStatusCard.cpp" line="53"/>
+        <source>Signature valid</source>
+        <translation>서명이 유효함</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/sign/SignatureStatusCard.cpp" line="54"/>
+        <source>Signer not trusted</source>
+        <translation>신뢰할 수 없는 서명자</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/sign/SignatureStatusCard.cpp" line="57"/>
+        <source>The document was changed after signing or the signature is damaged</source>
+        <translation>서명 후 문서가 변경되었거나 서명이 손상되었습니다</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/sign/SignatureStatusCard.cpp" line="59"/>
+        <source>The signed version is intact, but changes were saved after it</source>
+        <translation>서명된 버전은 그대로이지만 이후에 변경 사항이 저장되었습니다</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/sign/SignatureStatusCard.cpp" line="60"/>
+        <source>Document unchanged since signing</source>
+        <translation>서명 이후 변경되지 않음</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/sign/SignatureStatusCard.cpp" line="61"/>
+        <source>Certificate trusted on this computer</source>
+        <translation>이 컴퓨터에서 신뢰하는 인증서</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/sign/SignatureStatusCard.cpp" line="62"/>
+        <source>Certificate not trusted on this computer</source>
+        <translation>이 컴퓨터에서 신뢰하지 않는 인증서</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/sign/SignatureStatusCard.cpp" line="84"/>
+        <source>Close</source>
+        <translation>닫기</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/sign/SignatureStatusCard.cpp" line="89"/>
+        <source>Unknown signer</source>
+        <translation>알 수 없는 서명자</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/sign/SignatureStatusCard.cpp" line="98"/>
+        <source>Trust this signer...</source>
+        <translation>이 서명자 신뢰…</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/sign/SignatureStatusCard.cpp" line="109"/>
+        <source>Certificate details</source>
+        <translation>인증서 세부 정보</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/sign/SignatureStatusCard.cpp" line="113"/>
+        <source>Verify again</source>
+        <translation>다시 확인</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/sign/SignatureStatusCard.cpp" line="131"/>
+        <source>Checking...</source>
+        <translation>확인 중…</translation>
+    </message>
+</context>
+<context>
     <name>SignerTrust</name>
     <message>
         <location filename="../../src/ui/sign/SignerTrust.cpp" line="49"/>
@@ -5158,6 +5236,26 @@ Enter the password to open it:</source>
         <location filename="../../src/ui/sign/SignerTrust.cpp" line="169"/>
         <source>The file is not a certificate.</source>
         <translation>이 파일은 인증서가 아닙니다.</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/sign/SignerTrust.cpp" line="258"/>
+        <source>Signed</source>
+        <translation>서명 일시</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/sign/SignerTrust.cpp" line="260"/>
+        <source>Reason</source>
+        <translation>사유</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/sign/SignerTrust.cpp" line="261"/>
+        <source>Location</source>
+        <translation>위치</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/sign/SignerTrust.cpp" line="266"/>
+        <source>Certificate details</source>
+        <translation>인증서 세부 정보</translation>
     </message>
 </context>
 <context>

@@ -14,6 +14,7 @@
 #include <algorithm>
 #include <cctype>
 #include <map>
+#include <utility>
 #include <vector>
 
 #ifdef HAVE_QPDF
@@ -154,6 +155,38 @@ QPointF stampOffset(const QRectF &rect, const QSizeF &size, int rotate)
     }
 }
 
+// How the page content moves the graphics state stack: how far below its start it pops and where it ends.
+class StateDepth : public QPDFObjectHandle::ParserCallbacks
+{
+public:
+    void handleObject(QPDFObjectHandle obj, size_t, size_t) override
+    {
+        if (!obj.isOperator()) return;
+        const std::string op = obj.getOperatorValue();
+        if (op == "q") ++depth;
+        else if (op == "Q") lowest = std::min(lowest, --depth);
+    }
+    void handleEOF() override {}
+
+    int depth  { 0 };
+    int lowest { 0 };
+};
+
+// The stamp is drawn in default user space only if the page content can neither pop the
+// state saved before it nor leave one open, so it gets enough saves before and restores after.
+std::pair<QByteArray, QByteArray> stampWrapper(QPDFPageObjectHelper page)
+{
+    StateDepth states;
+    try {
+        page.parseContents(&states);
+    } catch (const std::exception &) {
+        states = StateDepth();
+    }
+    const int saves = 1 - states.lowest;
+    return { QByteArray("q ").repeated(saves).trimmed(),
+             QByteArray("Q ").repeated(saves + states.depth) };
+}
+
 QByteArray streamObject(const QByteArray &dictEntries, const QByteArray &content)
 {
     return "<< " + dictEntries + " /Length " + QByteArray::number(content.size())
@@ -165,7 +198,8 @@ QByteArray deflated(const QByteArray &raw)
     return qCompress(raw, 6).mid(4);
 }
 
-void imageObjects(const QImage &image, int imageId, int maskId, QList<Object> &objects)
+// The image carries its signature, so the stamp can still be found after an edit takes it out of its form.
+void imageObjects(const QImage &image, int imageId, int maskId, int sigId, QList<Object> &objects)
 {
     const QImage img = image.convertToFormat(QImage::Format_RGBA8888);
     QByteArray rgb, alpha;
@@ -182,7 +216,8 @@ void imageObjects(const QImage &image, int imageId, int maskId, QList<Object> &o
                           + " /Height " + QByteArray::number(img.height())
                           + " /BitsPerComponent 8 /Filter /FlateDecode";
     objects << Object { imageId, 0, streamObject(
-        "/Type /XObject /Subtype /Image " + size + " /ColorSpace /DeviceRGB /SMask " + ref(maskId),
+        "/Type /XObject /Subtype /Image " + size + " /ColorSpace /DeviceRGB /SMask " + ref(maskId)
+            + " /OPDFSignature " + ref(sigId),
         deflated(rgb)) };
     objects << Object { maskId, 0, streamObject(
         "/Type /XObject /Subtype /Image " + size + " /ColorSpace /DeviceGray", deflated(alpha)) };
@@ -321,13 +356,14 @@ SignError PdfSignatureWriter::prepare(const QString &source, const Field &field,
                 "/Type /XObject /Subtype /Form /BBox [0 0 " + w + ' ' + h + "] /Matrix "
                     + rotationMatrix(rotate) + " /Resources << /XObject << /Img " + ref(imageId) + " >> >>",
                 "q " + w + " 0 0 " + h + " 0 0 cm /Img Do Q") };
-            imageObjects(field.appearance, imageId, maskId, objects);
+            imageObjects(field.appearance, imageId, maskId, sigId, objects);
 
             const QByteArray name = "/OPDFSig" + QByteArray::number(sigId);
             const QPointF at = stampOffset(rect, field.bounds.size(), rotate);
-            objects << Object { openId, 0, streamObject({}, "q") };
+            const auto [open, close] = stampWrapper(page);
+            objects << Object { openId, 0, streamObject({}, open) };
             objects << Object { drawId, 0, streamObject({},
-                "Q q 1 0 0 1 " + num(at.x()) + ' ' + num(at.y()) + " cm " + name + " Do Q") };
+                close + "q 1 0 0 1 " + num(at.x()) + ' ' + num(at.y()) + " cm " + name + " Do Q") };
 
             const QPDFObjectHandle resources = page.getAttribute("/Resources", false);
             const QPDFObjectHandle resourceCopy = resources.isDictionary()

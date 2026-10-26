@@ -308,6 +308,26 @@ QPushButton#InfoActionLink { border: none; background: transparent; padding: 0; 
 QPushButton#InfoActionLink:hover { color: #93C5FD; text-decoration: underline; }
 QLabel#InfoMuted { font-size: 12px; color: #8A8A8A; }
 
+QFrame#SignatureStatusCard {
+    background: #404040;
+    border: 1px solid #545454;
+    border-radius: 12px;
+}
+QLabel#SignatureStatusTitle  { font-size: 15px; font-weight: 700; color: #E5E5E5; }
+QLabel#SignatureStatusSigner { font-size: 14px; color: #E5E5E5; }
+QLabel#SignatureStatusLine   { font-size: 13px; color: #A3A3A3; }
+QFrame#SignatureStatusDivider { background: #545454; border: none; }
+QPushButton#SignatureStatusButton {
+    border: 1px solid #6B6B6B;
+    border-radius: 6px;
+    background: transparent;
+    padding: 6px 14px;
+    font-size: 13px;
+    color: #E5E5E5;
+}
+QPushButton#SignatureStatusButton:hover { background: #4A4A4A; }
+QPushButton#SignatureStatusButton:disabled { color: #8A8A8A; }
+
 /* ── DocumentView canvas ─────────────────────────────────── */
 #DocumentView {
     background-color: #2B2B2B;

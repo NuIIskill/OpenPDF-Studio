@@ -2,6 +2,8 @@
 
 #include "engine/sign/CertificateProvider.hpp"
 
+#include <QRectF>
+
 #include <string>
 
 struct SignatureStatus {
@@ -17,6 +19,8 @@ struct SignatureStatus {
     QByteArray fingerprint;
     State      state { State::Invalid };
     bool       coversWholeFile { false };
+    int        page { -1 };
+    QRectF     bounds;
 };
 
 /// Finds the signatures in a PDF and checks that each still matches the bytes it signed.

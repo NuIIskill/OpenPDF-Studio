@@ -335,7 +335,11 @@ on startup.
   it; its Security section opens the protect dialog and each signature the
   dialog that removes it (`ui/sign/SignatureRemoval`), an untrusted one also
   the question that trusts its signer. A change to the trusted signers
-  re-checks every open document.
+  re-checks every open document. `SignatureVerifier` also reports the page and
+  place of each signature, for its own stamps where the page content actually
+  draws them (the stamp image names its signature in `/OPDFSignature`, so it is
+  found after the image tool moved it), otherwise the field's `/Rect`; `ui/view/SignatureStatusLayer` puts a shield
+  there that opens `ui/sign/SignatureStatusCard` with the result.
 
 ## Modules
 

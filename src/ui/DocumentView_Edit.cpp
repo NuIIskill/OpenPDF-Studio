@@ -24,6 +24,7 @@
 #include "ui/view/PageOverlay.hpp"
 #include "ui/view/DigitalSignatureLayer.hpp"
 #include "ui/view/SignaturePlacement.hpp"
+#include "ui/view/SignatureStatusLayer.hpp"
 #include "ui/view/SmoothScroll.hpp"
 #include "ui/view/ZoomController.hpp"
 #include "ui/view/TextSelectionController.hpp"
@@ -220,6 +221,7 @@ DocumentView::DocumentView(QWidget *parent)
     m_overlays.append(m_signatureLayer);
     m_protectionLayer = new ProtectionLayer(this);
     m_overlays.append(m_protectionLayer);
+    m_overlays.append(new SignatureStatusLayer(this, m_info, this));
     for (PageOverlay *overlay : std::as_const(m_overlays))
         overlay->setChangeReporter([this](const QString &title, int page) {
             m_journal.recordSideChange(
