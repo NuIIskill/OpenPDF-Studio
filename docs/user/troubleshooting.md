@@ -3,7 +3,7 @@
 [README](../../README.md) · [User documentation](../../README.md#user-documentation)
 
 Start with the application version, operating system, package type and exact
-error. Version 0.3.3 is an alpha and saving replaces the original file, so
+error. Version 0.3.4 is an alpha and saving replaces the original file, so
 reproduce an editing or saving problem on a backup. For source builds, consult [Dependencies](../dev/dependencies.md).
 
 ## No PDF opens or a feature is missing
@@ -52,9 +52,11 @@ playback or conversion can be unavailable.
 ## Text selection, OCR and layout
 
 If a click chooses the wrong paragraph, use Shift+drag to select the intended
-characters. Scanned text needs OCR; check that English, German or French
-Tesseract data is installed. The Windows package reads it from `share/tessdata`
-next to the executable. OCR errors and approximate font matching need review.
+characters. Scanned text needs OCR; check under Settings → **Add-on Packages**
+that a language is installed. On Windows the bundled languages sit in
+`share/tessdata` next to the executable; after the first change there, all of
+them are read from the user profile. OCR errors and approximate font matching
+need review.
 
 For imported Word or OpenDocument files, compare the result with the original.
 Headers, footers, fields, footnotes, columns and tracked changes are not
@@ -81,7 +83,8 @@ For a decoder failure, use the offered 1080p playback copy or explicitly
 choose an external player. In-app playback settings do not silently fall back
 to an external process. H.264 in MP4 is the intended format; Linux conversion
 needs ffmpeg and playback needs a working Qt Multimedia backend. On Windows,
-system encoders are used first with the bundled ffmpeg as fallback. Copy the diagnostic
+system encoders are used first with ffmpeg as fallback. Without ffmpeg, add it
+in Settings → **Add-on Packages**. Copy the diagnostic
 details from a playback error when reporting it.
 
 ![Media Playback settings offering In OpenPDF Studio, System player and Custom command](../images/screenshots/media-playback-settings.png)

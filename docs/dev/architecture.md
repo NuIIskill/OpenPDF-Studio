@@ -341,7 +341,8 @@ pinned. That build is GPL with Media Foundation; the user fetches it, the
 packages never carry it. Removing the shipped `ffmpeg.exe` under
 Program Files goes through `app/Elevation`, which starts the program once more
 behind the UAC prompt with `--remove-app-file`. The installer offers ffmpeg as
-a component (`/NOFFMPEG` for silent installs). On other systems the page is
+a component (`/NOFFMPEG` for silent installs); the uninstaller removes the
+downloaded add-ons too unless that component is unticked (`/KEEPADDONS`). On other systems the page is
 absent.
 `AddOns::open()` leads there from a message that names something missing.
 - **Signing** (`engine/sign/`, `ui/sign/`): a handwritten signature is placed

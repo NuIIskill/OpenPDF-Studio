@@ -13,6 +13,8 @@
 ;                                 Programm konvertiert dann nur mit Windows'
 ;                                 eigenem Encoder (Einstellungen > Zusatzpakete
 ;                                 holt es bei Bedarf nach)
+;   Uninstall.exe /S /KEEPADDONS  stille Deinstallation, die heruntergeladenen
+;                                 Zusatzpakete bleiben liegen
 ;   Setup.exe /S /KEY=XXXX-XXXX   stille Installation, hinterlegt einen
 ;                                 Business-Schlüssel maschinenweit unter
 ;                                 HKLM\Software\OpenPDFStudio\BusinessLicense
@@ -100,6 +102,7 @@ Page custom UsagePageCreate UsagePageLeave
 !insertmacro MUI_PAGE_FINISH
 
 !insertmacro MUI_UNPAGE_CONFIRM
+!insertmacro MUI_UNPAGE_COMPONENTS
 !insertmacro MUI_UNPAGE_INSTFILES
 
 !insertmacro MUI_LANGUAGE "German"
@@ -240,7 +243,7 @@ Section "$(SEC_DESKTOP)" SecDesktop
 SectionEnd
 
 ; ── Uninstaller ───────────────────────────────────────────────────────────────
-Section "Uninstall"
+Section "-un.Programm"
   Delete "$SMPROGRAMS\${APP_NAME}\${APP_NAME}.lnk"
   Delete "$SMPROGRAMS\${APP_NAME}\$(LNK_UNINSTALL).lnk"
   RMDir  "$SMPROGRAMS\${APP_NAME}"
@@ -263,11 +266,25 @@ Section "Uninstall"
   DeleteRegKey /ifempty HKCU "Software\OpenPDFStudio"
 SectionEnd
 
+; What Settings > Add-on Packages downloaded for this user: OCR languages and
+; ffmpeg. Chosen by default, so nothing the program brought stays behind.
+Section "un.$(UNSEC_ADDONS)" UnSecAddOns
+  SetShellVarContext current
+  RMDir /r "$LOCALAPPDATA\OpenPDF\OpenPDF Studio\tessdata"
+  RMDir /r "$LOCALAPPDATA\OpenPDF\OpenPDF Studio\ffmpeg"
+  RMDir "$LOCALAPPDATA\OpenPDF\OpenPDF Studio"
+  RMDir "$LOCALAPPDATA\OpenPDF"
+SectionEnd
+
 ; ── Localised strings ─────────────────────────────────────────────────────────
 LangString SEC_STARTMENU ${LANG_GERMAN}  "Startmenü-Einträge"
 LangString SEC_STARTMENU ${LANG_ENGLISH} "Start menu entries"
 LangString SEC_DESKTOP   ${LANG_GERMAN}  "Desktop-Verknüpfung"
 LangString SEC_DESKTOP   ${LANG_ENGLISH} "Desktop shortcut"
+LangString UNSEC_ADDONS  ${LANG_GERMAN}  "Heruntergeladene Zusatzpakete"
+LangString UNSEC_ADDONS  ${LANG_ENGLISH} "Downloaded add-on packages"
+LangString DESC_ADDONS   ${LANG_GERMAN}  "OCR-Sprachen und FFmpeg, die unter Einstellungen > Zusatzpakete heruntergeladen wurden."
+LangString DESC_ADDONS   ${LANG_ENGLISH} "OCR languages and FFmpeg downloaded in Settings > Add-on Packages."
 LangString SEC_FFMPEG    ${LANG_GERMAN}  "FFmpeg (Videokonvertierung)"
 LangString SEC_FFMPEG    ${LANG_ENGLISH} "FFmpeg (video conversion)"
 LangString DESC_FFMPEG   ${LANG_GERMAN}  "Konvertiert Videos, die Windows nicht selbst lesen kann, bevor sie in ein PDF eingebettet werden. Lässt sich später unter Einstellungen > Zusatzpakete entfernen oder nachholen."
@@ -313,6 +330,10 @@ LangString LIC_BOTTOM ${LANG_ENGLISH} "Full texts: LICENSES folder. Source code:
 !endif
 !insertmacro MUI_FUNCTION_DESCRIPTION_END
 
+!insertmacro MUI_UNFUNCTION_DESCRIPTION_BEGIN
+  !insertmacro MUI_DESCRIPTION_TEXT ${UnSecAddOns} "$(DESC_ADDONS)"
+!insertmacro MUI_UNFUNCTION_DESCRIPTION_END
+
 Function .onInit
   ${IfNot} ${RunningX64}
     MessageBox MB_ICONSTOP "OpenPDF Studio benötigt 64-Bit-Windows. / OpenPDF Studio requires 64-bit Windows."
@@ -343,4 +364,10 @@ FunctionEnd
 
 Function un.onInit
   SetRegView 64
+  ${GetParameters} $R0
+  ClearErrors
+  ${GetOptions} $R0 "/KEEPADDONS" $R1
+  ${IfNot} ${Errors}
+    SectionSetFlags ${UnSecAddOns} 0
+  ${EndIf}
 FunctionEnd

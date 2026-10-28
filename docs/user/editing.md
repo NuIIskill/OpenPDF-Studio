@@ -38,8 +38,10 @@ page exactly. qpdf is needed to preserve original page content during text saves
 When a page has no usable text, the editor falls back to OCR if Tesseract is
 included in the build. It recognizes text from the scan and replaces the
 selected area with editable text. Recognition and font matching are approximate;
-check characters, line breaks and background after saving. German, English and
-French language data are used when installed, with English as a fallback.
+check characters, line breaks and background after saving. All installed
+languages of the 12 that Settings → **Add-on Packages** offers are used; a
+language added there counts at the next click. Without any, a notice leads to
+that page.
 
 ## Images, drawings, notes and links
 
@@ -127,7 +129,8 @@ an in-app failure does not silently launch another player.
 
 H.264 in MP4 is the intended insertion format. Other codecs prompt for a
 conversion when an encoder is available: Windows uses its system encoders with
-the bundled ffmpeg as fallback, and Linux uses ffmpeg. A playback failure may offer a 1080p
+ffmpeg as fallback, and Linux uses ffmpeg. Settings → **Add-on Packages** adds
+or removes ffmpeg. A playback failure may offer a 1080p
 playback copy or an external player; the document retains the original asset.
 Presentation mode currently displays only the poster, and export has no switch
 to keep or drop media. See [Licensing](licensing.md) for the module's terms.
