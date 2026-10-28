@@ -46,6 +46,8 @@ public:
 
     bool isReady() const { return m_ready; }
 
+    void refresh();
+
     QList<Block> recognizePage(const QImage &pageImage,
                                 const QSizeF  &pageSizePts,
                                 qreal          renderScale) const;
@@ -63,6 +65,10 @@ public:
                           qreal               maxDistPts = 50.0);
 
 private:
-    void *m_api   { nullptr };
-    bool  m_ready { false };
+    void release();
+
+    void   *m_api   { nullptr };
+    bool    m_ready { false };
+    bool    m_tried { false };
+    QString m_languages;
 };

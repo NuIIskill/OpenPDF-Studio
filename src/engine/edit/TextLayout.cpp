@@ -213,16 +213,19 @@ QList<TextLayout::Source> TextLayout::distinctSources(const QList<Source> &sourc
     return out;
 }
 
-QList<TextLayout::Source> TextLayout::alignSources(const QString &text, const QList<Source> &plain)
+namespace {
+
+template <typename T>
+QList<T> alignToText(const QString &text, const QList<T> &plain, bool carried)
 {
     if (plain.isEmpty() || text.size() == plain.size()) return plain;
     // The laid-out text has soft breaks the editor's own text does not.
-    QList<Source> out;
+    QList<T> out;
     out.reserve(text.size());
     qsizetype j = 0;
     for (qsizetype i = 0; i < text.size(); ++i) {
-        if (text.at(i) == QChar(kSoftBreak) && text.size() - i > plain.size() - j) {
-            out.append(Source{});
+        if (text.at(i) == QChar(TextLayout::kSoftBreak) && text.size() - i > plain.size() - j) {
+            out.append(carried && i > 0 ? out.last() : T{});
             continue;
         }
         out.append(plain.value(j++));
@@ -230,7 +233,60 @@ QList<TextLayout::Source> TextLayout::alignSources(const QString &text, const QL
     return out;
 }
 
-bool TextLayout::Metrics::covers(const QString &text, const QList<Source> &chars) const
+}
+
+QList<TextLayout::Source> TextLayout::alignSources(const QString &text, const QList<Source> &plain)
+{
+    return alignToText(text, plain, false);
+}
+
+QList<TextLayout::Mark> TextLayout::alignMarks(const QString &text, const QList<Mark> &plain)
+{
+    return alignToText(text, plain, true);
+}
+
+bool TextLayout::Mark::styled() const
+{
+    Mark style = *this;
+    style.underline.reset();
+    return !style.isEmpty();
+}
+
+TextLayout::Mark TextLayout::Mark::over(const Mark &top) const
+{
+    Mark out = *this;
+    if (!top.family.isEmpty()) out.family = top.family;
+    if (top.bold)              out.bold = top.bold;
+    if (top.italic)            out.italic = top.italic;
+    if (top.underline)         out.underline = top.underline;
+    if (top.scale > 0.0)       out.scale = (scale > 0.0 ? scale : 1.0) * top.scale;
+    if (std::abs(out.scale - 1.0) < 1e-4) out.scale = 0.0;
+    if (top.color.isValid())   out.color = top.color;
+    return out;
+}
+
+TextLayout::Mark TextLayout::Mark::without(const Mark &fields) const
+{
+    Mark out = *this;
+    if (!fields.family.isEmpty()) out.family.clear();
+    if (fields.bold)              out.bold.reset();
+    if (fields.italic)            out.italic.reset();
+    if (fields.underline)         out.underline.reset();
+    if (fields.scale > 0.0)       out.scale = 0.0;
+    if (fields.color.isValid())   out.color = QColor();
+    return out;
+}
+
+QList<TextLayout::Mark> TextLayout::distinctMarks(const QList<Mark> &marks)
+{
+    QList<Mark> out;
+    for (const Mark &m : marks)
+        if (m.styled() && !out.contains(m)) out.append(m);
+    return out;
+}
+
+bool TextLayout::Metrics::covers(const QString &text, const QList<Source> &chars,
+                                 const QList<Mark> &marked) const
 {
     if (advances.isEmpty()) return false;
     const QHash<uint, double> &table = advances.constFirst();
@@ -238,16 +294,24 @@ bool TextLayout::Metrics::covers(const QString &text, const QList<Source> &chars
         if (!table.contains(cp)) return false;
     for (const Source &s : chars)
         if (s.isValid() && !sources.contains(s)) return false;
+    for (const Mark &m : marked)
+        if (m.styled() && !marks.contains(m)) return false;
     return true;
 }
 
-QList<int> TextLayout::Metrics::stylesOf(const QString &text, const QList<Source> &chars) const
+QList<int> TextLayout::Metrics::stylesOf(const QString &text, const QList<Source> &chars,
+                                         const QList<Mark> &marked) const
 {
     QList<int> styles = styleIndices(text, original, originalStyles);
     // A pasted character keeps the style of the one it was copied from.
     for (qsizetype i = 0; i < styles.size() && i < chars.size(); ++i) {
         const qsizetype k = chars.at(i).isValid() ? sources.indexOf(chars.at(i)) : -1;
         if (k >= 0 && k < sourceStyles.size()) styles[i] = sourceStyles.at(k);
+    }
+    // A marked character takes its style's marked counterpart.
+    for (qsizetype i = 0; i < styles.size() && i < marked.size(); ++i) {
+        const qsizetype m = marked.at(i).styled() ? marks.indexOf(marked.at(i)) : -1;
+        if (m >= 0) styles[i] = markStyles.at(m).value(styles.at(i), styles.at(i));
     }
     return styles;
 }

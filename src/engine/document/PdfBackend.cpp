@@ -55,7 +55,8 @@ TextLayout::Metrics PdfBackend::editMetrics(const EditSession::Edit &) const
 }
 
 QList<TextLayout::OriginalLine> PdfBackend::editLines(const EditSession::Edit &,
-                                                     QList<QList<TextLayout::Source>> *) const
+                                                     QList<QList<TextLayout::Source>> *,
+                                                     QList<QList<TextLayout::Mark>> *) const
 {
     return {};
 }

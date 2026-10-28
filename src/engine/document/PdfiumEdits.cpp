@@ -637,13 +637,14 @@ TextLayout::Metrics PdfiumEdits::metrics(FPDF_DOCUMENT doc, FPDF_PAGE page,
 QList<TextLayout::OriginalLine> PdfiumEdits::laidLines(FPDF_DOCUMENT doc, FPDF_PAGE page,
                                                        FPDF_TEXTPAGE textPage,
                                                        const EditSession::Edit &edit,
-                                                       QList<QList<TextLayout::Source>> *sources)
+                                                       QList<QList<TextLayout::Source>> *sources,
+                                                       QList<QList<TextLayout::Mark>> *marks)
 {
     if (!doc || !page || edit.newText.isEmpty()) return {};
     const PdfiumText::Origin origin = originFor(page, textPage, edit);
     const PdfiumText::Typeset typeset(doc, page, textPage, edit,
                                       origin.font ? &origin : nullptr, true);
-    return typeset.laidLines(sources);
+    return typeset.laidLines(sources, marks);
 }
 
 void PdfiumEdits::textAlone(FPDF_DOCUMENT doc, FPDF_PAGE page, const QList<EditSession::Edit> &edits)

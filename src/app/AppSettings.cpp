@@ -3,6 +3,7 @@
 #include "app/AppConfig.hpp"
 
 #include <QFile>
+#include <QFileInfo>
 #include <QLocale>
 #include <QSettings>
 
@@ -35,6 +36,16 @@ void AppSettings::setWindowState(const QByteArray &state)
     settings().setValue(QLatin1String(kWindowState), state);
 }
 
+QByteArray AppSettings::organizerGeometry() const
+{
+    return settings().value(QStringLiteral("window/organizerGeometry")).toByteArray();
+}
+
+void AppSettings::setOrganizerGeometry(const QByteArray &geometry)
+{
+    settings().setValue(QStringLiteral("window/organizerGeometry"), geometry);
+}
+
 QString AppSettings::lastOpenedFile() const
 {
     return settings().value(QLatin1String(kLastOpenedFile)).toString();
@@ -43,6 +54,51 @@ QString AppSettings::lastOpenedFile() const
 void AppSettings::setLastOpenedFile(const QString &path)
 {
     settings().setValue(QLatin1String(kLastOpenedFile), path);
+}
+
+QList<AppSettings::RecentFile> AppSettings::recentFiles() const
+{
+    const QStringList paths  = settings().value(QLatin1String(kRecentFiles)).toStringList();
+    const QStringList opened = settings().value(QLatin1String(kRecentOpened)).toStringList();
+    QList<RecentFile> files;
+    for (qsizetype i = 0; i < paths.size(); ++i)
+        files.append({ paths.at(i), QDateTime::fromString(opened.value(i), Qt::ISODate) });
+    return files;
+}
+
+void AppSettings::addRecentFile(const QString &path)
+{
+    const QString file = QFileInfo(path).absoluteFilePath();
+    QStringList paths { file };
+    QStringList opened { QDateTime::currentDateTime().toString(Qt::ISODate) };
+    for (const RecentFile &recent : recentFiles()) {
+        if (recent.path == file || paths.size() >= kRecentLimit) continue;
+        paths.append(recent.path);
+        opened.append(recent.opened.toString(Qt::ISODate));
+    }
+    settings().setValue(QLatin1String(kRecentFiles), paths);
+    settings().setValue(QLatin1String(kRecentOpened), opened);
+    Q_EMIT recentFilesChanged();
+}
+
+void AppSettings::removeRecentFile(const QString &path)
+{
+    QStringList paths, opened;
+    for (const RecentFile &recent : recentFiles()) {
+        if (recent.path == path) continue;
+        paths.append(recent.path);
+        opened.append(recent.opened.toString(Qt::ISODate));
+    }
+    settings().setValue(QLatin1String(kRecentFiles), paths);
+    settings().setValue(QLatin1String(kRecentOpened), opened);
+    Q_EMIT recentFilesChanged();
+}
+
+void AppSettings::clearRecentFiles()
+{
+    settings().remove(QLatin1String(kRecentFiles));
+    settings().remove(QLatin1String(kRecentOpened));
+    Q_EMIT recentFilesChanged();
 }
 
 int AppSettings::zoomLevel() const
@@ -274,6 +330,15 @@ bool AppSettings::trustOwnCertificates() const
 void AppSettings::setTrustOwnCertificates(bool v)
 {
     settings().setValue(QStringLiteral("security/trustOwnCertificates"), v);
+}
+
+QString AppSettings::lastCertificate() const
+{
+    return settings().value(QStringLiteral("sign/certificate")).toString();
+}
+void AppSettings::setLastCertificate(const QString &id)
+{
+    settings().setValue(QStringLiteral("sign/certificate"), id);
 }
 
 bool AppSettings::debugLogging() const

@@ -91,6 +91,45 @@
     </message>
 </context>
 <context>
+    <name>ConvertCard</name>
+    <message>
+        <location filename="../../modules/rich-media/ui/ConvertCard.cpp" line="45"/>
+        <location filename="../../modules/rich-media/ui/ConvertCard.cpp" line="52"/>
+        <source>The download could not be unpacked.</source>
+        <translation>다운로드한 파일의 압축을 풀 수 없습니다.</translation>
+    </message>
+    <message>
+        <location filename="../../modules/rich-media/ui/ConvertCard.cpp" line="64"/>
+        <source>Included with the program</source>
+        <translation>프로그램과 함께 설치됨</translation>
+    </message>
+    <message>
+        <location filename="../../modules/rich-media/ui/ConvertCard.cpp" line="65"/>
+        <source>Downloaded</source>
+        <translation>다운로드됨</translation>
+    </message>
+    <message>
+        <location filename="../../modules/rich-media/ui/ConvertCard.cpp" line="78"/>
+        <source>No permission was given.</source>
+        <translation>권한이 부여되지 않았습니다.</translation>
+    </message>
+    <message>
+        <location filename="../../modules/rich-media/ui/ConvertCard.cpp" line="79"/>
+        <source>The file could not be deleted.</source>
+        <translation>파일을 삭제할 수 없습니다.</translation>
+    </message>
+    <message>
+        <location filename="../../modules/rich-media/ui/ConvertCard.cpp" line="89"/>
+        <source>Video Conversion</source>
+        <translation>동영상 변환</translation>
+    </message>
+    <message>
+        <location filename="../../modules/rich-media/ui/ConvertCard.cpp" line="104"/>
+        <source>Converts videos before they are embedded in a PDF.</source>
+        <translation>PDF에 포함하기 전에 동영상을 변환합니다.</translation>
+    </message>
+</context>
+<context>
     <name>CreateCertificateDialog</name>
     <message>
         <location filename="../../src/ui/sign/CreateCertificateDialog.cpp" line="36"/>
@@ -177,157 +216,157 @@
 <context>
     <name>DigitalSignPage</name>
     <message>
-        <location filename="../../src/ui/sign/DigitalSignPage.cpp" line="92"/>
+        <location filename="../../src/ui/sign/DigitalSignPage.cpp" line="98"/>
         <source>Select certificate</source>
         <translation>인증서 선택</translation>
     </message>
     <message>
-        <location filename="../../src/ui/sign/DigitalSignPage.cpp" line="113"/>
-        <location filename="../../src/ui/sign/DigitalSignPage.cpp" line="342"/>
+        <location filename="../../src/ui/sign/DigitalSignPage.cpp" line="119"/>
+        <location filename="../../src/ui/sign/DigitalSignPage.cpp" line="349"/>
         <source>Please select a certificate...</source>
         <translation>인증서를 선택하세요...</translation>
     </message>
     <message>
-        <location filename="../../src/ui/sign/DigitalSignPage.cpp" line="150"/>
+        <location filename="../../src/ui/sign/DigitalSignPage.cpp" line="156"/>
         <source>Advanced</source>
         <translation>고급</translation>
     </message>
     <message>
-        <location filename="../../src/ui/sign/DigitalSignPage.cpp" line="152"/>
+        <location filename="../../src/ui/sign/DigitalSignPage.cpp" line="158"/>
         <source>Additional signing options.</source>
         <translation>추가 서명 옵션.</translation>
     </message>
     <message>
-        <location filename="../../src/ui/sign/DigitalSignPage.cpp" line="180"/>
+        <location filename="../../src/ui/sign/DigitalSignPage.cpp" line="186"/>
         <source>Not available yet</source>
         <translation>아직 사용할 수 없습니다</translation>
     </message>
     <message>
-        <location filename="../../src/ui/sign/DigitalSignPage.cpp" line="182"/>
+        <location filename="../../src/ui/sign/DigitalSignPage.cpp" line="188"/>
         <source>Add timestamp</source>
         <translation>타임스탬프 추가</translation>
     </message>
     <message>
-        <location filename="../../src/ui/sign/DigitalSignPage.cpp" line="183"/>
+        <location filename="../../src/ui/sign/DigitalSignPage.cpp" line="189"/>
         <source>Include a trusted timestamp in the signature.</source>
         <translation>서명에 신뢰할 수 있는 타임스탬프를 포함합니다.</translation>
     </message>
     <message>
-        <location filename="../../src/ui/sign/DigitalSignPage.cpp" line="184"/>
+        <location filename="../../src/ui/sign/DigitalSignPage.cpp" line="190"/>
         <source>Lock document after signing</source>
         <translation>서명 후 문서 잠금</translation>
     </message>
     <message>
-        <location filename="../../src/ui/sign/DigitalSignPage.cpp" line="185"/>
+        <location filename="../../src/ui/sign/DigitalSignPage.cpp" line="191"/>
         <source>Prevent further changes to the PDF.</source>
         <translation>PDF의 추가 변경을 방지합니다.</translation>
     </message>
     <message>
-        <location filename="../../src/ui/sign/DigitalSignPage.cpp" line="190"/>
+        <location filename="../../src/ui/sign/DigitalSignPage.cpp" line="196"/>
         <source>Invisible signature</source>
         <translation>보이지 않는 서명</translation>
     </message>
     <message>
-        <location filename="../../src/ui/sign/DigitalSignPage.cpp" line="191"/>
+        <location filename="../../src/ui/sign/DigitalSignPage.cpp" line="197"/>
         <source>Sign the document without a visible signature.</source>
         <translation>보이는 서명 없이 문서에 서명합니다.</translation>
     </message>
     <message>
-        <location filename="../../src/ui/sign/DigitalSignPage.cpp" line="224"/>
+        <location filename="../../src/ui/sign/DigitalSignPage.cpp" line="230"/>
         <source>Profile</source>
         <translation>프로필</translation>
     </message>
     <message>
-        <location filename="../../src/ui/sign/DigitalSignPage.cpp" line="240"/>
+        <location filename="../../src/ui/sign/DigitalSignPage.cpp" line="247"/>
         <source>Default</source>
         <translation>기본값</translation>
     </message>
     <message>
-        <location filename="../../src/ui/sign/DigitalSignPage.cpp" line="240"/>
+        <location filename="../../src/ui/sign/DigitalSignPage.cpp" line="247"/>
         <source>Unnamed profile</source>
         <translation>이름 없는 프로필</translation>
     </message>
     <message>
-        <location filename="../../src/ui/sign/DigitalSignPage.cpp" line="282"/>
+        <location filename="../../src/ui/sign/DigitalSignPage.cpp" line="289"/>
         <source>Profile %1</source>
         <translation>프로필 %1</translation>
     </message>
     <message>
-        <location filename="../../src/ui/sign/DigitalSignPage.cpp" line="291"/>
+        <location filename="../../src/ui/sign/DigitalSignPage.cpp" line="298"/>
         <source>%1 (copy)</source>
         <translation>%1 (사본)</translation>
     </message>
     <message>
-        <location filename="../../src/ui/sign/DigitalSignPage.cpp" line="298"/>
+        <location filename="../../src/ui/sign/DigitalSignPage.cpp" line="305"/>
         <source>Delete profile</source>
         <translation>프로필 삭제</translation>
     </message>
     <message>
-        <location filename="../../src/ui/sign/DigitalSignPage.cpp" line="299"/>
+        <location filename="../../src/ui/sign/DigitalSignPage.cpp" line="306"/>
         <source>Delete the profile &quot;%1&quot;?</source>
         <translation>&quot;%1&quot; 프로필을 삭제하시겠습니까?</translation>
     </message>
     <message>
-        <location filename="../../src/ui/sign/DigitalSignPage.cpp" line="329"/>
-        <location filename="../../src/ui/sign/DigitalSignPage.cpp" line="394"/>
+        <location filename="../../src/ui/sign/DigitalSignPage.cpp" line="336"/>
+        <location filename="../../src/ui/sign/DigitalSignPage.cpp" line="401"/>
         <source>Unnamed certificate</source>
         <translation>이름 없는 인증서</translation>
     </message>
     <message>
-        <location filename="../../src/ui/sign/DigitalSignPage.cpp" line="331"/>
+        <location filename="../../src/ui/sign/DigitalSignPage.cpp" line="338"/>
         <source>%1, expired</source>
         <translation>%1, 만료됨</translation>
     </message>
     <message>
-        <location filename="../../src/ui/sign/DigitalSignPage.cpp" line="336"/>
+        <location filename="../../src/ui/sign/DigitalSignPage.cpp" line="343"/>
         <source>Valid until %1</source>
         <translation>%1까지 유효</translation>
     </message>
     <message>
-        <location filename="../../src/ui/sign/DigitalSignPage.cpp" line="340"/>
+        <location filename="../../src/ui/sign/DigitalSignPage.cpp" line="347"/>
         <source>New certificate...</source>
         <translation>새 인증서...</translation>
     </message>
     <message>
-        <location filename="../../src/ui/sign/DigitalSignPage.cpp" line="341"/>
+        <location filename="../../src/ui/sign/DigitalSignPage.cpp" line="348"/>
         <source>No certificates found</source>
         <translation>인증서를 찾을 수 없음</translation>
     </message>
     <message>
-        <location filename="../../src/ui/sign/DigitalSignPage.cpp" line="370"/>
+        <location filename="../../src/ui/sign/DigitalSignPage.cpp" line="377"/>
         <source>Delete certificate...</source>
         <translation>인증서 삭제...</translation>
     </message>
     <message>
-        <location filename="../../src/ui/sign/DigitalSignPage.cpp" line="373"/>
-        <location filename="../../src/ui/sign/DigitalSignPage.cpp" line="387"/>
+        <location filename="../../src/ui/sign/DigitalSignPage.cpp" line="380"/>
+        <location filename="../../src/ui/sign/DigitalSignPage.cpp" line="394"/>
         <source>Only certificates created in OpenPDF Studio can be deleted.</source>
         <translation>OpenPDF Studio에서 만든 인증서만 삭제할 수 있습니다.</translation>
     </message>
     <message>
-        <location filename="../../src/ui/sign/DigitalSignPage.cpp" line="386"/>
-        <location filename="../../src/ui/sign/DigitalSignPage.cpp" line="395"/>
+        <location filename="../../src/ui/sign/DigitalSignPage.cpp" line="393"/>
         <location filename="../../src/ui/sign/DigitalSignPage.cpp" line="402"/>
+        <location filename="../../src/ui/sign/DigitalSignPage.cpp" line="409"/>
         <source>Delete certificate</source>
         <translation>인증서 삭제</translation>
     </message>
     <message>
-        <location filename="../../src/ui/sign/DigitalSignPage.cpp" line="396"/>
+        <location filename="../../src/ui/sign/DigitalSignPage.cpp" line="403"/>
         <source>Delete the certificate &quot;%1&quot;? Its private key is deleted as well, so it can no longer sign. Signatures already made with it stay valid.</source>
         <translation>&quot;%1&quot; 인증서를 삭제하시겠습니까? 개인 키도 함께 삭제되어 더 이상 서명할 수 없습니다. 이미 만든 서명은 계속 유효합니다.</translation>
     </message>
     <message>
-        <location filename="../../src/ui/sign/DigitalSignPage.cpp" line="403"/>
+        <location filename="../../src/ui/sign/DigitalSignPage.cpp" line="410"/>
         <source>The certificate could not be deleted.</source>
         <translation>인증서를 삭제할 수 없습니다.</translation>
     </message>
     <message>
-        <location filename="../../src/ui/sign/DigitalSignPage.cpp" line="206"/>
+        <location filename="../../src/ui/sign/DigitalSignPage.cpp" line="212"/>
         <source>Trusted signers</source>
         <translation>신뢰하는 서명자</translation>
     </message>
     <message>
-        <location filename="../../src/ui/sign/DigitalSignPage.cpp" line="207"/>
+        <location filename="../../src/ui/sign/DigitalSignPage.cpp" line="213"/>
         <source>Manage...</source>
         <translation>관리…</translation>
     </message>
@@ -484,7 +523,7 @@
         <translation type="vanished">PDF를 여기에 놓거나 탭을 클릭하여 열기</translation>
     </message>
     <message>
-        <location filename="../../src/ui/DocumentView.cpp" line="311"/>
+        <location filename="../../src/ui/DocumentView.cpp" line="320"/>
         <source>PDF rendering is not available in this build.
 Please use a build that includes Qt6::Pdf support.
 (See build-win.sh for instructions.)</source>
@@ -537,40 +576,40 @@ Qt6::Pdf를 지원하는 빌드를 사용하세요.
         <translation type="vanished">이미지 이동</translation>
     </message>
     <message>
-        <location filename="../../src/ui/DocumentView.cpp" line="369"/>
+        <location filename="../../src/ui/DocumentView.cpp" line="378"/>
         <source>Shift+click extends the selection</source>
         <translation>Shift+클릭으로 선택 영역 확장</translation>
     </message>
     <message>
-        <location filename="../../src/ui/DocumentView.cpp" line="372"/>
+        <location filename="../../src/ui/DocumentView.cpp" line="381"/>
         <source>Shift: straight line in 45° steps</source>
         <translation>Shift: 45° 단위 직선</translation>
     </message>
     <message>
-        <location filename="../../src/ui/DocumentView.cpp" line="374"/>
+        <location filename="../../src/ui/DocumentView.cpp" line="383"/>
         <source>Shift: draw over detected images, keep the aspect ratio, move along one axis</source>
         <translation>Shift: 감지된 이미지 위에 그리기, 가로세로 비율 유지, 한 축으로만 이동</translation>
     </message>
     <message>
-        <location filename="../../src/ui/DocumentView.cpp" line="377"/>
+        <location filename="../../src/ui/DocumentView.cpp" line="386"/>
         <source>Shift+drag edits the text inside the box</source>
         <translation>Shift+드래그는 상자 안의 텍스트를 편집합니다</translation>
     </message>
     <message>
-        <location filename="../../src/ui/DocumentView.cpp" line="541"/>
+        <location filename="../../src/ui/DocumentView.cpp" line="550"/>
         <location filename="../../src/ui/view/ImageAnnotationLayer.cpp" line="308"/>
         <source>Paste</source>
         <translation>붙여넣기</translation>
     </message>
     <message>
-        <location filename="../../src/ui/DocumentView.cpp" line="546"/>
+        <location filename="../../src/ui/DocumentView.cpp" line="555"/>
         <location filename="../../src/ui/view/ImageAnnotationLayer.cpp" line="319"/>
-        <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="252"/>
+        <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="258"/>
         <source>Delete</source>
         <translation>삭제</translation>
     </message>
     <message>
-        <location filename="../../src/ui/DocumentView.cpp" line="535"/>
+        <location filename="../../src/ui/DocumentView.cpp" line="544"/>
         <location filename="../../src/ui/view/ImageAnnotationLayer.cpp" line="304"/>
         <source>Copy</source>
         <translation>복사</translation>
@@ -588,8 +627,8 @@ Qt6::Pdf를 지원하는 빌드를 사용하세요.
         <translation type="vanished">모든 파일 (*)</translation>
     </message>
     <message>
-        <location filename="../../src/ui/DocumentView.cpp" line="309"/>
-        <location filename="../../src/ui/DocumentView_Edit.cpp" line="96"/>
+        <location filename="../../src/ui/DocumentView.cpp" line="318"/>
+        <location filename="../../src/ui/DocumentView_Edit.cpp" line="103"/>
         <source>Drop a document here or click a tab to open</source>
         <translation>문서를 여기에 놓거나 탭을 클릭하세요</translation>
     </message>
@@ -599,7 +638,7 @@ Qt6::Pdf를 지원하는 빌드를 사용하세요.
         <translation>%1페이지</translation>
     </message>
     <message>
-        <location filename="../../src/ui/DocumentView_Document.cpp" line="255"/>
+        <location filename="../../src/ui/DocumentView_Document.cpp" line="291"/>
         <source>Signature removed</source>
         <translation>서명 제거됨</translation>
     </message>
@@ -615,6 +654,54 @@ Qt6::Pdf를 지원하는 빌드를 사용하세요.
         <location filename="../../src/engine/import/DocxReader.cpp" line="470"/>
         <source>The document is damaged: %1</source>
         <translation>문서가 손상되었습니다: %1</translation>
+    </message>
+</context>
+<context>
+    <name>DownloadControl</name>
+    <message>
+        <location filename="../../src/ui/settings/DownloadControl.cpp" line="23"/>
+        <source>Downloading… %1 %</source>
+        <translation>다운로드 중… %1 %</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/settings/DownloadControl.cpp" line="30"/>
+        <source>Unpacking…</source>
+        <translation>압축 해제 중…</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/settings/DownloadControl.cpp" line="48"/>
+        <source>Not installed</source>
+        <translation>설치되지 않음</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/settings/DownloadControl.cpp" line="49"/>
+        <source>Installed</source>
+        <translation>설치됨</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/settings/DownloadControl.cpp" line="51"/>
+        <source>Remove</source>
+        <translation>제거</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/settings/DownloadControl.cpp" line="51"/>
+        <source>Download</source>
+        <translation>다운로드</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/settings/DownloadControl.cpp" line="59"/>
+        <source>Downloading…</source>
+        <translation>다운로드 중…</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/settings/DownloadControl.cpp" line="64"/>
+        <source>Removing…</source>
+        <translation>제거 중…</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/settings/DownloadControl.cpp" line="77"/>
+        <source>Not done: %1</source>
+        <translation>완료되지 않음: %1</translation>
     </message>
 </context>
 <context>
@@ -674,24 +761,34 @@ Qt6::Pdf를 지원하는 빌드를 사용하세요.
 <context>
     <name>EditNotice</name>
     <message>
-        <location filename="../../src/ui/edit/EditNotice.cpp" line="40"/>
+        <location filename="../../src/ui/edit/EditNotice.cpp" line="41"/>
+        <source>Add-on Packages</source>
+        <translation>추가 패키지</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/edit/EditNotice.cpp" line="51"/>
         <source>Don&apos;t show again</source>
         <translation>다시 표시 안 함</translation>
     </message>
     <message>
-        <location filename="../../src/ui/edit/EditNotice.cpp" line="53"/>
+        <location filename="../../src/ui/edit/EditNotice.cpp" line="64"/>
         <source>Close</source>
         <translation>닫기</translation>
     </message>
     <message>
-        <location filename="../../src/ui/edit/EditNotice.cpp" line="80"/>
+        <location filename="../../src/ui/edit/EditNotice.cpp" line="97"/>
         <source>This text was scanned. It is recognised automatically, which can cause errors, and its font or font size can differ from the original. Please check the result.</source>
         <translation>이 텍스트는 스캔된 것입니다. 자동으로 인식됩니다. 이 과정에서 오류가 생기거나 글꼴 또는 글꼴 크기가 원본과 다를 수 있습니다. 결과를 확인하세요.</translation>
     </message>
     <message>
-        <location filename="../../src/ui/edit/EditNotice.cpp" line="83"/>
+        <location filename="../../src/ui/edit/EditNotice.cpp" line="102"/>
         <source>The font of this text cannot be used for editing. The text is set in the closest font available, which can look a little different.</source>
         <translation>이 텍스트의 글꼴은 편집에 사용할 수 없습니다. 텍스트는 사용 가능한 가장 비슷한 글꼴로 조판되며 약간 다르게 보일 수 있습니다.</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/edit/EditNotice.cpp" line="106"/>
+        <source>This page was scanned. Its text can only be recognised with a language for text recognition, and none is installed.</source>
+        <translation>이 페이지는 스캔된 페이지입니다. 텍스트를 인식하려면 텍스트 인식 언어가 필요하지만 설치된 언어가 없습니다.</translation>
     </message>
 </context>
 <context>
@@ -1058,38 +1155,38 @@ Use page numbers like 1-3, 5, 8-10.</source>
         <translation type="vanished">&quot;%1&quot; 내보내는 중…</translation>
     </message>
     <message>
-        <location filename="../../src/ui/export/Exporting.cpp" line="157"/>
+        <location filename="../../src/ui/export/Exporting.cpp" line="132"/>
         <source>Exporting page %1 of %2…</source>
         <translation>%2페이지 중 %1페이지 내보내는 중…</translation>
     </message>
     <message>
-        <location filename="../../src/ui/export/Exporting.cpp" line="200"/>
+        <location filename="../../src/ui/export/Exporting.cpp" line="170"/>
         <source>Writing &quot;%1&quot;…</source>
         <translation>&quot;%1&quot; 쓰는 중…</translation>
     </message>
     <message>
-        <location filename="../../src/ui/export/Exporting.cpp" line="204"/>
+        <location filename="../../src/ui/export/Exporting.cpp" line="174"/>
         <source>Could not write to &quot;%1&quot;.</source>
         <translation>&quot;%1&quot;에 쓸 수 없습니다.</translation>
     </message>
     <message>
-        <location filename="../../src/ui/export/Exporting.cpp" line="214"/>
+        <location filename="../../src/ui/export/Exporting.cpp" line="184"/>
         <source>Could not export JPEG images to &quot;%1&quot;.</source>
         <translation>JPEG 이미지를 &quot;%1&quot;(으)로 내보낼 수 없습니다.</translation>
     </message>
     <message>
-        <location filename="../../src/ui/export/Exporting.cpp" line="215"/>
+        <location filename="../../src/ui/export/Exporting.cpp" line="185"/>
         <source>Could not export PNG images to &quot;%1&quot;.</source>
         <translation>PNG 이미지를 &quot;%1&quot;(으)로 내보낼 수 없습니다.</translation>
     </message>
     <message>
-        <location filename="../../src/ui/export/Exporting.cpp" line="121"/>
-        <location filename="../../src/ui/export/Exporting.cpp" line="183"/>
+        <location filename="../../src/ui/export/Exporting.cpp" line="96"/>
+        <location filename="../../src/ui/export/Exporting.cpp" line="153"/>
         <source>Could not write &quot;%1&quot;.</source>
         <translation>&quot;%1&quot;을(를) 쓸 수 없습니다.</translation>
     </message>
     <message>
-        <location filename="../../src/ui/export/Exporting.cpp" line="123"/>
+        <location filename="../../src/ui/export/Exporting.cpp" line="98"/>
         <source>Could not write &quot;%1&quot;.
 
 Selecting pages for a PDF needs qpdf, which this build does not include. Exporting as Word or PNG is unaffected.</source>
@@ -1098,24 +1195,32 @@ Selecting pages for a PDF needs qpdf, which this build does not include. Exporti
 PDF의 페이지 선택에는 qpdf가 필요하지만 이 빌드에는 포함되어 있지 않습니다. Word 또는 PNG로 내보내기는 영향을 받지 않습니다.</translation>
     </message>
     <message>
-        <location filename="../../src/ui/export/Exporting.cpp" line="234"/>
+        <location filename="../../src/ui/export/Exporting.cpp" line="204"/>
         <source>Export failed</source>
         <translation>내보내기 실패</translation>
     </message>
     <message>
-        <location filename="../../src/ui/export/Exporting.cpp" line="241"/>
+        <location filename="../../src/ui/export/Exporting.cpp" line="211"/>
         <source>%1 pages exported as JPEG images</source>
         <translation>%1페이지를 JPEG 이미지로 내보냈습니다</translation>
     </message>
     <message>
-        <location filename="../../src/ui/export/Exporting.cpp" line="242"/>
+        <location filename="../../src/ui/export/Exporting.cpp" line="212"/>
         <source>%1 pages exported as PNG images</source>
         <translation>%1페이지를 PNG 이미지로 내보냄</translation>
     </message>
     <message>
-        <location filename="../../src/ui/export/Exporting.cpp" line="240"/>
+        <location filename="../../src/ui/export/Exporting.cpp" line="210"/>
         <source>Exported &quot;%1&quot;</source>
         <translation>&quot;%1&quot; 내보냄</translation>
+    </message>
+</context>
+<context>
+    <name>FileDownload</name>
+    <message>
+        <location filename="../../src/app/FileDownload.cpp" line="63"/>
+        <source>The downloaded file is not the expected one.</source>
+        <translation>다운로드한 파일이 예상한 파일이 아닙니다.</translation>
     </message>
 </context>
 <context>
@@ -1634,12 +1739,12 @@ Text, image and drawing edits made since then are not part of any file yet and w
 <context>
     <name>Importing</name>
     <message>
-        <location filename="../../src/ui/import/Importing.cpp" line="47"/>
+        <location filename="../../src/ui/import/Importing.cpp" line="87"/>
         <source>Converting &quot;%1&quot;…</source>
         <translation>&quot;%1&quot; 변환 중…</translation>
     </message>
     <message>
-        <location filename="../../modules/rich-media/MediaModule.cpp" line="55"/>
+        <location filename="../../modules/rich-media/MediaModule.cpp" line="61"/>
         <source>Videos</source>
         <translation>동영상</translation>
     </message>
@@ -1996,14 +2101,14 @@ Text, image and drawing edits made since then are not part of any file yet and w
         <translation type="vanished">첨부파일</translation>
     </message>
     <message>
-        <location filename="../../src/ui/panels/LeftSidebar.cpp" line="83"/>
-        <location filename="../../src/ui/panels/LeftSidebar.cpp" line="189"/>
+        <location filename="../../src/ui/panels/LeftSidebar.cpp" line="87"/>
+        <location filename="../../src/ui/panels/LeftSidebar.cpp" line="198"/>
         <source>Customize Tools</source>
         <translation>도구 사용자 지정</translation>
     </message>
     <message>
-        <location filename="../../src/ui/panels/LeftSidebar.cpp" line="89"/>
-        <location filename="../../src/ui/panels/LeftSidebar.cpp" line="191"/>
+        <location filename="../../src/ui/panels/LeftSidebar.cpp" line="93"/>
+        <location filename="../../src/ui/panels/LeftSidebar.cpp" line="200"/>
         <source>Settings</source>
         <translation>설정</translation>
     </message>
@@ -2011,47 +2116,47 @@ Text, image and drawing edits made since then are not part of any file yet and w
 <context>
     <name>LicenseNotice</name>
     <message>
-        <location filename="../../src/drm/LicenseNotice.cpp" line="16"/>
+        <location filename="../../src/drm/LicenseNotice.cpp" line="19"/>
         <source>How do you use OpenPDF Studio?</source>
         <translation>OpenPDF Studio를 어떻게 사용하시나요?</translation>
     </message>
     <message>
-        <location filename="../../src/drm/LicenseNotice.cpp" line="17"/>
+        <location filename="../../src/drm/LicenseNotice.cpp" line="20"/>
         <source>Is this a private or a business installation?</source>
         <translation>개인용 설치인가요, 업무용 설치인가요?</translation>
     </message>
     <message>
-        <location filename="../../src/drm/LicenseNotice.cpp" line="18"/>
+        <location filename="../../src/drm/LicenseNotice.cpp" line="21"/>
         <source>Personal use is free. Business use needs a Business License after a 30-day evaluation. The answer is kept in the configuration file and can be changed there.</source>
         <translation>개인 사용은 무료입니다. 업무용은 30일 평가 기간 후 Business 라이선스가 필요합니다. 선택은 설정 파일에 저장되며 거기서 변경할 수 있습니다.</translation>
     </message>
     <message>
-        <location filename="../../src/drm/LicenseNotice.cpp" line="21"/>
+        <location filename="../../src/drm/LicenseNotice.cpp" line="24"/>
         <source>Personal</source>
         <translation>개인</translation>
     </message>
     <message>
-        <location filename="../../src/drm/LicenseNotice.cpp" line="22"/>
+        <location filename="../../src/drm/LicenseNotice.cpp" line="25"/>
         <source>Business</source>
         <translation>업무</translation>
     </message>
     <message>
-        <location filename="../../src/drm/LicenseNotice.cpp" line="45"/>
+        <location filename="../../src/drm/LicenseNotice.cpp" line="49"/>
         <source>License</source>
         <translation>라이선스</translation>
     </message>
     <message>
-        <location filename="../../src/drm/LicenseNotice.cpp" line="46"/>
+        <location filename="../../src/drm/LicenseNotice.cpp" line="50"/>
         <source>Your %1-day evaluation for business use has ended.</source>
         <translation>업무용 %1일 평가 기간이 끝났습니다.</translation>
     </message>
     <message>
-        <location filename="../../src/drm/LicenseNotice.cpp" line="48"/>
+        <location filename="../../src/drm/LicenseNotice.cpp" line="52"/>
         <source>Business use requires a license. Please enter a license key.</source>
         <translation>업무용으로 사용하려면 라이선스가 필요합니다. 라이선스 키를 입력하세요.</translation>
     </message>
     <message>
-        <location filename="../../src/drm/LicenseNotice.cpp" line="50"/>
+        <location filename="../../src/drm/LicenseNotice.cpp" line="54"/>
         <source>Enter license key</source>
         <translation>라이선스 키 입력</translation>
     </message>
@@ -2199,69 +2304,71 @@ Text, image and drawing edits made since then are not part of any file yet and w
 <context>
     <name>LinkAnnotationLayer</name>
     <message>
-        <location filename="../../src/ui/view/LinkAnnotationLayer.cpp" line="175"/>
+        <location filename="../../src/ui/view/LinkAnnotationLayer.cpp" line="179"/>
+        <location filename="../../src/ui/view/LinkAnnotationLayer.cpp" line="195"/>
         <source>Link</source>
         <translation>링크</translation>
     </message>
     <message>
-        <location filename="../../src/ui/view/LinkAnnotationLayer.cpp" line="175"/>
+        <location filename="../../src/ui/view/LinkAnnotationLayer.cpp" line="196"/>
         <source>Link address:</source>
         <translation>링크 주소:</translation>
     </message>
     <message>
-        <location filename="../../src/ui/view/LinkAnnotationLayer.cpp" line="180"/>
+        <location filename="../../src/ui/view/LinkAnnotationLayer.cpp" line="199"/>
         <source>Set Link</source>
         <translation>링크 설정</translation>
     </message>
     <message>
-        <location filename="../../src/ui/view/LinkAnnotationLayer.cpp" line="191"/>
+        <location filename="../../src/ui/view/LinkAnnotationLayer.cpp" line="183"/>
+        <location filename="../../src/ui/view/LinkAnnotationLayer.cpp" line="216"/>
         <source>Open Link</source>
         <translation>링크 열기</translation>
     </message>
     <message>
-        <location filename="../../src/ui/view/LinkAnnotationLayer.cpp" line="193"/>
+        <location filename="../../src/ui/view/LinkAnnotationLayer.cpp" line="218"/>
         <source>Open Link in New Tab</source>
         <translation>새 탭에서 링크 열기</translation>
     </message>
     <message>
-        <location filename="../../src/ui/view/LinkAnnotationLayer.cpp" line="195"/>
+        <location filename="../../src/ui/view/LinkAnnotationLayer.cpp" line="223"/>
         <source>Copy Link Address</source>
         <translation>링크 주소 복사</translation>
     </message>
     <message>
-        <location filename="../../src/ui/view/LinkAnnotationLayer.cpp" line="198"/>
+        <location filename="../../src/ui/view/LinkAnnotationLayer.cpp" line="226"/>
         <source>Edit Link</source>
         <translation>링크 편집</translation>
     </message>
     <message>
-        <location filename="../../src/ui/view/LinkAnnotationLayer.cpp" line="200"/>
+        <location filename="../../src/ui/view/LinkAnnotationLayer.cpp" line="228"/>
         <source>Delete Link</source>
         <translation>링크 삭제</translation>
     </message>
     <message>
-        <location filename="../../src/ui/view/LinkAnnotationLayer.cpp" line="202"/>
-        <location filename="../../src/ui/view/LinkAnnotationLayer.cpp" line="255"/>
+        <location filename="../../src/ui/view/LinkAnnotationLayer.cpp" line="230"/>
+        <location filename="../../src/ui/view/LinkAnnotationLayer.cpp" line="283"/>
         <source>Add Link...</source>
         <translation>링크 추가…</translation>
     </message>
     <message>
-        <location filename="../../src/ui/view/LinkAnnotationLayer.cpp" line="224"/>
+        <location filename="../../src/ui/view/LinkAnnotationLayer.cpp" line="252"/>
         <source>Edit link</source>
         <translation>링크 편집</translation>
     </message>
     <message>
-        <location filename="../../src/ui/view/LinkAnnotationLayer.cpp" line="241"/>
+        <location filename="../../src/ui/view/LinkAnnotationLayer.cpp" line="269"/>
         <source>Delete link</source>
         <translation>링크 삭제</translation>
     </message>
     <message>
-        <location filename="../../src/ui/view/LinkAnnotationLayer.cpp" line="291"/>
-        <location filename="../../src/ui/view/LinkAnnotationLayer.cpp" line="333"/>
+        <location filename="../../src/ui/view/LinkAnnotationLayer.cpp" line="319"/>
+        <location filename="../../src/ui/view/LinkAnnotationLayer.cpp" line="361"/>
         <source>Add link</source>
         <translation>링크 추가</translation>
     </message>
     <message>
-        <location filename="../../src/ui/view/LinkAnnotationLayer.cpp"/>
+        <location filename="../../src/ui/view/LinkAnnotationLayer.cpp" line="180"/>
         <source>Open this link in the browser?</source>
         <translation>이 링크를 브라우저에서 여시겠습니까?</translation>
     </message>
@@ -2269,33 +2376,33 @@ Text, image and drawing edits made since then are not part of any file yet and w
 <context>
     <name>MainWindow</name>
     <message>
-        <location filename="../../src/ui/MainWindow.cpp" line="120"/>
-        <location filename="../../src/ui/MainWindow.cpp" line="134"/>
+        <location filename="../../src/ui/MainWindow.cpp" line="132"/>
+        <location filename="../../src/ui/MainWindow.cpp" line="146"/>
         <source>Default PDF Application</source>
         <translation>기본 PDF 응용 프로그램</translation>
     </message>
     <message>
-        <location filename="../../src/ui/MainWindow.cpp" line="121"/>
+        <location filename="../../src/ui/MainWindow.cpp" line="133"/>
         <source>OpenPDF Studio is not your default application for PDF files. Would you like to make it the default?</source>
         <translation>OpenPDF Studio가 PDF 파일의 기본 응용 프로그램이 아닙니다. 기본값으로 설정하시겠습니까?</translation>
     </message>
     <message>
-        <location filename="../../src/ui/MainWindow.cpp" line="124"/>
+        <location filename="../../src/ui/MainWindow.cpp" line="136"/>
         <source>Windows then opens its settings for default apps, where you choose OpenPDF Studio for PDF files.</source>
         <translation>그러면 Windows에서 기본 앱 설정이 열리며, 여기에서 PDF 파일에 OpenPDF Studio를 선택합니다.</translation>
     </message>
     <message>
-        <location filename="../../src/ui/MainWindow.cpp" line="126"/>
+        <location filename="../../src/ui/MainWindow.cpp" line="138"/>
         <source>Make Default</source>
         <translation>기본값으로 설정</translation>
     </message>
     <message>
-        <location filename="../../src/ui/MainWindow.cpp" line="127"/>
+        <location filename="../../src/ui/MainWindow.cpp" line="139"/>
         <source>No</source>
         <translation>아니요</translation>
     </message>
     <message>
-        <location filename="../../src/ui/MainWindow.cpp" line="135"/>
+        <location filename="../../src/ui/MainWindow.cpp" line="147"/>
         <source>OpenPDF Studio could not be made the default application for PDF files.</source>
         <translation>OpenPDF Studio를 PDF 파일의 기본 응용 프로그램으로 설정할 수 없습니다.</translation>
     </message>
@@ -2304,48 +2411,48 @@ Text, image and drawing edits made since then are not part of any file yet and w
         <translation type="vanished">PDF 열기</translation>
     </message>
     <message>
-        <location filename="../../src/ui/MainWindow.cpp" line="692"/>
+        <location filename="../../src/ui/MainWindow.cpp" line="826"/>
         <source>PDF files (*.pdf)</source>
         <translation>PDF 파일 (*.pdf)</translation>
     </message>
     <message>
-        <location filename="../../src/ui/MainWindow.cpp" line="691"/>
+        <location filename="../../src/ui/MainWindow.cpp" line="825"/>
         <source>Save PDF As</source>
         <translation>PDF 다른 이름으로 저장</translation>
     </message>
     <message>
-        <location filename="../../src/ui/MainWindow.cpp" line="114"/>
+        <location filename="../../src/ui/MainWindow.cpp" line="167"/>
         <source>Update available</source>
         <translation>업데이트 사용 가능</translation>
     </message>
     <message>
-        <location filename="../../src/ui/MainWindow.cpp" line="115"/>
+        <location filename="../../src/ui/MainWindow.cpp" line="168"/>
         <source>OpenPDF Studio %1 is available.</source>
         <translation>OpenPDF Studio %1을(를) 사용할 수 있습니다.</translation>
     </message>
     <message>
-        <location filename="../../src/ui/MainWindow.cpp" line="116"/>
+        <location filename="../../src/ui/MainWindow.cpp" line="169"/>
         <source>You are running %1.</source>
         <translation>현재 %1을(를) 사용 중입니다.</translation>
     </message>
     <message>
-        <location filename="../../src/ui/MainWindow.cpp" line="117"/>
+        <location filename="../../src/ui/MainWindow.cpp" line="170"/>
         <source>Open download page</source>
         <translation>다운로드 페이지 열기</translation>
     </message>
     <message>
-        <location filename="../../src/ui/MainWindow.cpp" line="119"/>
+        <location filename="../../src/ui/MainWindow.cpp" line="172"/>
         <source>Later</source>
         <translation>나중에</translation>
     </message>
     <message>
-        <location filename="../../src/ui/MainWindow.cpp" line="676"/>
-        <location filename="../../src/ui/MainWindow.cpp" line="681"/>
+        <location filename="../../src/ui/MainWindow.cpp" line="810"/>
+        <location filename="../../src/ui/MainWindow.cpp" line="815"/>
         <source>Save failed</source>
         <translation>저장 실패</translation>
     </message>
     <message>
-        <location filename="../../src/ui/MainWindow.cpp" line="682"/>
+        <location filename="../../src/ui/MainWindow.cpp" line="816"/>
         <source>Could not write &quot;%1&quot;.
 
 The file may be write-protected or open in another program. The document is unchanged. Try saving it under a different name.</source>
@@ -2354,58 +2461,58 @@ The file may be write-protected or open in another program. The document is unch
 파일이 쓰기 금지되어 있거나 다른 프로그램에서 열려 있을 수 있습니다. 문서는 변경되지 않았습니다. 다른 이름으로 저장해 보세요.</translation>
     </message>
     <message>
-        <location filename="../../src/ui/MainWindow.cpp" line="846"/>
+        <location filename="../../src/ui/MainWindow.cpp" line="1000"/>
         <source>Edit Mode</source>
         <translation>편집 모드</translation>
     </message>
     <message>
-        <location filename="../../src/ui/MainWindow.cpp" line="847"/>
+        <location filename="../../src/ui/MainWindow.cpp" line="1001"/>
         <source>Do you want to enable Edit Mode?</source>
         <translation>편집 모드를 켤까요?</translation>
     </message>
     <message>
-        <location filename="../../src/ui/MainWindow.cpp" line="1074"/>
+        <location filename="../../src/ui/MainWindow.cpp" line="1234"/>
         <source>Untitled</source>
         <translation>제목 없음</translation>
     </message>
     <message>
-        <location filename="../../src/ui/MainWindow.cpp" line="1078"/>
+        <location filename="../../src/ui/MainWindow.cpp" line="1238"/>
         <source>Unsaved Changes</source>
         <translation>저장되지 않은 변경 사항</translation>
     </message>
     <message>
-        <location filename="../../src/ui/MainWindow.cpp" line="1079"/>
+        <location filename="../../src/ui/MainWindow.cpp" line="1239"/>
         <source>Save changes to &quot;%1&quot;?</source>
         <translation>&quot;%1&quot;의 변경 사항을 저장할까요?</translation>
     </message>
     <message>
-        <location filename="../../src/ui/MainWindow.cpp" line="555"/>
+        <location filename="../../src/ui/MainWindow.cpp" line="639"/>
         <source>Open Document</source>
         <translation>문서 열기</translation>
     </message>
     <message>
-        <location filename="../../src/ui/MainWindow.cpp" line="570"/>
+        <location filename="../../src/ui/MainWindow.cpp" line="657"/>
         <source>Cannot open file</source>
         <translation>파일을 열 수 없음</translation>
     </message>
     <message>
-        <location filename="../../src/ui/MainWindow.cpp" line="592"/>
+        <location filename="../../src/ui/MainWindow.cpp" line="713"/>
         <source>There is no room to put the converted file.</source>
         <translation>변환된 파일을 둘 공간이 없습니다.</translation>
     </message>
     <message>
-        <location filename="../../src/ui/MainWindow.cpp" line="606"/>
-        <location filename="../../src/ui/MainWindow.cpp" line="624"/>
+        <location filename="../../src/ui/MainWindow.cpp" line="728"/>
+        <location filename="../../src/ui/MainWindow.cpp" line="751"/>
         <source>Import failed</source>
         <translation>가져오기 실패</translation>
     </message>
     <message>
-        <location filename="../../src/ui/MainWindow.cpp" line="571"/>
+        <location filename="../../src/ui/MainWindow.cpp" line="658"/>
         <source>&quot;%1&quot; is not a PDF and cannot be turned into one.</source>
         <translation>“%1”은(는) PDF가 아니며 PDF로 변환할 수도 없습니다.</translation>
     </message>
     <message>
-        <location filename="../../src/ui/MainWindow.cpp" line="607"/>
+        <location filename="../../src/ui/MainWindow.cpp" line="729"/>
         <source>&quot;%1&quot; could not be turned into a PDF.
 
 %2</source>
@@ -2414,17 +2521,17 @@ The file may be write-protected or open in another program. The document is unch
 %2</translation>
     </message>
     <message>
-        <location filename="../../src/ui/MainWindow.cpp" line="625"/>
+        <location filename="../../src/ui/MainWindow.cpp" line="752"/>
         <source>&quot;%1&quot; was converted, but the result could not be opened.</source>
         <translation>“%1”은(는) 변환되었지만 결과를 열 수 없습니다.</translation>
     </message>
     <message>
-        <location filename="../../src/ui/MainWindow.cpp" line="620"/>
+        <location filename="../../src/ui/MainWindow.cpp" line="698"/>
         <source>Cannot add pages</source>
         <translation>페이지를 추가할 수 없습니다</translation>
     </message>
     <message>
-        <location filename="../../src/ui/MainWindow.cpp" line="621"/>
+        <location filename="../../src/ui/MainWindow.cpp" line="699"/>
         <source>The pages of &quot;%1&quot; could not be added.</source>
         <translation>&quot;%1&quot;의 페이지를 추가할 수 없습니다.</translation>
     </message>
@@ -2436,12 +2543,12 @@ The file may be write-protected or open in another program. The document is unch
         <translation type="vanished">속성 편집</translation>
     </message>
     <message>
-        <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="242"/>
+        <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="248"/>
         <source>Play</source>
         <translation>재생</translation>
     </message>
     <message>
-        <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="244"/>
+        <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="250"/>
         <source>Save media as...</source>
         <translation>미디어를 다른 이름으로 저장…</translation>
     </message>
@@ -2450,72 +2557,72 @@ The file may be write-protected or open in another program. The document is unch
         <translation type="vanished">제거</translation>
     </message>
     <message>
-        <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="247"/>
+        <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="253"/>
         <source>Replace media</source>
         <translation>미디어 바꾸기</translation>
     </message>
     <message>
-        <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="288"/>
-        <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="298"/>
+        <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="294"/>
+        <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="304"/>
         <source>Media removed</source>
         <translation>미디어 제거됨</translation>
     </message>
     <message>
-        <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="389"/>
+        <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="395"/>
         <source>Save media as</source>
         <translation>미디어를 다른 이름으로 저장</translation>
     </message>
     <message>
-        <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="394"/>
-        <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="770"/>
-        <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="781"/>
-        <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="803"/>
+        <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="400"/>
+        <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="775"/>
+        <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="795"/>
         <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="817"/>
-        <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="907"/>
-        <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="924"/>
+        <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="833"/>
+        <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="923"/>
         <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="940"/>
-        <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="955"/>
-        <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="978"/>
-        <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="1011"/>
-        <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="1019"/>
-        <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="1043"/>
-        <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="1078"/>
-        <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="1151"/>
+        <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="956"/>
+        <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="972"/>
+        <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="995"/>
+        <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="1023"/>
+        <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="1031"/>
+        <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="1055"/>
+        <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="1090"/>
+        <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="1163"/>
         <source>Rich Media</source>
         <translation>리치 미디어</translation>
     </message>
     <message>
-        <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="395"/>
+        <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="401"/>
         <source>Could not write &quot;%1&quot;.</source>
         <translation>&quot;%1&quot;을(를) 쓸 수 없습니다.</translation>
     </message>
     <message>
-        <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="589"/>
+        <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="595"/>
         <source>Media files (*.mp4 *.m4v *.mov *.webm *.mkv *.avi *.mp3 *.m4a *.wav *.ogg *.opus *.flac);;All files (*)</source>
         <translation>미디어 파일 (*.mp4 *.m4v *.mov *.webm *.mkv *.avi *.mp3 *.m4a *.wav *.ogg *.opus *.flac);;모든 파일 (*)</translation>
     </message>
     <message>
-        <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="591"/>
+        <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="597"/>
         <source>Choose media</source>
         <translation>미디어 선택</translation>
     </message>
     <message>
-        <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="753"/>
+        <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="759"/>
         <source>Media changed</source>
         <translation>미디어 변경됨</translation>
     </message>
     <message>
-        <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="765"/>
+        <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="771"/>
         <source>%1, an unsupported format</source>
         <translation>%1, 지원되지 않는 형식</translation>
     </message>
     <message>
-        <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="766"/>
+        <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="772"/>
         <source>%1 in %2</source>
         <translation>%2의 %1</translation>
     </message>
     <message>
-        <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="771"/>
+        <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="776"/>
         <source>This file is %1. Most PDF viewers play only H.264 video in an MP4 container, so for many people the video will be a still image.
 
 Install ffmpeg to convert it, or embed it as it is.</source>
@@ -2524,139 +2631,142 @@ Install ffmpeg to convert it, or embed it as it is.</source>
 변환하려면 ffmpeg를 설치하거나 그대로 포함하세요.</translation>
     </message>
     <message>
-        <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="782"/>
+        <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="784"/>
+        <source>Install ffmpeg…</source>
+        <translation>ffmpeg 설치…</translation>
+    </message>
+    <message>
+        <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="796"/>
         <source>This file is %1.</source>
         <translation>이 파일은 %1입니다.</translation>
     </message>
     <message>
-        <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="784"/>
+        <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="798"/>
         <source>H.264 in an MP4 container is what plays everywhere: in PDF viewers, in browsers and on phones. Convert it now so the video works for everyone who opens the document?</source>
         <translation>MP4 컨테이너의 H.264는 PDF 뷰어, 브라우저, 휴대폰 등 어디서나 재생됩니다. 문서를 여는 모든 사람이 동영상을 볼 수 있도록 지금 변환할까요?</translation>
     </message>
     <message>
-        <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="787"/>
+        <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="801"/>
         <source>Convert</source>
         <translation>변환</translation>
     </message>
     <message>
-        <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="788"/>
+        <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="802"/>
         <source>Embed as is</source>
         <translation>그대로 포함</translation>
     </message>
     <message>
-        <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="801"/>
+        <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="815"/>
         <source>Converting %1...</source>
         <translation>%1 변환 중…</translation>
     </message>
     <message>
-        <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="802"/>
-        <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="938"/>
+        <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="816"/>
+        <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="954"/>
         <source>Cancel</source>
         <translation>취소</translation>
     </message>
     <message>
-        <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="818"/>
+        <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="834"/>
         <source>The file could not be converted.</source>
         <translation>파일을 변환할 수 없습니다.</translation>
     </message>
     <message>
-        <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="856"/>
-        <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="1142"/>
+        <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="872"/>
+        <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="1154"/>
         <source>Media inserted</source>
         <translation>미디어 삽입됨</translation>
     </message>
     <message>
-        <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="893"/>
+        <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="909"/>
         <source>%1 in %2, %3 by %4 pixels.</source>
         <translation>%2의 %1, %3 × %4 픽셀.</translation>
     </message>
     <message>
-        <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="896"/>
+        <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="912"/>
         <source>%1 in %2.</source>
         <translation>%2의 %1.</translation>
     </message>
     <message>
-        <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="900"/>
+        <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="916"/>
         <source>Video this large is more than some systems will decode. A smaller copy usually plays, and the document keeps the original.</source>
         <translation>이렇게 큰 동영상은 일부 시스템에서 디코딩할 수 없습니다. 작은 복사본은 대개 재생되며 문서에는 원본이 유지됩니다.</translation>
     </message>
     <message>
-        <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="908"/>
+        <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="924"/>
         <source>This video could not be played here: %1</source>
         <translation>이 동영상을 여기서 재생할 수 없습니다: %1</translation>
     </message>
     <message>
-        <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="915"/>
+        <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="931"/>
         <source>Play a smaller copy</source>
         <translation>작은 복사본 재생</translation>
     </message>
     <message>
-        <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="917"/>
+        <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="933"/>
         <source>Open in system player</source>
         <translation>시스템 플레이어에서 열기</translation>
     </message>
     <message>
-        <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="925"/>
+        <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="941"/>
         <source>No media player was found on this system.</source>
         <translation>이 시스템에서 미디어 플레이어를 찾을 수 없습니다.</translation>
     </message>
     <message>
-        <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="938"/>
+        <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="954"/>
         <source>Preparing a smaller copy...</source>
         <translation>작은 복사본 준비 중…</translation>
     </message>
     <message>
-        <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="956"/>
+        <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="973"/>
         <source>The smaller copy could not be made.</source>
         <translation>작은 복사본을 만들 수 없습니다.</translation>
     </message>
     <message>
-        <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="979"/>
+        <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="996"/>
         <source>Play &quot;%1&quot; from this document?</source>
         <translation>이 문서의 &quot;%1&quot;을(를) 재생할까요?</translation>
     </message>
     <message>
-        <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="981"/>
+        <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="998"/>
         <source>Media in a PDF is chosen by whoever made the file. Playing it hands the data to a decoder, in this build possibly to a player outside OpenPDF Studio. Play it only if you trust the document.</source>
         <translation>PDF의 미디어는 파일을 만든 사람이 선택한 것입니다. 재생하면 데이터가 디코더에 전달되며, 이 빌드에서는 OpenPDF Studio 외부의 플레이어에 전달될 수도 있습니다. 문서를 신뢰하는 경우에만 재생하세요.</translation>
     </message>
     <message>
-        <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="984"/>
         <source>Play once</source>
-        <translation>한 번 재생</translation>
+        <translation type="vanished">한 번 재생</translation>
     </message>
     <message>
-        <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="985"/>
         <source>Always for this document</source>
-        <translation>이 문서에서는 항상</translation>
+        <translation type="vanished">이 문서에서는 항상</translation>
     </message>
     <message>
-        <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="1012"/>
+        <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="1024"/>
         <source>This media points to a file outside the document, so OpenPDF Studio does not open it.</source>
         <translation>이 미디어는 문서 외부의 파일을 가리키므로 OpenPDF Studio에서 열지 않습니다.</translation>
     </message>
     <message>
-        <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="1020"/>
+        <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="1032"/>
         <source>The media could not be read from the document.</source>
         <translation>문서에서 미디어를 읽을 수 없습니다.</translation>
     </message>
     <message>
-        <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="1044"/>
+        <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="1056"/>
         <source>The page this media sits on is not on screen, so it cannot be played here.</source>
         <translation>이 미디어가 있는 페이지가 화면에 없어 여기서 재생할 수 없습니다.</translation>
     </message>
     <message>
-        <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="1079"/>
+        <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="1091"/>
         <source>No media player was found. Install VLC or mpv, or set a custom player under Settings, Media Playback.</source>
         <translation>미디어 플레이어를 찾을 수 없습니다. VLC나 mpv를 설치하거나 설정의 미디어 재생에서 사용자 지정 플레이어를 지정하세요.</translation>
     </message>
     <message>
-        <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="1152"/>
+        <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="1164"/>
         <source>The video could not be added as a new page.</source>
         <translation>동영상을 새 페이지로 추가할 수 없습니다.</translation>
     </message>
     <message>
-        <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="987"/>
+        <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="1001"/>
         <source>Trust</source>
         <translation>신뢰</translation>
     </message>
@@ -2664,17 +2774,17 @@ Install ffmpeg to convert it, or embed it as it is.</source>
 <context>
     <name>MediaPlayerFrame</name>
     <message>
-        <location filename="../../modules/rich-media/ui/MediaPlayerFrame.cpp" line="70"/>
+        <location filename="../../modules/rich-media/ui/MediaPlayerFrame.cpp" line="104"/>
         <source>Close the player</source>
         <translation>플레이어 닫기</translation>
     </message>
     <message>
-        <location filename="../../modules/rich-media/ui/MediaPlayerFrame.cpp" line="105"/>
+        <location filename="../../modules/rich-media/ui/MediaPlayerFrame.cpp" line="139"/>
         <source>nothing was decoded within six seconds</source>
         <translation>6초 안에 아무것도 디코딩되지 않았습니다</translation>
     </message>
     <message>
-        <location filename="../../modules/rich-media/ui/MediaPlayerFrame.cpp" line="97"/>
+        <location filename="../../modules/rich-media/ui/MediaPlayerFrame.cpp" line="102"/>
         <source>Volume</source>
         <translation>음량</translation>
     </message>
@@ -2809,6 +2919,78 @@ Install ffmpeg to convert it, or embed it as it is.</source>
     </message>
 </context>
 <context>
+    <name>PackageControl</name>
+    <message>
+        <location filename="../../src/ui/settings/PackageControl.cpp" line="38"/>
+        <source>Installed</source>
+        <translation>설치됨</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/settings/PackageControl.cpp" line="38"/>
+        <source>Not installed</source>
+        <translation>설치되지 않음</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/settings/PackageControl.cpp" line="43"/>
+        <location filename="../../src/ui/settings/PackageControl.cpp" line="68"/>
+        <source>Remove</source>
+        <translation>제거</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/settings/PackageControl.cpp" line="43"/>
+        <source>Install</source>
+        <translation>설치</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/settings/PackageControl.cpp" line="47"/>
+        <source>Remove with: %1</source>
+        <translation>제거 명령: %1</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/settings/PackageControl.cpp" line="47"/>
+        <source>Install with: %1</source>
+        <translation>설치 명령: %1</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/settings/PackageControl.cpp" line="50"/>
+        <source>Install it with your system&apos;s package manager.</source>
+        <translation>시스템의 패키지 관리자로 설치하십시오.</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/settings/PackageControl.cpp" line="69"/>
+        <source>Other programs need this package and would be removed with it:
+
+%1
+
+Remove them too?</source>
+        <translation>다른 프로그램이 이 패키지를 필요로 하며 함께 제거됩니다:
+
+%1
+
+이 프로그램도 제거하시겠습니까?</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/settings/PackageControl.cpp" line="72"/>
+        <source>Remove All</source>
+        <translation>모두 제거</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/settings/PackageControl.cpp" line="79"/>
+        <source>Removing…</source>
+        <translation>제거 중…</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/settings/PackageControl.cpp" line="59"/>
+        <source>Installing…</source>
+        <translation>설치 중…</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/settings/PackageControl.cpp" line="87"/>
+        <source>Not done: %1</source>
+        <translation>완료되지 않음: %1</translation>
+    </message>
+</context>
+<context>
     <name>PasswordDialog</name>
     <message>
         <location filename="../../src/ui/widgets/PasswordDialog.cpp" line="12"/>
@@ -2857,7 +3039,7 @@ Enter the password to open it:</source>
         <translation type="vanished">선택 항목 제거</translation>
     </message>
     <message>
-        <location filename="../../src/ui/organizer/PdfOrganizerDialog.cpp" line="260"/>
+        <location filename="../../src/ui/organizer/PdfOrganizerDialog.cpp" line="267"/>
         <source>Cancel</source>
         <translation>취소</translation>
     </message>
@@ -2866,157 +3048,157 @@ Enter the password to open it:</source>
         <translation type="vanished">다른 이름으로 저장…</translation>
     </message>
     <message>
-        <location filename="../../src/ui/organizer/PdfOrganizerDialog.cpp" line="63"/>
-        <location filename="../../src/ui/organizer/PdfOrganizerDialog.cpp" line="842"/>
+        <location filename="../../src/ui/organizer/PdfOrganizerDialog.cpp" line="64"/>
+        <location filename="../../src/ui/organizer/PdfOrganizerDialog.cpp" line="849"/>
         <source>PDF Organizer - OpenPDF Studio</source>
         <translation>PDF 정리 도구 - OpenPDF Studio</translation>
     </message>
     <message>
-        <location filename="../../src/ui/organizer/PdfOrganizerDialog.cpp" line="134"/>
+        <location filename="../../src/ui/organizer/PdfOrganizerDialog.cpp" line="141"/>
         <source>Add PDF</source>
         <translation>PDF 추가</translation>
     </message>
     <message>
-        <location filename="../../src/ui/organizer/PdfOrganizerDialog.cpp" line="140"/>
+        <location filename="../../src/ui/organizer/PdfOrganizerDialog.cpp" line="147"/>
         <source>Open PDF file…</source>
         <translation>PDF 파일 열기…</translation>
     </message>
     <message>
-        <location filename="../../src/ui/organizer/PdfOrganizerDialog.cpp" line="142"/>
-        <location filename="../../src/ui/organizer/PdfOrganizerDialog.cpp" line="148"/>
-        <location filename="../../src/ui/organizer/PdfOrganizerDialog.cpp" line="294"/>
+        <location filename="../../src/ui/organizer/PdfOrganizerDialog.cpp" line="149"/>
+        <location filename="../../src/ui/organizer/PdfOrganizerDialog.cpp" line="155"/>
+        <location filename="../../src/ui/organizer/PdfOrganizerDialog.cpp" line="301"/>
         <source>Open PDF</source>
         <translation>PDF 열기</translation>
     </message>
     <message>
-        <location filename="../../src/ui/organizer/PdfOrganizerDialog.cpp" line="142"/>
-        <location filename="../../src/ui/organizer/PdfOrganizerDialog.cpp" line="148"/>
-        <location filename="../../src/ui/organizer/PdfOrganizerDialog.cpp" line="761"/>
+        <location filename="../../src/ui/organizer/PdfOrganizerDialog.cpp" line="149"/>
+        <location filename="../../src/ui/organizer/PdfOrganizerDialog.cpp" line="155"/>
+        <location filename="../../src/ui/organizer/PdfOrganizerDialog.cpp" line="768"/>
         <source>PDF files (*.pdf)</source>
         <translation>PDF 파일 (*.pdf)</translation>
     </message>
     <message>
-        <location filename="../../src/ui/organizer/PdfOrganizerDialog.cpp" line="153"/>
+        <location filename="../../src/ui/organizer/PdfOrganizerDialog.cpp" line="160"/>
         <source>Blank Page</source>
         <translation>빈 페이지</translation>
     </message>
     <message>
-        <location filename="../../src/ui/organizer/PdfOrganizerDialog.cpp" line="181"/>
+        <location filename="../../src/ui/organizer/PdfOrganizerDialog.cpp" line="188"/>
         <source>Move left</source>
         <translation>왼쪽으로 이동</translation>
     </message>
     <message>
-        <location filename="../../src/ui/organizer/PdfOrganizerDialog.cpp" line="181"/>
+        <location filename="../../src/ui/organizer/PdfOrganizerDialog.cpp" line="188"/>
         <source>Move page left</source>
         <translation>페이지를 왼쪽으로 이동</translation>
     </message>
     <message>
-        <location filename="../../src/ui/organizer/PdfOrganizerDialog.cpp" line="182"/>
+        <location filename="../../src/ui/organizer/PdfOrganizerDialog.cpp" line="189"/>
         <source>Move right</source>
         <translation>오른쪽으로 이동</translation>
     </message>
     <message>
-        <location filename="../../src/ui/organizer/PdfOrganizerDialog.cpp" line="182"/>
+        <location filename="../../src/ui/organizer/PdfOrganizerDialog.cpp" line="189"/>
         <source>Move page right</source>
         <translation>페이지를 오른쪽으로 이동</translation>
     </message>
     <message>
-        <location filename="../../src/ui/organizer/PdfOrganizerDialog.cpp" line="185"/>
+        <location filename="../../src/ui/organizer/PdfOrganizerDialog.cpp" line="192"/>
         <source>Rotate left</source>
         <translation>왼쪽으로 회전</translation>
     </message>
     <message>
-        <location filename="../../src/ui/organizer/PdfOrganizerDialog.cpp" line="185"/>
+        <location filename="../../src/ui/organizer/PdfOrganizerDialog.cpp" line="192"/>
         <source>Rotate left 90°</source>
         <translation>왼쪽으로 90° 회전</translation>
     </message>
     <message>
-        <location filename="../../src/ui/organizer/PdfOrganizerDialog.cpp" line="186"/>
+        <location filename="../../src/ui/organizer/PdfOrganizerDialog.cpp" line="193"/>
         <source>Rotate right</source>
         <translation>오른쪽으로 회전</translation>
     </message>
     <message>
-        <location filename="../../src/ui/organizer/PdfOrganizerDialog.cpp" line="186"/>
+        <location filename="../../src/ui/organizer/PdfOrganizerDialog.cpp" line="193"/>
         <source>Rotate right 90°</source>
         <translation>오른쪽으로 90° 회전</translation>
     </message>
     <message>
-        <location filename="../../src/ui/organizer/PdfOrganizerDialog.cpp" line="189"/>
+        <location filename="../../src/ui/organizer/PdfOrganizerDialog.cpp" line="196"/>
         <source>Delete page</source>
         <translation>페이지 삭제</translation>
     </message>
     <message>
-        <location filename="../../src/ui/organizer/PdfOrganizerDialog.cpp" line="232"/>
+        <location filename="../../src/ui/organizer/PdfOrganizerDialog.cpp" line="239"/>
         <source>Drag &amp; drop pages to reorder</source>
         <translation>페이지를 끌어서 놓아 순서 변경</translation>
     </message>
     <message>
-        <location filename="../../src/ui/organizer/PdfOrganizerDialog.cpp" line="255"/>
-        <location filename="../../src/ui/organizer/PdfOrganizerDialog.cpp" line="475"/>
+        <location filename="../../src/ui/organizer/PdfOrganizerDialog.cpp" line="262"/>
+        <location filename="../../src/ui/organizer/PdfOrganizerDialog.cpp" line="482"/>
         <source>Pages</source>
         <translation>페이지</translation>
     </message>
     <message>
-        <location filename="../../src/ui/organizer/PdfOrganizerDialog.cpp" line="265"/>
+        <location filename="../../src/ui/organizer/PdfOrganizerDialog.cpp" line="272"/>
         <source>Save as</source>
         <translation>다른 이름으로 저장</translation>
     </message>
     <message>
-        <location filename="../../src/ui/organizer/PdfOrganizerDialog.cpp" line="270"/>
+        <location filename="../../src/ui/organizer/PdfOrganizerDialog.cpp" line="277"/>
         <source>Save</source>
         <translation>저장</translation>
     </message>
     <message>
-        <location filename="../../src/ui/organizer/PdfOrganizerDialog.cpp" line="295"/>
+        <location filename="../../src/ui/organizer/PdfOrganizerDialog.cpp" line="302"/>
         <source>Could not open: </source>
         <translation>열 수 없음: </translation>
     </message>
     <message>
-        <location filename="../../src/ui/organizer/PdfOrganizerDialog.cpp" line="424"/>
-        <location filename="../../src/ui/organizer/PdfOrganizerDialog.cpp" line="468"/>
+        <location filename="../../src/ui/organizer/PdfOrganizerDialog.cpp" line="431"/>
+        <location filename="../../src/ui/organizer/PdfOrganizerDialog.cpp" line="475"/>
         <source>Page %1</source>
         <translation>%1페이지</translation>
     </message>
     <message>
-        <location filename="../../src/ui/organizer/PdfOrganizerDialog.cpp" line="687"/>
         <location filename="../../src/ui/organizer/PdfOrganizerDialog.cpp" line="694"/>
+        <location filename="../../src/ui/organizer/PdfOrganizerDialog.cpp" line="701"/>
         <source>Save failed</source>
         <translation>저장 실패</translation>
     </message>
     <message>
-        <location filename="../../src/ui/organizer/PdfOrganizerDialog.cpp" line="688"/>
+        <location filename="../../src/ui/organizer/PdfOrganizerDialog.cpp" line="695"/>
         <source>%1 of %2 pages could not be rendered, so the document would have been saved blank. Your PDF was not changed.</source>
         <translation>%2페이지 중 %1페이지를 렌더링할 수 없어 문서가 빈 상태로 저장될 뻔했습니다. PDF는 변경되지 않았습니다.</translation>
     </message>
     <message>
-        <location filename="../../src/ui/organizer/PdfOrganizerDialog.cpp" line="695"/>
+        <location filename="../../src/ui/organizer/PdfOrganizerDialog.cpp" line="702"/>
         <source>The organized document could not be written to &quot;%1&quot;. Your PDF was not changed.</source>
         <translation>정리된 문서를 &quot;%1&quot;에 쓸 수 없습니다. PDF는 변경되지 않았습니다.</translation>
     </message>
     <message>
-        <location filename="../../src/ui/organizer/PdfOrganizerDialog.cpp" line="701"/>
+        <location filename="../../src/ui/organizer/PdfOrganizerDialog.cpp" line="708"/>
         <source>PDF writing requires a PDF backend (Qt6Pdf or Poppler).</source>
         <translation>PDF를 쓰려면 PDF 백엔드(Qt6Pdf 또는 Poppler)가 필요합니다.</translation>
     </message>
     <message>
-        <location filename="../../src/ui/organizer/PdfOrganizerDialog.cpp" line="734"/>
-        <location filename="../../src/ui/organizer/PdfOrganizerDialog.cpp" line="755"/>
+        <location filename="../../src/ui/organizer/PdfOrganizerDialog.cpp" line="741"/>
+        <location filename="../../src/ui/organizer/PdfOrganizerDialog.cpp" line="762"/>
         <source>Empty</source>
         <translation>비어 있음</translation>
     </message>
     <message>
-        <location filename="../../src/ui/organizer/PdfOrganizerDialog.cpp" line="735"/>
-        <location filename="../../src/ui/organizer/PdfOrganizerDialog.cpp" line="756"/>
+        <location filename="../../src/ui/organizer/PdfOrganizerDialog.cpp" line="742"/>
+        <location filename="../../src/ui/organizer/PdfOrganizerDialog.cpp" line="763"/>
         <source>Add at least one page before saving.</source>
         <translation>저장하기 전에 최소 한 페이지를 추가하세요.</translation>
     </message>
     <message>
-        <location filename="../../src/ui/organizer/PdfOrganizerDialog.cpp" line="761"/>
+        <location filename="../../src/ui/organizer/PdfOrganizerDialog.cpp" line="768"/>
         <source>Save PDF As</source>
         <translation>PDF 다른 이름으로 저장</translation>
     </message>
     <message>
-        <location filename="../../src/ui/organizer/PdfOrganizerDialog.cpp" line="700"/>
+        <location filename="../../src/ui/organizer/PdfOrganizerDialog.cpp" line="707"/>
         <source>Not Available</source>
         <translation>사용 불가</translation>
     </message>
@@ -3025,15 +3207,68 @@ Enter the password to open it:</source>
         <translation type="vanished">PDF 쓰기에는 Qt6Pdf가 필요합니다.</translation>
     </message>
     <message>
-        <location filename="../../src/ui/organizer/PdfOrganizerDialog.cpp" line="198"/>
-        <location filename="../../src/ui/organizer/PdfOrganizerDialog.cpp" line="493"/>
+        <location filename="../../src/ui/organizer/PdfOrganizerDialog.cpp" line="205"/>
+        <location filename="../../src/ui/organizer/PdfOrganizerDialog.cpp" line="500"/>
         <source>Select all</source>
         <translation>모두 선택</translation>
     </message>
     <message>
-        <location filename="../../src/ui/organizer/PdfOrganizerDialog.cpp" line="493"/>
+        <location filename="../../src/ui/organizer/PdfOrganizerDialog.cpp" line="500"/>
         <source>Deselect all</source>
         <translation>모두 선택 해제</translation>
+    </message>
+</context>
+<context>
+    <name>PermissionGate</name>
+    <message>
+        <location filename="../../src/ui/protect/PermissionGate.cpp" line="18"/>
+        <source>This document does not allow printing.</source>
+        <translation>이 문서는 인쇄를 허용하지 않습니다.</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/protect/PermissionGate.cpp" line="19"/>
+        <source>This document does not allow copying text.</source>
+        <translation>이 문서는 텍스트 복사를 허용하지 않습니다.</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/protect/PermissionGate.cpp" line="20"/>
+        <source>This document does not allow changing its content.</source>
+        <translation>이 문서는 내용 변경을 허용하지 않습니다.</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/protect/PermissionGate.cpp" line="21"/>
+        <source>This document does not allow adding comments.</source>
+        <translation>이 문서는 주석 추가를 허용하지 않습니다.</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/protect/PermissionGate.cpp" line="22"/>
+        <source>This document does not allow filling in forms.</source>
+        <translation>이 문서는 양식 작성을 허용하지 않습니다.</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/protect/PermissionGate.cpp" line="24"/>
+        <source>This document does not allow inserting, deleting and rotating pages.</source>
+        <translation>이 문서는 페이지 삽입, 삭제 및 회전을 허용하지 않습니다.</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/protect/PermissionGate.cpp" line="26"/>
+        <source>The restrictions of this document can only be changed by its owner.</source>
+        <translation>이 문서의 제한은 소유자만 변경할 수 있습니다.</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/protect/PermissionGate.cpp" line="56"/>
+        <source>Enter the permissions password to lift its restrictions:</source>
+        <translation>제한을 해제하려면 권한 암호를 입력하세요:</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/protect/PermissionGate.cpp" line="59"/>
+        <source>Restricted document</source>
+        <translation>제한된 문서</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/protect/PermissionGate.cpp" line="63"/>
+        <source>Wrong permissions password. Please try again:</source>
+        <translation>권한 암호가 올바르지 않습니다. 다시 시도하세요:</translation>
     </message>
 </context>
 <context>
@@ -3083,234 +3318,234 @@ Enter the password to open it:</source>
         </translation>
     </message>
     <message>
-        <location filename="../../src/ui/export/PrintDialog.cpp" line="121"/>
+        <location filename="../../src/ui/export/PrintDialog.cpp" line="123"/>
         <source>Print - OpenPDF Studio</source>
         <translation>인쇄 - OpenPDF Studio</translation>
     </message>
     <message>
-        <location filename="../../src/ui/export/PrintDialog.cpp" line="283"/>
-        <location filename="../../src/ui/export/PrintDialog.cpp" line="564"/>
+        <location filename="../../src/ui/export/PrintDialog.cpp" line="286"/>
+        <location filename="../../src/ui/export/PrintDialog.cpp" line="567"/>
         <source>Print</source>
         <translation>인쇄</translation>
     </message>
     <message>
-        <location filename="../../src/ui/export/PrintDialog.cpp" line="329"/>
+        <location filename="../../src/ui/export/PrintDialog.cpp" line="332"/>
         <source>Printer</source>
         <translation>프린터</translation>
     </message>
     <message>
-        <location filename="../../src/ui/export/PrintDialog.cpp" line="342"/>
+        <location filename="../../src/ui/export/PrintDialog.cpp" line="345"/>
         <source>No printer found</source>
         <translation>프린터를 찾을 수 없음</translation>
     </message>
     <message>
-        <location filename="../../src/ui/export/PrintDialog.cpp" line="365"/>
+        <location filename="../../src/ui/export/PrintDialog.cpp" line="368"/>
         <source>Pages &amp; copies</source>
         <translation>페이지 및 매수</translation>
     </message>
     <message>
-        <location filename="../../src/ui/export/PrintDialog.cpp" line="367"/>
+        <location filename="../../src/ui/export/PrintDialog.cpp" line="370"/>
         <source>All %1</source>
         <translation>전체 (%1)</translation>
     </message>
     <message>
-        <location filename="../../src/ui/export/PrintDialog.cpp" line="368"/>
+        <location filename="../../src/ui/export/PrintDialog.cpp" line="371"/>
         <source>Current page</source>
         <translation>현재 페이지</translation>
     </message>
     <message>
-        <location filename="../../src/ui/export/PrintDialog.cpp" line="369"/>
+        <location filename="../../src/ui/export/PrintDialog.cpp" line="372"/>
         <source>Range</source>
         <translation>범위</translation>
     </message>
     <message>
-        <location filename="../../src/ui/export/PrintDialog.cpp" line="373"/>
+        <location filename="../../src/ui/export/PrintDialog.cpp" line="376"/>
         <source>For example: 1-3, 5, 8-10</source>
         <translation>예: 1-3, 5, 8-10</translation>
     </message>
     <message>
-        <location filename="../../src/ui/export/PrintDialog.cpp" line="396"/>
+        <location filename="../../src/ui/export/PrintDialog.cpp" line="399"/>
         <source>Copies</source>
         <translation>매수</translation>
     </message>
     <message>
-        <location filename="../../src/ui/export/PrintDialog.cpp" line="403"/>
+        <location filename="../../src/ui/export/PrintDialog.cpp" line="406"/>
         <source>Collate</source>
         <translation>한 부씩 인쇄</translation>
     </message>
     <message>
-        <location filename="../../src/ui/export/PrintDialog.cpp" line="420"/>
+        <location filename="../../src/ui/export/PrintDialog.cpp" line="423"/>
         <source>Paper &amp; layout</source>
         <translation>용지 및 레이아웃</translation>
     </message>
     <message>
-        <location filename="../../src/ui/export/PrintDialog.cpp" line="424"/>
+        <location filename="../../src/ui/export/PrintDialog.cpp" line="427"/>
         <source>Portrait</source>
         <translation>세로</translation>
     </message>
     <message>
-        <location filename="../../src/ui/export/PrintDialog.cpp" line="425"/>
+        <location filename="../../src/ui/export/PrintDialog.cpp" line="428"/>
         <source>Landscape</source>
         <translation>가로</translation>
     </message>
     <message>
-        <location filename="../../src/ui/export/PrintDialog.cpp" line="427"/>
+        <location filename="../../src/ui/export/PrintDialog.cpp" line="430"/>
         <source>Fit to printable area</source>
         <translation>인쇄 가능 영역에 맞춤</translation>
     </message>
     <message>
-        <location filename="../../src/ui/export/PrintDialog.cpp" line="428"/>
+        <location filename="../../src/ui/export/PrintDialog.cpp" line="431"/>
         <source>Shrink oversized pages</source>
         <translation>너무 큰 페이지만 축소</translation>
     </message>
     <message>
-        <location filename="../../src/ui/export/PrintDialog.cpp" line="429"/>
+        <location filename="../../src/ui/export/PrintDialog.cpp" line="432"/>
         <source>Actual size</source>
         <translation>실제 크기</translation>
     </message>
     <message>
-        <location filename="../../src/ui/export/PrintDialog.cpp" line="434"/>
+        <location filename="../../src/ui/export/PrintDialog.cpp" line="437"/>
         <source>Paper size</source>
         <translation>용지 크기</translation>
     </message>
     <message>
-        <location filename="../../src/ui/export/PrintDialog.cpp" line="435"/>
+        <location filename="../../src/ui/export/PrintDialog.cpp" line="438"/>
         <source>Orientation</source>
         <translation>방향</translation>
     </message>
     <message>
-        <location filename="../../src/ui/export/PrintDialog.cpp" line="436"/>
+        <location filename="../../src/ui/export/PrintDialog.cpp" line="439"/>
         <source>Scaling</source>
         <translation>배율</translation>
     </message>
     <message>
-        <location filename="../../src/ui/export/PrintDialog.cpp" line="453"/>
+        <location filename="../../src/ui/export/PrintDialog.cpp" line="456"/>
         <source>Output</source>
         <translation>출력</translation>
     </message>
     <message>
-        <location filename="../../src/ui/export/PrintDialog.cpp" line="460"/>
+        <location filename="../../src/ui/export/PrintDialog.cpp" line="463"/>
         <source>1 page on %1 sheets</source>
         <translation>1페이지를 %1매에 나눠 인쇄</translation>
     </message>
     <message>
-        <location filename="../../src/ui/export/PrintDialog.cpp" line="467"/>
+        <location filename="../../src/ui/export/PrintDialog.cpp" line="470"/>
         <source>Pages per sheet</source>
         <translation>용지당 페이지 수</translation>
     </message>
     <message>
-        <location filename="../../src/ui/export/PrintDialog.cpp" line="468"/>
-        <location filename="../../src/ui/export/PrintDialog.cpp" line="740"/>
+        <location filename="../../src/ui/export/PrintDialog.cpp" line="471"/>
+        <location filename="../../src/ui/export/PrintDialog.cpp" line="743"/>
         <source>Two-sided</source>
         <translation>양면</translation>
     </message>
     <message>
-        <location filename="../../src/ui/export/PrintDialog.cpp" line="473"/>
+        <location filename="../../src/ui/export/PrintDialog.cpp" line="476"/>
         <source>Print in black and white</source>
         <translation>흑백으로 인쇄</translation>
     </message>
     <message>
-        <location filename="../../src/ui/export/PrintDialog.cpp" line="482"/>
+        <location filename="../../src/ui/export/PrintDialog.cpp" line="485"/>
         <source>Output in black and white</source>
         <translation>흑백으로 출력</translation>
     </message>
     <message>
-        <location filename="../../src/ui/export/PrintDialog.cpp" line="502"/>
+        <location filename="../../src/ui/export/PrintDialog.cpp" line="505"/>
         <source>More settings</source>
         <translation>추가 설정</translation>
     </message>
     <message>
-        <location filename="../../src/ui/export/PrintDialog.cpp" line="514"/>
+        <location filename="../../src/ui/export/PrintDialog.cpp" line="517"/>
         <source>Cut marks on posters</source>
         <translation>포스터 재단선</translation>
     </message>
     <message>
-        <location filename="../../src/ui/export/PrintDialog.cpp" line="517"/>
+        <location filename="../../src/ui/export/PrintDialog.cpp" line="520"/>
         <source>Print with the system dialog…</source>
         <translation>시스템 대화 상자로 인쇄…</translation>
     </message>
     <message>
-        <location filename="../../src/ui/export/PrintDialog.cpp" line="522"/>
+        <location filename="../../src/ui/export/PrintDialog.cpp" line="525"/>
         <source>For paper tray, print quality and other settings of the printer driver.</source>
         <translation>용지함, 인쇄 품질 등 프린터 드라이버 설정용입니다.</translation>
     </message>
     <message>
-        <location filename="../../src/ui/export/PrintDialog.cpp" line="559"/>
+        <location filename="../../src/ui/export/PrintDialog.cpp" line="562"/>
         <source>Cancel</source>
         <translation>취소</translation>
     </message>
     <message>
-        <location filename="../../src/ui/export/PrintDialog.cpp" line="584"/>
+        <location filename="../../src/ui/export/PrintDialog.cpp" line="587"/>
         <source>Set up a printer in the system settings.</source>
         <translation>시스템 설정에서 프린터를 설정하세요.</translation>
     </message>
     <message>
-        <location filename="../../src/ui/export/PrintDialog.cpp" line="593"/>
+        <location filename="../../src/ui/export/PrintDialog.cpp" line="596"/>
         <source>Ready</source>
         <translation>준비됨</translation>
     </message>
     <message>
-        <location filename="../../src/ui/export/PrintDialog.cpp" line="594"/>
+        <location filename="../../src/ui/export/PrintDialog.cpp" line="597"/>
         <source>Printing</source>
         <translation>인쇄 중</translation>
     </message>
     <message>
-        <location filename="../../src/ui/export/PrintDialog.cpp" line="596"/>
+        <location filename="../../src/ui/export/PrintDialog.cpp" line="599"/>
         <source>Paused</source>
         <translation>일시 중지됨</translation>
     </message>
     <message>
-        <location filename="../../src/ui/export/PrintDialog.cpp" line="601"/>
+        <location filename="../../src/ui/export/PrintDialog.cpp" line="604"/>
         <source>Not ready</source>
         <translation>준비 안 됨</translation>
     </message>
     <message>
-        <location filename="../../src/ui/export/PrintDialog.cpp" line="609"/>
+        <location filename="../../src/ui/export/PrintDialog.cpp" line="612"/>
         <source>Color printer</source>
         <translation>컬러 프린터</translation>
     </message>
     <message>
-        <location filename="../../src/ui/export/PrintDialog.cpp" line="609"/>
+        <location filename="../../src/ui/export/PrintDialog.cpp" line="612"/>
         <source>Black-and-white printer</source>
         <translation>흑백 프린터</translation>
     </message>
     <message>
-        <location filename="../../src/ui/export/PrintDialog.cpp" line="637"/>
+        <location filename="../../src/ui/export/PrintDialog.cpp" line="640"/>
         <source>Off</source>
         <translation>끔</translation>
     </message>
     <message>
-        <location filename="../../src/ui/export/PrintDialog.cpp" line="639"/>
+        <location filename="../../src/ui/export/PrintDialog.cpp" line="642"/>
         <source>Long edge</source>
         <translation>긴 가장자리</translation>
     </message>
     <message>
-        <location filename="../../src/ui/export/PrintDialog.cpp" line="641"/>
+        <location filename="../../src/ui/export/PrintDialog.cpp" line="644"/>
         <source>Short edge</source>
         <translation>짧은 가장자리</translation>
     </message>
     <message>
-        <location filename="../../src/ui/export/PrintDialog.cpp" line="728"/>
+        <location filename="../../src/ui/export/PrintDialog.cpp" line="731"/>
         <source>Check the page range</source>
         <translation>페이지 범위를 확인하세요</translation>
     </message>
     <message>
-        <location filename="../../src/ui/export/PrintDialog.cpp" line="729"/>
+        <location filename="../../src/ui/export/PrintDialog.cpp" line="732"/>
         <source>Use page numbers like 1-3, 5, 8-10.</source>
         <translation>1-3, 5, 8-10처럼 페이지 번호를 입력하세요.</translation>
     </message>
     <message>
-        <location filename="../../src/ui/export/PrintDialog.cpp" line="740"/>
+        <location filename="../../src/ui/export/PrintDialog.cpp" line="743"/>
         <source>One-sided</source>
         <translation>단면</translation>
     </message>
     <message>
-        <location filename="../../src/ui/export/PrintDialog.cpp" line="741"/>
+        <location filename="../../src/ui/export/PrintDialog.cpp" line="744"/>
         <source>Sheets overlap by 10 mm</source>
         <translation>용지가 10mm 겹칩니다</translation>
     </message>
     <message>
-        <location filename="../../src/ui/export/PrintDialog.cpp" line="742"/>
+        <location filename="../../src/ui/export/PrintDialog.cpp" line="745"/>
         <source>Black and white</source>
         <translation>흑백</translation>
     </message>
@@ -3334,67 +3569,16 @@ Enter the password to open it:</source>
     </message>
 </context>
 <context>
-    <name>PermissionGate</name>
-    <message>
-        <location filename="../../src/ui/protect/PermissionGate.cpp" line="15"/>
-        <source>This document does not allow printing.</source>
-        <translation>이 문서는 인쇄를 허용하지 않습니다.</translation>
-    </message>
-    <message>
-        <location filename="../../src/ui/protect/PermissionGate.cpp" line="16"/>
-        <source>This document does not allow copying text.</source>
-        <translation>이 문서는 텍스트 복사를 허용하지 않습니다.</translation>
-    </message>
-    <message>
-        <location filename="../../src/ui/protect/PermissionGate.cpp" line="17"/>
-        <source>This document does not allow changing its content.</source>
-        <translation>이 문서는 내용 변경을 허용하지 않습니다.</translation>
-    </message>
-    <message>
-        <location filename="../../src/ui/protect/PermissionGate.cpp" line="18"/>
-        <source>This document does not allow adding comments.</source>
-        <translation>이 문서는 주석 추가를 허용하지 않습니다.</translation>
-    </message>
-    <message>
-        <location filename="../../src/ui/protect/PermissionGate.cpp" line="19"/>
-        <source>This document does not allow filling in forms.</source>
-        <translation>이 문서는 양식 작성을 허용하지 않습니다.</translation>
-    </message>
-    <message>
-        <location filename="../../src/ui/protect/PermissionGate.cpp" line="21"/>
-        <source>This document does not allow inserting, deleting and rotating pages.</source>
-        <translation>이 문서는 페이지 삽입, 삭제 및 회전을 허용하지 않습니다.</translation>
-    </message>
-    <message>
-        <location filename="../../src/ui/protect/PermissionGate.cpp" line="23"/>
-        <source>The restrictions of this document can only be changed by its owner.</source>
-        <translation>이 문서의 제한은 소유자만 변경할 수 있습니다.</translation>
-    </message>
-    <message>
-        <location filename="../../src/ui/protect/PermissionGate.cpp" line="52"/>
-        <source>Enter the permissions password to lift its restrictions:</source>
-        <translation>제한을 해제하려면 권한 암호를 입력하세요:</translation>
-    </message>
-    <message>
-        <location filename="../../src/ui/protect/PermissionGate.cpp" line="55"/>
-        <source>Restricted document</source>
-        <translation>제한된 문서</translation>
-    </message>
-    <message>
-        <location filename="../../src/ui/protect/PermissionGate.cpp" line="59"/>
-        <source>Wrong permissions password. Please try again:</source>
-        <translation>권한 암호가 올바르지 않습니다. 다시 시도하세요:</translation>
-    </message>
-</context>
-<context>
     <name>Printing</name>
     <message>
-        <location filename="../../src/ui/export/Printing.cpp" line="30"/>
+        <location filename="../../src/ui/export/Printing.cpp" line="26"/>
+        <location filename="../../src/ui/export/Printing.cpp" line="44"/>
         <source>Print</source>
         <translation>인쇄</translation>
     </message>
     <message>
-        <location filename="../../src/ui/export/Printing.cpp" line="31"/>
+        <location filename="../../src/ui/export/Printing.cpp" line="26"/>
+        <location filename="../../src/ui/export/Printing.cpp" line="45"/>
         <source>The document could not be printed.</source>
         <translation>문서를 인쇄할 수 없습니다.</translation>
     </message>
@@ -3425,271 +3609,271 @@ Enter the password to open it:</source>
 <context>
     <name>ProtectDialog</name>
     <message>
-        <location filename="../../src/ui/protect/ProtectDialog.cpp" line="58"/>
+        <location filename="../../src/ui/protect/ProtectDialog.cpp" line="59"/>
         <source>AES-256 encryption provides strong protection and is supported by all modern PDF readers.</source>
         <translation>AES-256 암호화는 강력한 보호를 제공하며 모든 최신 PDF 리더에서 지원됩니다.</translation>
     </message>
     <message>
-        <location filename="../../src/ui/protect/ProtectDialog.cpp" line="60"/>
+        <location filename="../../src/ui/protect/ProtectDialog.cpp" line="61"/>
         <source>AES-128 also opens in older readers, but is weaker than AES-256.</source>
         <translation>AES-128은 오래된 리더에서도 열리지만 AES-256보다 약합니다.</translation>
     </message>
     <message>
-        <location filename="../../src/ui/protect/ProtectDialog.cpp" line="62"/>
+        <location filename="../../src/ui/protect/ProtectDialog.cpp" line="63"/>
         <source>RC4 is outdated and can be broken. Use it only for very old PDF readers.</source>
         <translation>RC4는 오래되어 해독될 수 있습니다. 아주 오래된 PDF 리더에만 사용하세요.</translation>
     </message>
     <message>
-        <location filename="../../src/ui/protect/ProtectDialog.cpp" line="92"/>
+        <location filename="../../src/ui/protect/ProtectDialog.cpp" line="93"/>
         <source>Protect</source>
         <translation>보호</translation>
     </message>
     <message>
-        <location filename="../../src/ui/protect/ProtectDialog.cpp" line="93"/>
+        <location filename="../../src/ui/protect/ProtectDialog.cpp" line="94"/>
         <source>Protecting a PDF needs qpdf, which this build does not include.</source>
         <translation>PDF를 보호하려면 qpdf가 필요하지만 이 버전에는 포함되어 있지 않습니다.</translation>
     </message>
     <message>
-        <location filename="../../src/ui/protect/ProtectDialog.cpp" line="121"/>
+        <location filename="../../src/ui/protect/ProtectDialog.cpp" line="124"/>
         <source>Protect - OpenPDF Studio</source>
         <translation>보호 - OpenPDF Studio</translation>
     </message>
     <message>
-        <location filename="../../src/ui/protect/ProtectDialog.cpp" line="141"/>
+        <location filename="../../src/ui/protect/ProtectDialog.cpp" line="144"/>
         <source>Password &amp; Encryption</source>
         <translation>암호 및 암호화</translation>
     </message>
     <message>
-        <location filename="../../src/ui/protect/ProtectDialog.cpp" line="142"/>
-        <location filename="../../src/ui/protect/ProtectDialog.cpp" line="270"/>
+        <location filename="../../src/ui/protect/ProtectDialog.cpp" line="145"/>
+        <location filename="../../src/ui/protect/ProtectDialog.cpp" line="273"/>
         <source>Permissions</source>
         <translation>권한</translation>
     </message>
     <message>
-        <location filename="../../src/ui/protect/ProtectDialog.cpp" line="154"/>
+        <location filename="../../src/ui/protect/ProtectDialog.cpp" line="157"/>
         <source>Saving with changed protection rewrites the file, so its digital signatures will no longer be valid.</source>
         <translation>보호 설정을 바꿔 저장하면 파일이 다시 작성되므로 디지털 서명이 더 이상 유효하지 않습니다.</translation>
     </message>
     <message>
-        <location filename="../../src/ui/protect/ProtectDialog.cpp" line="187"/>
+        <location filename="../../src/ui/protect/ProtectDialog.cpp" line="190"/>
         <source>This document is currently protected.</source>
         <translation>이 문서는 현재 보호되어 있습니다.</translation>
     </message>
     <message>
-        <location filename="../../src/ui/protect/ProtectDialog.cpp" line="188"/>
+        <location filename="../../src/ui/protect/ProtectDialog.cpp" line="191"/>
         <source>This document is not protected.</source>
         <translation>이 문서는 보호되어 있지 않습니다.</translation>
     </message>
     <message>
-        <location filename="../../src/ui/protect/ProtectDialog.cpp" line="192"/>
+        <location filename="../../src/ui/protect/ProtectDialog.cpp" line="195"/>
         <source>You can change the password and encryption settings below.</source>
         <translation>아래에서 암호와 암호화 설정을 변경할 수 있습니다.</translation>
     </message>
     <message>
-        <location filename="../../src/ui/protect/ProtectDialog.cpp" line="193"/>
+        <location filename="../../src/ui/protect/ProtectDialog.cpp" line="196"/>
         <source>Set a password below, or restrict what readers may do.</source>
         <translation>아래에서 암호를 설정하거나 독자가 할 수 있는 작업을 제한하세요.</translation>
     </message>
     <message>
-        <location filename="../../src/ui/protect/ProtectDialog.cpp" line="197"/>
+        <location filename="../../src/ui/protect/ProtectDialog.cpp" line="200"/>
         <source>Remove protection</source>
         <translation>보호 해제</translation>
     </message>
     <message>
-        <location filename="../../src/ui/protect/ProtectDialog.cpp" line="222"/>
-        <location filename="../../src/ui/protect/ProtectDialog.cpp" line="228"/>
-        <location filename="../../src/ui/protect/ProtectDialog.cpp" line="230"/>
+        <location filename="../../src/ui/protect/ProtectDialog.cpp" line="225"/>
+        <location filename="../../src/ui/protect/ProtectDialog.cpp" line="231"/>
+        <location filename="../../src/ui/protect/ProtectDialog.cpp" line="233"/>
         <source>Password</source>
         <translation>암호</translation>
     </message>
     <message>
-        <location filename="../../src/ui/protect/ProtectDialog.cpp" line="222"/>
+        <location filename="../../src/ui/protect/ProtectDialog.cpp" line="225"/>
         <source>Require a password to open this PDF.</source>
         <translation>이 PDF를 열 때 암호를 요구합니다.</translation>
     </message>
     <message>
-        <location filename="../../src/ui/protect/ProtectDialog.cpp" line="223"/>
+        <location filename="../../src/ui/protect/ProtectDialog.cpp" line="226"/>
         <source>Enable password protection</source>
         <translation>암호 보호 사용</translation>
     </message>
     <message>
-        <location filename="../../src/ui/protect/ProtectDialog.cpp" line="229"/>
-        <location filename="../../src/ui/protect/ProtectDialog.cpp" line="231"/>
-        <location filename="../../src/ui/protect/ProtectDialog.cpp" line="278"/>
-        <location filename="../../src/ui/protect/ProtectDialog.cpp" line="280"/>
+        <location filename="../../src/ui/protect/ProtectDialog.cpp" line="232"/>
+        <location filename="../../src/ui/protect/ProtectDialog.cpp" line="234"/>
+        <location filename="../../src/ui/protect/ProtectDialog.cpp" line="281"/>
+        <location filename="../../src/ui/protect/ProtectDialog.cpp" line="283"/>
         <source>Confirm password</source>
         <translation>암호 확인</translation>
     </message>
     <message>
-        <location filename="../../src/ui/protect/ProtectDialog.cpp" line="238"/>
+        <location filename="../../src/ui/protect/ProtectDialog.cpp" line="241"/>
         <source>Encryption</source>
         <translation>암호화</translation>
     </message>
     <message>
-        <location filename="../../src/ui/protect/ProtectDialog.cpp" line="238"/>
+        <location filename="../../src/ui/protect/ProtectDialog.cpp" line="241"/>
         <source>Choose the encryption level for the PDF.</source>
         <translation>PDF의 암호화 수준을 선택하세요.</translation>
     </message>
     <message>
-        <location filename="../../src/ui/protect/ProtectDialog.cpp" line="239"/>
+        <location filename="../../src/ui/protect/ProtectDialog.cpp" line="242"/>
         <source>Encryption level</source>
         <translation>암호화 수준</translation>
     </message>
     <message>
-        <location filename="../../src/ui/protect/ProtectDialog.cpp" line="242"/>
+        <location filename="../../src/ui/protect/ProtectDialog.cpp" line="245"/>
         <source>AES-256 (Recommended)</source>
         <translation>AES-256 (권장)</translation>
     </message>
     <message>
-        <location filename="../../src/ui/protect/ProtectDialog.cpp" line="242"/>
+        <location filename="../../src/ui/protect/ProtectDialog.cpp" line="245"/>
         <source>AES-128</source>
         <translation>AES-128</translation>
     </message>
     <message>
-        <location filename="../../src/ui/protect/ProtectDialog.cpp" line="243"/>
+        <location filename="../../src/ui/protect/ProtectDialog.cpp" line="246"/>
         <source>RC4 128-bit (Legacy)</source>
         <translation>RC4 128비트 (구형)</translation>
     </message>
     <message>
-        <location filename="../../src/ui/protect/ProtectDialog.cpp" line="270"/>
+        <location filename="../../src/ui/protect/ProtectDialog.cpp" line="273"/>
         <source>Choose what readers may do with the PDF.</source>
         <translation>독자가 PDF로 할 수 있는 작업을 선택하세요.</translation>
     </message>
     <message>
-        <location filename="../../src/ui/protect/ProtectDialog.cpp" line="271"/>
+        <location filename="../../src/ui/protect/ProtectDialog.cpp" line="274"/>
         <source>Restrict printing, editing and copying</source>
         <translation>인쇄, 편집 및 복사 제한</translation>
     </message>
     <message>
-        <location filename="../../src/ui/protect/ProtectDialog.cpp" line="277"/>
-        <location filename="../../src/ui/protect/ProtectDialog.cpp" line="279"/>
+        <location filename="../../src/ui/protect/ProtectDialog.cpp" line="280"/>
+        <location filename="../../src/ui/protect/ProtectDialog.cpp" line="282"/>
         <source>Permissions password</source>
         <translation>권한 암호</translation>
     </message>
     <message>
-        <location filename="../../src/ui/protect/ProtectDialog.cpp" line="284"/>
+        <location filename="../../src/ui/protect/ProtectDialog.cpp" line="287"/>
         <source>Needed to lift the restrictions later. If you leave it empty, nobody can lift them.</source>
         <translation>나중에 제한을 해제할 때 필요합니다. 비워 두면 아무도 해제할 수 없습니다.</translation>
     </message>
     <message>
-        <location filename="../../src/ui/protect/ProtectDialog.cpp" line="290"/>
+        <location filename="../../src/ui/protect/ProtectDialog.cpp" line="293"/>
         <source>Allowed actions</source>
         <translation>허용된 작업</translation>
     </message>
     <message>
-        <location filename="../../src/ui/protect/ProtectDialog.cpp" line="295"/>
+        <location filename="../../src/ui/protect/ProtectDialog.cpp" line="298"/>
         <source>Printing</source>
         <translation>인쇄</translation>
     </message>
     <message>
-        <location filename="../../src/ui/protect/ProtectDialog.cpp" line="295"/>
+        <location filename="../../src/ui/protect/ProtectDialog.cpp" line="298"/>
         <source>High-quality printing</source>
         <translation>고품질 인쇄</translation>
     </message>
     <message>
-        <location filename="../../src/ui/protect/ProtectDialog.cpp" line="295"/>
+        <location filename="../../src/ui/protect/ProtectDialog.cpp" line="298"/>
         <source>Changing content</source>
         <translation>내용 변경</translation>
     </message>
     <message>
-        <location filename="../../src/ui/protect/ProtectDialog.cpp" line="296"/>
+        <location filename="../../src/ui/protect/ProtectDialog.cpp" line="299"/>
         <source>Copying text and images</source>
         <translation>텍스트 및 이미지 복사</translation>
     </message>
     <message>
-        <location filename="../../src/ui/protect/ProtectDialog.cpp" line="296"/>
+        <location filename="../../src/ui/protect/ProtectDialog.cpp" line="299"/>
         <source>Adding comments</source>
         <translation>주석 추가</translation>
     </message>
     <message>
-        <location filename="../../src/ui/protect/ProtectDialog.cpp" line="296"/>
+        <location filename="../../src/ui/protect/ProtectDialog.cpp" line="299"/>
         <source>Filling in forms</source>
         <translation>양식 작성</translation>
     </message>
     <message>
-        <location filename="../../src/ui/protect/ProtectDialog.cpp" line="297"/>
+        <location filename="../../src/ui/protect/ProtectDialog.cpp" line="300"/>
         <source>Inserting, deleting and rotating pages</source>
         <translation>페이지 삽입, 삭제 및 회전</translation>
     </message>
     <message>
-        <location filename="../../src/ui/protect/ProtectDialog.cpp" line="297"/>
+        <location filename="../../src/ui/protect/ProtectDialog.cpp" line="300"/>
         <source>Reading aloud for accessibility</source>
         <translation>접근성을 위한 소리 내어 읽기</translation>
     </message>
     <message>
-        <location filename="../../src/ui/protect/ProtectDialog.cpp" line="308"/>
+        <location filename="../../src/ui/protect/ProtectDialog.cpp" line="311"/>
         <source>Most PDF readers respect these restrictions, but they are not a strong protection on their own. Use an open password for confidential documents.</source>
         <translation>대부분의 PDF 리더는 이 제한을 따르지만 그것만으로는 강력한 보호가 되지 않습니다. 기밀 문서에는 열기 암호를 사용하세요.</translation>
     </message>
     <message>
-        <location filename="../../src/ui/protect/ProtectDialog.cpp" line="325"/>
+        <location filename="../../src/ui/protect/ProtectDialog.cpp" line="328"/>
         <source>Changes are applied when you save the document.</source>
         <translation>변경 사항은 문서를 저장할 때 적용됩니다.</translation>
     </message>
     <message>
-        <location filename="../../src/ui/protect/ProtectDialog.cpp" line="326"/>
+        <location filename="../../src/ui/protect/ProtectDialog.cpp" line="329"/>
         <source>Cancel</source>
         <translation>취소</translation>
     </message>
     <message>
-        <location filename="../../src/ui/protect/ProtectDialog.cpp" line="331"/>
+        <location filename="../../src/ui/protect/ProtectDialog.cpp" line="334"/>
         <source>Apply</source>
         <translation>적용</translation>
     </message>
     <message>
-        <location filename="../../src/ui/protect/ProtectDialog.cpp" line="350"/>
-        <location filename="../../src/ui/protect/ProtectDialog.cpp" line="357"/>
+        <location filename="../../src/ui/protect/ProtectDialog.cpp" line="353"/>
+        <location filename="../../src/ui/protect/ProtectDialog.cpp" line="360"/>
         <source>Show password</source>
         <translation>암호 표시</translation>
     </message>
     <message>
-        <location filename="../../src/ui/protect/ProtectDialog.cpp" line="357"/>
+        <location filename="../../src/ui/protect/ProtectDialog.cpp" line="360"/>
         <source>Hide password</source>
         <translation>암호 숨기기</translation>
     </message>
     <message>
-        <location filename="../../src/ui/protect/ProtectDialog.cpp" line="411"/>
+        <location filename="../../src/ui/protect/ProtectDialog.cpp" line="414"/>
         <source>Missing password</source>
         <translation>암호 없음</translation>
     </message>
     <message>
-        <location filename="../../src/ui/protect/ProtectDialog.cpp" line="412"/>
+        <location filename="../../src/ui/protect/ProtectDialog.cpp" line="415"/>
         <source>Please enter a password, or switch password protection off.</source>
         <translation>암호를 입력하거나 암호 보호를 끄세요.</translation>
     </message>
     <message>
-        <location filename="../../src/ui/protect/ProtectDialog.cpp" line="416"/>
-        <location filename="../../src/ui/protect/ProtectDialog.cpp" line="423"/>
+        <location filename="../../src/ui/protect/ProtectDialog.cpp" line="419"/>
+        <location filename="../../src/ui/protect/ProtectDialog.cpp" line="426"/>
         <source>Passwords do not match</source>
         <translation>암호가 일치하지 않음</translation>
     </message>
     <message>
-        <location filename="../../src/ui/protect/ProtectDialog.cpp" line="417"/>
+        <location filename="../../src/ui/protect/ProtectDialog.cpp" line="420"/>
         <source>The password and its confirmation are different.</source>
         <translation>암호와 확인 암호가 다릅니다.</translation>
     </message>
     <message>
-        <location filename="../../src/ui/protect/ProtectDialog.cpp" line="424"/>
+        <location filename="../../src/ui/protect/ProtectDialog.cpp" line="427"/>
         <source>The permissions password and its confirmation are different.</source>
         <translation>권한 암호와 확인 암호가 다릅니다.</translation>
     </message>
     <message>
-        <location filename="../../src/ui/protect/ProtectDialog.cpp" line="429"/>
+        <location filename="../../src/ui/protect/ProtectDialog.cpp" line="432"/>
         <source>Same password twice</source>
         <translation>같은 암호를 두 번 사용함</translation>
     </message>
     <message>
-        <location filename="../../src/ui/protect/ProtectDialog.cpp" line="430"/>
+        <location filename="../../src/ui/protect/ProtectDialog.cpp" line="433"/>
         <source>The permissions password must differ from the open password, otherwise everyone who can open the PDF can lift the restrictions.</source>
         <translation>권한 암호는 열기 암호와 달라야 합니다. 그렇지 않으면 PDF를 열 수 있는 사람은 누구나 제한을 해제할 수 있습니다.</translation>
     </message>
     <message>
-        <location filename="../../src/ui/protect/ProtectDialog.cpp" line="186"/>
+        <location filename="../../src/ui/protect/ProtectDialog.cpp" line="189"/>
         <source>No document is open.</source>
         <translation>열린 문서가 없습니다.</translation>
     </message>
     <message>
-        <location filename="../../src/ui/protect/ProtectDialog.cpp" line="190"/>
+        <location filename="../../src/ui/protect/ProtectDialog.cpp" line="193"/>
         <source>Open a PDF to protect it.</source>
         <translation>보호하려면 PDF를 여세요.</translation>
     </message>
@@ -3713,7 +3897,7 @@ Enter the password to open it:</source>
 <context>
     <name>Registration</name>
     <message>
-        <location filename="../../modules/rich-media/MediaModule.cpp" line="31"/>
+        <location filename="../../modules/rich-media/MediaModule.cpp" line="37"/>
         <source>Rich Media</source>
         <translation>리치 미디어</translation>
     </message>
@@ -3993,422 +4177,423 @@ Enter the password to open it:</source>
 <context>
     <name>SettingsPanel</name>
     <message>
-        <location filename="../../src/ui/settings/SettingsPanel.cpp" line="47"/>
-        <location filename="../../src/ui/settings/SettingsPanel.cpp" line="1159"/>
+        <location filename="../../src/ui/settings/SettingsPanel.cpp" line="35"/>
+        <location filename="../../src/ui/settings/SettingsPanel.cpp" line="480"/>
         <source>Settings - OpenPDF Studio</source>
         <translation>설정 - OpenPDF Studio</translation>
     </message>
     <message>
-        <location filename="../../src/ui/settings/SettingsPanel.cpp" line="426"/>
+        <location filename="../../src/ui/settings/SettingsPanel_Media.cpp" line="25"/>
         <source>Choose how video embedded in a PDF is played.</source>
         <translation>PDF에 포함된 동영상을 재생하는 방법을 선택하세요.</translation>
     </message>
     <message>
-        <location filename="../../src/ui/settings/SettingsPanel.cpp" line="439"/>
+        <location filename="../../src/ui/settings/SettingsPanel_Media.cpp" line="38"/>
         <source>In OpenPDF Studio</source>
         <translation>OpenPDF Studio에서</translation>
     </message>
     <message>
-        <location filename="../../src/ui/settings/SettingsPanel.cpp" line="440"/>
+        <location filename="../../src/ui/settings/SettingsPanel_Media.cpp" line="39"/>
         <source>Plays on the page</source>
         <translation>페이지에서 재생</translation>
     </message>
     <message>
-        <location filename="../../src/ui/settings/SettingsPanel.cpp" line="441"/>
+        <location filename="../../src/ui/settings/SettingsPanel_Media.cpp" line="40"/>
         <source>System player</source>
         <translation>시스템 플레이어</translation>
     </message>
     <message>
-        <location filename="../../src/ui/settings/SettingsPanel.cpp" line="442"/>
+        <location filename="../../src/ui/settings/SettingsPanel_Media.cpp" line="41"/>
         <source>Opens in your video player</source>
         <translation>동영상 플레이어에서 열기</translation>
     </message>
     <message>
-        <location filename="../../src/ui/settings/SettingsPanel.cpp" line="443"/>
+        <location filename="../../src/ui/settings/SettingsPanel_Media.cpp" line="42"/>
         <source>Custom command</source>
         <translation>사용자 지정 명령</translation>
     </message>
     <message>
-        <location filename="../../src/ui/settings/SettingsPanel.cpp" line="444"/>
+        <location filename="../../src/ui/settings/SettingsPanel_Media.cpp" line="43"/>
         <source>Run a player of your choice</source>
         <translation>원하는 플레이어 실행</translation>
     </message>
     <message>
-        <location filename="../../src/ui/settings/SettingsPanel.cpp" line="457"/>
+        <location filename="../../src/ui/settings/SettingsPanel_Media.cpp" line="56"/>
         <source>This build has no built-in player. &quot;In OpenPDF Studio&quot; falls back to the system player.</source>
         <translation>이 빌드에는 내장 플레이어가 없습니다. &quot;OpenPDF Studio에서&quot;는 시스템 플레이어를 사용합니다.</translation>
     </message>
     <message>
-        <location filename="../../src/ui/settings/SettingsPanel.cpp" line="470"/>
+        <location filename="../../src/ui/settings/SettingsPanel_Media.cpp" line="69"/>
         <source>Command:</source>
         <translation>명령:</translation>
     </message>
     <message>
-        <location filename="../../src/ui/settings/SettingsPanel.cpp" line="477"/>
+        <location filename="../../src/ui/settings/SettingsPanel_Media.cpp" line="76"/>
         <source>%1 is replaced with the video file. Without it the file is appended.</source>
         <translation>%1은(는) 동영상 파일로 바뀝니다. 없으면 파일이 끝에 추가됩니다.</translation>
     </message>
     <message>
-        <location filename="../../src/ui/settings/SettingsPanel.cpp" line="480"/>
+        <location filename="../../src/ui/settings/SettingsPanel_Media.cpp" line="79"/>
         <source>Browse...</source>
         <translation>찾아보기…</translation>
     </message>
     <message>
-        <location filename="../../src/ui/settings/SettingsPanel.cpp" line="482"/>
+        <location filename="../../src/ui/settings/SettingsPanel_Media.cpp" line="81"/>
         <source>Choose a media player</source>
         <translation>미디어 플레이어 선택</translation>
     </message>
     <message>
-        <location filename="../../src/ui/settings/SettingsPanel.cpp" line="511"/>
+        <location filename="../../src/ui/settings/SettingsPanel_Shortcuts.cpp" line="28"/>
         <source>Keyboard Shortcuts</source>
         <translation>키보드 단축키</translation>
     </message>
     <message>
-        <location filename="../../src/ui/settings/SettingsPanel.cpp" line="514"/>
+        <location filename="../../src/ui/settings/SettingsPanel_Shortcuts.cpp" line="31"/>
         <source>Configure keyboard shortcuts for frequent actions.</source>
         <translation>자주 쓰는 작업의 키보드 단축키를 설정합니다.</translation>
     </message>
     <message>
-        <location filename="../../src/ui/settings/SettingsPanel.cpp" line="528"/>
+        <location filename="../../src/ui/settings/SettingsPanel_Shortcuts.cpp" line="45"/>
         <source>Search action</source>
         <translation>작업 검색</translation>
     </message>
     <message>
-        <location filename="../../src/ui/settings/SettingsPanel.cpp" line="531"/>
+        <location filename="../../src/ui/settings/SettingsPanel_Shortcuts.cpp" line="48"/>
         <source>Show only global default shortcuts</source>
         <translation>전역 기본 단축키만 표시</translation>
     </message>
     <message>
-        <location filename="../../src/ui/settings/SettingsPanel.cpp" line="549"/>
+        <location filename="../../src/ui/settings/SettingsPanel_Shortcuts.cpp" line="66"/>
         <source>Action</source>
         <translation>작업</translation>
     </message>
     <message>
-        <location filename="../../src/ui/settings/SettingsPanel.cpp" line="553"/>
+        <location filename="../../src/ui/settings/SettingsPanel_Shortcuts.cpp" line="70"/>
         <source>Key Combination</source>
         <translation>키 조합</translation>
     </message>
     <message>
-        <location filename="../../src/ui/settings/SettingsPanel.cpp" line="582"/>
+        <location filename="../../src/ui/settings/SettingsPanel_Shortcuts.cpp" line="99"/>
         <source>Save As</source>
         <translation>다른 이름으로 저장</translation>
     </message>
     <message>
-        <location filename="../../src/ui/settings/SettingsPanel.cpp" line="583"/>
+        <location filename="../../src/ui/settings/SettingsPanel_Shortcuts.cpp" line="100"/>
         <source>Print</source>
         <translation>인쇄</translation>
     </message>
     <message>
-        <location filename="../../src/ui/settings/SettingsPanel.cpp" line="584"/>
+        <location filename="../../src/ui/settings/SettingsPanel_Shortcuts.cpp" line="101"/>
         <source>Open</source>
         <translation>열기</translation>
     </message>
     <message>
-        <location filename="../../src/ui/settings/SettingsPanel.cpp" line="585"/>
+        <location filename="../../src/ui/settings/SettingsPanel_Shortcuts.cpp" line="103"/>
         <source>Undo</source>
         <translation>실행 취소</translation>
     </message>
     <message>
-        <location filename="../../src/ui/settings/SettingsPanel.cpp" line="586"/>
+        <location filename="../../src/ui/settings/SettingsPanel_Shortcuts.cpp" line="104"/>
         <source>Redo</source>
         <translation>다시 실행</translation>
     </message>
     <message>
-        <location filename="../../src/ui/settings/SettingsPanel.cpp" line="587"/>
+        <location filename="../../src/ui/settings/SettingsPanel_Shortcuts.cpp" line="105"/>
         <source>Find</source>
         <translation>찾기</translation>
     </message>
     <message>
-        <location filename="../../src/ui/settings/SettingsPanel.cpp" line="588"/>
+        <location filename="../../src/ui/settings/SettingsPanel_Shortcuts.cpp" line="106"/>
         <source>Text Tool</source>
         <translation>텍스트 도구</translation>
     </message>
     <message>
-        <location filename="../../src/ui/settings/SettingsPanel.cpp" line="589"/>
+        <location filename="../../src/ui/settings/SettingsPanel_Shortcuts.cpp" line="107"/>
         <source>Notes</source>
         <translation>메모</translation>
     </message>
     <message>
-        <location filename="../../src/ui/settings/SettingsPanel.cpp" line="590"/>
+        <location filename="../../src/ui/settings/SettingsPanel_Shortcuts.cpp" line="108"/>
         <source>Zoom In</source>
         <translation>확대</translation>
     </message>
     <message>
-        <location filename="../../src/ui/settings/SettingsPanel.cpp" line="591"/>
+        <location filename="../../src/ui/settings/SettingsPanel_Shortcuts.cpp" line="109"/>
         <source>Zoom Out</source>
         <translation>축소</translation>
     </message>
     <message>
-        <location filename="../../src/ui/settings/SettingsPanel.cpp" line="592"/>
+        <location filename="../../src/ui/settings/SettingsPanel_Shortcuts.cpp" line="110"/>
         <source>Presentation</source>
         <translation>프레젠테이션</translation>
     </message>
     <message>
-        <location filename="../../src/ui/settings/SettingsPanel.cpp" line="640"/>
+        <location filename="../../src/ui/settings/SettingsPanel_Shortcuts.cpp" line="158"/>
         <source>Double-click on a key combination to change it.</source>
         <translation>키 조합을 두 번 클릭하면 변경할 수 있습니다.</translation>
     </message>
     <message>
-        <location filename="../../src/ui/settings/SettingsPanel.cpp" line="652"/>
+        <location filename="../../src/ui/settings/SettingsPanel_Zoom.cpp" line="16"/>
         <source>Configure how zoom works with the mouse wheel.</source>
         <translation>마우스 휠로 확대/축소하는 방식을 설정합니다.</translation>
     </message>
     <message>
-        <location filename="../../src/ui/settings/SettingsPanel.cpp" line="680"/>
+        <location filename="../../src/ui/settings/SettingsPanel_Zoom.cpp" line="44"/>
         <source>Mouse Wheel Zoom Step</source>
         <translation>마우스 휠 확대/축소 단계</translation>
     </message>
     <message>
-        <location filename="../../src/ui/settings/SettingsPanel.cpp" line="686"/>
+        <location filename="../../src/ui/settings/SettingsPanel_Zoom.cpp" line="50"/>
         <source>Zoom step with Ctrl + Mouse Wheel</source>
         <translation>Ctrl + 마우스 휠 확대/축소 단계</translation>
     </message>
     <message>
-        <location filename="../../src/ui/settings/SettingsPanel.cpp" line="698"/>
+        <location filename="../../src/ui/settings/SettingsPanel_Zoom.cpp" line="62"/>
         <source>Sets how much is zoomed per mouse wheel movement.</source>
         <translation>마우스 휠을 한 번 움직일 때 확대/축소되는 정도를 설정합니다.</translation>
     </message>
     <message>
-        <location filename="../../src/ui/settings/SettingsPanel.cpp" line="720"/>
+        <location filename="../../src/ui/settings/SettingsPanel_Zoom.cpp" line="84"/>
         <source>Zoom with Ctrl + Mouse Wheel</source>
         <translation>Ctrl + 마우스 휠로 확대/축소</translation>
     </message>
     <message>
-        <location filename="../../src/ui/settings/SettingsPanel.cpp" line="725"/>
+        <location filename="../../src/ui/settings/SettingsPanel_Zoom.cpp" line="89"/>
         <source>Zoom to Mouse Pointer</source>
         <translation>마우스 포인터 위치로 확대/축소</translation>
     </message>
     <message>
-        <location filename="../../src/ui/settings/SettingsPanel.cpp" line="736"/>
+        <location filename="../../src/ui/settings/SettingsPanel_Zoom.cpp" line="100"/>
         <source>Action without Ctrl</source>
         <translation>Ctrl 없이 할 작업</translation>
     </message>
     <message>
-        <location filename="../../src/ui/settings/SettingsPanel.cpp" line="741"/>
+        <location filename="../../src/ui/settings/SettingsPanel_Zoom.cpp" line="105"/>
         <source>Scroll</source>
         <translation>스크롤</translation>
     </message>
     <message>
-        <location filename="../../src/ui/settings/SettingsPanel.cpp" line="758"/>
+        <location filename="../../src/ui/settings/SettingsPanel_Zoom.cpp" line="122"/>
         <source>Example: 100 % → %1 %</source>
         <translation>예: 100 % → %1 %</translation>
     </message>
     <message>
-        <location filename="../../src/ui/settings/SettingsPanel.cpp" line="828"/>
+        <location filename="../../src/ui/settings/SettingsPanel_Advanced.cpp" line="21"/>
         <source>Updates</source>
         <translation>업데이트</translation>
     </message>
     <message>
-        <location filename="../../src/ui/settings/SettingsPanel.cpp" line="829"/>
+        <location filename="../../src/ui/settings/SettingsPanel_Advanced.cpp" line="22"/>
         <source>Check for automatic updates</source>
         <translation>업데이트 자동 확인</translation>
     </message>
     <message>
-        <location filename="../../src/ui/settings/SettingsPanel.cpp" line="830"/>
+        <location filename="../../src/ui/settings/SettingsPanel_Advanced.cpp" line="23"/>
         <source>Automatically check for updates in the background and notify you when a new version is available.</source>
         <translation>백그라운드에서 업데이트를 확인하고 새 버전이 있으면 알려 줍니다.</translation>
     </message>
     <message>
-        <location filename="../../src/ui/settings/SettingsPanel.cpp" line="834"/>
+        <location filename="../../src/ui/settings/SettingsPanel_Advanced.cpp" line="27"/>
         <source>Check interval:</source>
         <translation>확인 간격:</translation>
     </message>
     <message>
-        <location filename="../../src/ui/settings/SettingsPanel.cpp" line="835"/>
+        <location filename="../../src/ui/settings/SettingsPanel_Advanced.cpp" line="28"/>
         <source>On every start</source>
         <translation>시작할 때마다</translation>
     </message>
     <message>
-        <location filename="../../src/ui/settings/SettingsPanel.cpp" line="836"/>
+        <location filename="../../src/ui/settings/SettingsPanel_Advanced.cpp" line="29"/>
         <source>Daily</source>
         <translation>매일</translation>
     </message>
     <message>
-        <location filename="../../src/ui/settings/SettingsPanel.cpp" line="837"/>
+        <location filename="../../src/ui/settings/SettingsPanel_Advanced.cpp" line="30"/>
         <source>Weekly</source>
         <translation>매주</translation>
     </message>
     <message>
-        <location filename="../../src/ui/settings/SettingsPanel.cpp" line="838"/>
+        <location filename="../../src/ui/settings/SettingsPanel_Advanced.cpp" line="31"/>
         <source>Monthly</source>
         <translation>매월</translation>
     </message>
     <message>
-        <location filename="../../src/ui/settings/SettingsPanel.cpp" line="851"/>
+        <location filename="../../src/ui/settings/SettingsPanel_Advanced.cpp" line="44"/>
         <source>Check now</source>
         <translation>지금 확인</translation>
     </message>
     <message>
-        <location filename="../../src/ui/settings/SettingsPanel.cpp" line="864"/>
+        <location filename="../../src/ui/settings/SettingsPanel_Advanced.cpp" line="57"/>
         <source>Last checked %1</source>
         <translation>마지막 확인: %1</translation>
     </message>
     <message>
-        <location filename="../../src/ui/settings/SettingsPanel.cpp" line="866"/>
+        <location filename="../../src/ui/settings/SettingsPanel_Advanced.cpp" line="59"/>
         <source>Not checked yet</source>
         <translation>아직 확인 안 함</translation>
     </message>
     <message>
-        <location filename="../../src/ui/settings/SettingsPanel.cpp" line="875"/>
+        <location filename="../../src/ui/settings/SettingsPanel_Advanced.cpp" line="68"/>
         <source>Checking…</source>
         <translation>확인 중…</translation>
     </message>
     <message>
-        <location filename="../../src/ui/settings/SettingsPanel.cpp" line="890"/>
+        <location filename="../../src/ui/settings/SettingsPanel_Advanced.cpp" line="83"/>
         <source>Check failed: %1</source>
         <translation>확인 실패: %1</translation>
     </message>
     <message>
-        <location filename="../../src/ui/settings/SettingsPanel.cpp" line="895"/>
+        <location filename="../../src/ui/settings/SettingsPanel_Advanced.cpp" line="88"/>
         <source>Version %1 is up to date.</source>
         <translation>버전 %1이(가) 최신입니다.</translation>
     </message>
     <message>
-        <location filename="../../src/ui/settings/SettingsPanel.cpp" line="901"/>
+        <location filename="../../src/ui/settings/SettingsPanel_Advanced.cpp" line="94"/>
         <source>Version %1 is available. &lt;a href=&quot;%2&quot; style=&quot;color:%3;&quot;&gt;Download&lt;/a&gt;</source>
         <translation>버전 %1을(를) 사용할 수 있습니다. &lt;a href=&quot;%2&quot; style=&quot;color:%3;&quot;&gt;다운로드&lt;/a&gt;</translation>
     </message>
     <message>
-        <location filename="../../src/ui/settings/SettingsPanel.cpp" line="910"/>
+        <location filename="../../src/ui/settings/SettingsPanel_Advanced.cpp" line="103"/>
         <source>Interface</source>
         <translation>인터페이스</translation>
     </message>
     <message>
-        <location filename="../../src/ui/settings/SettingsPanel.cpp" line="911"/>
-        <source>Preserve panel layout</source>
-        <translation>패널 배치 유지</translation>
+        <location filename="../../src/ui/settings/SettingsPanel_Advanced.cpp" line="104"/>
+        <source>Save preferences</source>
+        <translation>환경설정 저장</translation>
     </message>
     <message>
-        <location filename="../../src/ui/settings/SettingsPanel.cpp" line="912"/>
-        <source>Restore expanded and collapsed panels after restart.</source>
-        <translation>다시 시작한 후 펼치거나 접은 패널을 복원합니다.</translation>
+        <location filename="../../src/ui/settings/SettingsPanel_Advanced.cpp" line="105"/>
+        <source>Keeps everything you set up for yourself, such as the panel layout and signing.</source>
+        <translation>패널 배치와 서명 등 직접 설정한 모든 항목을 유지합니다.</translation>
     </message>
     <message>
-        <location filename="../../src/ui/settings/SettingsPanel.cpp" line="918"/>
         <source>Performance</source>
-        <translation>성능</translation>
+        <translation type="vanished">성능</translation>
     </message>
     <message>
-        <location filename="../../src/ui/settings/SettingsPanel.cpp" line="919"/>
         <source>Use hardware acceleration when available</source>
-        <translation>가능하면 하드웨어 가속 사용</translation>
+        <translation type="vanished">가능하면 하드웨어 가속 사용</translation>
     </message>
     <message>
-        <location filename="../../src/ui/settings/SettingsPanel.cpp" line="920"/>
         <source>Improves performance for rendering and media playback.</source>
-        <translation>렌더링과 미디어 재생 성능을 높입니다.</translation>
+        <translation type="vanished">렌더링과 미디어 재생 성능을 높입니다.</translation>
     </message>
     <message>
-        <location filename="../../src/ui/settings/SettingsPanel.cpp" line="923"/>
         <source>Limit memory usage</source>
-        <translation>메모리 사용 제한</translation>
+        <translation type="vanished">메모리 사용 제한</translation>
     </message>
     <message>
-        <location filename="../../src/ui/settings/SettingsPanel.cpp" line="924"/>
         <source>Helps improve stability on systems with limited memory.</source>
-        <translation>메모리가 적은 시스템에서 안정성을 높이는 데 도움이 됩니다.</translation>
+        <translation type="vanished">메모리가 적은 시스템에서 안정성을 높이는 데 도움이 됩니다.</translation>
     </message>
     <message>
-        <location filename="../../src/ui/settings/SettingsPanel.cpp" line="930"/>
+        <location filename="../../src/ui/settings/SettingsPanel_Advanced.cpp" line="111"/>
         <source>Diagnostics</source>
         <translation>진단</translation>
     </message>
     <message>
-        <location filename="../../src/ui/settings/SettingsPanel.cpp" line="931"/>
+        <location filename="../../src/ui/settings/SettingsPanel_Advanced.cpp" line="112"/>
         <source>Enable debug logging</source>
         <translation>디버그 로깅 사용</translation>
     </message>
     <message>
-        <location filename="../../src/ui/settings/SettingsPanel.cpp" line="932"/>
+        <location filename="../../src/ui/settings/SettingsPanel_Advanced.cpp" line="113"/>
         <source>Save detailed logs for troubleshooting purposes.</source>
         <translation>문제 해결을 위해 자세한 로그를 저장합니다.</translation>
     </message>
     <message>
-        <location filename="../../src/ui/settings/SettingsPanel.cpp" line="935"/>
+        <location filename="../../src/ui/settings/SettingsPanel_Advanced.cpp" line="116"/>
         <source>Log level:</source>
         <translation>로그 수준:</translation>
     </message>
     <message>
-        <location filename="../../src/ui/settings/SettingsPanel.cpp" line="936"/>
+        <location filename="../../src/ui/settings/SettingsPanel_Advanced.cpp" line="117"/>
         <source>Error</source>
         <translation>오류</translation>
     </message>
     <message>
-        <location filename="../../src/ui/settings/SettingsPanel.cpp" line="937"/>
+        <location filename="../../src/ui/settings/SettingsPanel_Advanced.cpp" line="118"/>
         <source>Warning</source>
         <translation>경고</translation>
     </message>
     <message>
-        <location filename="../../src/ui/settings/SettingsPanel.cpp" line="938"/>
+        <location filename="../../src/ui/settings/SettingsPanel_Advanced.cpp" line="119"/>
         <source>Info</source>
         <translation>정보</translation>
     </message>
     <message>
-        <location filename="../../src/ui/settings/SettingsPanel.cpp" line="939"/>
+        <location filename="../../src/ui/settings/SettingsPanel_Advanced.cpp" line="120"/>
         <source>Debug</source>
         <translation>디버그</translation>
     </message>
     <message>
-        <location filename="../../src/ui/settings/SettingsPanel.cpp" line="949"/>
+        <location filename="../../src/ui/settings/SettingsPanel_Advanced.cpp" line="130"/>
         <source>Reset</source>
         <translation>초기화</translation>
     </message>
     <message>
-        <location filename="../../src/ui/settings/SettingsPanel.cpp" line="1034"/>
+        <location filename="../../src/ui/settings/SettingsPanel_About.cpp" line="45"/>
         <source>Configuration (portable): %1</source>
         <translation>설정(포터블): %1</translation>
     </message>
     <message>
-        <location filename="../../src/ui/settings/SettingsPanel.cpp" line="1035"/>
+        <location filename="../../src/ui/settings/SettingsPanel_About.cpp" line="46"/>
         <source>Configuration: %1</source>
         <translation>설정: %1</translation>
     </message>
     <message>
-        <location filename="../../src/ui/settings/SettingsPanel.cpp" line="110"/>
+        <location filename="../../src/ui/settings/SettingsPanel.cpp" line="107"/>
         <source>Cancel</source>
         <translation>취소</translation>
     </message>
     <message>
-        <location filename="../../src/ui/settings/SettingsPanel.cpp" line="115"/>
-        <location filename="../../src/ui/settings/SettingsPanel.cpp" line="581"/>
+        <location filename="../../src/ui/settings/SettingsPanel.cpp" line="112"/>
+        <location filename="../../src/ui/settings/SettingsPanel_Shortcuts.cpp" line="98"/>
         <source>Save</source>
         <translation>저장</translation>
     </message>
     <message>
-        <location filename="../../src/ui/settings/SettingsPanel.cpp" line="130"/>
-        <location filename="../../src/ui/settings/SettingsPanel.cpp" line="307"/>
+        <location filename="../../src/ui/settings/SettingsPanel.cpp" line="127"/>
+        <location filename="../../src/ui/settings/SettingsPanel_Appearance.cpp" line="16"/>
         <source>Appearance</source>
         <translation>외관</translation>
     </message>
     <message>
-        <location filename="../../src/ui/settings/SettingsPanel.cpp" line="131"/>
-        <location filename="../../src/ui/settings/SettingsPanel.cpp" line="351"/>
+        <location filename="../../src/ui/settings/SettingsPanel.cpp" line="128"/>
+        <location filename="../../src/ui/settings/SettingsPanel_Language.cpp" line="23"/>
         <source>Language</source>
         <translation>언어</translation>
     </message>
     <message>
-        <location filename="../../src/ui/settings/SettingsPanel.cpp" line="132"/>
-        <location filename="../../src/ui/settings/SettingsPanel.cpp" line="421"/>
+        <location filename="../../src/ui/settings/SettingsPanel.cpp" line="129"/>
+        <location filename="../../src/ui/settings/SettingsPanel_Media.cpp" line="20"/>
         <source>Media Playback</source>
         <translation>미디어 재생</translation>
     </message>
     <message>
-        <location filename="../../src/ui/settings/SettingsPanel.cpp" line="133"/>
+        <location filename="../../src/ui/settings/SettingsPanel.cpp" line="130"/>
         <source>Shortcuts</source>
         <translation>단축키</translation>
     </message>
     <message>
-        <location filename="../../src/ui/settings/SettingsPanel.cpp" line="134"/>
-        <location filename="../../src/ui/settings/SettingsPanel.cpp" line="652"/>
-        <location filename="../../src/ui/settings/SettingsPanel.cpp" line="742"/>
+        <location filename="../../src/ui/settings/SettingsPanel.cpp" line="131"/>
+        <location filename="../../src/ui/settings/SettingsPanel_Zoom.cpp" line="16"/>
+        <location filename="../../src/ui/settings/SettingsPanel_Zoom.cpp" line="106"/>
         <source>Zoom</source>
         <translation>확대/축소</translation>
     </message>
     <message>
-        <location filename="../../src/ui/settings/SettingsPanel.cpp" line="135"/>
-        <location filename="../../src/ui/settings/SettingsPanel.cpp" line="986"/>
+        <location filename="../../src/ui/settings/SettingsPanel.cpp" line="133"/>
+        <location filename="../../src/ui/settings/SettingsPanel_Advanced.cpp" line="181"/>
         <source>Advanced</source>
         <translation>고급</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/settings/SettingsPanel.cpp" line="136"/>
+        <location filename="../../src/ui/settings/SettingsPanel_AddOns.cpp" line="107"/>
+        <source>Add-on Packages</source>
+        <translation>추가 패키지</translation>
     </message>
     <message>
         <location filename="../../src/ui/settings/SettingsPanel.cpp" line="139"/>
@@ -4422,42 +4607,42 @@ Enter the password to open it:</source>
         <translation>정보</translation>
     </message>
     <message>
-        <location filename="../../src/ui/settings/SettingsPanel.cpp" line="312"/>
+        <location filename="../../src/ui/settings/SettingsPanel_Appearance.cpp" line="21"/>
         <source>Choose how OpenPDF Studio is displayed.</source>
         <translation>OpenPDF Studio 표시 방법을 선택하세요.</translation>
     </message>
     <message>
-        <location filename="../../src/ui/settings/SettingsPanel.cpp" line="323"/>
+        <location filename="../../src/ui/settings/SettingsPanel_Appearance.cpp" line="32"/>
         <source>System</source>
         <translation>시스템</translation>
     </message>
     <message>
-        <location filename="../../src/ui/settings/SettingsPanel.cpp" line="323"/>
+        <location filename="../../src/ui/settings/SettingsPanel_Appearance.cpp" line="32"/>
         <source>Follows system settings</source>
         <translation>시스템 설정 따름</translation>
     </message>
     <message>
-        <location filename="../../src/ui/settings/SettingsPanel.cpp" line="324"/>
+        <location filename="../../src/ui/settings/SettingsPanel_Appearance.cpp" line="33"/>
         <source>Light</source>
         <translation>밝게</translation>
     </message>
     <message>
-        <location filename="../../src/ui/settings/SettingsPanel.cpp" line="324"/>
+        <location filename="../../src/ui/settings/SettingsPanel_Appearance.cpp" line="33"/>
         <source>Light user interface</source>
         <translation>밝은 인터페이스</translation>
     </message>
     <message>
-        <location filename="../../src/ui/settings/SettingsPanel.cpp" line="325"/>
+        <location filename="../../src/ui/settings/SettingsPanel_Appearance.cpp" line="34"/>
         <source>Dark</source>
         <translation>어둡게</translation>
     </message>
     <message>
-        <location filename="../../src/ui/settings/SettingsPanel.cpp" line="325"/>
+        <location filename="../../src/ui/settings/SettingsPanel_Appearance.cpp" line="34"/>
         <source>Dark user interface</source>
         <translation>어두운 인터페이스</translation>
     </message>
     <message>
-        <location filename="../../src/ui/settings/SettingsPanel.cpp" line="355"/>
+        <location filename="../../src/ui/settings/SettingsPanel_Language.cpp" line="27"/>
         <source>Choose your preferred interface language.</source>
         <translation>선호하는 인터페이스 언어를 선택하세요.</translation>
     </message>
@@ -4482,135 +4667,251 @@ Enter the password to open it:</source>
         <translation type="vanished">사용자 지정 미디어 플레이어</translation>
     </message>
     <message>
-        <location filename="../../src/ui/settings/SettingsPanel.cpp" line="986"/>
+        <location filename="../../src/ui/settings/SettingsPanel_Advanced.cpp" line="181"/>
         <source>Advanced settings for OpenPDF Studio.</source>
         <translation>OpenPDF Studio 고급 설정.</translation>
     </message>
     <message>
-        <location filename="../../src/ui/settings/SettingsPanel.cpp" line="950"/>
+        <location filename="../../src/ui/settings/SettingsPanel_Advanced.cpp" line="131"/>
         <source>Reset All Settings to Defaults</source>
         <translation>모든 설정 초기화</translation>
     </message>
     <message>
-        <location filename="../../src/ui/settings/SettingsPanel.cpp" line="1027"/>
+        <location filename="../../src/ui/settings/SettingsPanel_About.cpp" line="38"/>
         <source>A modern, open-source PDF editor built with Qt.</source>
         <translation>Qt로 구축된 현대적인 오픈 소스 PDF 편집기.</translation>
     </message>
     <message>
-        <location filename="../../src/ui/settings/SettingsPanel.cpp" line="585"/>
+        <location filename="../../src/ui/settings/SettingsPanel_Shortcuts.cpp" line="102"/>
         <source>Add to Current Document</source>
         <translation>현재 문서에 추가</translation>
     </message>
     <message>
-        <location filename="../../src/ui/settings/SettingsPanel_Security.cpp"/>
+        <location filename="../../src/ui/settings/SettingsPanel.cpp" line="132"/>
+        <location filename="../../src/ui/settings/SettingsPanel_Security.cpp" line="13"/>
         <source>Security</source>
         <translation>보안</translation>
     </message>
     <message>
-        <location filename="../../src/ui/settings/SettingsPanel_Security.cpp"/>
+        <location filename="../../src/ui/settings/SettingsPanel_Security.cpp" line="14"/>
         <source>Protection for documents and external content.</source>
         <translation>문서와 외부 콘텐츠를 보호합니다.</translation>
     </message>
     <message>
-        <location filename="../../src/ui/settings/SettingsPanel_Security.cpp"/>
+        <location filename="../../src/ui/settings/SettingsPanel_Security.cpp" line="16"/>
         <source>Edit Protection</source>
         <translation>편집 보호</translation>
     </message>
     <message>
-        <location filename="../../src/ui/settings/SettingsPanel_Security.cpp"/>
+        <location filename="../../src/ui/settings/SettingsPanel_Security.cpp" line="17"/>
         <source>Open new documents in reading mode</source>
         <translation>새 문서를 읽기 모드로 열기</translation>
     </message>
     <message>
-        <location filename="../../src/ui/settings/SettingsPanel_Security.cpp"/>
+        <location filename="../../src/ui/settings/SettingsPanel_Security.cpp" line="21"/>
         <source>Restricted Documents</source>
         <translation>제한된 문서</translation>
     </message>
     <message>
-        <location filename="../../src/ui/settings/SettingsPanel_Security.cpp"/>
+        <location filename="../../src/ui/settings/SettingsPanel_Security.cpp" line="22"/>
         <source>Follow document permissions</source>
         <translation>문서 권한 따르기</translation>
     </message>
     <message>
-        <location filename="../../src/ui/settings/SettingsPanel_Security.cpp"/>
+        <location filename="../../src/ui/settings/SettingsPanel_Security.cpp" line="23"/>
         <source>Printing, copying and editing need the permissions password where a PDF restricts them.</source>
         <translation>PDF가 제한하는 경우 인쇄, 복사 및 편집에 권한 암호가 필요합니다.</translation>
     </message>
     <message>
-        <location filename="../../src/ui/settings/SettingsPanel_Security.cpp"/>
+        <location filename="../../src/ui/settings/SettingsPanel_Security.cpp" line="27"/>
         <source>Digital Signatures</source>
         <translation>디지털 서명</translation>
     </message>
     <message>
-        <location filename="../../src/ui/settings/SettingsPanel_Security.cpp"/>
+        <location filename="../../src/ui/settings/SettingsPanel_Security.cpp" line="28"/>
         <source>Trust my own certificates</source>
         <translation>내 인증서 신뢰</translation>
     </message>
     <message>
-        <location filename="../../src/ui/settings/SettingsPanel_Security.cpp"/>
+        <location filename="../../src/ui/settings/SettingsPanel_Security.cpp" line="29"/>
         <source>Signatures made with a certificate on this computer count as valid.</source>
         <translation>이 컴퓨터의 인증서로 만든 서명을 유효한 것으로 봅니다.</translation>
     </message>
     <message>
-        <location filename="../../src/ui/settings/SettingsPanel_Security.cpp"/>
+        <location filename="../../src/ui/settings/SettingsPanel_Security.cpp" line="18"/>
         <source>Changes require explicit approval.</source>
         <translation>변경하려면 명시적인 허용이 필요합니다.</translation>
     </message>
     <message>
-        <location filename="../../src/ui/settings/SettingsPanel_Security.cpp"/>
+        <location filename="../../src/ui/settings/SettingsPanel_Security.cpp" line="32"/>
         <source>External Content</source>
         <translation>외부 콘텐츠</translation>
     </message>
     <message>
-        <location filename="../../src/ui/settings/SettingsPanel_Security.cpp"/>
+        <location filename="../../src/ui/settings/SettingsPanel_Security.cpp" line="38"/>
         <source>Open external links</source>
         <translation>외부 링크 열기</translation>
     </message>
     <message>
-        <location filename="../../src/ui/settings/SettingsPanel_Security.cpp"/>
+        <location filename="../../src/ui/settings/SettingsPanel_Security.cpp" line="53"/>
         <source>Ask</source>
         <translation>묻기</translation>
     </message>
     <message>
-        <location filename="../../src/ui/settings/SettingsPanel_Security.cpp"/>
+        <location filename="../../src/ui/settings/SettingsPanel_Security.cpp" line="54"/>
         <source>Always open</source>
         <translation>항상 열기</translation>
     </message>
     <message>
-        <location filename="../../src/ui/settings/SettingsPanel_Security.cpp"/>
+        <location filename="../../src/ui/settings/SettingsPanel_Security.cpp" line="55"/>
         <source>Never open</source>
         <translation>열지 않음</translation>
     </message>
     <message>
-        <location filename="../../src/ui/settings/SettingsPanel_Security.cpp"/>
+        <location filename="../../src/ui/settings/SettingsPanel_Security.cpp" line="63"/>
         <source>Links open in the browser right away.</source>
         <translation>링크가 바로 브라우저에서 열립니다.</translation>
     </message>
     <message>
-        <location filename="../../src/ui/settings/SettingsPanel_Security.cpp"/>
+        <location filename="../../src/ui/settings/SettingsPanel_Security.cpp" line="65"/>
         <source>Links in documents are not opened.</source>
         <translation>문서의 링크를 열지 않습니다.</translation>
     </message>
     <message>
-        <location filename="../../src/ui/settings/SettingsPanel_Security.cpp"/>
+        <location filename="../../src/ui/settings/SettingsPanel_Security.cpp" line="66"/>
         <source>Confirmation before switching to the browser.</source>
         <translation>브라우저로 전환하기 전에 확인합니다.</translation>
     </message>
     <message>
-        <location filename="../../src/ui/settings/SettingsPanel.cpp"/>
+        <location filename="../../src/ui/settings/SettingsPanel_About.cpp" line="53"/>
         <source>Log file: %1</source>
         <translation>로그 파일: %1</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/settings/SettingsPanel_AddOns.cpp" line="26"/>
+        <source>German</source>
+        <translation>독일어</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/settings/SettingsPanel_AddOns.cpp" line="27"/>
+        <source>English</source>
+        <translation>영어</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/settings/SettingsPanel_AddOns.cpp" line="28"/>
+        <source>French</source>
+        <translation>프랑스어</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/settings/SettingsPanel_AddOns.cpp" line="29"/>
+        <source>Spanish</source>
+        <translation>스페인어</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/settings/SettingsPanel_AddOns.cpp" line="30"/>
+        <source>Italian</source>
+        <translation>이탈리아어</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/settings/SettingsPanel_AddOns.cpp" line="31"/>
+        <source>Dutch</source>
+        <translation>네덜란드어</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/settings/SettingsPanel_AddOns.cpp" line="32"/>
+        <source>Polish</source>
+        <translation>폴란드어</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/settings/SettingsPanel_AddOns.cpp" line="33"/>
+        <source>Portuguese</source>
+        <translation>포르투갈어</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/settings/SettingsPanel_AddOns.cpp" line="34"/>
+        <source>Russian</source>
+        <translation>러시아어</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/settings/SettingsPanel_AddOns.cpp" line="35"/>
+        <source>Japanese</source>
+        <translation>일본어</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/settings/SettingsPanel_AddOns.cpp" line="36"/>
+        <source>Korean</source>
+        <translation>한국어</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/settings/SettingsPanel_AddOns.cpp" line="37"/>
+        <source>Chinese</source>
+        <translation>중국어</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/settings/SettingsPanel_AddOns.cpp" line="60"/>
+        <source>The file could not be deleted.</source>
+        <translation>파일을 삭제할 수 없습니다.</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/settings/SettingsPanel_AddOns.cpp" line="102"/>
+        <source>Optional parts that OpenPDF Studio downloads and removes.</source>
+        <translation>OpenPDF Studio가 다운로드하고 제거하는 선택 구성 요소입니다.</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/settings/SettingsPanel_AddOns.cpp" line="105"/>
+        <source>Optional parts, installed and removed by your system&apos;s package manager.</source>
+        <translation>시스템의 패키지 관리자가 설치하고 제거하는 선택 구성 요소입니다.</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/settings/SettingsPanel_AddOns.cpp" line="132"/>
+        <source>Text Recognition (OCR)</source>
+        <translation>텍스트 인식 (OCR)</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/settings/SettingsPanel_AddOns.cpp" line="135"/>
+        <source>Language packs for recognising text in scanned documents.</source>
+        <translation>스캔한 문서의 텍스트를 인식하기 위한 언어 팩입니다.</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/settings/SettingsPanel_AddOns.cpp" line="146"/>
+        <source>Installed languages:</source>
+        <translation>설치된 언어:</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/settings/SettingsPanel_AddOns.cpp" line="154"/>
+        <source>Language:</source>
+        <translation>언어:</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/settings/SettingsPanel_AddOns.cpp" line="180"/>
+        <source>None</source>
+        <translation>없음</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/settings/SettingsPanel_AddOns.cpp" line="207"/>
+        <source>Fonts</source>
+        <translation>글꼴</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/settings/SettingsPanel_AddOns.cpp" line="212"/>
+        <source>Fonts are added and removed in your system&apos;s font management. OpenPDF Studio uses new fonts after a restart.</source>
+        <translation>글꼴은 시스템의 글꼴 관리에서 추가하고 제거합니다. OpenPDF Studio는 다시 시작한 후 새 글꼴을 사용합니다.</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/settings/SettingsPanel_AddOns.cpp" line="218"/>
+        <source>Manage Fonts</source>
+        <translation>글꼴 관리</translation>
     </message>
 </context>
 <context>
     <name>SettingsSearch</name>
     <message>
-        <location filename="../../src/ui/settings/SettingsSearch.cpp"/>
+        <location filename="../../src/ui/settings/SettingsSearch.cpp" line="84"/>
         <source>Search…</source>
         <translation>검색…</translation>
     </message>
     <message>
-        <location filename="../../src/ui/settings/SettingsSearch.cpp"/>
+        <location filename="../../src/ui/settings/SettingsSearch.cpp" line="85"/>
         <source>No results</source>
         <translation>결과 없음</translation>
     </message>
@@ -4618,22 +4919,22 @@ Enter the password to open it:</source>
 <context>
     <name>ShortcutRow</name>
     <message>
-        <location filename="../../src/ui/settings/ShortcutRow.hpp" line="132"/>
+        <location filename="../../src/ui/settings/ShortcutRow.hpp" line="138"/>
         <source>Reset to default</source>
         <translation>기본값으로 재설정</translation>
     </message>
     <message>
-        <location filename="../../src/ui/settings/ShortcutRow.hpp" line="143"/>
+        <location filename="../../src/ui/settings/ShortcutRow.hpp" line="145"/>
         <source>Edit</source>
         <translation>편집</translation>
     </message>
     <message>
-        <location filename="../../src/ui/settings/ShortcutRow.hpp" line="153"/>
+        <location filename="../../src/ui/settings/ShortcutRow.hpp" line="155"/>
         <source>Save</source>
         <translation>저장</translation>
     </message>
     <message>
-        <location filename="../../src/ui/settings/ShortcutRow.hpp" line="161"/>
+        <location filename="../../src/ui/settings/ShortcutRow.hpp" line="163"/>
         <source>Cancel</source>
         <translation>취소</translation>
     </message>
@@ -4646,145 +4947,145 @@ Enter the password to open it:</source>
         <translation>서명 - OpenPDF Studio</translation>
     </message>
     <message>
-        <location filename="../../src/ui/sign/SignDialog.cpp" line="175"/>
+        <location filename="../../src/ui/sign/SignDialog.cpp" line="176"/>
         <source>Add signature</source>
         <translation>서명 추가</translation>
     </message>
     <message>
-        <location filename="../../src/ui/sign/SignDialog.cpp" line="176"/>
+        <location filename="../../src/ui/sign/SignDialog.cpp" line="177"/>
         <source>Sign digitally</source>
         <translation>디지털 서명</translation>
     </message>
     <message>
-        <location filename="../../src/ui/sign/SignDialog.cpp" line="179"/>
+        <location filename="../../src/ui/sign/SignDialog.cpp" line="180"/>
         <source>Not available in this build</source>
         <translation>이 빌드에서는 사용할 수 없음</translation>
     </message>
     <message>
-        <location filename="../../src/ui/sign/SignDialog.cpp" line="196"/>
+        <location filename="../../src/ui/sign/SignDialog.cpp" line="197"/>
         <source>Create, import or choose a signature, then place it freely in the PDF.</source>
         <translation>서명을 만들거나 가져오거나 선택한 다음 PDF의 원하는 위치에 배치하세요.</translation>
     </message>
     <message>
-        <location filename="../../src/ui/sign/SignDialog.cpp" line="210"/>
+        <location filename="../../src/ui/sign/SignDialog.cpp" line="211"/>
         <source>Once created, the signature can be placed freely in the PDF and adjusted later.</source>
         <translation>만든 서명은 PDF의 원하는 위치에 배치하고 나중에 조정할 수 있습니다.</translation>
     </message>
     <message>
-        <location filename="../../src/ui/sign/SignDialog.cpp" line="241"/>
+        <location filename="../../src/ui/sign/SignDialog.cpp" line="242"/>
         <source>Draw</source>
         <translation>그리기</translation>
     </message>
     <message>
-        <location filename="../../src/ui/sign/SignDialog.cpp" line="242"/>
+        <location filename="../../src/ui/sign/SignDialog.cpp" line="243"/>
         <source>Type</source>
         <translation>입력</translation>
     </message>
     <message>
-        <location filename="../../src/ui/sign/SignDialog.cpp" line="243"/>
+        <location filename="../../src/ui/sign/SignDialog.cpp" line="244"/>
         <source>Import image</source>
         <translation>이미지 가져오기</translation>
     </message>
     <message>
-        <location filename="../../src/ui/sign/SignDialog.cpp" line="244"/>
+        <location filename="../../src/ui/sign/SignDialog.cpp" line="245"/>
         <source>Saved</source>
         <translation>저장됨</translation>
     </message>
     <message>
-        <location filename="../../src/ui/sign/SignDialog.cpp" line="279"/>
+        <location filename="../../src/ui/sign/SignDialog.cpp" line="280"/>
         <source>Clear</source>
         <translation>지우기</translation>
     </message>
     <message>
-        <location filename="../../src/ui/sign/SignDialog.cpp" line="294"/>
+        <location filename="../../src/ui/sign/SignDialog.cpp" line="295"/>
         <source>Type your name</source>
         <translation>이름을 입력하세요</translation>
     </message>
     <message>
-        <location filename="../../src/ui/sign/SignDialog.cpp" line="314"/>
+        <location filename="../../src/ui/sign/SignDialog.cpp" line="315"/>
         <source>Choose image...</source>
         <translation>이미지 선택...</translation>
     </message>
     <message>
-        <location filename="../../src/ui/sign/SignDialog.cpp" line="339"/>
+        <location filename="../../src/ui/sign/SignDialog.cpp" line="340"/>
         <source>Blue</source>
         <translation>파랑</translation>
     </message>
     <message>
-        <location filename="../../src/ui/sign/SignDialog.cpp" line="340"/>
+        <location filename="../../src/ui/sign/SignDialog.cpp" line="341"/>
         <source>Dark blue</source>
         <translation>진한 파랑</translation>
     </message>
     <message>
-        <location filename="../../src/ui/sign/SignDialog.cpp" line="341"/>
+        <location filename="../../src/ui/sign/SignDialog.cpp" line="342"/>
         <source>Black</source>
         <translation>검정</translation>
     </message>
     <message>
-        <location filename="../../src/ui/sign/SignDialog.cpp" line="342"/>
+        <location filename="../../src/ui/sign/SignDialog.cpp" line="343"/>
         <source>Red</source>
         <translation>빨강</translation>
     </message>
     <message>
-        <location filename="../../src/ui/sign/SignDialog.cpp" line="360"/>
-        <location filename="../../src/ui/sign/SignDialog.cpp" line="362"/>
+        <location filename="../../src/ui/sign/SignDialog.cpp" line="361"/>
+        <location filename="../../src/ui/sign/SignDialog.cpp" line="363"/>
         <source>%1 px</source>
         <translation>%1 px</translation>
     </message>
     <message>
-        <location filename="../../src/ui/sign/SignDialog.cpp" line="364"/>
+        <location filename="../../src/ui/sign/SignDialog.cpp" line="365"/>
         <source>Color</source>
         <translation>색상</translation>
     </message>
     <message>
-        <location filename="../../src/ui/sign/SignDialog.cpp" line="367"/>
+        <location filename="../../src/ui/sign/SignDialog.cpp" line="368"/>
         <source>Line width</source>
         <translation>선 두께</translation>
     </message>
     <message>
-        <location filename="../../src/ui/sign/SignDialog.cpp" line="383"/>
+        <location filename="../../src/ui/sign/SignDialog.cpp" line="384"/>
         <source>Cancel</source>
         <translation>취소</translation>
     </message>
     <message>
-        <location filename="../../src/ui/sign/SignDialog.cpp" line="455"/>
+        <location filename="../../src/ui/sign/SignDialog.cpp" line="456"/>
         <source>Could not save the signature.</source>
         <translation>서명을 저장할 수 없습니다.</translation>
     </message>
     <message>
-        <location filename="../../src/ui/sign/SignDialog.cpp" line="490"/>
+        <location filename="../../src/ui/sign/SignDialog.cpp" line="491"/>
         <source>Sign</source>
         <translation>서명</translation>
     </message>
     <message>
-        <location filename="../../src/ui/sign/SignDialog.cpp" line="450"/>
+        <location filename="../../src/ui/sign/SignDialog.cpp" line="451"/>
         <source>%1 (Image)</source>
         <translation>%1 (이미지)</translation>
     </message>
     <message>
-        <location filename="../../src/ui/sign/SignDialog.cpp" line="451"/>
+        <location filename="../../src/ui/sign/SignDialog.cpp" line="452"/>
         <source>Signature %1</source>
         <translation>서명 %1</translation>
     </message>
     <message>
-        <location filename="../../src/ui/sign/SignDialog.cpp" line="388"/>
+        <location filename="../../src/ui/sign/SignDialog.cpp" line="389"/>
         <source>Save</source>
         <translation>저장</translation>
     </message>
     <message>
-        <location filename="../../src/ui/sign/SignDialog.cpp" line="393"/>
-        <location filename="../../src/ui/sign/SignDialog.cpp" line="490"/>
-        <location filename="../../src/ui/sign/SignDialog.cpp" line="494"/>
+        <location filename="../../src/ui/sign/SignDialog.cpp" line="394"/>
+        <location filename="../../src/ui/sign/SignDialog.cpp" line="491"/>
+        <location filename="../../src/ui/sign/SignDialog.cpp" line="495"/>
         <source>Place</source>
         <translation>배치</translation>
     </message>
     <message>
-        <location filename="../../src/ui/sign/SignDialog.cpp" line="469"/>
+        <location filename="../../src/ui/sign/SignDialog.cpp" line="470"/>
         <source>Import signature image</source>
         <translation>서명 이미지 가져오기</translation>
     </message>
     <message>
-        <location filename="../../src/ui/sign/SignDialog.cpp" line="470"/>
+        <location filename="../../src/ui/sign/SignDialog.cpp" line="471"/>
         <source>Images (%1)</source>
         <translation>이미지 (%1)</translation>
     </message>
@@ -4972,73 +5273,73 @@ Enter the password to open it:</source>
 <context>
     <name>SignatureRemoval</name>
     <message>
-        <location filename="../../src/ui/sign/SignatureRemoval.cpp" line="14"/>
+        <location filename="../../src/ui/sign/SignatureRemoval.cpp" line="16"/>
         <source>Unknown signer</source>
         <translation>알 수 없는 서명자</translation>
     </message>
     <message>
-        <location filename="../../src/ui/sign/SignatureRemoval.cpp" line="17"/>
-        <location filename="../../src/ui/sign/SignatureRemoval.cpp" line="60"/>
+        <location filename="../../src/ui/sign/SignatureRemoval.cpp" line="19"/>
+        <location filename="../../src/ui/sign/SignatureRemoval.cpp" line="65"/>
         <source>Remove signature</source>
         <translation>서명 제거</translation>
     </message>
     <message>
-        <location filename="../../src/ui/sign/SignatureRemoval.cpp" line="32"/>
+        <location filename="../../src/ui/sign/SignatureRemoval.cpp" line="34"/>
         <source>The signature of %1 cannot be removed.</source>
         <translation>%1의 서명은 제거할 수 없습니다.</translation>
     </message>
     <message>
-        <location filename="../../src/ui/sign/SignatureRemoval.cpp" line="20"/>
+        <location filename="../../src/ui/sign/SignatureRemoval.cpp" line="22"/>
         <source>Save or undo your changes first.</source>
         <translation>먼저 변경 내용을 저장하거나 실행 취소하세요.</translation>
     </message>
     <message>
-        <location filename="../../src/ui/sign/SignatureRemoval.cpp" line="21"/>
+        <location filename="../../src/ui/sign/SignatureRemoval.cpp" line="23"/>
         <source>A signature can only be removed from the saved document.</source>
         <translation>서명은 저장된 문서에서만 제거할 수 있습니다.</translation>
     </message>
     <message>
-        <location filename="../../src/ui/sign/SignatureRemoval.cpp" line="33"/>
+        <location filename="../../src/ui/sign/SignatureRemoval.cpp" line="35"/>
         <source>The file could not be read.</source>
         <translation>파일을 읽을 수 없습니다.</translation>
     </message>
     <message>
-        <location filename="../../src/ui/sign/SignatureRemoval.cpp" line="41"/>
+        <location filename="../../src/ui/sign/SignatureRemoval.cpp" line="43"/>
         <source>The signature added after it is removed as well.</source>
         <translation>이후에 추가된 서명도 제거됩니다.</translation>
     </message>
     <message>
-        <location filename="../../src/ui/sign/SignatureRemoval.cpp" line="43"/>
+        <location filename="../../src/ui/sign/SignatureRemoval.cpp" line="45"/>
         <source>The %1 signatures added after it are removed as well.</source>
         <translation>이후에 추가된 서명 %1개도 제거됩니다.</translation>
     </message>
     <message>
-        <location filename="../../src/ui/sign/SignatureRemoval.cpp" line="46"/>
+        <location filename="../../src/ui/sign/SignatureRemoval.cpp" line="48"/>
         <source>Changes saved after it are undone as well.</source>
         <translation>이후에 저장된 변경 내용도 취소됩니다.</translation>
     </message>
     <message>
-        <location filename="../../src/ui/sign/SignatureRemoval.cpp" line="51"/>
+        <location filename="../../src/ui/sign/SignatureRemoval.cpp" line="56"/>
         <source>Remove the signature of %1?</source>
         <translation>%1의 서명을 제거하시겠습니까?</translation>
     </message>
     <message>
-        <location filename="../../src/ui/sign/SignatureRemoval.cpp" line="47"/>
+        <location filename="../../src/ui/sign/SignatureRemoval.cpp" line="52"/>
         <source>The document goes back to how it was before this signature. The change is written when you save and can be undone until then.</source>
         <translation>문서가 이 서명 이전 상태로 돌아갑니다. 변경 내용은 저장할 때 기록되며 그 전까지는 실행 취소할 수 있습니다.</translation>
     </message>
     <message>
-        <location filename="../../src/ui/sign/SignatureRemoval.cpp" line="47"/>
+        <location filename="../../src/ui/sign/SignatureRemoval.cpp" line="50"/>
         <source>The signature is taken out of the document, which otherwise stays as it is. The change is written when you save and can be undone until then.</source>
         <translation>서명이 문서에서 제거되며, 그 밖의 내용은 그대로 유지됩니다. 변경 내용은 저장할 때 기록되며 그 전까지는 실행 취소할 수 있습니다.</translation>
     </message>
     <message>
-        <location filename="../../src/ui/sign/SignatureRemoval.cpp" line="53"/>
+        <location filename="../../src/ui/sign/SignatureRemoval.cpp" line="58"/>
         <source>Remove</source>
         <translation>제거</translation>
     </message>
     <message>
-        <location filename="../../src/ui/sign/SignatureRemoval.cpp" line="61"/>
+        <location filename="../../src/ui/sign/SignatureRemoval.cpp" line="66"/>
         <source>The signature could not be removed.</source>
         <translation>서명을 제거할 수 없습니다.</translation>
     </message>
@@ -5168,6 +5469,7 @@ Enter the password to open it:</source>
     <message>
         <location filename="../../src/ui/sign/SignerTrust.cpp" line="78"/>
         <location filename="../../src/ui/sign/SignerTrust.cpp" line="210"/>
+        <location filename="../../src/ui/sign/SignerTrust.cpp" line="268"/>
         <source>Unknown signer</source>
         <translation>알 수 없는 서명자</translation>
     </message>
@@ -5259,6 +5561,71 @@ Enter the password to open it:</source>
     </message>
 </context>
 <context>
+    <name>StartPage</name>
+    <message>
+        <location filename="../../src/ui/open/StartPage.cpp" line="172"/>
+        <source>Drop a document here</source>
+        <translation>여기에 문서를 놓으세요</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/open/StartPage.cpp" line="173"/>
+        <source>or click a tab above to open</source>
+        <translation>또는 위의 탭을 클릭하여 여세요</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/open/StartPage.cpp" line="174"/>
+        <source>Recently opened files will appear here.</source>
+        <translation>최근에 연 파일이 여기에 표시됩니다.</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/open/StartPage.cpp" line="175"/>
+        <source>Recently Opened</source>
+        <translation>최근에 연 문서</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/open/StartPage.cpp" line="176"/>
+        <source>Clear List</source>
+        <translation>목록 지우기</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/open/StartPage.cpp" line="194"/>
+        <source>Just now</source>
+        <translation>방금</translation>
+    </message>
+    <message numerus="yes">
+        <location filename="../../src/ui/open/StartPage.cpp" line="195"/>
+        <source>%n min ago</source>
+        <translation>
+            <numerusform>%n분 전</numerusform>
+        </translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/open/StartPage.cpp" line="200"/>
+        <source>Today, %1</source>
+        <translation>오늘 %1</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/open/StartPage.cpp" line="201"/>
+        <source>Yesterday</source>
+        <translation>어제</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/open/StartPage.cpp" line="202"/>
+        <source>d MMM</source>
+        <translation>M월 d일</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/open/StartPage.cpp" line="245"/>
+        <source>Open File Location</source>
+        <translation>파일 위치 열기</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/open/StartPage.cpp" line="246"/>
+        <source>Remove from List</source>
+        <translation>목록에서 제거</translation>
+    </message>
+</context>
+<context>
     <name>StatusBar</name>
     <message>
         <location filename="../../src/ui/bars/StatusBar.cpp" line="107"/>
@@ -5289,6 +5656,31 @@ Enter the password to open it:</source>
         <location filename="../../src/ui/bars/StatusBar.cpp" line="126"/>
         <source>Document information</source>
         <translation>문서 정보</translation>
+    </message>
+</context>
+<context>
+    <name>SystemPackages</name>
+    <message>
+        <location filename="../../src/app/SystemPackages.cpp" line="248"/>
+        <location filename="../../src/app/SystemPackages.cpp" line="313"/>
+        <source>Packages are installed by the system&apos;s package manager.</source>
+        <translation>패키지는 시스템의 패키지 관리자가 설치합니다.</translation>
+    </message>
+    <message>
+        <location filename="../../src/app/SystemPackages.cpp" line="330"/>
+        <source>No permission was given.</source>
+        <translation>권한이 부여되지 않았습니다.</translation>
+    </message>
+    <message>
+        <location filename="../../src/app/SystemPackages.cpp" line="335"/>
+        <location filename="../../src/app/SystemPackages.cpp" line="382"/>
+        <source>The package manager stopped.</source>
+        <translation>패키지 관리자가 중지되었습니다.</translation>
+    </message>
+    <message>
+        <location filename="../../src/app/SystemPackages.cpp" line="395"/>
+        <source>Not found in the package sources: %1</source>
+        <translation>패키지 소스에서 찾을 수 없음: %1</translation>
     </message>
 </context>
 <context>
@@ -5377,57 +5769,57 @@ Enter the password to open it:</source>
 <context>
     <name>TopToolbar</name>
     <message>
-        <location filename="../../src/ui/bars/TopToolbar.cpp" line="56"/>
-        <location filename="../../src/ui/bars/TopToolbar.cpp" line="260"/>
+        <location filename="../../src/ui/bars/TopToolbar.cpp" line="64"/>
+        <location filename="../../src/ui/bars/TopToolbar.cpp" line="346"/>
         <source>Save</source>
         <translation>저장</translation>
     </message>
     <message>
-        <location filename="../../src/ui/bars/TopToolbar.cpp" line="57"/>
-        <location filename="../../src/ui/bars/TopToolbar.cpp" line="272"/>
+        <location filename="../../src/ui/bars/TopToolbar.cpp" line="65"/>
+        <location filename="../../src/ui/bars/TopToolbar.cpp" line="358"/>
         <source>Print</source>
         <translation>인쇄</translation>
     </message>
     <message>
-        <location filename="../../src/ui/bars/TopToolbar.cpp" line="58"/>
-        <location filename="../../src/ui/bars/TopToolbar.cpp" line="282"/>
+        <location filename="../../src/ui/bars/TopToolbar.cpp" line="66"/>
+        <location filename="../../src/ui/bars/TopToolbar.cpp" line="368"/>
         <source>Undo</source>
         <translation>실행 취소</translation>
     </message>
     <message>
-        <location filename="../../src/ui/bars/TopToolbar.cpp" line="59"/>
-        <location filename="../../src/ui/bars/TopToolbar.cpp" line="288"/>
+        <location filename="../../src/ui/bars/TopToolbar.cpp" line="67"/>
+        <location filename="../../src/ui/bars/TopToolbar.cpp" line="374"/>
         <source>Redo</source>
         <translation>다시 실행</translation>
     </message>
     <message>
-        <location filename="../../src/ui/bars/TopToolbar.cpp" line="60"/>
-        <location filename="../../src/ui/bars/TopToolbar.cpp" line="298"/>
+        <location filename="../../src/ui/bars/TopToolbar.cpp" line="68"/>
+        <location filename="../../src/ui/bars/TopToolbar.cpp" line="385"/>
         <source>Zoom Out</source>
         <translation>축소</translation>
     </message>
     <message>
-        <location filename="../../src/ui/bars/TopToolbar.cpp" line="61"/>
-        <location filename="../../src/ui/bars/TopToolbar.cpp" line="310"/>
+        <location filename="../../src/ui/bars/TopToolbar.cpp" line="69"/>
+        <location filename="../../src/ui/bars/TopToolbar.cpp" line="397"/>
         <source>Zoom In</source>
         <translation>확대</translation>
     </message>
     <message>
-        <location filename="../../src/ui/bars/TopToolbar.cpp" line="62"/>
-        <location filename="../../src/ui/bars/TopToolbar.cpp" line="320"/>
+        <location filename="../../src/ui/bars/TopToolbar.cpp" line="70"/>
+        <location filename="../../src/ui/bars/TopToolbar.cpp" line="407"/>
         <source>Single Page</source>
         <translation>단일 페이지</translation>
     </message>
     <message>
-        <location filename="../../src/ui/bars/TopToolbar.cpp" line="63"/>
-        <location filename="../../src/ui/bars/TopToolbar.cpp" line="332"/>
+        <location filename="../../src/ui/bars/TopToolbar.cpp" line="71"/>
+        <location filename="../../src/ui/bars/TopToolbar.cpp" line="419"/>
         <source>Grid View</source>
         <translation>격자 보기</translation>
     </message>
     <message>
-        <location filename="../../src/ui/bars/TopToolbar.cpp" line="67"/>
-        <location filename="../../src/ui/bars/TopToolbar.cpp" line="92"/>
-        <location filename="../../src/ui/bars/TopToolbar.cpp" line="164"/>
+        <location filename="../../src/ui/bars/TopToolbar.cpp" line="75"/>
+        <location filename="../../src/ui/bars/TopToolbar.cpp" line="101"/>
+        <location filename="../../src/ui/bars/TopToolbar.cpp" line="177"/>
         <source>No Document</source>
         <translation>문서 없음</translation>
     </message>

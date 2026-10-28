@@ -5,6 +5,10 @@ target_sources(OpenPDFStudio PRIVATE
     AppSettings.hpp
     DefaultPdfApp.cpp
     DefaultPdfApp.hpp
+    Elevation.cpp
+    Elevation.hpp
+    FileDownload.cpp
+    FileDownload.hpp
     LogFile.cpp
     LogFile.hpp
     PdfPwStore.cpp
@@ -19,6 +23,8 @@ target_sources(OpenPDFStudio PRIVATE
     SessionStore.hpp
     SystemMemory.cpp
     SystemMemory.hpp
+    SystemPackages.cpp
+    SystemPackages.hpp
     TrustedSigners.cpp
     TrustedSigners.hpp
     UpdateChecker.cpp

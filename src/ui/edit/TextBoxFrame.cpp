@@ -351,6 +351,17 @@ void TextBoxFrame::setCharSources(const QList<TextLayout::Source> &sources)
     growToFitText();
     layoutEditor();
 }
+QList<TextLayout::Mark> TextBoxFrame::charMarks() const { return m_editor->charMarks(); }
+void TextBoxFrame::setCharMarks(const QList<TextLayout::Mark> &marks)
+{
+    m_editor->setCharMarks(marks);
+    growToFitText();
+    layoutEditor();
+}
+bool TextBoxFrame::hasSelection() const { return m_editor->textCursor().hasSelection(); }
+bool TextBoxFrame::markSelection(const TextLayout::Mark &mark) { return m_editor->markSelection(mark); }
+void TextBoxFrame::unmark(const TextLayout::Mark &fields) { m_editor->unmark(fields); }
+TextLayout::Mark TextBoxFrame::lookMark() const { return m_editor->lookMark(); }
 void TextBoxFrame::setDocumentKey(const QString &key) { m_editor->setDocumentKey(key); }
 
 void TextBoxFrame::copyAll() { m_editor->copyAll(); }

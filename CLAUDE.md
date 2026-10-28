@@ -120,7 +120,7 @@ together stays together - see `modules/rich-media/README.md`.
 5. **`src/` never includes `modules/`.** The Core must build and run with
    `modules/` absent, and code that lives there is under a different license -
    a guarded `#include` in `src/` would quietly pull it back into the Core.
-   The direction is inverted instead: the Core carries four small registers
+   The direction is inverted instead: the Core carries five small registers
    that name nothing media-related, and the module fills them from one static
    initializer in `modules/rich-media/MediaModule.cpp`.
 
@@ -130,6 +130,7 @@ together stays together - see `modules/rich-media/README.md`.
    | `ToolPanels::add()` | a panel bound to a tool id | the insert panel |
    | `PageOverlays::add()` | a `PageOverlay` factory | the media layer |
    | `Importing::addFormat()` | suffixes and a conversion to PDF | videos for File > Open |
+   | `AddOns::addCard()` | a card for Settings > Add-on Packages | the ffmpeg card |
 
    `PageOverlay::writeTo()` is where an overlay writes its part into the
    staging file during a save. It sits on the overlay and not in a global list

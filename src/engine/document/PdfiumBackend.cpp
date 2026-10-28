@@ -1034,10 +1034,11 @@ TextLayout::Metrics PdfiumBackend::editMetrics(const EditSession::Edit &edit) co
     key.box.bounds = QRectF();
     key.newText    = QString();
     key.sources    = TextLayout::distinctSources(edit.sources);
+    key.marks      = TextLayout::distinctMarks(edit.marks);
     {
         std::lock_guard guard(m_metricsMutex);
         for (const auto &[known, metrics] : m_metricsCache)
-            if (known == key && metrics.covers(edit.newText, edit.sources)) {
+            if (known == key && metrics.covers(edit.newText, edit.sources, edit.marks)) {
                 TextLayout::Metrics out = metrics;
                 out.boxTopLeft = edit.pdfBounds.topLeft();
                 return out;
@@ -1056,13 +1057,14 @@ TextLayout::Metrics PdfiumBackend::editMetrics(const EditSession::Edit &edit) co
 }
 
 QList<TextLayout::OriginalLine> PdfiumBackend::editLines(
-    const EditSession::Edit &edit, QList<QList<TextLayout::Source>> *sources) const
+    const EditSession::Edit &edit, QList<QList<TextLayout::Source>> *sources,
+    QList<QList<TextLayout::Mark>> *marks) const
 {
     PdfiumLock lock;
     if (!m_doc || edit.page < 0) return {};
     FPDF_PAGE pg = readPage(edit.page);
     if (!pg) return {};
-    return PdfiumEdits::laidLines(m_doc, pg, readText(edit.page), edit, sources);
+    return PdfiumEdits::laidLines(m_doc, pg, readText(edit.page), edit, sources, marks);
 }
 
 QString PdfiumBackend::embeddedFontFamily(int page, const QPointF &pdfPt) const

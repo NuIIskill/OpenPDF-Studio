@@ -17,6 +17,7 @@
 #ifdef HAVE_PDF_RENDERING
 #  include "engine/document/PdfBackend.hpp"
 #endif
+#include "ui/settings/AddOns.hpp"
 #include "ui/theme/Theme.hpp"
 #include "ui/view/PageCanvas.hpp"
 
@@ -771,14 +772,22 @@ QString MediaLayer::ensurePlayableSource(const QString &source, QStringList *tem
         : tr("%1 in %2").arg(info.videoCodec.toUpper(), info.container.toUpper());
 
     if (!MediaConvert::available()) {
-        const auto answer = QMessageBox::warning(
-            parent, tr("Rich Media"),
+        QMessageBox warning(QMessageBox::Warning, tr("Rich Media"),
             tr("This file is %1. Most PDF viewers play only H.264 video in an "
                "MP4 container, so for many people the video will be a still "
                "image.\n\nInstall ffmpeg to convert it, or embed it as it is.")
                 .arg(what),
-            QMessageBox::Ok | QMessageBox::Cancel, QMessageBox::Cancel);
-        return answer == QMessageBox::Ok ? source : QString();
+            QMessageBox::Ok | QMessageBox::Cancel, parent);
+        warning.setDefaultButton(QMessageBox::Cancel);
+        // The video is inserted again once ffmpeg is there.
+        QAbstractButton *install = AddOns::supported()
+            ? warning.addButton(tr("Install ffmpeg…"), QMessageBox::ActionRole) : nullptr;
+        warning.exec();
+        if (install && warning.clickedButton() == install) {
+            AddOns::open(parent);
+            return QString();
+        }
+        return warning.clickedButton() == warning.button(QMessageBox::Ok) ? source : QString();
     }
 
     QMessageBox question(parent);

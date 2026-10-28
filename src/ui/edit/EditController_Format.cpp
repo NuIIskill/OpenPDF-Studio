@@ -28,6 +28,30 @@ void EditController::refreshFontLive()
 #endif
 }
 
+bool EditController::markSelection(const TextLayout::Mark &mark)
+{
+#ifdef HAVE_PDF_RENDERING
+    // With part of the text selected, what is picked goes for that part alone.
+    if (activeEditPage < 0 || !m_frame->isVisible() || !m_frame->markSelection(mark)) return false;
+    if (!mark.family.isEmpty() || mark.bold || mark.italic || mark.scale > 0.0) activeEditLaid = false;
+    showLook();
+    return true;
+#else
+    Q_UNUSED(mark)
+    return false;
+#endif
+}
+
+void EditController::unmark(const TextLayout::Mark &fields)
+{
+#ifdef HAVE_PDF_RENDERING
+    // What is picked for the whole box replaces what parts of it had.
+    if (activeEditPage >= 0 && m_frame->isVisible()) m_frame->unmark(fields);
+#else
+    Q_UNUSED(fields)
+#endif
+}
+
 bool EditController::openedAll(const std::function<bool(const TextLayout::Appearance &)> &has,
                                bool boxHad) const
 {
@@ -42,7 +66,8 @@ bool EditController::openedAll(const std::function<bool(const TextLayout::Appear
 void EditController::setFontFamily(const QString &family)
 {
 #ifdef HAVE_PDF_RENDERING
-    if (family.isEmpty()) return;
+    if (family.isEmpty() || markSelection({ .family = family })) return;
+    unmark({ .family = family });
     if (openedAll([&family](const TextLayout::Appearance &a) { return a.family == family; },
                   family == m_presented.family)) {
         currentEditorFontFamily   = m_presented.family;
@@ -62,6 +87,8 @@ void EditController::setFontFamily(const QString &family)
 void EditController::setBold(bool on)
 {
 #ifdef HAVE_PDF_RENDERING
+    if (markSelection({ .bold = on })) return;
+    unmark({ .bold = on });
     if (openedAll([on](const TextLayout::Appearance &a) { return a.bold == on; },
                   on == m_presented.bold)) {
         currentEditorBold       = m_presented.bold;
@@ -81,6 +108,8 @@ void EditController::setBold(bool on)
 void EditController::setItalic(bool on)
 {
 #ifdef HAVE_PDF_RENDERING
+    if (markSelection({ .italic = on })) return;
+    unmark({ .italic = on });
     if (openedAll([on](const TextLayout::Appearance &a) { return a.italic == on; },
                   on == m_presented.italic)) {
         currentEditorItalic       = m_presented.italic;
@@ -100,6 +129,8 @@ void EditController::setItalic(bool on)
 void EditController::setUnderline(bool on)
 {
 #ifdef HAVE_PDF_RENDERING
+    if (markSelection({ .underline = on })) return;
+    unmark({ .underline = on });
     if (on == currentEditorUnderline) return;
     currentEditorUnderline = on;
 
@@ -113,6 +144,11 @@ void EditController::setFontSize(double ptSize)
 {
 #ifdef HAVE_PDF_RENDERING
     if (ptSize < 4.0 || ptSize > 400.0) return;
+    if (m_shown.isValid() && m_shown.sizePt > 0.0 && m_frame->isVisible() && m_frame->hasSelection()) {
+        if (std::abs(m_shown.sizePt - ptSize) >= 0.005)
+            markSelection({ .scale = ptSize / m_shown.sizePt });
+        return;
+    }
     if (activeEditPage < 0 || !m_frame->isVisible()) {
         currentEditorFontSizePt = ptSize;
         editorSizeChangedByUser = true;
@@ -186,7 +222,8 @@ void EditController::resizeText(double ptSize)
 void EditController::setTextColor(const QColor &color)
 {
 #ifdef HAVE_PDF_RENDERING
-    if (!color.isValid()) return;
+    if (!color.isValid() || markSelection({ .color = color })) return;
+    unmark({ .color = color });
     if (openedAll([&color](const TextLayout::Appearance &a) { return a.color == color; },
                   color == m_presented.color)) {
         currentEditorColor       = m_presented.color;
@@ -218,7 +255,8 @@ void EditController::showLook()
                                   currentEditorBold, currentEditorItalic, currentEditorColor };
     Q_EMIT fontSizeChanged(shown.sizePt);
     Q_EMIT fontChanged(shown.family.isEmpty() ? QStringLiteral("Helvetica") : shown.family,
-                       shown.bold, shown.italic, currentEditorUnderline);
+                       shown.bold, shown.italic,
+                       m_frame->lookMark().underline.value_or(currentEditorUnderline));
     Q_EMIT textColorChanged(shown.color);
 #endif
 }

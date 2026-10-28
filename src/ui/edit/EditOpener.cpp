@@ -21,6 +21,7 @@
 bool EditOpener::resolveEditTarget(const QPoint &canvasPos, EditOpen &o, int &lastCommittedPage,
                                    const QRectF &lastCommittedOrigBounds)
 {
+    m_ocrMissing = false;
     auto [pageIdx, pageLbl] = m_canvas->pageAtCanvasPos(canvasPos);
     if (pageIdx < 0) return false;
 
@@ -86,8 +87,12 @@ bool EditOpener::resolveEditTarget(const QPoint &canvasPos, EditOpen &o, int &la
         }
     }
 
-    if (!o.block.isValid() && m_ocr && m_ocr->isReady()
-            && m_src->backend() && !m_src->backend()->hasSelectableText(pageIdx)) {
+    const bool scan = !o.block.isValid() && m_ocr && m_src->backend()
+                   && !m_src->backend()->hasSelectableText(pageIdx);
+    // Languages installed while the document is open count right away.
+    if (scan) m_ocr->refresh();
+    m_ocrMissing = scan && !m_ocr->isReady();
+    if (scan && m_ocr->isReady()) {
         if (!m_ocrCache.contains(pageIdx)) {
             const qreal ocrScale = qMax(o.scale * m_canvas->canvasWidget()->devicePixelRatioF(), 300.0 / 72.0);
             QApplication::setOverrideCursor(Qt::WaitCursor);
@@ -510,15 +515,29 @@ std::optional<TextLayout::OriginalLine> partInFrame(const TextLayout::OriginalLi
     return part;
 }
 
-QList<TextLayout::Source> flatSources(const QList<QList<TextLayout::Source>> &lines)
+template <typename T>
+QList<T> flatLines(const QList<QList<T>> &lines)
 {
-    // Aligned with the lines joined by line breaks, which have no source.
-    QList<TextLayout::Source> out;
+    // Aligned with the lines joined by line breaks, which have no source and no mark.
+    QList<T> out;
     for (qsizetype i = 0; i < lines.size(); ++i) {
-        if (i > 0) out.append(TextLayout::Source{});
+        if (i > 0) out.append(T{});
         out += lines.at(i);
     }
     return out;
+}
+
+QList<TextLayout::Source> flatSources(const QList<QList<TextLayout::Source>> &lines)
+{
+    return flatLines(lines);
+}
+
+QList<TextLayout::Mark> flatMarks(const QList<QList<TextLayout::Mark>> &lines)
+{
+    const QList<TextLayout::Mark> out = flatLines(lines);
+    for (const TextLayout::Mark &m : out)
+        if (!m.isEmpty()) return out;
+    return {};
 }
 
 }
@@ -557,29 +576,33 @@ QList<TextLayout::OriginalLine> EditOpener::linesInFrame(const QPoint &from, con
     }
     if (edited) {
         if (!m_editLines.valid || !(m_editLines.edit == *edited)) {
-            m_editLines = { true, *edited, {}, {} };
-            m_editLines.lines = backend->editLines(*edited, &m_editLines.sources);
+            m_editLines = { true, *edited, {}, {}, {} };
+            m_editLines.lines = backend->editLines(*edited, &m_editLines.sources, &m_editLines.marks);
         }
         Cut taken;
         taken.valid   = true;
         taken.edit    = *edited;
         taken.lines   = m_editLines.lines;
         taken.sources = m_editLines.sources;
+        taken.marks   = m_editLines.marks;
         for (qsizetype k = 0; k < m_editLines.lines.size(); ++k) {
             const TextLayout::OriginalLine &line = m_editLines.lines.at(k);
             const QList<TextLayout::Source> sources = m_editLines.sources.value(k);
+            const QList<TextLayout::Mark> marks = m_editLines.marks.value(k);
             const int n = int(line.text.size());
             const auto [first, end] = halfInFrame(line, frame) ? charsInFrame(line, frame)
                                                                : std::pair<int, int>(-1, 0);
             if (first < 0) {
                 taken.rest.append(line);
                 taken.restSources.append(sources);
+                taken.restMarks.append(marks);
                 continue;
             }
             TextLayout::OriginalLine part = sliceOf(line, first, end);
             part.objectStart.fill(false);
             out.append(part);
             taken.takenSources.append(sources.mid(first, end - first));
+            taken.takenMarks.append(marks.mid(first, end - first));
             // What is left of the line stays where it is, a gap where the part was.
             TextLayout::OriginalLine left = first > 0 ? sliceOf(line, 0, first) : TextLayout::OriginalLine();
             TextLayout::OriginalLine right = end < n ? sliceOf(line, end, n) : TextLayout::OriginalLine();
@@ -594,6 +617,7 @@ QList<TextLayout::OriginalLine> EditOpener::linesInFrame(const QPoint &from, con
             if (!kept.text.trimmed().isEmpty()) {
                 taken.rest.append(kept);
                 taken.restSources.append(sources.mid(0, first) + sources.mid(end));
+                taken.restMarks.append(marks.mid(0, first) + marks.mid(end));
             }
         }
         if (!out.isEmpty() && firstAt)
@@ -693,6 +717,7 @@ void EditOpener::scopeToCut(EditOpen &o, const QList<TextLayout::OriginalLine> &
     const QString text = texts.join(QLatin1Char('\n'));
     o.framedLines   = lines;
     o.framedSources = flatSources(cut.takenSources);
+    o.framedMarks   = flatMarks(cut.takenMarks);
     o.displayText   = o.originalText = o.pdfText = o.selectionIn = text;
     o.selStart = o.selEnd = int(text.size());
     o.bounds = o.originalBounds = bounds;
@@ -714,6 +739,7 @@ void EditOpener::scopeToCut(EditOpen &o, const QList<TextLayout::OriginalLine> &
     rest.originalText     = rest.newText;
     rest.originalLines    = cut.rest;
     rest.sources          = flatSources(cut.restSources);
+    rest.marks            = flatMarks(cut.restMarks);
     rest.pdfBounds        = restBounds;
     rest.box              = TextBoxProperties{};
     rest.box.bounds       = restBounds;
@@ -763,6 +789,7 @@ bool EditOpener::open(const QPoint &from, const QPoint &to, bool framed, int &la
         o.unit.originalLines = cut.lines;
         o.unit.laid          = true;
         o.unitSources        = cut.sources;
+        o.unitMarks          = cut.marks;
     }
 
     target = o;

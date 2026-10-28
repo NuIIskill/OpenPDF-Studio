@@ -21,6 +21,7 @@
 #  include <QUndoStack>
 #  include <QWidget>
 #  include <cmath>
+#  include <type_traits>
 #endif
 
 /// Stores undo/redo snapshots for a text edit command.
@@ -92,6 +93,9 @@ EditController::Look EditController::currentLook() const
     look.boldChanged   = editorBoldChangedByUser;
     look.italicChanged = editorItalicChangedByUser;
     look.colorChanged  = editorColorChangedByUser;
+#ifdef HAVE_PDF_RENDERING
+    look.marks         = m_frame->charMarks();
+#endif
     return look;
 }
 
@@ -364,16 +368,22 @@ void EditController::presentEditor(const EditTarget &t)
                            currentEditorColor, currentEditorFontFamily,
                            currentEditorBold, currentEditorItalic,
                            currentEditorUnderline);
-    if (t.laid) {
-        m_frame->setCharSources(t.framedSources);
-    } else if (t.isSessionEdit && !t.sessionEdit.sources.isEmpty()) {
-        // Pasted characters keep their source; the editor's text has no soft breaks.
-        QList<TextLayout::Source> sources;
-        for (qsizetype i = 0; i < t.sessionEdit.sources.size(); ++i)
+    // Pasted characters keep their source and marked ones their mark; the
+    // editor's text has no soft breaks.
+    const auto unbroken = [&t](const auto &list) {
+        std::remove_cvref_t<decltype(list)> out;
+        for (qsizetype i = 0; i < list.size(); ++i)
             if (i >= t.sessionEdit.newText.size()
                     || t.sessionEdit.newText.at(i) != QChar(TextLayout::kSoftBreak))
-                sources.append(t.sessionEdit.sources.at(i));
-        m_frame->setCharSources(sources);
+                out.append(list.at(i));
+        return out;
+    };
+    if (t.laid) {
+        m_frame->setCharSources(t.framedSources);
+        if (!t.framedMarks.isEmpty()) m_frame->setCharMarks(t.framedMarks);
+    } else if (t.isSessionEdit) {
+        if (!t.sessionEdit.sources.isEmpty()) m_frame->setCharSources(unbroken(t.sessionEdit.sources));
+        if (!t.sessionEdit.marks.isEmpty()) m_frame->setCharMarks(unbroken(t.sessionEdit.marks));
     }
 
     activeEditOriginalText        = m_frame->currentText();
@@ -424,7 +434,10 @@ void EditController::openAt(const QPoint &from, const QPoint &to, bool framed)
 {
     EditTarget t;
     t.color = currentEditorColor;
-    if (!m_opener.open(from, to, framed, lastCommittedPage, lastCommittedOrigBounds, t)) return;
+    if (!m_opener.open(from, to, framed, lastCommittedPage, lastCommittedOrigBounds, t)) {
+        if (m_opener.ocrMissing()) Q_EMIT noticeWanted(EditNotice::Kind::Ocr);
+        return;
+    }
     openTarget(t);
     if (!framed && m_frame->isVisible()) m_frame->showLookAt(from);
     showLook();
@@ -468,6 +481,7 @@ void EditController::openTarget(const EditTarget &t)
     m_hasUnit                 = t.hasUnit;
     m_unit                    = t.unit;
     m_unitSources             = t.unitSources;
+    m_unitMarks               = t.unitMarks;
 
     presentEditor(t);
     m_opened = m_frame->appearances();
@@ -513,6 +527,7 @@ EditSession::Edit EditController::makeSessionEdit(int page, const QRectF &bounds
     // Lines where the text was set belong to the page it is on.
     if (activeEditLaid) e.originalLines = activeEditOriginalLines;
     e.sources     = TextLayout::alignSources(text, m_frame->charSources());
+    e.marks       = TextLayout::alignMarks(text, m_frame->charMarks());
     e.box         = currentBox;
     e.box.bounds  = bounds;
     return e;
@@ -562,6 +577,7 @@ void EditController::commit(const QString &newText)
         Look now = currentLook();
         now.page = page;
         const bool untouched = textUntouched && now.sameStyle(m_presented)
+            && now.marks == m_presented.marks
             && (!activeEditMovedByUser || nearly(bounds, m_presented.bounds));
         if (untouched) {
             activeEditInPlace = false;

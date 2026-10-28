@@ -133,6 +133,55 @@ void Typeset::addSourceStyles()
     }
 }
 
+void Typeset::applyMarks()
+{
+    // Each style a marked character has gets a counterpart with the mark on it.
+    m_unmarked = m_charStyles;
+    if (m_edit.marks.size() != m_edit.newText.size() || m_text.size() != m_edit.newText.size())
+        return;
+    m_marks = TextLayout::distinctMarks(m_edit.marks);
+    bool underlined = false;
+    for (const TextLayout::Mark &m : m_edit.marks) underlined |= m.underline.has_value();
+    if (m_marks.isEmpty() && !underlined) return;
+    m_charMarks = m_edit.marks;
+    const int base = int(m_styles.size());
+    for (const TextLayout::Mark &mark : std::as_const(m_marks)) {
+        EditSession::Edit e = m_edit;
+        e.familyChanged = !mark.family.isEmpty();
+        e.boldChanged   = mark.bold.has_value();
+        e.italicChanged = mark.italic.has_value();
+        if (e.familyChanged) e.fontFamily = mark.family;
+        if (e.boldChanged)   e.bold = *mark.bold;
+        if (e.italicChanged) e.italic = *mark.italic;
+        QList<int> styles;
+        for (int b = 0; b < base; ++b) {
+            Style s = m_styles.at(b);
+            if (mark.color.isValid()) s.fill = mark.color;
+            restyle(s, e);
+            if (s.mode == FPDF_TEXTRENDERMODE_FILL_STROKE && mark.color.isValid()) s.stroke = mark.color;
+            if (mark.scale > 0.0) {
+                s.size        *= mark.scale;
+                s.strokeWidth *= mark.scale;
+            }
+            if (e.familyChanged) s.family = mark.family;
+            styles.append(addStyle(s));
+        }
+        m_markStyles.append(styles);
+    }
+    for (qsizetype i = 0; i < m_charStyles.size(); ++i) {
+        const qsizetype m = m_charMarks.at(i).styled() ? m_marks.indexOf(m_charMarks.at(i)) : -1;
+        if (m >= 0) m_charStyles[i] = m_markStyles.at(m).value(m_charStyles.at(i), m_charStyles.at(i));
+    }
+    // Text with parts in another look flows anew, as a box restyled whole does.
+    if (!m_marks.isEmpty()) m_restyled = true;
+}
+
+bool Typeset::underlinedAt(int position) const
+{
+    const TextLayout::Mark mark = m_charMarks.value(position);
+    return mark.underline.value_or(m_edit.underline);
+}
+
 void Typeset::readStyles(const QList<FPDF_PAGEOBJECT> &sources, const QList<double> &rise)
 {
     const PdfiumPageSpace space(m_page);

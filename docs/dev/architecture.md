@@ -80,7 +80,10 @@ finds that character by comparing the text with the original lines, and a
 typed character takes the style before it. The format bar shows the style of
 the character clicked or at the caret (`Metrics::appearances`). A change from
 it replaces one attribute for all characters and keeps the others; a size is
-the shown character's and the others scale with it. A character the style's font cannot encode is written in the same
+the shown character's and the others scale with it. With part of the text
+selected it goes for those characters alone (`Edit::marks`, one
+`TextLayout::Mark` per character): `Typeset` gives each style a marked
+character has a counterpart with the mark on it. A character the style's font cannot encode is written in the same
 family from the system, else in an embedded font of the same kind
 (`PdfiumFonts::fallbackFont()`). Pasted text names, per character, a character
 of the document it was copied from (`SourcedText`, `Edit::sources`) and is set
@@ -313,6 +316,34 @@ on startup.
   in `PrintDialog` and for the printer alike. DOCX pictures are compressed page by page while the content
   is collected, so long documents never hold their rasters all at once.
 - **OCR** (`engine/ocr/`): Tesseract, for text the page has no text layer for.
+  It loads the offered languages that are installed (`OcrLanguages`) and
+  reloads when that set changes; a scan clicked without any shows `EditNotice`
+  with a way to the add-on page.
+
+## Add-on packages
+
+On Linux, Settings > Add-on Packages (`ui/settings/SettingsPanel_AddOns.cpp`)
+installs and removes OCR languages and, from the module, ffmpeg through the
+distribution's package manager: `app/SystemPackages` resolves the names for
+Fedora, Debian or Arch and asks PackageKit on the system bus, which brings its
+own authentication dialog; without it, or when it fails to start, the package
+manager runs through `pkexec`. Before a removal the programs that need the
+package are looked up and named, and only removed with it if the user agrees.
+Fonts are left to the desktop's font management, which the page only opens.
+
+On Windows the page downloads instead (`ui/settings/DownloadControl`,
+`app/FileDownload`, which keeps a file only when its SHA-256 matches): OCR
+languages from `tessdata_fast` 4.1.0 into a folder of the user's own, which
+first takes a copy of the bundled ones because Tesseract reads one folder, and
+ffmpeg as Gyan's 7.1.1 build, the one ffmpeg.org points to for Windows: a ZIP
+whose `ffmpeg.exe` Windows' own `tar.exe` takes out, with both checksums
+pinned. That build is GPL with Media Foundation; the user fetches it, the
+packages never carry it. Removing the shipped `ffmpeg.exe` under
+Program Files goes through `app/Elevation`, which starts the program once more
+behind the UAC prompt with `--remove-app-file`. The installer offers ffmpeg as
+a component (`/NOFFMPEG` for silent installs). On other systems the page is
+absent.
+`AddOns::open()` leads there from a message that names something missing.
 - **Signing** (`engine/sign/`, `ui/sign/`): a handwritten signature is placed
   as an image. A digital signature waits in `DigitalSignatureLayer` and is
   written on save by `PdfSignatureWriter` as an incremental update.
@@ -344,9 +375,9 @@ on startup.
 
 ## Modules
 
-`modules/rich-media/` plugs in through four registers the Core names nothing
+`modules/rich-media/` plugs in through five registers the Core names nothing
 media-related in: `LeftSidebar::registerTool()`, `ToolPanels::add()`,
-`PageOverlays::add()` and `Importing::addFormat()`, all filled from one static
+`PageOverlays::add()`, `Importing::addFormat()` and `AddOns::addCard()`, all filled from one static
 initializer in
 `MediaModule.cpp`. A `PageOverlay` follows the document (`setDocument()`),
 takes dropped files, writes itself on save (`writeTo()`), keeps its state for

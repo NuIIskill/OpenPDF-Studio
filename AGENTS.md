@@ -1,0 +1,183 @@
+# OpenPDF Studio
+
+Native Qt6 PDF viewer and editor: inline text editing, page organizer,
+annotations, OCR, export to PDF/DOCX/images.
+
+How the parts work together (startup, rendering, saving, crash recovery,
+modules) is described in [docs/dev/architecture.md](docs/dev/architecture.md). Keep it
+in step when one of those flows changes.
+
+## Build
+
+```bash
+./build.sh                 # Release → build/OpenPDFStudio
+```
+
+PDFium is the PDF engine - the same build on Linux and Windows, fetched by
+`packaging/fetch-pdfium.sh` (`HAVE_PDFIUM`, implies `HAVE_PDF_RENDERING`).
+Without it the application starts but has no document functions at all.
+
+The rest are optional and change what is compiled in, via `HAVE_*` defines:
+qpdf (`HAVE_QPDF`, PDF export options, the organizer's vector save and all
+media reading and writing), Tesseract (`HAVE_TESSERACT`, OCR),
+`Qt6::PrintSupport` (`HAVE_QT_PRINT`), digital signatures
+(`HAVE_DIGITAL_SIGNATURE`: qpdf plus GnuTLS and p11-kit on Linux, CNG on Windows) and
+`modules/rich-media/`
+(`HAVE_RICH_MEDIA`, which requires both qpdf and Qt Multimedia and is skipped
+with a warning without them). Code behind these must still compile when they
+are absent.
+
+## Layout and layer rules
+
+```
+src/
+  main.cpp        entry point
+  App.cpp         application controller: settings, main window, startup
+  cli/            command-line modes (export, import, edit checks, screenshots);
+                  may use everything, only main.cpp includes it
+  app/            infrastructure: config.ini, settings, safe writes, session,
+                  passwords, update check
+  drm/            business licence: state, key check, settings page, the two
+                  notices
+  engine/         document logic, no widgets
+    document/     PdfBackend + the PDFium implementation: opening, rendering,
+                  text lookup, selection, the content model and saving
+    edit/         content model, ink metrics, edit session
+    export/       the document into another format: PDF options, DOCX, images,
+                  printing
+    historymanager/
+                  change log, journal, restore, timeline archive
+    import/       another format into a PDF: docx, odt, images
+    ocr/          Tesseract wrapper
+    render/       PdfRenderer - zoom and point-to-pixel, asks the backend
+    sign/         digital signatures: certificates, signing, verification
+  ui/             everything that is a widget; MainWindow, DocumentView and
+                  the presentation window sit at its root
+    bars/ panels/ theme/
+                  the window frame around the document
+    view/         the document canvas: its controllers and annotation layers
+    edit/         the in-place text editor widgets
+    draw/         freehand drawing: its bar and layer
+    notes/        sticky notes: their layer and panel
+    bookmarks/    the bookmark panel
+    settings/     the settings panel and the widgets only it uses
+    organizer/    the page organizer and the widgets only it uses
+    history/      the change-log timeline
+    info/         the document information card and its status bar texts
+    protect/      protecting: password, encryption and permissions
+    session/      crash recovery: what was open and how to get it back
+    export/       the export dialog, running an export, printing
+    import/       turning a Word, OpenDocument or image file into a PDF
+    sign/         signing: the sign dialog and the digital signing flow
+    widgets/      shared widgets only - see the rule below
+  3rdparty/       vendored (nanosvg, Monocypher)
+modules/
+  rich-media/     media playback and embedding - separately licensed, see
+                  its README; same engine//ui/ split as src/
+.Codex/testing/  unit tests and harnesses for the pure parts of engine/
+```
+
+Five rules keep this from eroding. They are cheap to check and were each
+broken once already:
+
+1. **`engine/` never includes `ui/`, and never uses QWidget.** Anything that
+   paints or takes input belongs in `ui/`. This is what makes the engine
+   testable without a display.
+2. **`app/` never includes `engine/` or `ui/`.** It is infrastructure that
+   both build on, not the other way round; `engine/` may use `app/`.
+3. **Includes are always root-relative to `src/`**, e.g.
+   `#include "ui/view/PageCanvas.hpp"` - never `"PageCanvas.hpp"` or
+   `"view/PageCanvas.hpp"`. `src/` is on the include path. The only exceptions
+   are AUTOMOC's own `"Foo.moc"` and `3rdparty/` headers.
+4. **Every folder under `ui/` names a task, never a shape.** `settings/`,
+   `organizer/`, `history/` and `export/` are each one thing the user does, with
+   whatever widgets that takes. Folders named by form (`dialogs/`, `tools/`)
+   decayed into places nobody owned and have been removed.
+
+   The exceptions are the window frame (`bars/`, `panels/`, `theme/`), the
+   canvas (`view/`) and `ui/widgets/`, which holds only widgets more than one
+   owner uses - `IconButton`, `PasswordDialog`. A widget with a single owner
+   lives in its task's folder, not here.
+
+Check 1 and 2 with:
+
+```bash
+grep -rn '#include "ui/' src/engine src/app     # must be empty
+grep -rn '#include "engine/' src/app            # must be empty
+grep -rln 'QWidget\|QDialog' src/engine         # must be empty
+```
+
+Rule 4 is checkable per file - count the owners outside its own folder:
+
+```bash
+grep -rl '\bIconButton\b' src --include=*.cpp | grep -v ui/widgets/ | wc -l
+```
+
+`drm/` is the one folder that holds both logic and its widget. The licensing
+boundary is drawn around a directory, so everything that would have to move
+together stays together - see `modules/rich-media/README.md`.
+
+5. **`src/` never includes `modules/`.** The Core must build and run with
+   `modules/` absent, and code that lives there is under a different license -
+   a guarded `#include` in `src/` would quietly pull it back into the Core.
+   The direction is inverted instead: the Core carries four small registers
+   that name nothing media-related, and the module fills them from one static
+   initializer in `modules/rich-media/MediaModule.cpp`.
+
+   | register | what it takes | filled with |
+   | --- | --- | --- |
+   | `LeftSidebar::registerTool()` | a `ToolDef` | the *Rich Media* tool |
+   | `ToolPanels::add()` | a panel bound to a tool id | the insert panel |
+   | `PageOverlays::add()` | a `PageOverlay` factory | the media layer |
+   | `Importing::addFormat()` | suffixes and a conversion to PDF | videos for File > Open |
+
+   `PageOverlay::writeTo()` is where an overlay writes its part into the
+   staging file during a save. It sits on the overlay and not in a global list
+   of passes on purpose: an overlay belongs to exactly one document view, so it
+   needs no key to know which document is being saved - and a key would drift,
+   because `DocumentView::detachSourceFrom()` swaps the content path in the
+   middle of a save.
+
+Check 5 with:
+
+```bash
+grep -rn '#include "rich-media/' src    # must be empty
+```
+
+## Adding a file
+
+Add it to the `CMakeLists.txt` **in its own folder** - each source directory
+carries its own `target_sources(OpenPDFStudio PRIVATE ...)`. There is no
+central source list. A new folder needs its own `CMakeLists.txt` plus an
+`add_subdirectory()` line in its parent.
+
+## Size limits
+
+A `.cpp` over ~800 lines or a function over ~100 lines usually means several
+responsibilities sharing a file. `DocumentView` is the standing example of what
+that costs and is being split down accordingly - new state belongs in a
+controller under `ui/view/`, not on the view.
+
+## Scope discipline
+
+Make the smallest change that directly satisfies the request. Do not turn a
+one-off change into a generalized API, framework, migration, compatibility
+layer or new behavior for saved user state unless the user explicitly asks for
+it. If the request cannot be implemented without widening its scope, stop and
+ask before changing anything.
+
+## Comments
+
+Write code comments in English. Documentation comments should only give a
+short, one-sentence description of a class or namespace. Do not document
+methods or fields, narrate the implementation or its history, or explain
+behavior that is already clear from the code.
+
+## Changes
+
+Every change must be recorded in `.Codex/changes.txt`.
+
+## Testing
+
+Agents keep their tests, fixtures and output in `.Codex/testing/`, which is
+ignored. If you think a fixture needs to be versioned, ask first.

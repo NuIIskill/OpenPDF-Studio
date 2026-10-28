@@ -48,7 +48,8 @@ public:
                                     const PdfiumPageSpace &space) const;
     void insertInto(FPDF_PAGE page, const PdfiumPageSpace &space) const;
     TextLayout::Metrics metrics() const;
-    QList<TextLayout::OriginalLine> laidLines(QList<QList<TextLayout::Source>> *sources) const;
+    QList<TextLayout::OriginalLine> laidLines(QList<QList<TextLayout::Source>> *sources,
+                                              QList<QList<TextLayout::Mark>> *marks = nullptr) const;
 
 private:
     struct Style {
@@ -63,6 +64,7 @@ private:
         double    track { 0.0 };
         double    rise { 0.0 };
         QString   known;
+        QString   family;
     };
     struct Placed {
         char32_t codePoint;
@@ -78,7 +80,9 @@ private:
     void findStyleSources();
     void addDefaultStyle(const Origin *origin);
     void applyOverrides();
-    bool restyle(Style &s);
+    void applyMarks();
+    bool restyle(Style &s, const EditSession::Edit &e);
+    bool underlinedAt(int position) const;
     bool writable(FPDF_FONT font) const;
     FPDF_FONT standardFont(const QByteArray &name);
     double advance(int style, char32_t codePoint) const;
@@ -105,6 +109,10 @@ private:
     QList<int>        m_originalStyles;
     QList<FPDF_PAGEOBJECT> m_sourceObjects;
     QList<int>        m_charStyles;
+    QList<int>        m_unmarked;
+    QList<TextLayout::Mark> m_charMarks;
+    QList<TextLayout::Mark> m_marks;
+    QList<QList<int>> m_markStyles;
     std::vector<std::unique_ptr<FontChoice>> m_fonts;
     std::vector<FPDF_FONT> m_owned;
     QHash<QByteArray, QSet<FPDF_FONT>> m_fontNames;

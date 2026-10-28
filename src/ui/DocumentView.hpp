@@ -104,6 +104,7 @@ public:
     void   setEditorUnderline(bool on);
     void   setTextBoxProperties(const TextBoxProperties &properties);
     void   setTextBoxDefaults(const TextBoxProperties &properties);
+    void   setStartWidget(QWidget *widget);
     void   setEditorAlignment(Qt::Alignment alignment);
     void   setEditorListStyle(TextBoxProperties::ListStyle style);
     void   changeEditorIndent(int delta);
@@ -284,6 +285,7 @@ private:
 
     QWidget     *m_canvas    { nullptr };
     QVBoxLayout *m_layout    { nullptr };
+    QWidget     *m_startPage { nullptr };
     QLabel      *m_dropHint  { nullptr };
     QRubberBand *m_rubberBand{ nullptr };
 

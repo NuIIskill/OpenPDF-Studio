@@ -1,4 +1,5 @@
 #include "ui/sign/DigitalSignPage.hpp"
+#include "app/AppSettings.hpp"
 #include "ui/sign/CertificateCombo.hpp"
 #include "ui/sign/CreateCertificateDialog.hpp"
 #include "ui/sign/ProfileCombo.hpp"
@@ -32,6 +33,11 @@ QLabel *mutedLabel(const QString &text)
     label->setObjectName(QStringLiteral("SMuted"));
     label->setWordWrap(true);
     return label;
+}
+
+bool rememberChoices()
+{
+    return AppSettings().preservePanelLayout();
 }
 
 QFrame *divider()
@@ -230,7 +236,8 @@ QWidget *DigitalSignPage::buildProfileSection()
     connect(m_profileCombo, &ProfileCombo::commandChosen, this, &DigitalSignPage::onProfileCommand);
     vl->addWidget(m_profileCombo);
 
-    loadProfiles(SignatureProfileStore::selected());
+    loadProfiles(rememberChoices() ? SignatureProfileStore::selected()
+                                   : SignatureProfileStore::kStandardId);
     return section;
 }
 
@@ -262,7 +269,7 @@ SignatureProfileStore::Profile DigitalSignPage::currentProfile() const
 
 void DigitalSignPage::selectProfile(const QString &id)
 {
-    SignatureProfileStore::setSelected(id);
+    if (rememberChoices()) SignatureProfileStore::setSelected(id);
     loadProfiles(id);
 }
 
@@ -307,7 +314,7 @@ void DigitalSignPage::onProfileCommand(ProfileCombo::Command command)
 
 void DigitalSignPage::loadCertificatesOnce()
 {
-    if (!m_loaded) loadCertificates();
+    if (!m_loaded) loadCertificates(rememberChoices() ? AppSettings().lastCertificate() : QString());
 }
 
 void DigitalSignPage::loadCertificates()
@@ -412,6 +419,7 @@ void DigitalSignPage::onCertificateActivated(int index)
 {
     if (!m_certCombo->isNewEntry(index)) {
         m_currentCert = index;
+        rememberCertificate();
         return;
     }
     {
@@ -419,7 +427,10 @@ void DigitalSignPage::onCertificateActivated(int index)
         m_certCombo->setCurrentIndex(m_currentCert);
     }
     CreateCertificateDialog dlg(this);
-    if (dlg.exec() == QDialog::Accepted) loadCertificates(dlg.certificateId());
+    if (dlg.exec() == QDialog::Accepted) {
+        loadCertificates(dlg.certificateId());
+        rememberCertificate();
+    }
     Q_EMIT changed();
 }
 
@@ -448,4 +459,9 @@ SignatureAppearance DigitalSignPage::appearance() const
     if (look.name.isEmpty())   look.name = certificateName();
     if (look.reason.isEmpty()) look.reason = SignatureAppearanceDialog::reasons().first();
     return look;
+}
+
+void DigitalSignPage::rememberCertificate()
+{
+    if (rememberChoices()) AppSettings().setLastCertificate(m_certCombo->currentData().toString());
 }

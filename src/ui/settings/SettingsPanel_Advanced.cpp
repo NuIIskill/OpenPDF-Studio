@@ -3,14 +3,17 @@
 #include "app/UpdateChecker.hpp"
 #include "ui/theme/Theme.hpp"
 #include "ui/settings/SettingCheckBox.hpp"
+#include "ui/settings/ShortcutRow.hpp"
 
 #include <QAbstractButton>
 #include <QComboBox>
 #include <QDateTime>
 #include <QHBoxLayout>
 #include <QLabel>
+#include <QLineEdit>
 #include <QLocale>
 #include <QPushButton>
+#include <QSpinBox>
 #include <QVBoxLayout>
 
 void SettingsPanel::buildAdvancedUpdates(QVBoxLayout *vl)
@@ -98,8 +101,8 @@ void SettingsPanel::showUpdateResult(const UpdateCheckResult &result)
 void SettingsPanel::buildAdvancedInterface(QVBoxLayout *vl)
 {
     QVBoxLayout *cl = addSettingsCard(vl, tr("Interface"));
-    m_preserveLayoutCheck = addSettingsCheck(cl, tr("Preserve panel layout"),
-        tr("Restore expanded and collapsed panels after restart."),
+    m_preserveLayoutCheck = addSettingsCheck(cl, tr("Save preferences"),
+        tr("Keeps everything you set up for yourself, such as the panel layout and signing."),
         m_settings->preservePanelLayout());
 }
 
@@ -157,6 +160,17 @@ void SettingsPanel::buildAdvancedReset(QVBoxLayout *vl)
                                               QStringLiteral("ask"));
         if (m_permissionsCheck)    m_permissionsCheck->setChecked(true);
         if (m_trustOwnCheck)       m_trustOwnCheck->setChecked(true);
+        m_pendingMedia = QStringLiteral("inapp");
+        selectCardGroup(m_pendingMedia, m_mediaCards, m_mediaIds);
+        if (m_customPlayerRow)     m_customPlayerRow->setEnabled(false);
+        if (m_customPlayerEdit)    m_customPlayerEdit->clear();
+        for (ShortcutRow *row : m_shortcutRows)
+            row->resetToDefault();
+        if (m_zoomStepSpin)        m_zoomStepSpin->setValue(10);
+        if (m_ctrlWheelToggle)     m_ctrlWheelToggle->setChecked(true);
+        if (m_zoomPtrToggle)       m_zoomPtrToggle->setChecked(true);
+        if (m_wheelActionCombo)    selectComboData(m_wheelActionCombo,
+                                              QStringLiteral("scroll"));
     });
     cl->addWidget(resetAllBtn, 0, Qt::AlignLeft);
 }

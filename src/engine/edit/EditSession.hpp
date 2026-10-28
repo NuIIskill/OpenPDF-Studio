@@ -116,6 +116,7 @@ public:
         TextBoxProperties box;
         QList<TextLayout::OriginalLine> originalLines;
         QList<TextLayout::Source> sources;
+        QList<TextLayout::Mark>   marks;
 
         bool operator==(const Edit &o) const {
             return page == o.page && sourcePage == o.sourcePage && pdfBounds == o.pdfBounds &&
@@ -133,7 +134,8 @@ public:
                    sizeChanged == o.sizeChanged && colorChanged == o.colorChanged &&
                    scanned == o.scanned &&
                    formField == o.formField && eraseRects == o.eraseRects &&
-                   box == o.box && originalLines == o.originalLines && sources == o.sources;
+                   box == o.box && originalLines == o.originalLines && sources == o.sources &&
+                   marks == o.marks;
         }
         bool operator!=(const Edit &o) const { return !(*this == o); }
     };

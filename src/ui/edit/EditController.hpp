@@ -192,6 +192,7 @@ private:
         bool    boldChanged { false };
         bool    italicChanged { false };
         bool    colorChanged { false };
+        QList<TextLayout::Mark> marks;
 
         bool sameStyle(const Look &o) const;
     };
@@ -200,6 +201,8 @@ private:
 
     bool openedAll(const std::function<bool(const TextLayout::Appearance &)> &has,
                    bool boxHad) const;
+    bool markSelection(const TextLayout::Mark &mark);
+    void unmark(const TextLayout::Mark &fields);
     void emitLineSpacing();
     QList<TextLayout::Appearance> m_opened;
 #ifdef HAVE_PDF_RENDERING
@@ -207,6 +210,7 @@ private:
     bool                              m_hasUnit { false };
     EditSession::Edit                 m_unit;
     QList<QList<TextLayout::Source>>  m_unitSources;
+    QList<QList<TextLayout::Mark>>    m_unitMarks;
 #endif
     TextLayout::Appearance        m_shown;
 

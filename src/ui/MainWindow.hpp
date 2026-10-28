@@ -46,6 +46,8 @@ public:
 
     void restoreSession();
 
+    void openAddOns();
+
 public Q_SLOTS:
     void applyTheme(const QString &mode);
     void applyLanguage(const QString &lang);

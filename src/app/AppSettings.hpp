@@ -20,8 +20,17 @@ public:
     [[nodiscard]] QByteArray windowState() const;
     void setWindowState(const QByteArray &state);
 
+    [[nodiscard]] QByteArray organizerGeometry() const;
+    void setOrganizerGeometry(const QByteArray &geometry);
+
     [[nodiscard]] QString lastOpenedFile() const;
     void setLastOpenedFile(const QString &path);
+
+    struct RecentFile { QString path; QDateTime opened; };
+    [[nodiscard]] QList<RecentFile> recentFiles() const;
+    void addRecentFile(const QString &path);
+    void removeRecentFile(const QString &path);
+    void clearRecentFiles();
 
     [[nodiscard]] int  zoomLevel() const;
     void setZoomLevel(int percent);
@@ -85,6 +94,9 @@ public:
     [[nodiscard]] bool trustOwnCertificates() const;
     void setTrustOwnCertificates(bool enabled);
 
+    [[nodiscard]] QString lastCertificate() const;
+    void setLastCertificate(const QString &id);
+
     [[nodiscard]] bool noticeHidden(const QString &key) const;
     void setNoticeHidden(const QString &key, bool hidden);
 
@@ -105,10 +117,16 @@ public:
 
     void sync();
 
+Q_SIGNALS:
+    void recentFilesChanged();
+
 private:
     static constexpr auto kWindowGeometry = "window/geometry";
     static constexpr auto kWindowState    = "window/state";
     static constexpr auto kLastOpenedFile = "document/lastOpenedFile";
+    static constexpr auto kRecentFiles    = "document/recentFiles";
+    static constexpr auto kRecentOpened   = "document/recentOpened";
+    static constexpr int  kRecentLimit    = 8;
     static constexpr auto kZoomLevel      = "view/zoomLevel";
     static constexpr auto kTheme          = "appearance/theme";
     static constexpr auto kLanguage       = "appearance/language";

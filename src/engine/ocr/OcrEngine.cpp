@@ -1,11 +1,11 @@
 #include "engine/ocr/OcrEngine.hpp"
+#include "engine/ocr/OcrLanguages.hpp"
 
 #ifdef HAVE_TESSERACT
 #  include <tesseract/baseapi.h>
 #  include <leptonica/allheaders.h>
 #endif
 
-#include <QCoreApplication>
 #include <QDebug>
 #include <QStringList>
 #include <algorithm>
@@ -14,21 +14,42 @@
 
 OcrEngine::OcrEngine()
 {
+    refresh();
+}
+
+OcrEngine::~OcrEngine()
+{
+    release();
+}
+
+void OcrEngine::refresh()
+{
 #ifdef HAVE_TESSERACT
+    const QString wanted = OcrLanguages::installed().join(u'+');
+    if (m_tried && wanted == m_languages) return;
+    m_tried     = true;
+    m_languages = wanted;
+    release();
+
     auto *api = new tesseract::TessBaseAPI();
 
     // The Windows packages carry the language data next to the executable;
     // the path compiled into Tesseract points into the build machine's sysroot.
 #ifdef Q_OS_WIN
-    const QByteArray dataDir =
-        (QCoreApplication::applicationDirPath() + QStringLiteral("/share/tessdata/")).toLocal8Bit();
+    const QByteArray dataDir = (OcrLanguages::dataDir() + u'/').toLocal8Bit();
     const char *dataPath = dataDir.constData();
 #else
     const char *dataPath = nullptr;
 #endif
 
-    // A missing language is skipped, so report what was actually loaded.
-    if (api->Init(dataPath, "deu+eng+fra") == 0) {
+    // Languages kept somewhere OcrLanguages does not look are still found by
+    // Tesseract's own search path.
+    const QStringList attempts = wanted.isEmpty()
+        ? QStringList { QStringLiteral("deu+eng+fra"), QStringLiteral("eng") }
+        : QStringList { wanted };
+    for (const QString &languages : attempts) {
+        if (api->Init(dataPath, languages.toLatin1().constData()) != 0) continue;
+        // A missing language is skipped, so report what was actually loaded.
         std::vector<std::string> loaded;
         api->GetLoadedLanguagesAsVector(&loaded);
         QStringList names;
@@ -37,18 +58,14 @@ OcrEngine::OcrEngine()
         qDebug() << "[OCR] Tesseract ready:" << names.join(u'+');
         m_api   = api;
         m_ready = true;
-    } else if (api->Init(dataPath, "eng") == 0) {
-        qDebug() << "[OCR] Tesseract ready (eng only, install tesseract-langpack-deu for German)";
-        m_api   = api;
-        m_ready = true;
-    } else {
-        qWarning() << "[OCR] Tesseract init failed, install tesseract + tesseract-langpack-eng";
-        delete api;
+        return;
     }
+    qWarning() << "[OCR] Tesseract init failed, no language data installed";
+    delete api;
 #endif
 }
 
-OcrEngine::~OcrEngine()
+void OcrEngine::release()
 {
 #ifdef HAVE_TESSERACT
     if (m_api) {
@@ -57,6 +74,8 @@ OcrEngine::~OcrEngine()
         delete api;
     }
 #endif
+    m_api   = nullptr;
+    m_ready = false;
 }
 
 QList<OcrEngine::Block> OcrEngine::recognizePage(const QImage &pageImage,

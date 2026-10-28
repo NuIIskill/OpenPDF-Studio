@@ -72,6 +72,11 @@ public:
     double contentHeightPt() const;
     QList<TextLayout::Source> charSources() const;
     void setCharSources(const QList<TextLayout::Source> &sources);
+    QList<TextLayout::Mark> charMarks() const;
+    void setCharMarks(const QList<TextLayout::Mark> &marks);
+    bool markSelection(const TextLayout::Mark &mark);
+    void unmark(const TextLayout::Mark &fields);
+    TextLayout::Mark lookMark() const;
     void setDocumentKey(const QString &key) { m_documentKey = key; }
 
     void copyAll();
@@ -123,7 +128,8 @@ private:
     void   applyParagraphSpacing();
     void   updateVerticalAlignment();
     TextLayout::Appearance appearanceOf(int index) const;
-    TextLayout::Appearance caretAppearance() const;
+    int    lookIndex() const;
+    void   remark(int start, const QList<TextLayout::Mark> &marks);
     QMimeData *mimeOf(int start, int end, const SourcedText::Box &box) const;
     SourcedText::Box laidBox(int start, int end) const;
 

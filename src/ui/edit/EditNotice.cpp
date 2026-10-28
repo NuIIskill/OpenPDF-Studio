@@ -1,6 +1,7 @@
 #include "ui/edit/EditNotice.hpp"
 
 #include "app/AppSettings.hpp"
+#include "ui/settings/AddOns.hpp"
 #include "ui/theme/Theme.hpp"
 
 #include <QEvent>
@@ -37,6 +38,16 @@ EditNotice::EditNotice(QWidget *host)
     m_text->setFixedWidth(TextWidthPx);
     row->addWidget(m_text, 1);
 
+    m_action = new QPushButton(tr("Add-on Packages"), this);
+    m_action->setObjectName(QStringLiteral("EditNoticeNever"));
+    m_action->setCursor(Qt::PointingHandCursor);
+    m_action->setFlat(true);
+    row->addWidget(m_action, 0, Qt::AlignVCenter);
+    connect(m_action, &QPushButton::clicked, this, [this]() {
+        hide();
+        AddOns::open(this);
+    });
+
     auto *never = new QPushButton(tr("Don't show again"), this);
     never->setObjectName(QStringLiteral("EditNoticeNever"));
     never->setCursor(Qt::PointingHandCursor);
@@ -67,7 +78,12 @@ EditNotice::EditNotice(QWidget *host)
 
 QString EditNotice::keyOf(Kind kind)
 {
-    return kind == Kind::Scan ? QStringLiteral("scanEditing") : QStringLiteral("substituteFont");
+    switch (kind) {
+    case Kind::Scan: return QStringLiteral("scanEditing");
+    case Kind::Font: return QStringLiteral("substituteFont");
+    case Kind::Ocr:  return QStringLiteral("ocrMissing");
+    }
+    return {};
 }
 
 void EditNotice::offer(Kind kind)
@@ -76,12 +92,22 @@ void EditNotice::offer(Kind kind)
     if (m_shown.contains(int(kind)) || AppSettings().noticeHidden(keyOf(kind))) return;
     m_shown.insert(int(kind));
     m_kind = kind;
-    m_text->setText(kind == Kind::Scan
-        ? tr("This text was scanned. It is recognised automatically, which can cause "
-             "errors, and its font or font size can differ from the original. Please check "
-             "the result.")
-        : tr("The font of this text cannot be used for editing. The text is set in the "
-             "closest font available, which can look a little different."));
+    switch (kind) {
+    case Kind::Scan:
+        m_text->setText(tr("This text was scanned. It is recognised automatically, which can "
+                           "cause errors, and its font or font size can differ from the "
+                           "original. Please check the result."));
+        break;
+    case Kind::Font:
+        m_text->setText(tr("The font of this text cannot be used for editing. The text is set "
+                           "in the closest font available, which can look a little different."));
+        break;
+    case Kind::Ocr:
+        m_text->setText(tr("This page was scanned. Its text can only be recognised with a "
+                           "language for text recognition, and none is installed."));
+        break;
+    }
+    m_action->setVisible(kind == Kind::Ocr && AddOns::supported());
     m_icon->setPixmap(Theme::renderSvg(QStringLiteral("info"), Theme::Primary, 18,
                                        devicePixelRatioF()));
     adjustSize();

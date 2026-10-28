@@ -24,7 +24,8 @@ void textAlone(FPDF_DOCUMENT doc, FPDF_PAGE page, const QList<EditSession::Edit>
 
 QList<TextLayout::OriginalLine> laidLines(FPDF_DOCUMENT doc, FPDF_PAGE page, FPDF_TEXTPAGE textPage,
                                           const EditSession::Edit &edit,
-                                          QList<QList<TextLayout::Source>> *sources);
+                                          QList<QList<TextLayout::Source>> *sources,
+                                          QList<QList<TextLayout::Mark>> *marks = nullptr);
 
 }
 

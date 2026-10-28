@@ -72,6 +72,12 @@ public:
     void cancelIfEditing() { if (m_editing) exitEdit(false); }
 
     QKeySequence currentSequence() const { return m_currentSeq; }
+    void resetToDefault()
+    {
+        m_currentSeq = m_defaultSeq;
+        m_seqDisplay->setText(m_defaultSeq.toString(QKeySequence::NativeText));
+        if (m_editing) m_captureEdit->setSequence(m_defaultSeq);
+    }
     void setCurrentSequence(const QKeySequence &seq)
     {
         m_currentSeq = seq;
@@ -133,11 +139,7 @@ private:
         m_resetBtn->setIcon(Theme::makeIcon(QStringLiteral("undo-2"),
                                             Theme::IconMuted, Theme::IconChecked,
                                             Theme::IconDisabled, 14));
-        connect(m_resetBtn, &QPushButton::clicked, this, [this]() {
-            m_currentSeq = m_defaultSeq;
-            m_seqDisplay->setText(m_defaultSeq.toString(QKeySequence::NativeText));
-            if (m_editing) m_captureEdit->setSequence(m_defaultSeq);
-        });
+        connect(m_resetBtn, &QPushButton::clicked, this, &ShortcutRow::resetToDefault);
         hl->addWidget(m_resetBtn);
 
         m_editBtn = new QPushButton(tr("Edit"), this);

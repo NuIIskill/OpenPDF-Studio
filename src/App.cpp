@@ -49,7 +49,7 @@ AppSettings *App::settings() const
 
 void App::loadSettings()
 {
-    if (!m_mainWindow)
+    if (!m_mainWindow || !m_settings->preservePanelLayout())
         return;
 
     const QByteArray geo = m_settings->windowGeometry();
@@ -65,7 +65,7 @@ void App::loadSettings()
 
 void App::saveSettings()
 {
-    if (!m_mainWindow)
+    if (!m_mainWindow || !m_settings->preservePanelLayout())
         return;
 
     m_settings->setWindowGeometry(m_mainWindow->saveGeometry());

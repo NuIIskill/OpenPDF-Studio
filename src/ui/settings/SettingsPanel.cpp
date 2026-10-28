@@ -4,6 +4,7 @@
 #include "drm/LicenseStore.hpp"
 #include "drm/LicensePage.hpp"
 #include "ui/theme/Theme.hpp"
+#include "ui/settings/AddOns.hpp"
 #include "ui/settings/LangRow.hpp"
 #include "ui/settings/OptionCard.hpp"
 #include "ui/settings/SettingsSearch.hpp"
@@ -68,6 +69,8 @@ void SettingsPanel::buildUi()
     m_pages->addWidget(buildAppearancePage());
     m_pages->addWidget(buildLanguagePage());
     m_pages->addWidget(buildMediaPage());
+    if (AddOns::supported())
+        m_pages->addWidget(buildAddOnsPage());
     m_pages->addWidget(buildShortcutsPage());
     m_pages->addWidget(buildZoomPage());
     m_pages->addWidget(buildSecurityPage());
@@ -129,6 +132,8 @@ void SettingsPanel::buildNav(QWidget *, QVBoxLayout *layout)
         { "shield",      QT_TR_NOOP("Security")       },
         { "sliders",     QT_TR_NOOP("Advanced")       },
     };
+    if (AddOns::supported())
+        items.insert(3, Item{ "layers", QT_TR_NOOP("Add-on Packages") });
 
     if (License::isBusinessInstall())
         items.append(Item{ "key", QT_TR_NOOP("License Key") });
@@ -234,6 +239,12 @@ void SettingsPanel::showLicensePage()
 {
     if (m_licensePage)
         selectPage(m_pages->indexOf(m_licensePage));
+}
+
+void SettingsPanel::showAddOnsPage()
+{
+    if (m_addOnsPage)
+        selectPage(m_pages->indexOf(m_addOnsPage));
 }
 
 void SettingsPanel::selectPageForTest(const QString &navLabel)

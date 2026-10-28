@@ -5,6 +5,7 @@
 
 QT_BEGIN_NAMESPACE
 class QLabel;
+class QPushButton;
 class QTimer;
 QT_END_NAMESPACE
 
@@ -14,7 +15,7 @@ class EditNotice : public QFrame
     Q_OBJECT
 
 public:
-    enum class Kind { Scan, Font };
+    enum class Kind { Scan, Font, Ocr };
 
     explicit EditNotice(QWidget *host);
 
@@ -30,6 +31,7 @@ private:
 
     QLabel *m_icon { nullptr };
     QLabel *m_text { nullptr };
+    QPushButton *m_action { nullptr };
     QTimer *m_hold { nullptr };
     Kind    m_kind { Kind::Scan };
     QSet<int> m_shown;

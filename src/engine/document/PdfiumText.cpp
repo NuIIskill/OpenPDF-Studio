@@ -360,17 +360,18 @@ Typeset::Typeset(FPDF_DOCUMENT doc, FPDF_PAGE page, FPDF_TEXTPAGE textPage,
     for (const Style &s : std::as_const(m_styles)) m_ownFonts.append(s.font);
     applyOverrides();
 
+    m_charStyles = TextLayout::styleIndices(m_text, m_original, m_originalStyles);
+    for (qsizetype i = 0; i < m_charStyles.size() && !edit.scanned && m_text.size() == m_edit.sources.size(); ++i) {
+        const qsizetype k = m_sources.indexOf(m_edit.sources.at(i));
+        if (k >= 0) m_charStyles[i] = m_sourceStyles.at(k);
+    }
+    applyMarks();
 
     const QString measured = TextLayout::measuredCharacters(m_text, edit.box.listStyle)
                            + QLatin1Char(' ');
     for (const Style &s : std::as_const(m_styles)) {
         m_fonts.push_back(std::make_unique<FontChoice>(doc, page, s.font, s.known));
         m_fonts.back()->prepare(measured);
-    }
-    m_charStyles = TextLayout::styleIndices(m_text, m_original, m_originalStyles);
-    for (qsizetype i = 0; i < m_charStyles.size() && !edit.scanned && m_text.size() == m_edit.sources.size(); ++i) {
-        const qsizetype k = m_sources.indexOf(m_edit.sources.at(i));
-        if (k >= 0) m_charStyles[i] = m_sourceStyles.at(k);
     }
 
     m_size = m_styles.at(TextLayout::dominantStyle(m_charStyles, int(m_styles.size()))).size;
@@ -384,6 +385,7 @@ Typeset::Typeset(FPDF_DOCUMENT doc, FPDF_PAGE page, FPDF_TEXTPAGE textPage,
     m_anchor = !edit.originalLines.isEmpty() && !edit.scanned && (edit.laid || (!m_restyled && !resized))
             && TextLayout::anchors(box);
     m_keep = keepObjects && m_anchor && !edit.scanned && !edit.colorChanged && !edit.underline
+          && m_charMarks.isEmpty()
           && box.opacity >= 0.999 && qFuzzyIsNull(box.rotationDeg)
           && !box.backgroundEnabled && !box.borderEnabled;
     if (!laidOut) return;
@@ -448,7 +450,7 @@ void Typeset::applyOverrides()
             if (FPDF_FONT copy = PdfiumFonts::embeddedCopy(m_doc, s.font)) {
                 s.font = copy;
                 s.known.clear();
-                m_restyled |= restyle(s);
+                m_restyled |= restyle(s, e);
                 continue;
             }
             const PdfiumFonts::Face own = PdfiumFonts::faceOf(s.font);
@@ -457,13 +459,12 @@ void Typeset::applyOverrides()
             s.font = font ? font : standardFont(standardFontLike(s.font, e));
             s.known.clear();
         }
-        m_restyled |= restyle(s);
+        m_restyled |= restyle(s, e);
     }
 }
 
-bool Typeset::restyle(Style &s)
+bool Typeset::restyle(Style &s, const EditSession::Edit &e)
 {
-    const EditSession::Edit &e = m_edit;
     if (!s.font || (!e.familyChanged && !e.boldChanged && !e.italicChanged)) return false;
     const PdfiumFonts::Face own = PdfiumFonts::faceOf(s.font);
     const bool drawnBold   = own.bold || s.mode == FPDF_TEXTRENDERMODE_FILL_STROKE;
@@ -647,19 +648,41 @@ void Typeset::insertInto(FPDF_PAGE page, const PdfiumPageSpace &space) const
         }
         insertRuns(page, glyphs, baseline, space);
 
-        if (!m_edit.underline || inkStart < 0.0) continue;
-        const Style &s = m_styles.at(styleAt(line.start));
-        const double thickness = qMax(0.3, s.size * 0.06);
-        const double width = lineX + line.width - inkStart;
-        const QRectF under = space.toPdf(QRectF(inkStart, baseline + s.size * 0.12 - thickness,
-                                                width, thickness));
-        FPDF_PAGEOBJECT rule = FPDFPageObj_CreateNewRect(under.left(), under.top(),
-                                                         under.width(), under.height());
-        if (!rule) continue;
-        setColor(rule, s.fill, m_edit.box.opacity, false);
-        FPDFPath_SetDrawMode(rule, FPDF_FILLMODE_WINDING, false);
-        rotateObject(rule, m_edit, space);
-        FPDFPage_InsertObject(page, rule);
+        if (inkStart < 0.0) continue;
+        // The underlined stretches of the line, each from its first ink to its last.
+        QList<std::pair<int, int>> stretches;
+        if (m_charMarks.isEmpty()) {
+            if (m_edit.underline) stretches.append({ line.start, -1 });
+        } else {
+            int first = -1, last = -1;
+            for (int i = line.start; i <= end; ++i) {
+                const bool under = i < end && i < m_text.size() && underlinedAt(i);
+                if (under && !m_text.at(i).isSpace()) {
+                    if (first < 0) first = i;
+                    last = i;
+                } else if (!under && first >= 0) {
+                    stretches.append({ first, last });
+                    first = -1;
+                }
+            }
+        }
+        for (const auto &[first, last] : std::as_const(stretches)) {
+            const Style &s = m_styles.at(styleAt(first));
+            const double thickness = qMax(0.3, s.size * 0.06);
+            const double from = last < 0 ? inkStart
+                                         : lineX + TextLayout::xAt(line, m_text, first, spacing, advance);
+            const double to = last < 0 ? lineX + line.width
+                                       : lineX + TextLayout::xAt(line, m_text, last + 1, spacing, advance);
+            const QRectF under = space.toPdf(QRectF(from, baseline + s.size * 0.12 - thickness,
+                                                    to - from, thickness));
+            FPDF_PAGEOBJECT rule = FPDFPageObj_CreateNewRect(under.left(), under.top(),
+                                                             under.width(), under.height());
+            if (!rule) continue;
+            setColor(rule, s.fill, m_edit.box.opacity, false);
+            FPDFPath_SetDrawMode(rule, FPDF_FILLMODE_WINDING, false);
+            rotateObject(rule, m_edit, space);
+            FPDFPage_InsertObject(page, rule);
+        }
     }
 }
 
@@ -734,7 +757,8 @@ void Typeset::insertRun(FPDF_PAGE page, int style, FPDF_FONT font, const QList<u
     FPDFPage_InsertObject(page, obj);
 }
 
-QList<TextLayout::OriginalLine> Typeset::laidLines(QList<QList<TextLayout::Source>> *sources) const
+QList<TextLayout::OriginalLine> Typeset::laidLines(QList<QList<TextLayout::Source>> *sources,
+                                                   QList<QList<TextLayout::Mark>> *marks) const
 {
     // Where every character of the text is set, line by line, and a character
     // of the document in its style for each.
@@ -746,6 +770,7 @@ QList<TextLayout::OriginalLine> Typeset::laidLines(QList<QList<TextLayout::Sourc
     for (const TextLayout::Line &line : m_layout.lines) {
         TextLayout::OriginalLine laid;
         QList<TextLayout::Source> lineSources;
+        QList<TextLayout::Mark> lineMarks;
         laid.baseline = bounds.top() + base.y() + line.y;
         const double lineX = bounds.left() + base.x() + line.x;
         double top = laid.baseline, bottom = laid.baseline;
@@ -759,7 +784,9 @@ QList<TextLayout::OriginalLine> Typeset::laidLines(QList<QList<TextLayout::Sourc
             laid.objectStart.append(false);
             top    = qMin(top, laid.baseline - size * 0.8);
             bottom = qMax(bottom, laid.baseline + size * 0.25);
-            lineSources.append(m_styleSources.value(styleAt(i)));
+            // A marked character is read as its own style plus the mark.
+            lineSources.append(m_styleSources.value(m_unmarked.value(i, styleAt(i))));
+            lineMarks.append(m_charMarks.value(i));
         }
         if (laid.text.isEmpty()) continue;
         // What the layout keeps is still the original objects, set where
@@ -774,6 +801,7 @@ QList<TextLayout::OriginalLine> Typeset::laidLines(QList<QList<TextLayout::Sourc
         laid.rect = QRectF(QPointF(laid.charX.first(), top), QPointF(laid.endX, bottom));
         out.append(laid);
         if (sources) sources->append(lineSources);
+        if (marks) marks->append(lineMarks);
     }
     return out;
 }
@@ -790,6 +818,8 @@ TextLayout::Metrics Typeset::metrics() const
     out.sources        = m_sources;
     out.sourceStyles   = m_sourceStyles;
     out.styleSources   = m_styleSources;
+    out.marks          = m_marks;
+    out.markStyles     = m_markStyles;
     // The usual characters come along, so typing them needs no new metrics.
     const QString characters = TextLayout::measuredCharacters(m_text, m_edit.box.listStyle)
                              + typicalCharacters();
@@ -806,7 +836,8 @@ TextLayout::Metrics Typeset::metrics() const
         // The family as the document names it, unless one was picked; bold
         // and italic as drawn, also where they are simulated.
         const PdfiumFonts::Face face = PdfiumFonts::faceOf(style.font);
-        out.appearances.append({ m_edit.familyChanged
+        out.appearances.append({ !style.family.isEmpty() ? style.family
+                                 : m_edit.familyChanged
                                      ? m_edit.fontFamily
                                      : PdfiumFonts::familyName(m_ownFonts.value(s, style.font)),
                                  style.size,

@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: LicenseRef-OpenPDF-Business
 
+#include "rich-media/ui/ConvertCard.hpp"
 #include "rich-media/ui/MediaLayer.hpp"
 #include "rich-media/ui/RichMediaPanel.hpp"
 
@@ -8,6 +9,7 @@
 #include "ui/import/Importing.hpp"
 #include "ui/panels/LeftSidebar.hpp"
 #include "ui/panels/ToolPanels.hpp"
+#include "ui/settings/AddOns.hpp"
 #include "ui/view/PageOverlay.hpp"
 
 #include <QFile>
@@ -69,6 +71,8 @@ struct Registration
                 return made ? Importing::Result::Converted : Importing::Result::Failed;
             },
         });
+
+        AddOns::addCard({ &ConvertCard::build });
     }
 };
 

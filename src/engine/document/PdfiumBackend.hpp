@@ -68,7 +68,8 @@ public:
                          bool italic) const override;
     TextLayout::Metrics editMetrics(const EditSession::Edit &edit) const override;
     QList<TextLayout::OriginalLine> editLines(const EditSession::Edit &edit,
-                                              QList<QList<TextLayout::Source>> *sources) const override;
+                                              QList<QList<TextLayout::Source>> *sources,
+                                              QList<QList<TextLayout::Mark>> *marks = nullptr) const override;
     QList<TextLayout::OriginalLine> originalLines(int page, const QRectF &area,
                                                   const QList<QRectF> &exclude) const override;
     bool    hasSelectableText(int page) const override;

@@ -9,6 +9,10 @@
 ; ohne das Define gilt die Doppellizenz des Quelltextes.
 ;
 ; Laufzeit-Parameter des fertigen Setups:
+;   Setup.exe /S /NOFFMPEG        stille Installation ohne ffmpeg.exe; das
+;                                 Programm konvertiert dann nur mit Windows'
+;                                 eigenem Encoder (Einstellungen > Zusatzpakete
+;                                 holt es bei Bedarf nach)
 ;   Setup.exe /S /KEY=XXXX-XXXX   stille Installation, hinterlegt einen
 ;                                 Business-Schlüssel maschinenweit unter
 ;                                 HKLM\Software\OpenPDFStudio\BusinessLicense
@@ -173,7 +177,10 @@ FunctionEnd
 Section "-Programm" SecApp
   SectionIn RO
   SetOutPath "$INSTDIR"
-  File /r "${STAGE_DIR}\*"
+  ; ffmpeg is its own component; one left from an earlier install goes unless
+  ; that component is chosen again.
+  Delete "$INSTDIR\ffmpeg.exe"
+  File /r /x ffmpeg.exe "${STAGE_DIR}\*"
 
   WriteUninstaller "$INSTDIR\Uninstall.exe"
 
@@ -215,6 +222,13 @@ Section "-Programm" SecApp
   WriteRegDWORD HKLM "${UNINST_KEY}" "EstimatedSize" "$0"
 SectionEnd
 
+!if /FileExists "${STAGE_DIR}\ffmpeg.exe"
+Section "$(SEC_FFMPEG)" SecFfmpeg
+  SetOutPath "$INSTDIR"
+  File "${STAGE_DIR}\ffmpeg.exe"
+SectionEnd
+!endif
+
 Section "$(SEC_STARTMENU)" SecStartMenu
   CreateDirectory "$SMPROGRAMS\${APP_NAME}"
   CreateShortcut "$SMPROGRAMS\${APP_NAME}\${APP_NAME}.lnk" "$INSTDIR\${APP_EXE}"
@@ -254,6 +268,10 @@ LangString SEC_STARTMENU ${LANG_GERMAN}  "Startmenü-Einträge"
 LangString SEC_STARTMENU ${LANG_ENGLISH} "Start menu entries"
 LangString SEC_DESKTOP   ${LANG_GERMAN}  "Desktop-Verknüpfung"
 LangString SEC_DESKTOP   ${LANG_ENGLISH} "Desktop shortcut"
+LangString SEC_FFMPEG    ${LANG_GERMAN}  "FFmpeg (Videokonvertierung)"
+LangString SEC_FFMPEG    ${LANG_ENGLISH} "FFmpeg (video conversion)"
+LangString DESC_FFMPEG   ${LANG_GERMAN}  "Konvertiert Videos, die Windows nicht selbst lesen kann, bevor sie in ein PDF eingebettet werden. Lässt sich später unter Einstellungen > Zusatzpakete entfernen oder nachholen."
+LangString DESC_FFMPEG   ${LANG_ENGLISH} "Converts videos Windows cannot read itself before they are embedded in a PDF. Can be removed or added later in Settings > Add-on Packages."
 LangString LNK_UNINSTALL ${LANG_GERMAN}  "${APP_NAME} deinstallieren"
 LangString LNK_UNINSTALL ${LANG_ENGLISH} "Uninstall ${APP_NAME}"
 
@@ -290,6 +308,9 @@ LangString LIC_BOTTOM ${LANG_ENGLISH} "Full texts: LICENSES folder. Source code:
 !insertmacro MUI_FUNCTION_DESCRIPTION_BEGIN
   !insertmacro MUI_DESCRIPTION_TEXT ${SecStartMenu} "$(SEC_STARTMENU)"
   !insertmacro MUI_DESCRIPTION_TEXT ${SecDesktop}   "$(SEC_DESKTOP)"
+!if /FileExists "${STAGE_DIR}\ffmpeg.exe"
+  !insertmacro MUI_DESCRIPTION_TEXT ${SecFfmpeg}    "$(DESC_FFMPEG)"
+!endif
 !insertmacro MUI_FUNCTION_DESCRIPTION_END
 
 Function .onInit
@@ -310,6 +331,14 @@ Function .onInit
       StrCpy $UsageMode "business"
     ${EndIf}
   ${EndIf}
+
+!if /FileExists "${STAGE_DIR}\ffmpeg.exe"
+  ClearErrors
+  ${GetOptions} $R0 "/NOFFMPEG" $R1
+  ${IfNot} ${Errors}
+    SectionSetFlags ${SecFfmpeg} 0
+  ${EndIf}
+!endif
 FunctionEnd
 
 Function un.onInit

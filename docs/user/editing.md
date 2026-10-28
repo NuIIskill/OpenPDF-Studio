@@ -16,6 +16,8 @@ With the **Text** tool, click a text run and type into the inline editor.
 Text is written back as vector content. Characters retain the original font,
 size, colour and style where possible; characters the font cannot encode use
 a fallback font. Use the format bar and text properties to adjust formatting.
+With part of the text selected, font, size, bold, italic, underline and colour
+change only that part.
 
 ![A paragraph selected in the inline editor, with its blue text frame and the font, size, colour and alignment controls above it](../images/screenshots/inline-text-editing.png)
 

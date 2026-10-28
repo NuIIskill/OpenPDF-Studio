@@ -52,6 +52,12 @@ public:
     QList<TextLayout::Source> charSources() const;
     QList<QList<double>> paragraphCharXPt() const;
     void setCharSources(const QList<TextLayout::Source> &sources);
+    QList<TextLayout::Mark> charMarks() const;
+    void setCharMarks(const QList<TextLayout::Mark> &marks);
+    bool hasSelection() const;
+    bool markSelection(const TextLayout::Mark &mark);
+    void unmark(const TextLayout::Mark &fields);
+    TextLayout::Mark lookMark() const;
     void setDocumentKey(const QString &key);
     InlineEditor *editor() const { return m_editor; }
     void copyAll();

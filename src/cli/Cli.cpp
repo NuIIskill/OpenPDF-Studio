@@ -32,6 +32,7 @@ constexpr Command kCommands[] = {
     { "--apply-edit",          4, applyEditCommand },
     { "--shot-presentation",   4, shotPresentation },
     { "--shot-window",         4, shotWindow },
+    { "--remove-app-file",     3, removeAppFileCommand },
 };
 
 }

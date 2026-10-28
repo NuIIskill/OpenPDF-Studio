@@ -57,6 +57,13 @@ target_link_libraries(OpenPDFStudio PRIVATE
     Qt6::Network
 )
 
+# PackageKit sits on the system bus: app/SystemPackages installs add-on
+# packages through it. Linux only, part of qtbase there.
+if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
+    find_package(Qt6 REQUIRED COMPONENTS DBus)
+    target_link_libraries(OpenPDFStudio PRIVATE Qt6::DBus)
+endif()
+
 # ── PDFium ───────────────────────────────────────────────────────────────────
 # Bezogen über packaging/fetch-pdfium.sh (Version gepinnt, Prüfsumme geprüft).
 # Dieselbe Engine, die auch in Qt6::Pdf steckt, hier ohne Qt-Hülle und auf
@@ -422,7 +429,7 @@ page organizer, annotations, OCR and export to PDF, DOCX and image formats.")
     # as Recommends left dpkg free to leave them out. The RPM never had the
     # problem because AUTOREQ reads the sonames out of the binary.
     set(CPACK_DEBIAN_PACKAGE_DEPENDS
-        "libqt6core6 | libqt6core6t64, libqt6gui6, libqt6widgets6, libqt6printsupport6, libqt6network6, libqt6multimedia6, libqpdf29 | libqpdf29t64, libgnutls30 | libgnutls30t64, libp11-kit0, libtesseract5 | libtesseract5t64, zlib1g, qt6-image-formats-plugins")
+        "libqt6core6 | libqt6core6t64, libqt6gui6, libqt6widgets6, libqt6printsupport6, libqt6network6, libqt6dbus6 | libqt6dbus6t64, libqt6multimedia6, libqpdf29 | libqpdf29t64, libgnutls30 | libgnutls30t64, libp11-kit0, libtesseract5 | libtesseract5t64, zlib1g, qt6-image-formats-plugins")
     # libqt6pdf6 ist raus: die PDF-Engine ist PDFium und liegt im Paket.
     # ffmpeg only converts video while embedding it and is genuinely optional.
     set(CPACK_DEBIAN_PACKAGE_SUGGESTS "ffmpeg")

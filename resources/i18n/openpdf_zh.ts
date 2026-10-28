@@ -91,6 +91,45 @@
     </message>
 </context>
 <context>
+    <name>ConvertCard</name>
+    <message>
+        <location filename="../../modules/rich-media/ui/ConvertCard.cpp" line="45"/>
+        <location filename="../../modules/rich-media/ui/ConvertCard.cpp" line="52"/>
+        <source>The download could not be unpacked.</source>
+        <translation>无法解压下载的文件。</translation>
+    </message>
+    <message>
+        <location filename="../../modules/rich-media/ui/ConvertCard.cpp" line="64"/>
+        <source>Included with the program</source>
+        <translation>随程序安装</translation>
+    </message>
+    <message>
+        <location filename="../../modules/rich-media/ui/ConvertCard.cpp" line="65"/>
+        <source>Downloaded</source>
+        <translation>已下载</translation>
+    </message>
+    <message>
+        <location filename="../../modules/rich-media/ui/ConvertCard.cpp" line="78"/>
+        <source>No permission was given.</source>
+        <translation>未获得权限。</translation>
+    </message>
+    <message>
+        <location filename="../../modules/rich-media/ui/ConvertCard.cpp" line="79"/>
+        <source>The file could not be deleted.</source>
+        <translation>无法删除该文件。</translation>
+    </message>
+    <message>
+        <location filename="../../modules/rich-media/ui/ConvertCard.cpp" line="89"/>
+        <source>Video Conversion</source>
+        <translation>视频转换</translation>
+    </message>
+    <message>
+        <location filename="../../modules/rich-media/ui/ConvertCard.cpp" line="104"/>
+        <source>Converts videos before they are embedded in a PDF.</source>
+        <translation>在嵌入 PDF 之前转换视频。</translation>
+    </message>
+</context>
+<context>
     <name>CreateCertificateDialog</name>
     <message>
         <location filename="../../src/ui/sign/CreateCertificateDialog.cpp" line="36"/>
@@ -177,157 +216,157 @@
 <context>
     <name>DigitalSignPage</name>
     <message>
-        <location filename="../../src/ui/sign/DigitalSignPage.cpp" line="92"/>
+        <location filename="../../src/ui/sign/DigitalSignPage.cpp" line="98"/>
         <source>Select certificate</source>
         <translation>选择证书</translation>
     </message>
     <message>
-        <location filename="../../src/ui/sign/DigitalSignPage.cpp" line="113"/>
-        <location filename="../../src/ui/sign/DigitalSignPage.cpp" line="342"/>
+        <location filename="../../src/ui/sign/DigitalSignPage.cpp" line="119"/>
+        <location filename="../../src/ui/sign/DigitalSignPage.cpp" line="349"/>
         <source>Please select a certificate...</source>
         <translation>请选择证书...</translation>
     </message>
     <message>
-        <location filename="../../src/ui/sign/DigitalSignPage.cpp" line="150"/>
+        <location filename="../../src/ui/sign/DigitalSignPage.cpp" line="156"/>
         <source>Advanced</source>
         <translation>高级</translation>
     </message>
     <message>
-        <location filename="../../src/ui/sign/DigitalSignPage.cpp" line="152"/>
+        <location filename="../../src/ui/sign/DigitalSignPage.cpp" line="158"/>
         <source>Additional signing options.</source>
         <translation>其他签名选项。</translation>
     </message>
     <message>
-        <location filename="../../src/ui/sign/DigitalSignPage.cpp" line="180"/>
+        <location filename="../../src/ui/sign/DigitalSignPage.cpp" line="186"/>
         <source>Not available yet</source>
         <translation>暂不可用</translation>
     </message>
     <message>
-        <location filename="../../src/ui/sign/DigitalSignPage.cpp" line="182"/>
+        <location filename="../../src/ui/sign/DigitalSignPage.cpp" line="188"/>
         <source>Add timestamp</source>
         <translation>添加时间戳</translation>
     </message>
     <message>
-        <location filename="../../src/ui/sign/DigitalSignPage.cpp" line="183"/>
+        <location filename="../../src/ui/sign/DigitalSignPage.cpp" line="189"/>
         <source>Include a trusted timestamp in the signature.</source>
         <translation>在签名中包含受信任的时间戳。</translation>
     </message>
     <message>
-        <location filename="../../src/ui/sign/DigitalSignPage.cpp" line="184"/>
+        <location filename="../../src/ui/sign/DigitalSignPage.cpp" line="190"/>
         <source>Lock document after signing</source>
         <translation>签名后锁定文档</translation>
     </message>
     <message>
-        <location filename="../../src/ui/sign/DigitalSignPage.cpp" line="185"/>
+        <location filename="../../src/ui/sign/DigitalSignPage.cpp" line="191"/>
         <source>Prevent further changes to the PDF.</source>
         <translation>防止对 PDF 进行进一步更改。</translation>
     </message>
     <message>
-        <location filename="../../src/ui/sign/DigitalSignPage.cpp" line="190"/>
+        <location filename="../../src/ui/sign/DigitalSignPage.cpp" line="196"/>
         <source>Invisible signature</source>
         <translation>不可见签名</translation>
     </message>
     <message>
-        <location filename="../../src/ui/sign/DigitalSignPage.cpp" line="191"/>
+        <location filename="../../src/ui/sign/DigitalSignPage.cpp" line="197"/>
         <source>Sign the document without a visible signature.</source>
         <translation>签署文档而不显示可见签名。</translation>
     </message>
     <message>
-        <location filename="../../src/ui/sign/DigitalSignPage.cpp" line="224"/>
+        <location filename="../../src/ui/sign/DigitalSignPage.cpp" line="230"/>
         <source>Profile</source>
         <translation>配置文件</translation>
     </message>
     <message>
-        <location filename="../../src/ui/sign/DigitalSignPage.cpp" line="240"/>
+        <location filename="../../src/ui/sign/DigitalSignPage.cpp" line="247"/>
         <source>Default</source>
         <translation>默认</translation>
     </message>
     <message>
-        <location filename="../../src/ui/sign/DigitalSignPage.cpp" line="240"/>
+        <location filename="../../src/ui/sign/DigitalSignPage.cpp" line="247"/>
         <source>Unnamed profile</source>
         <translation>未命名的配置文件</translation>
     </message>
     <message>
-        <location filename="../../src/ui/sign/DigitalSignPage.cpp" line="282"/>
+        <location filename="../../src/ui/sign/DigitalSignPage.cpp" line="289"/>
         <source>Profile %1</source>
         <translation>配置文件 %1</translation>
     </message>
     <message>
-        <location filename="../../src/ui/sign/DigitalSignPage.cpp" line="291"/>
+        <location filename="../../src/ui/sign/DigitalSignPage.cpp" line="298"/>
         <source>%1 (copy)</source>
         <translation>%1 (副本)</translation>
     </message>
     <message>
-        <location filename="../../src/ui/sign/DigitalSignPage.cpp" line="298"/>
+        <location filename="../../src/ui/sign/DigitalSignPage.cpp" line="305"/>
         <source>Delete profile</source>
         <translation>删除配置文件</translation>
     </message>
     <message>
-        <location filename="../../src/ui/sign/DigitalSignPage.cpp" line="299"/>
+        <location filename="../../src/ui/sign/DigitalSignPage.cpp" line="306"/>
         <source>Delete the profile &quot;%1&quot;?</source>
         <translation>删除配置文件“%1”?</translation>
     </message>
     <message>
-        <location filename="../../src/ui/sign/DigitalSignPage.cpp" line="329"/>
-        <location filename="../../src/ui/sign/DigitalSignPage.cpp" line="394"/>
+        <location filename="../../src/ui/sign/DigitalSignPage.cpp" line="336"/>
+        <location filename="../../src/ui/sign/DigitalSignPage.cpp" line="401"/>
         <source>Unnamed certificate</source>
         <translation>未命名的证书</translation>
     </message>
     <message>
-        <location filename="../../src/ui/sign/DigitalSignPage.cpp" line="331"/>
+        <location filename="../../src/ui/sign/DigitalSignPage.cpp" line="338"/>
         <source>%1, expired</source>
         <translation>%1（已过期）</translation>
     </message>
     <message>
-        <location filename="../../src/ui/sign/DigitalSignPage.cpp" line="336"/>
+        <location filename="../../src/ui/sign/DigitalSignPage.cpp" line="343"/>
         <source>Valid until %1</source>
         <translation>有效期至 %1</translation>
     </message>
     <message>
-        <location filename="../../src/ui/sign/DigitalSignPage.cpp" line="340"/>
+        <location filename="../../src/ui/sign/DigitalSignPage.cpp" line="347"/>
         <source>New certificate...</source>
         <translation>新建证书...</translation>
     </message>
     <message>
-        <location filename="../../src/ui/sign/DigitalSignPage.cpp" line="341"/>
+        <location filename="../../src/ui/sign/DigitalSignPage.cpp" line="348"/>
         <source>No certificates found</source>
         <translation>未找到证书</translation>
     </message>
     <message>
-        <location filename="../../src/ui/sign/DigitalSignPage.cpp" line="370"/>
+        <location filename="../../src/ui/sign/DigitalSignPage.cpp" line="377"/>
         <source>Delete certificate...</source>
         <translation>删除证书...</translation>
     </message>
     <message>
-        <location filename="../../src/ui/sign/DigitalSignPage.cpp" line="373"/>
-        <location filename="../../src/ui/sign/DigitalSignPage.cpp" line="387"/>
+        <location filename="../../src/ui/sign/DigitalSignPage.cpp" line="380"/>
+        <location filename="../../src/ui/sign/DigitalSignPage.cpp" line="394"/>
         <source>Only certificates created in OpenPDF Studio can be deleted.</source>
         <translation>只能删除在 OpenPDF Studio 中创建的证书。</translation>
     </message>
     <message>
-        <location filename="../../src/ui/sign/DigitalSignPage.cpp" line="386"/>
-        <location filename="../../src/ui/sign/DigitalSignPage.cpp" line="395"/>
+        <location filename="../../src/ui/sign/DigitalSignPage.cpp" line="393"/>
         <location filename="../../src/ui/sign/DigitalSignPage.cpp" line="402"/>
+        <location filename="../../src/ui/sign/DigitalSignPage.cpp" line="409"/>
         <source>Delete certificate</source>
         <translation>删除证书</translation>
     </message>
     <message>
-        <location filename="../../src/ui/sign/DigitalSignPage.cpp" line="396"/>
+        <location filename="../../src/ui/sign/DigitalSignPage.cpp" line="403"/>
         <source>Delete the certificate &quot;%1&quot;? Its private key is deleted as well, so it can no longer sign. Signatures already made with it stay valid.</source>
         <translation>删除证书“%1”?其私钥也将被删除，因此将无法再用它签名。已创建的签名仍然有效。</translation>
     </message>
     <message>
-        <location filename="../../src/ui/sign/DigitalSignPage.cpp" line="403"/>
+        <location filename="../../src/ui/sign/DigitalSignPage.cpp" line="410"/>
         <source>The certificate could not be deleted.</source>
         <translation>无法删除证书。</translation>
     </message>
     <message>
-        <location filename="../../src/ui/sign/DigitalSignPage.cpp" line="206"/>
+        <location filename="../../src/ui/sign/DigitalSignPage.cpp" line="212"/>
         <source>Trusted signers</source>
         <translation>受信任的签名者</translation>
     </message>
     <message>
-        <location filename="../../src/ui/sign/DigitalSignPage.cpp" line="207"/>
+        <location filename="../../src/ui/sign/DigitalSignPage.cpp" line="213"/>
         <source>Manage...</source>
         <translation>管理…</translation>
     </message>
@@ -484,7 +523,7 @@
         <translation type="vanished">将PDF拖放至此处或点击标签页打开</translation>
     </message>
     <message>
-        <location filename="../../src/ui/DocumentView.cpp" line="311"/>
+        <location filename="../../src/ui/DocumentView.cpp" line="320"/>
         <source>PDF rendering is not available in this build.
 Please use a build that includes Qt6::Pdf support.
 (See build-win.sh for instructions.)</source>
@@ -537,40 +576,40 @@ Please use a build that includes Qt6::Pdf support.
         <translation type="vanished">移动图像</translation>
     </message>
     <message>
-        <location filename="../../src/ui/DocumentView.cpp" line="369"/>
+        <location filename="../../src/ui/DocumentView.cpp" line="378"/>
         <source>Shift+click extends the selection</source>
         <translation>Shift+单击扩展选区</translation>
     </message>
     <message>
-        <location filename="../../src/ui/DocumentView.cpp" line="372"/>
+        <location filename="../../src/ui/DocumentView.cpp" line="381"/>
         <source>Shift: straight line in 45° steps</source>
         <translation>Shift：以 45° 为步长画直线</translation>
     </message>
     <message>
-        <location filename="../../src/ui/DocumentView.cpp" line="374"/>
+        <location filename="../../src/ui/DocumentView.cpp" line="383"/>
         <source>Shift: draw over detected images, keep the aspect ratio, move along one axis</source>
         <translation>Shift：在识别出的图像上绘制、保持宽高比、沿单一轴移动</translation>
     </message>
     <message>
-        <location filename="../../src/ui/DocumentView.cpp" line="377"/>
+        <location filename="../../src/ui/DocumentView.cpp" line="386"/>
         <source>Shift+drag edits the text inside the box</source>
         <translation>Shift+拖动编辑框内的文字</translation>
     </message>
     <message>
-        <location filename="../../src/ui/DocumentView.cpp" line="541"/>
+        <location filename="../../src/ui/DocumentView.cpp" line="550"/>
         <location filename="../../src/ui/view/ImageAnnotationLayer.cpp" line="308"/>
         <source>Paste</source>
         <translation>粘贴</translation>
     </message>
     <message>
-        <location filename="../../src/ui/DocumentView.cpp" line="546"/>
+        <location filename="../../src/ui/DocumentView.cpp" line="555"/>
         <location filename="../../src/ui/view/ImageAnnotationLayer.cpp" line="319"/>
-        <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="252"/>
+        <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="258"/>
         <source>Delete</source>
         <translation>删除</translation>
     </message>
     <message>
-        <location filename="../../src/ui/DocumentView.cpp" line="535"/>
+        <location filename="../../src/ui/DocumentView.cpp" line="544"/>
         <location filename="../../src/ui/view/ImageAnnotationLayer.cpp" line="304"/>
         <source>Copy</source>
         <translation>复制</translation>
@@ -588,8 +627,8 @@ Please use a build that includes Qt6::Pdf support.
         <translation type="vanished">所有文件 (*)</translation>
     </message>
     <message>
-        <location filename="../../src/ui/DocumentView.cpp" line="309"/>
-        <location filename="../../src/ui/DocumentView_Edit.cpp" line="96"/>
+        <location filename="../../src/ui/DocumentView.cpp" line="318"/>
+        <location filename="../../src/ui/DocumentView_Edit.cpp" line="103"/>
         <source>Drop a document here or click a tab to open</source>
         <translation>将文档拖到此处，或点击标签页打开</translation>
     </message>
@@ -599,7 +638,7 @@ Please use a build that includes Qt6::Pdf support.
         <translation>第 %1 页</translation>
     </message>
     <message>
-        <location filename="../../src/ui/DocumentView_Document.cpp" line="255"/>
+        <location filename="../../src/ui/DocumentView_Document.cpp" line="291"/>
         <source>Signature removed</source>
         <translation>已删除签名</translation>
     </message>
@@ -615,6 +654,54 @@ Please use a build that includes Qt6::Pdf support.
         <location filename="../../src/engine/import/DocxReader.cpp" line="470"/>
         <source>The document is damaged: %1</source>
         <translation>文档已损坏：%1</translation>
+    </message>
+</context>
+<context>
+    <name>DownloadControl</name>
+    <message>
+        <location filename="../../src/ui/settings/DownloadControl.cpp" line="23"/>
+        <source>Downloading… %1 %</source>
+        <translation>正在下载… %1 %</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/settings/DownloadControl.cpp" line="30"/>
+        <source>Unpacking…</source>
+        <translation>正在解压…</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/settings/DownloadControl.cpp" line="48"/>
+        <source>Not installed</source>
+        <translation>未安装</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/settings/DownloadControl.cpp" line="49"/>
+        <source>Installed</source>
+        <translation>已安装</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/settings/DownloadControl.cpp" line="51"/>
+        <source>Remove</source>
+        <translation>移除</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/settings/DownloadControl.cpp" line="51"/>
+        <source>Download</source>
+        <translation>下载</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/settings/DownloadControl.cpp" line="59"/>
+        <source>Downloading…</source>
+        <translation>正在下载…</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/settings/DownloadControl.cpp" line="64"/>
+        <source>Removing…</source>
+        <translation>正在移除…</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/settings/DownloadControl.cpp" line="77"/>
+        <source>Not done: %1</source>
+        <translation>未完成：%1</translation>
     </message>
 </context>
 <context>
@@ -674,24 +761,34 @@ Please use a build that includes Qt6::Pdf support.
 <context>
     <name>EditNotice</name>
     <message>
-        <location filename="../../src/ui/edit/EditNotice.cpp" line="40"/>
+        <location filename="../../src/ui/edit/EditNotice.cpp" line="41"/>
+        <source>Add-on Packages</source>
+        <translation>附加组件包</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/edit/EditNotice.cpp" line="51"/>
         <source>Don&apos;t show again</source>
         <translation>不再显示</translation>
     </message>
     <message>
-        <location filename="../../src/ui/edit/EditNotice.cpp" line="53"/>
+        <location filename="../../src/ui/edit/EditNotice.cpp" line="64"/>
         <source>Close</source>
         <translation>关闭</translation>
     </message>
     <message>
-        <location filename="../../src/ui/edit/EditNotice.cpp" line="80"/>
+        <location filename="../../src/ui/edit/EditNotice.cpp" line="97"/>
         <source>This text was scanned. It is recognised automatically, which can cause errors, and its font or font size can differ from the original. Please check the result.</source>
         <translation>此文字为扫描所得，将自动识别。识别过程中可能出现错误，字体或字号也可能与原件不同。请检查结果。</translation>
     </message>
     <message>
-        <location filename="../../src/ui/edit/EditNotice.cpp" line="83"/>
+        <location filename="../../src/ui/edit/EditNotice.cpp" line="102"/>
         <source>The font of this text cannot be used for editing. The text is set in the closest font available, which can look a little different.</source>
         <translation>此文字的字体无法用于编辑。文字将使用最接近的可用字体排版，外观可能略有不同。</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/edit/EditNotice.cpp" line="106"/>
+        <source>This page was scanned. Its text can only be recognised with a language for text recognition, and none is installed.</source>
+        <translation>此页面为扫描件。只有安装了文字识别语言才能识别其文本，目前未安装任何语言。</translation>
     </message>
 </context>
 <context>
@@ -1058,38 +1155,38 @@ Use page numbers like 1-3, 5, 8-10.</source>
         <translation type="vanished">正在导出“%1”…</translation>
     </message>
     <message>
-        <location filename="../../src/ui/export/Exporting.cpp" line="157"/>
+        <location filename="../../src/ui/export/Exporting.cpp" line="132"/>
         <source>Exporting page %1 of %2…</source>
         <translation>正在导出第 %1 页，共 %2 页…</translation>
     </message>
     <message>
-        <location filename="../../src/ui/export/Exporting.cpp" line="200"/>
+        <location filename="../../src/ui/export/Exporting.cpp" line="170"/>
         <source>Writing &quot;%1&quot;…</source>
         <translation>正在写入“%1”…</translation>
     </message>
     <message>
-        <location filename="../../src/ui/export/Exporting.cpp" line="204"/>
+        <location filename="../../src/ui/export/Exporting.cpp" line="174"/>
         <source>Could not write to &quot;%1&quot;.</source>
         <translation>无法写入“%1”。</translation>
     </message>
     <message>
-        <location filename="../../src/ui/export/Exporting.cpp" line="214"/>
+        <location filename="../../src/ui/export/Exporting.cpp" line="184"/>
         <source>Could not export JPEG images to &quot;%1&quot;.</source>
         <translation>无法将 JPEG 图像导出到“%1”。</translation>
     </message>
     <message>
-        <location filename="../../src/ui/export/Exporting.cpp" line="215"/>
+        <location filename="../../src/ui/export/Exporting.cpp" line="185"/>
         <source>Could not export PNG images to &quot;%1&quot;.</source>
         <translation>无法将 PNG 图像导出到“%1”。</translation>
     </message>
     <message>
-        <location filename="../../src/ui/export/Exporting.cpp" line="121"/>
-        <location filename="../../src/ui/export/Exporting.cpp" line="183"/>
+        <location filename="../../src/ui/export/Exporting.cpp" line="96"/>
+        <location filename="../../src/ui/export/Exporting.cpp" line="153"/>
         <source>Could not write &quot;%1&quot;.</source>
         <translation>无法写入“%1”。</translation>
     </message>
     <message>
-        <location filename="../../src/ui/export/Exporting.cpp" line="123"/>
+        <location filename="../../src/ui/export/Exporting.cpp" line="98"/>
         <source>Could not write &quot;%1&quot;.
 
 Selecting pages for a PDF needs qpdf, which this build does not include. Exporting as Word or PNG is unaffected.</source>
@@ -1098,24 +1195,32 @@ Selecting pages for a PDF needs qpdf, which this build does not include. Exporti
 为 PDF 选择页面需要 qpdf，而此版本未包含。导出为 Word 或 PNG 不受影响。</translation>
     </message>
     <message>
-        <location filename="../../src/ui/export/Exporting.cpp" line="234"/>
+        <location filename="../../src/ui/export/Exporting.cpp" line="204"/>
         <source>Export failed</source>
         <translation>导出失败</translation>
     </message>
     <message>
-        <location filename="../../src/ui/export/Exporting.cpp" line="241"/>
+        <location filename="../../src/ui/export/Exporting.cpp" line="211"/>
         <source>%1 pages exported as JPEG images</source>
         <translation>已将 %1 页导出为 JPEG 图像</translation>
     </message>
     <message>
-        <location filename="../../src/ui/export/Exporting.cpp" line="242"/>
+        <location filename="../../src/ui/export/Exporting.cpp" line="212"/>
         <source>%1 pages exported as PNG images</source>
         <translation>已将 %1 页导出为 PNG 图片</translation>
     </message>
     <message>
-        <location filename="../../src/ui/export/Exporting.cpp" line="240"/>
+        <location filename="../../src/ui/export/Exporting.cpp" line="210"/>
         <source>Exported &quot;%1&quot;</source>
         <translation>已导出“%1”</translation>
+    </message>
+</context>
+<context>
+    <name>FileDownload</name>
+    <message>
+        <location filename="../../src/app/FileDownload.cpp" line="63"/>
+        <source>The downloaded file is not the expected one.</source>
+        <translation>下载的文件与预期不符。</translation>
     </message>
 </context>
 <context>
@@ -1634,12 +1739,12 @@ Text, image and drawing edits made since then are not part of any file yet and w
 <context>
     <name>Importing</name>
     <message>
-        <location filename="../../src/ui/import/Importing.cpp" line="47"/>
+        <location filename="../../src/ui/import/Importing.cpp" line="87"/>
         <source>Converting &quot;%1&quot;…</source>
         <translation>正在转换“%1”…</translation>
     </message>
     <message>
-        <location filename="../../modules/rich-media/MediaModule.cpp" line="55"/>
+        <location filename="../../modules/rich-media/MediaModule.cpp" line="61"/>
         <source>Videos</source>
         <translation>视频</translation>
     </message>
@@ -1996,14 +2101,14 @@ Text, image and drawing edits made since then are not part of any file yet and w
         <translation type="vanished">附件</translation>
     </message>
     <message>
-        <location filename="../../src/ui/panels/LeftSidebar.cpp" line="83"/>
-        <location filename="../../src/ui/panels/LeftSidebar.cpp" line="189"/>
+        <location filename="../../src/ui/panels/LeftSidebar.cpp" line="87"/>
+        <location filename="../../src/ui/panels/LeftSidebar.cpp" line="198"/>
         <source>Customize Tools</source>
         <translation>自定义工具</translation>
     </message>
     <message>
-        <location filename="../../src/ui/panels/LeftSidebar.cpp" line="89"/>
-        <location filename="../../src/ui/panels/LeftSidebar.cpp" line="191"/>
+        <location filename="../../src/ui/panels/LeftSidebar.cpp" line="93"/>
+        <location filename="../../src/ui/panels/LeftSidebar.cpp" line="200"/>
         <source>Settings</source>
         <translation>设置</translation>
     </message>
@@ -2011,47 +2116,47 @@ Text, image and drawing edits made since then are not part of any file yet and w
 <context>
     <name>LicenseNotice</name>
     <message>
-        <location filename="../../src/drm/LicenseNotice.cpp" line="16"/>
+        <location filename="../../src/drm/LicenseNotice.cpp" line="19"/>
         <source>How do you use OpenPDF Studio?</source>
         <translation>您如何使用 OpenPDF Studio？</translation>
     </message>
     <message>
-        <location filename="../../src/drm/LicenseNotice.cpp" line="17"/>
+        <location filename="../../src/drm/LicenseNotice.cpp" line="20"/>
         <source>Is this a private or a business installation?</source>
         <translation>这是个人安装还是商业安装？</translation>
     </message>
     <message>
-        <location filename="../../src/drm/LicenseNotice.cpp" line="18"/>
+        <location filename="../../src/drm/LicenseNotice.cpp" line="21"/>
         <source>Personal use is free. Business use needs a Business License after a 30-day evaluation. The answer is kept in the configuration file and can be changed there.</source>
         <translation>个人使用免费。商业使用在 30 天评估期后需要 Business 许可证。该选择保存在配置文件中，可在其中更改。</translation>
     </message>
     <message>
-        <location filename="../../src/drm/LicenseNotice.cpp" line="21"/>
+        <location filename="../../src/drm/LicenseNotice.cpp" line="24"/>
         <source>Personal</source>
         <translation>个人</translation>
     </message>
     <message>
-        <location filename="../../src/drm/LicenseNotice.cpp" line="22"/>
+        <location filename="../../src/drm/LicenseNotice.cpp" line="25"/>
         <source>Business</source>
         <translation>商业</translation>
     </message>
     <message>
-        <location filename="../../src/drm/LicenseNotice.cpp" line="45"/>
+        <location filename="../../src/drm/LicenseNotice.cpp" line="49"/>
         <source>License</source>
         <translation>许可证</translation>
     </message>
     <message>
-        <location filename="../../src/drm/LicenseNotice.cpp" line="46"/>
+        <location filename="../../src/drm/LicenseNotice.cpp" line="50"/>
         <source>Your %1-day evaluation for business use has ended.</source>
         <translation>您 %1 天的商业使用评估期已结束。</translation>
     </message>
     <message>
-        <location filename="../../src/drm/LicenseNotice.cpp" line="48"/>
+        <location filename="../../src/drm/LicenseNotice.cpp" line="52"/>
         <source>Business use requires a license. Please enter a license key.</source>
         <translation>商业使用需要许可证。请输入许可证密钥。</translation>
     </message>
     <message>
-        <location filename="../../src/drm/LicenseNotice.cpp" line="50"/>
+        <location filename="../../src/drm/LicenseNotice.cpp" line="54"/>
         <source>Enter license key</source>
         <translation>输入许可证密钥</translation>
     </message>
@@ -2199,69 +2304,71 @@ Text, image and drawing edits made since then are not part of any file yet and w
 <context>
     <name>LinkAnnotationLayer</name>
     <message>
-        <location filename="../../src/ui/view/LinkAnnotationLayer.cpp" line="175"/>
+        <location filename="../../src/ui/view/LinkAnnotationLayer.cpp" line="179"/>
+        <location filename="../../src/ui/view/LinkAnnotationLayer.cpp" line="195"/>
         <source>Link</source>
         <translation>链接</translation>
     </message>
     <message>
-        <location filename="../../src/ui/view/LinkAnnotationLayer.cpp" line="175"/>
+        <location filename="../../src/ui/view/LinkAnnotationLayer.cpp" line="196"/>
         <source>Link address:</source>
         <translation>链接地址：</translation>
     </message>
     <message>
-        <location filename="../../src/ui/view/LinkAnnotationLayer.cpp" line="180"/>
+        <location filename="../../src/ui/view/LinkAnnotationLayer.cpp" line="199"/>
         <source>Set Link</source>
         <translation>设置链接</translation>
     </message>
     <message>
-        <location filename="../../src/ui/view/LinkAnnotationLayer.cpp" line="191"/>
+        <location filename="../../src/ui/view/LinkAnnotationLayer.cpp" line="183"/>
+        <location filename="../../src/ui/view/LinkAnnotationLayer.cpp" line="216"/>
         <source>Open Link</source>
         <translation>打开链接</translation>
     </message>
     <message>
-        <location filename="../../src/ui/view/LinkAnnotationLayer.cpp" line="193"/>
+        <location filename="../../src/ui/view/LinkAnnotationLayer.cpp" line="218"/>
         <source>Open Link in New Tab</source>
         <translation>在新标签页中打开链接</translation>
     </message>
     <message>
-        <location filename="../../src/ui/view/LinkAnnotationLayer.cpp" line="195"/>
+        <location filename="../../src/ui/view/LinkAnnotationLayer.cpp" line="223"/>
         <source>Copy Link Address</source>
         <translation>复制链接地址</translation>
     </message>
     <message>
-        <location filename="../../src/ui/view/LinkAnnotationLayer.cpp" line="198"/>
+        <location filename="../../src/ui/view/LinkAnnotationLayer.cpp" line="226"/>
         <source>Edit Link</source>
         <translation>编辑链接</translation>
     </message>
     <message>
-        <location filename="../../src/ui/view/LinkAnnotationLayer.cpp" line="200"/>
+        <location filename="../../src/ui/view/LinkAnnotationLayer.cpp" line="228"/>
         <source>Delete Link</source>
         <translation>删除链接</translation>
     </message>
     <message>
-        <location filename="../../src/ui/view/LinkAnnotationLayer.cpp" line="202"/>
-        <location filename="../../src/ui/view/LinkAnnotationLayer.cpp" line="255"/>
+        <location filename="../../src/ui/view/LinkAnnotationLayer.cpp" line="230"/>
+        <location filename="../../src/ui/view/LinkAnnotationLayer.cpp" line="283"/>
         <source>Add Link...</source>
         <translation>添加链接…</translation>
     </message>
     <message>
-        <location filename="../../src/ui/view/LinkAnnotationLayer.cpp" line="224"/>
+        <location filename="../../src/ui/view/LinkAnnotationLayer.cpp" line="252"/>
         <source>Edit link</source>
         <translation>编辑链接</translation>
     </message>
     <message>
-        <location filename="../../src/ui/view/LinkAnnotationLayer.cpp" line="241"/>
+        <location filename="../../src/ui/view/LinkAnnotationLayer.cpp" line="269"/>
         <source>Delete link</source>
         <translation>删除链接</translation>
     </message>
     <message>
-        <location filename="../../src/ui/view/LinkAnnotationLayer.cpp" line="291"/>
-        <location filename="../../src/ui/view/LinkAnnotationLayer.cpp" line="333"/>
+        <location filename="../../src/ui/view/LinkAnnotationLayer.cpp" line="319"/>
+        <location filename="../../src/ui/view/LinkAnnotationLayer.cpp" line="361"/>
         <source>Add link</source>
         <translation>添加链接</translation>
     </message>
     <message>
-        <location filename="../../src/ui/view/LinkAnnotationLayer.cpp"/>
+        <location filename="../../src/ui/view/LinkAnnotationLayer.cpp" line="180"/>
         <source>Open this link in the browser?</source>
         <translation>在浏览器中打开此链接？</translation>
     </message>
@@ -2269,33 +2376,33 @@ Text, image and drawing edits made since then are not part of any file yet and w
 <context>
     <name>MainWindow</name>
     <message>
-        <location filename="../../src/ui/MainWindow.cpp" line="120"/>
-        <location filename="../../src/ui/MainWindow.cpp" line="134"/>
+        <location filename="../../src/ui/MainWindow.cpp" line="132"/>
+        <location filename="../../src/ui/MainWindow.cpp" line="146"/>
         <source>Default PDF Application</source>
         <translation>默认 PDF 应用程序</translation>
     </message>
     <message>
-        <location filename="../../src/ui/MainWindow.cpp" line="121"/>
+        <location filename="../../src/ui/MainWindow.cpp" line="133"/>
         <source>OpenPDF Studio is not your default application for PDF files. Would you like to make it the default?</source>
         <translation>OpenPDF Studio 不是 PDF 文件的默认应用程序。是否将其设为默认？</translation>
     </message>
     <message>
-        <location filename="../../src/ui/MainWindow.cpp" line="124"/>
+        <location filename="../../src/ui/MainWindow.cpp" line="136"/>
         <source>Windows then opens its settings for default apps, where you choose OpenPDF Studio for PDF files.</source>
         <translation>随后 Windows 会打开默认应用设置，您可以在其中为 PDF 文件选择 OpenPDF Studio。</translation>
     </message>
     <message>
-        <location filename="../../src/ui/MainWindow.cpp" line="126"/>
+        <location filename="../../src/ui/MainWindow.cpp" line="138"/>
         <source>Make Default</source>
         <translation>设为默认</translation>
     </message>
     <message>
-        <location filename="../../src/ui/MainWindow.cpp" line="127"/>
+        <location filename="../../src/ui/MainWindow.cpp" line="139"/>
         <source>No</source>
         <translation>否</translation>
     </message>
     <message>
-        <location filename="../../src/ui/MainWindow.cpp" line="135"/>
+        <location filename="../../src/ui/MainWindow.cpp" line="147"/>
         <source>OpenPDF Studio could not be made the default application for PDF files.</source>
         <translation>无法将 OpenPDF Studio 设为 PDF 文件的默认应用程序。</translation>
     </message>
@@ -2304,48 +2411,48 @@ Text, image and drawing edits made since then are not part of any file yet and w
         <translation type="vanished">打开PDF</translation>
     </message>
     <message>
-        <location filename="../../src/ui/MainWindow.cpp" line="692"/>
+        <location filename="../../src/ui/MainWindow.cpp" line="826"/>
         <source>PDF files (*.pdf)</source>
         <translation>PDF文件 (*.pdf)</translation>
     </message>
     <message>
-        <location filename="../../src/ui/MainWindow.cpp" line="691"/>
+        <location filename="../../src/ui/MainWindow.cpp" line="825"/>
         <source>Save PDF As</source>
         <translation>另存PDF为</translation>
     </message>
     <message>
-        <location filename="../../src/ui/MainWindow.cpp" line="114"/>
+        <location filename="../../src/ui/MainWindow.cpp" line="167"/>
         <source>Update available</source>
         <translation>有可用更新</translation>
     </message>
     <message>
-        <location filename="../../src/ui/MainWindow.cpp" line="115"/>
+        <location filename="../../src/ui/MainWindow.cpp" line="168"/>
         <source>OpenPDF Studio %1 is available.</source>
         <translation>OpenPDF Studio %1 现已推出。</translation>
     </message>
     <message>
-        <location filename="../../src/ui/MainWindow.cpp" line="116"/>
+        <location filename="../../src/ui/MainWindow.cpp" line="169"/>
         <source>You are running %1.</source>
         <translation>您正在使用 %1。</translation>
     </message>
     <message>
-        <location filename="../../src/ui/MainWindow.cpp" line="117"/>
+        <location filename="../../src/ui/MainWindow.cpp" line="170"/>
         <source>Open download page</source>
         <translation>打开下载页面</translation>
     </message>
     <message>
-        <location filename="../../src/ui/MainWindow.cpp" line="119"/>
+        <location filename="../../src/ui/MainWindow.cpp" line="172"/>
         <source>Later</source>
         <translation>稍后</translation>
     </message>
     <message>
-        <location filename="../../src/ui/MainWindow.cpp" line="676"/>
-        <location filename="../../src/ui/MainWindow.cpp" line="681"/>
+        <location filename="../../src/ui/MainWindow.cpp" line="810"/>
+        <location filename="../../src/ui/MainWindow.cpp" line="815"/>
         <source>Save failed</source>
         <translation>保存失败</translation>
     </message>
     <message>
-        <location filename="../../src/ui/MainWindow.cpp" line="682"/>
+        <location filename="../../src/ui/MainWindow.cpp" line="816"/>
         <source>Could not write &quot;%1&quot;.
 
 The file may be write-protected or open in another program. The document is unchanged. Try saving it under a different name.</source>
@@ -2354,58 +2461,58 @@ The file may be write-protected or open in another program. The document is unch
 该文件可能被写保护或已在其他程序中打开。文档未被更改。请尝试以其他名称保存。</translation>
     </message>
     <message>
-        <location filename="../../src/ui/MainWindow.cpp" line="846"/>
+        <location filename="../../src/ui/MainWindow.cpp" line="1000"/>
         <source>Edit Mode</source>
         <translation>编辑模式</translation>
     </message>
     <message>
-        <location filename="../../src/ui/MainWindow.cpp" line="847"/>
+        <location filename="../../src/ui/MainWindow.cpp" line="1001"/>
         <source>Do you want to enable Edit Mode?</source>
         <translation>是否启用编辑模式？</translation>
     </message>
     <message>
-        <location filename="../../src/ui/MainWindow.cpp" line="1074"/>
+        <location filename="../../src/ui/MainWindow.cpp" line="1234"/>
         <source>Untitled</source>
         <translation>无标题</translation>
     </message>
     <message>
-        <location filename="../../src/ui/MainWindow.cpp" line="1078"/>
+        <location filename="../../src/ui/MainWindow.cpp" line="1238"/>
         <source>Unsaved Changes</source>
         <translation>未保存的更改</translation>
     </message>
     <message>
-        <location filename="../../src/ui/MainWindow.cpp" line="1079"/>
+        <location filename="../../src/ui/MainWindow.cpp" line="1239"/>
         <source>Save changes to &quot;%1&quot;?</source>
         <translation>是否保存对“%1”的更改？</translation>
     </message>
     <message>
-        <location filename="../../src/ui/MainWindow.cpp" line="555"/>
+        <location filename="../../src/ui/MainWindow.cpp" line="639"/>
         <source>Open Document</source>
         <translation>打开文档</translation>
     </message>
     <message>
-        <location filename="../../src/ui/MainWindow.cpp" line="570"/>
+        <location filename="../../src/ui/MainWindow.cpp" line="657"/>
         <source>Cannot open file</source>
         <translation>无法打开文件</translation>
     </message>
     <message>
-        <location filename="../../src/ui/MainWindow.cpp" line="592"/>
+        <location filename="../../src/ui/MainWindow.cpp" line="713"/>
         <source>There is no room to put the converted file.</source>
         <translation>没有空间存放转换后的文件。</translation>
     </message>
     <message>
-        <location filename="../../src/ui/MainWindow.cpp" line="606"/>
-        <location filename="../../src/ui/MainWindow.cpp" line="624"/>
+        <location filename="../../src/ui/MainWindow.cpp" line="728"/>
+        <location filename="../../src/ui/MainWindow.cpp" line="751"/>
         <source>Import failed</source>
         <translation>导入失败</translation>
     </message>
     <message>
-        <location filename="../../src/ui/MainWindow.cpp" line="571"/>
+        <location filename="../../src/ui/MainWindow.cpp" line="658"/>
         <source>&quot;%1&quot; is not a PDF and cannot be turned into one.</source>
         <translation>“%1”不是 PDF，也无法转换为 PDF。</translation>
     </message>
     <message>
-        <location filename="../../src/ui/MainWindow.cpp" line="607"/>
+        <location filename="../../src/ui/MainWindow.cpp" line="729"/>
         <source>&quot;%1&quot; could not be turned into a PDF.
 
 %2</source>
@@ -2414,17 +2521,17 @@ The file may be write-protected or open in another program. The document is unch
 %2</translation>
     </message>
     <message>
-        <location filename="../../src/ui/MainWindow.cpp" line="625"/>
+        <location filename="../../src/ui/MainWindow.cpp" line="752"/>
         <source>&quot;%1&quot; was converted, but the result could not be opened.</source>
         <translation>“%1”已转换，但无法打开结果。</translation>
     </message>
     <message>
-        <location filename="../../src/ui/MainWindow.cpp" line="620"/>
+        <location filename="../../src/ui/MainWindow.cpp" line="698"/>
         <source>Cannot add pages</source>
         <translation>无法添加页面</translation>
     </message>
     <message>
-        <location filename="../../src/ui/MainWindow.cpp" line="621"/>
+        <location filename="../../src/ui/MainWindow.cpp" line="699"/>
         <source>The pages of &quot;%1&quot; could not be added.</source>
         <translation>无法添加“%1”中的页面。</translation>
     </message>
@@ -2436,12 +2543,12 @@ The file may be write-protected or open in another program. The document is unch
         <translation type="vanished">编辑属性</translation>
     </message>
     <message>
-        <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="242"/>
+        <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="248"/>
         <source>Play</source>
         <translation>播放</translation>
     </message>
     <message>
-        <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="244"/>
+        <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="250"/>
         <source>Save media as...</source>
         <translation>媒体另存为…</translation>
     </message>
@@ -2450,72 +2557,72 @@ The file may be write-protected or open in another program. The document is unch
         <translation type="vanished">移除</translation>
     </message>
     <message>
-        <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="247"/>
+        <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="253"/>
         <source>Replace media</source>
         <translation>替换媒体</translation>
     </message>
     <message>
-        <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="288"/>
-        <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="298"/>
+        <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="294"/>
+        <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="304"/>
         <source>Media removed</source>
         <translation>已移除媒体</translation>
     </message>
     <message>
-        <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="389"/>
+        <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="395"/>
         <source>Save media as</source>
         <translation>媒体另存为</translation>
     </message>
     <message>
-        <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="394"/>
-        <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="770"/>
-        <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="781"/>
-        <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="803"/>
+        <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="400"/>
+        <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="775"/>
+        <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="795"/>
         <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="817"/>
-        <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="907"/>
-        <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="924"/>
+        <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="833"/>
+        <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="923"/>
         <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="940"/>
-        <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="955"/>
-        <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="978"/>
-        <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="1011"/>
-        <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="1019"/>
-        <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="1043"/>
-        <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="1078"/>
-        <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="1151"/>
+        <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="956"/>
+        <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="972"/>
+        <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="995"/>
+        <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="1023"/>
+        <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="1031"/>
+        <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="1055"/>
+        <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="1090"/>
+        <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="1163"/>
         <source>Rich Media</source>
         <translation>富媒体</translation>
     </message>
     <message>
-        <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="395"/>
+        <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="401"/>
         <source>Could not write &quot;%1&quot;.</source>
         <translation>无法写入“%1”。</translation>
     </message>
     <message>
-        <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="589"/>
+        <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="595"/>
         <source>Media files (*.mp4 *.m4v *.mov *.webm *.mkv *.avi *.mp3 *.m4a *.wav *.ogg *.opus *.flac);;All files (*)</source>
         <translation>媒体文件 (*.mp4 *.m4v *.mov *.webm *.mkv *.avi *.mp3 *.m4a *.wav *.ogg *.opus *.flac);;所有文件 (*)</translation>
     </message>
     <message>
-        <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="591"/>
+        <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="597"/>
         <source>Choose media</source>
         <translation>选择媒体</translation>
     </message>
     <message>
-        <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="753"/>
+        <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="759"/>
         <source>Media changed</source>
         <translation>已更改媒体</translation>
     </message>
     <message>
-        <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="765"/>
+        <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="771"/>
         <source>%1, an unsupported format</source>
         <translation>%1，不受支持的格式</translation>
     </message>
     <message>
-        <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="766"/>
+        <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="772"/>
         <source>%1 in %2</source>
         <translation>%2 中的 %1</translation>
     </message>
     <message>
-        <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="771"/>
+        <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="776"/>
         <source>This file is %1. Most PDF viewers play only H.264 video in an MP4 container, so for many people the video will be a still image.
 
 Install ffmpeg to convert it, or embed it as it is.</source>
@@ -2524,139 +2631,142 @@ Install ffmpeg to convert it, or embed it as it is.</source>
 请安装 ffmpeg 进行转换，或按原样嵌入。</translation>
     </message>
     <message>
-        <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="782"/>
+        <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="784"/>
+        <source>Install ffmpeg…</source>
+        <translation>安装 ffmpeg…</translation>
+    </message>
+    <message>
+        <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="796"/>
         <source>This file is %1.</source>
         <translation>此文件为 %1。</translation>
     </message>
     <message>
-        <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="784"/>
+        <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="798"/>
         <source>H.264 in an MP4 container is what plays everywhere: in PDF viewers, in browsers and on phones. Convert it now so the video works for everyone who opens the document?</source>
         <translation>MP4 容器中的 H.264 可在任何地方播放：PDF 阅读器、浏览器和手机。现在转换，让所有打开文档的人都能播放视频吗？</translation>
     </message>
     <message>
-        <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="787"/>
+        <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="801"/>
         <source>Convert</source>
         <translation>转换</translation>
     </message>
     <message>
-        <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="788"/>
+        <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="802"/>
         <source>Embed as is</source>
         <translation>按原样嵌入</translation>
     </message>
     <message>
-        <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="801"/>
+        <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="815"/>
         <source>Converting %1...</source>
         <translation>正在转换 %1…</translation>
     </message>
     <message>
-        <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="802"/>
-        <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="938"/>
+        <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="816"/>
+        <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="954"/>
         <source>Cancel</source>
         <translation>取消</translation>
     </message>
     <message>
-        <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="818"/>
+        <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="834"/>
         <source>The file could not be converted.</source>
         <translation>无法转换该文件。</translation>
     </message>
     <message>
-        <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="856"/>
-        <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="1142"/>
+        <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="872"/>
+        <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="1154"/>
         <source>Media inserted</source>
         <translation>已插入媒体</translation>
     </message>
     <message>
-        <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="893"/>
+        <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="909"/>
         <source>%1 in %2, %3 by %4 pixels.</source>
         <translation>%2 中的 %1，%3 × %4 像素。</translation>
     </message>
     <message>
-        <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="896"/>
+        <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="912"/>
         <source>%1 in %2.</source>
         <translation>%2 中的 %1。</translation>
     </message>
     <message>
-        <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="900"/>
+        <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="916"/>
         <source>Video this large is more than some systems will decode. A smaller copy usually plays, and the document keeps the original.</source>
         <translation>这么大的视频超出了部分系统的解码能力。较小的副本通常可以播放，文档会保留原始文件。</translation>
     </message>
     <message>
-        <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="908"/>
+        <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="924"/>
         <source>This video could not be played here: %1</source>
         <translation>无法在此播放该视频：%1</translation>
     </message>
     <message>
-        <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="915"/>
+        <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="931"/>
         <source>Play a smaller copy</source>
         <translation>播放较小的副本</translation>
     </message>
     <message>
-        <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="917"/>
+        <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="933"/>
         <source>Open in system player</source>
         <translation>在系统播放器中打开</translation>
     </message>
     <message>
-        <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="925"/>
+        <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="941"/>
         <source>No media player was found on this system.</source>
         <translation>此系统上未找到媒体播放器。</translation>
     </message>
     <message>
-        <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="938"/>
+        <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="954"/>
         <source>Preparing a smaller copy...</source>
         <translation>正在准备较小的副本…</translation>
     </message>
     <message>
-        <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="956"/>
+        <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="973"/>
         <source>The smaller copy could not be made.</source>
         <translation>无法创建较小的副本。</translation>
     </message>
     <message>
-        <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="979"/>
+        <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="996"/>
         <source>Play &quot;%1&quot; from this document?</source>
         <translation>播放此文档中的“%1”吗？</translation>
     </message>
     <message>
-        <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="981"/>
+        <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="998"/>
         <source>Media in a PDF is chosen by whoever made the file. Playing it hands the data to a decoder, in this build possibly to a player outside OpenPDF Studio. Play it only if you trust the document.</source>
         <translation>PDF 中的媒体由文件创建者选择。播放时数据会交给解码器，在此版本中可能交给 OpenPDF Studio 之外的播放器。请仅在信任该文档时播放。</translation>
     </message>
     <message>
-        <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="984"/>
         <source>Play once</source>
-        <translation>播放一次</translation>
+        <translation type="vanished">播放一次</translation>
     </message>
     <message>
-        <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="985"/>
         <source>Always for this document</source>
-        <translation>此文档始终允许</translation>
+        <translation type="vanished">此文档始终允许</translation>
     </message>
     <message>
-        <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="1012"/>
+        <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="1024"/>
         <source>This media points to a file outside the document, so OpenPDF Studio does not open it.</source>
         <translation>此媒体指向文档之外的文件，因此 OpenPDF Studio 不会打开它。</translation>
     </message>
     <message>
-        <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="1020"/>
+        <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="1032"/>
         <source>The media could not be read from the document.</source>
         <translation>无法从文档中读取该媒体。</translation>
     </message>
     <message>
-        <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="1044"/>
+        <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="1056"/>
         <source>The page this media sits on is not on screen, so it cannot be played here.</source>
         <translation>此媒体所在的页面不在屏幕上，因此无法在此播放。</translation>
     </message>
     <message>
-        <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="1079"/>
+        <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="1091"/>
         <source>No media player was found. Install VLC or mpv, or set a custom player under Settings, Media Playback.</source>
         <translation>未找到媒体播放器。请安装 VLC 或 mpv，或在“设置”的“媒体播放”中指定自定义播放器。</translation>
     </message>
     <message>
-        <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="1152"/>
+        <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="1164"/>
         <source>The video could not be added as a new page.</source>
         <translation>无法将视频添加为新页面。</translation>
     </message>
     <message>
-        <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="987"/>
+        <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="1001"/>
         <source>Trust</source>
         <translation>信任</translation>
     </message>
@@ -2664,17 +2774,17 @@ Install ffmpeg to convert it, or embed it as it is.</source>
 <context>
     <name>MediaPlayerFrame</name>
     <message>
-        <location filename="../../modules/rich-media/ui/MediaPlayerFrame.cpp" line="70"/>
+        <location filename="../../modules/rich-media/ui/MediaPlayerFrame.cpp" line="104"/>
         <source>Close the player</source>
         <translation>关闭播放器</translation>
     </message>
     <message>
-        <location filename="../../modules/rich-media/ui/MediaPlayerFrame.cpp" line="105"/>
+        <location filename="../../modules/rich-media/ui/MediaPlayerFrame.cpp" line="139"/>
         <source>nothing was decoded within six seconds</source>
         <translation>六秒内未解码任何内容</translation>
     </message>
     <message>
-        <location filename="../../modules/rich-media/ui/MediaPlayerFrame.cpp" line="97"/>
+        <location filename="../../modules/rich-media/ui/MediaPlayerFrame.cpp" line="102"/>
         <source>Volume</source>
         <translation>音量</translation>
     </message>
@@ -2809,6 +2919,78 @@ Install ffmpeg to convert it, or embed it as it is.</source>
     </message>
 </context>
 <context>
+    <name>PackageControl</name>
+    <message>
+        <location filename="../../src/ui/settings/PackageControl.cpp" line="38"/>
+        <source>Installed</source>
+        <translation>已安装</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/settings/PackageControl.cpp" line="38"/>
+        <source>Not installed</source>
+        <translation>未安装</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/settings/PackageControl.cpp" line="43"/>
+        <location filename="../../src/ui/settings/PackageControl.cpp" line="68"/>
+        <source>Remove</source>
+        <translation>移除</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/settings/PackageControl.cpp" line="43"/>
+        <source>Install</source>
+        <translation>安装</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/settings/PackageControl.cpp" line="47"/>
+        <source>Remove with: %1</source>
+        <translation>移除命令：%1</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/settings/PackageControl.cpp" line="47"/>
+        <source>Install with: %1</source>
+        <translation>安装命令：%1</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/settings/PackageControl.cpp" line="50"/>
+        <source>Install it with your system&apos;s package manager.</source>
+        <translation>请使用系统的软件包管理器安装。</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/settings/PackageControl.cpp" line="69"/>
+        <source>Other programs need this package and would be removed with it:
+
+%1
+
+Remove them too?</source>
+        <translation>其他程序需要此软件包，将会一并移除：
+
+%1
+
+也移除它们吗？</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/settings/PackageControl.cpp" line="72"/>
+        <source>Remove All</source>
+        <translation>全部移除</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/settings/PackageControl.cpp" line="79"/>
+        <source>Removing…</source>
+        <translation>正在移除…</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/settings/PackageControl.cpp" line="59"/>
+        <source>Installing…</source>
+        <translation>正在安装…</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/settings/PackageControl.cpp" line="87"/>
+        <source>Not done: %1</source>
+        <translation>未完成：%1</translation>
+    </message>
+</context>
+<context>
     <name>PasswordDialog</name>
     <message>
         <location filename="../../src/ui/widgets/PasswordDialog.cpp" line="12"/>
@@ -2857,7 +3039,7 @@ Enter the password to open it:</source>
         <translation type="vanished">删除所选</translation>
     </message>
     <message>
-        <location filename="../../src/ui/organizer/PdfOrganizerDialog.cpp" line="260"/>
+        <location filename="../../src/ui/organizer/PdfOrganizerDialog.cpp" line="267"/>
         <source>Cancel</source>
         <translation>取消</translation>
     </message>
@@ -2866,157 +3048,157 @@ Enter the password to open it:</source>
         <translation type="vanished">另存为…</translation>
     </message>
     <message>
-        <location filename="../../src/ui/organizer/PdfOrganizerDialog.cpp" line="63"/>
-        <location filename="../../src/ui/organizer/PdfOrganizerDialog.cpp" line="842"/>
+        <location filename="../../src/ui/organizer/PdfOrganizerDialog.cpp" line="64"/>
+        <location filename="../../src/ui/organizer/PdfOrganizerDialog.cpp" line="849"/>
         <source>PDF Organizer - OpenPDF Studio</source>
         <translation>PDF 整理器 - OpenPDF Studio</translation>
     </message>
     <message>
-        <location filename="../../src/ui/organizer/PdfOrganizerDialog.cpp" line="134"/>
+        <location filename="../../src/ui/organizer/PdfOrganizerDialog.cpp" line="141"/>
         <source>Add PDF</source>
         <translation>添加 PDF</translation>
     </message>
     <message>
-        <location filename="../../src/ui/organizer/PdfOrganizerDialog.cpp" line="140"/>
+        <location filename="../../src/ui/organizer/PdfOrganizerDialog.cpp" line="147"/>
         <source>Open PDF file…</source>
         <translation>打开 PDF 文件…</translation>
     </message>
     <message>
-        <location filename="../../src/ui/organizer/PdfOrganizerDialog.cpp" line="142"/>
-        <location filename="../../src/ui/organizer/PdfOrganizerDialog.cpp" line="148"/>
-        <location filename="../../src/ui/organizer/PdfOrganizerDialog.cpp" line="294"/>
+        <location filename="../../src/ui/organizer/PdfOrganizerDialog.cpp" line="149"/>
+        <location filename="../../src/ui/organizer/PdfOrganizerDialog.cpp" line="155"/>
+        <location filename="../../src/ui/organizer/PdfOrganizerDialog.cpp" line="301"/>
         <source>Open PDF</source>
         <translation>打开PDF</translation>
     </message>
     <message>
-        <location filename="../../src/ui/organizer/PdfOrganizerDialog.cpp" line="142"/>
-        <location filename="../../src/ui/organizer/PdfOrganizerDialog.cpp" line="148"/>
-        <location filename="../../src/ui/organizer/PdfOrganizerDialog.cpp" line="761"/>
+        <location filename="../../src/ui/organizer/PdfOrganizerDialog.cpp" line="149"/>
+        <location filename="../../src/ui/organizer/PdfOrganizerDialog.cpp" line="155"/>
+        <location filename="../../src/ui/organizer/PdfOrganizerDialog.cpp" line="768"/>
         <source>PDF files (*.pdf)</source>
         <translation>PDF文件 (*.pdf)</translation>
     </message>
     <message>
-        <location filename="../../src/ui/organizer/PdfOrganizerDialog.cpp" line="153"/>
+        <location filename="../../src/ui/organizer/PdfOrganizerDialog.cpp" line="160"/>
         <source>Blank Page</source>
         <translation>空白页</translation>
     </message>
     <message>
-        <location filename="../../src/ui/organizer/PdfOrganizerDialog.cpp" line="181"/>
+        <location filename="../../src/ui/organizer/PdfOrganizerDialog.cpp" line="188"/>
         <source>Move left</source>
         <translation>左移</translation>
     </message>
     <message>
-        <location filename="../../src/ui/organizer/PdfOrganizerDialog.cpp" line="181"/>
+        <location filename="../../src/ui/organizer/PdfOrganizerDialog.cpp" line="188"/>
         <source>Move page left</source>
         <translation>将页面左移</translation>
     </message>
     <message>
-        <location filename="../../src/ui/organizer/PdfOrganizerDialog.cpp" line="182"/>
+        <location filename="../../src/ui/organizer/PdfOrganizerDialog.cpp" line="189"/>
         <source>Move right</source>
         <translation>右移</translation>
     </message>
     <message>
-        <location filename="../../src/ui/organizer/PdfOrganizerDialog.cpp" line="182"/>
+        <location filename="../../src/ui/organizer/PdfOrganizerDialog.cpp" line="189"/>
         <source>Move page right</source>
         <translation>将页面右移</translation>
     </message>
     <message>
-        <location filename="../../src/ui/organizer/PdfOrganizerDialog.cpp" line="185"/>
+        <location filename="../../src/ui/organizer/PdfOrganizerDialog.cpp" line="192"/>
         <source>Rotate left</source>
         <translation>向左旋转</translation>
     </message>
     <message>
-        <location filename="../../src/ui/organizer/PdfOrganizerDialog.cpp" line="185"/>
+        <location filename="../../src/ui/organizer/PdfOrganizerDialog.cpp" line="192"/>
         <source>Rotate left 90°</source>
         <translation>向左旋转 90°</translation>
     </message>
     <message>
-        <location filename="../../src/ui/organizer/PdfOrganizerDialog.cpp" line="186"/>
+        <location filename="../../src/ui/organizer/PdfOrganizerDialog.cpp" line="193"/>
         <source>Rotate right</source>
         <translation>向右旋转</translation>
     </message>
     <message>
-        <location filename="../../src/ui/organizer/PdfOrganizerDialog.cpp" line="186"/>
+        <location filename="../../src/ui/organizer/PdfOrganizerDialog.cpp" line="193"/>
         <source>Rotate right 90°</source>
         <translation>向右旋转 90°</translation>
     </message>
     <message>
-        <location filename="../../src/ui/organizer/PdfOrganizerDialog.cpp" line="189"/>
+        <location filename="../../src/ui/organizer/PdfOrganizerDialog.cpp" line="196"/>
         <source>Delete page</source>
         <translation>删除页面</translation>
     </message>
     <message>
-        <location filename="../../src/ui/organizer/PdfOrganizerDialog.cpp" line="232"/>
+        <location filename="../../src/ui/organizer/PdfOrganizerDialog.cpp" line="239"/>
         <source>Drag &amp; drop pages to reorder</source>
         <translation>拖放页面以重新排序</translation>
     </message>
     <message>
-        <location filename="../../src/ui/organizer/PdfOrganizerDialog.cpp" line="255"/>
-        <location filename="../../src/ui/organizer/PdfOrganizerDialog.cpp" line="475"/>
+        <location filename="../../src/ui/organizer/PdfOrganizerDialog.cpp" line="262"/>
+        <location filename="../../src/ui/organizer/PdfOrganizerDialog.cpp" line="482"/>
         <source>Pages</source>
         <translation>页面</translation>
     </message>
     <message>
-        <location filename="../../src/ui/organizer/PdfOrganizerDialog.cpp" line="265"/>
+        <location filename="../../src/ui/organizer/PdfOrganizerDialog.cpp" line="272"/>
         <source>Save as</source>
         <translation>另存为</translation>
     </message>
     <message>
-        <location filename="../../src/ui/organizer/PdfOrganizerDialog.cpp" line="270"/>
+        <location filename="../../src/ui/organizer/PdfOrganizerDialog.cpp" line="277"/>
         <source>Save</source>
         <translation>保存</translation>
     </message>
     <message>
-        <location filename="../../src/ui/organizer/PdfOrganizerDialog.cpp" line="295"/>
+        <location filename="../../src/ui/organizer/PdfOrganizerDialog.cpp" line="302"/>
         <source>Could not open: </source>
         <translation>无法打开：</translation>
     </message>
     <message>
-        <location filename="../../src/ui/organizer/PdfOrganizerDialog.cpp" line="424"/>
-        <location filename="../../src/ui/organizer/PdfOrganizerDialog.cpp" line="468"/>
+        <location filename="../../src/ui/organizer/PdfOrganizerDialog.cpp" line="431"/>
+        <location filename="../../src/ui/organizer/PdfOrganizerDialog.cpp" line="475"/>
         <source>Page %1</source>
         <translation>第 %1 页</translation>
     </message>
     <message>
-        <location filename="../../src/ui/organizer/PdfOrganizerDialog.cpp" line="687"/>
         <location filename="../../src/ui/organizer/PdfOrganizerDialog.cpp" line="694"/>
+        <location filename="../../src/ui/organizer/PdfOrganizerDialog.cpp" line="701"/>
         <source>Save failed</source>
         <translation>保存失败</translation>
     </message>
     <message>
-        <location filename="../../src/ui/organizer/PdfOrganizerDialog.cpp" line="688"/>
+        <location filename="../../src/ui/organizer/PdfOrganizerDialog.cpp" line="695"/>
         <source>%1 of %2 pages could not be rendered, so the document would have been saved blank. Your PDF was not changed.</source>
         <translation>%2 页中有 %1 页无法渲染，文档将被保存为空白。您的 PDF 未被更改。</translation>
     </message>
     <message>
-        <location filename="../../src/ui/organizer/PdfOrganizerDialog.cpp" line="695"/>
+        <location filename="../../src/ui/organizer/PdfOrganizerDialog.cpp" line="702"/>
         <source>The organized document could not be written to &quot;%1&quot;. Your PDF was not changed.</source>
         <translation>无法将整理后的文档写入“%1”。您的 PDF 未被更改。</translation>
     </message>
     <message>
-        <location filename="../../src/ui/organizer/PdfOrganizerDialog.cpp" line="701"/>
+        <location filename="../../src/ui/organizer/PdfOrganizerDialog.cpp" line="708"/>
         <source>PDF writing requires a PDF backend (Qt6Pdf or Poppler).</source>
         <translation>写入 PDF 需要 PDF 后端（Qt6Pdf 或 Poppler）。</translation>
     </message>
     <message>
-        <location filename="../../src/ui/organizer/PdfOrganizerDialog.cpp" line="734"/>
-        <location filename="../../src/ui/organizer/PdfOrganizerDialog.cpp" line="755"/>
+        <location filename="../../src/ui/organizer/PdfOrganizerDialog.cpp" line="741"/>
+        <location filename="../../src/ui/organizer/PdfOrganizerDialog.cpp" line="762"/>
         <source>Empty</source>
         <translation>空</translation>
     </message>
     <message>
-        <location filename="../../src/ui/organizer/PdfOrganizerDialog.cpp" line="735"/>
-        <location filename="../../src/ui/organizer/PdfOrganizerDialog.cpp" line="756"/>
+        <location filename="../../src/ui/organizer/PdfOrganizerDialog.cpp" line="742"/>
+        <location filename="../../src/ui/organizer/PdfOrganizerDialog.cpp" line="763"/>
         <source>Add at least one page before saving.</source>
         <translation>保存前请至少添加一页。</translation>
     </message>
     <message>
-        <location filename="../../src/ui/organizer/PdfOrganizerDialog.cpp" line="761"/>
+        <location filename="../../src/ui/organizer/PdfOrganizerDialog.cpp" line="768"/>
         <source>Save PDF As</source>
         <translation>另存PDF为</translation>
     </message>
     <message>
-        <location filename="../../src/ui/organizer/PdfOrganizerDialog.cpp" line="700"/>
+        <location filename="../../src/ui/organizer/PdfOrganizerDialog.cpp" line="707"/>
         <source>Not Available</source>
         <translation>不可用</translation>
     </message>
@@ -3025,15 +3207,68 @@ Enter the password to open it:</source>
         <translation type="vanished">写入PDF需要Qt6Pdf。</translation>
     </message>
     <message>
-        <location filename="../../src/ui/organizer/PdfOrganizerDialog.cpp" line="198"/>
-        <location filename="../../src/ui/organizer/PdfOrganizerDialog.cpp" line="493"/>
+        <location filename="../../src/ui/organizer/PdfOrganizerDialog.cpp" line="205"/>
+        <location filename="../../src/ui/organizer/PdfOrganizerDialog.cpp" line="500"/>
         <source>Select all</source>
         <translation>全选</translation>
     </message>
     <message>
-        <location filename="../../src/ui/organizer/PdfOrganizerDialog.cpp" line="493"/>
+        <location filename="../../src/ui/organizer/PdfOrganizerDialog.cpp" line="500"/>
         <source>Deselect all</source>
         <translation>取消全选</translation>
+    </message>
+</context>
+<context>
+    <name>PermissionGate</name>
+    <message>
+        <location filename="../../src/ui/protect/PermissionGate.cpp" line="18"/>
+        <source>This document does not allow printing.</source>
+        <translation>此文档不允许打印。</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/protect/PermissionGate.cpp" line="19"/>
+        <source>This document does not allow copying text.</source>
+        <translation>此文档不允许复制文本。</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/protect/PermissionGate.cpp" line="20"/>
+        <source>This document does not allow changing its content.</source>
+        <translation>此文档不允许更改内容。</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/protect/PermissionGate.cpp" line="21"/>
+        <source>This document does not allow adding comments.</source>
+        <translation>此文档不允许添加注释。</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/protect/PermissionGate.cpp" line="22"/>
+        <source>This document does not allow filling in forms.</source>
+        <translation>此文档不允许填写表单。</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/protect/PermissionGate.cpp" line="24"/>
+        <source>This document does not allow inserting, deleting and rotating pages.</source>
+        <translation>此文档不允许插入、删除和旋转页面。</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/protect/PermissionGate.cpp" line="26"/>
+        <source>The restrictions of this document can only be changed by its owner.</source>
+        <translation>只有此文档的所有者才能更改其限制。</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/protect/PermissionGate.cpp" line="56"/>
+        <source>Enter the permissions password to lift its restrictions:</source>
+        <translation>请输入权限密码以解除限制：</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/protect/PermissionGate.cpp" line="59"/>
+        <source>Restricted document</source>
+        <translation>受限文档</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/protect/PermissionGate.cpp" line="63"/>
+        <source>Wrong permissions password. Please try again:</source>
+        <translation>权限密码错误。请重试：</translation>
     </message>
 </context>
 <context>
@@ -3083,234 +3318,234 @@ Enter the password to open it:</source>
         </translation>
     </message>
     <message>
-        <location filename="../../src/ui/export/PrintDialog.cpp" line="121"/>
+        <location filename="../../src/ui/export/PrintDialog.cpp" line="123"/>
         <source>Print - OpenPDF Studio</source>
         <translation>打印 - OpenPDF Studio</translation>
     </message>
     <message>
-        <location filename="../../src/ui/export/PrintDialog.cpp" line="283"/>
-        <location filename="../../src/ui/export/PrintDialog.cpp" line="564"/>
+        <location filename="../../src/ui/export/PrintDialog.cpp" line="286"/>
+        <location filename="../../src/ui/export/PrintDialog.cpp" line="567"/>
         <source>Print</source>
         <translation>打印</translation>
     </message>
     <message>
-        <location filename="../../src/ui/export/PrintDialog.cpp" line="329"/>
+        <location filename="../../src/ui/export/PrintDialog.cpp" line="332"/>
         <source>Printer</source>
         <translation>打印机</translation>
     </message>
     <message>
-        <location filename="../../src/ui/export/PrintDialog.cpp" line="342"/>
+        <location filename="../../src/ui/export/PrintDialog.cpp" line="345"/>
         <source>No printer found</source>
         <translation>未找到打印机</translation>
     </message>
     <message>
-        <location filename="../../src/ui/export/PrintDialog.cpp" line="365"/>
+        <location filename="../../src/ui/export/PrintDialog.cpp" line="368"/>
         <source>Pages &amp; copies</source>
         <translation>页面和份数</translation>
     </message>
     <message>
-        <location filename="../../src/ui/export/PrintDialog.cpp" line="367"/>
+        <location filename="../../src/ui/export/PrintDialog.cpp" line="370"/>
         <source>All %1</source>
         <translation>全部 (%1)</translation>
     </message>
     <message>
-        <location filename="../../src/ui/export/PrintDialog.cpp" line="368"/>
+        <location filename="../../src/ui/export/PrintDialog.cpp" line="371"/>
         <source>Current page</source>
         <translation>当前页面</translation>
     </message>
     <message>
-        <location filename="../../src/ui/export/PrintDialog.cpp" line="369"/>
+        <location filename="../../src/ui/export/PrintDialog.cpp" line="372"/>
         <source>Range</source>
         <translation>范围</translation>
     </message>
     <message>
-        <location filename="../../src/ui/export/PrintDialog.cpp" line="373"/>
+        <location filename="../../src/ui/export/PrintDialog.cpp" line="376"/>
         <source>For example: 1-3, 5, 8-10</source>
         <translation>例如：1-3, 5, 8-10</translation>
     </message>
     <message>
-        <location filename="../../src/ui/export/PrintDialog.cpp" line="396"/>
+        <location filename="../../src/ui/export/PrintDialog.cpp" line="399"/>
         <source>Copies</source>
         <translation>份数</translation>
     </message>
     <message>
-        <location filename="../../src/ui/export/PrintDialog.cpp" line="403"/>
+        <location filename="../../src/ui/export/PrintDialog.cpp" line="406"/>
         <source>Collate</source>
         <translation>逐份打印</translation>
     </message>
     <message>
-        <location filename="../../src/ui/export/PrintDialog.cpp" line="420"/>
+        <location filename="../../src/ui/export/PrintDialog.cpp" line="423"/>
         <source>Paper &amp; layout</source>
         <translation>纸张和布局</translation>
     </message>
     <message>
-        <location filename="../../src/ui/export/PrintDialog.cpp" line="424"/>
+        <location filename="../../src/ui/export/PrintDialog.cpp" line="427"/>
         <source>Portrait</source>
         <translation>纵向</translation>
     </message>
     <message>
-        <location filename="../../src/ui/export/PrintDialog.cpp" line="425"/>
+        <location filename="../../src/ui/export/PrintDialog.cpp" line="428"/>
         <source>Landscape</source>
         <translation>横向</translation>
     </message>
     <message>
-        <location filename="../../src/ui/export/PrintDialog.cpp" line="427"/>
+        <location filename="../../src/ui/export/PrintDialog.cpp" line="430"/>
         <source>Fit to printable area</source>
         <translation>适合可打印区域</translation>
     </message>
     <message>
-        <location filename="../../src/ui/export/PrintDialog.cpp" line="428"/>
+        <location filename="../../src/ui/export/PrintDialog.cpp" line="431"/>
         <source>Shrink oversized pages</source>
         <translation>仅缩小过大的页面</translation>
     </message>
     <message>
-        <location filename="../../src/ui/export/PrintDialog.cpp" line="429"/>
+        <location filename="../../src/ui/export/PrintDialog.cpp" line="432"/>
         <source>Actual size</source>
         <translation>实际大小</translation>
     </message>
     <message>
-        <location filename="../../src/ui/export/PrintDialog.cpp" line="434"/>
+        <location filename="../../src/ui/export/PrintDialog.cpp" line="437"/>
         <source>Paper size</source>
         <translation>纸张大小</translation>
     </message>
     <message>
-        <location filename="../../src/ui/export/PrintDialog.cpp" line="435"/>
+        <location filename="../../src/ui/export/PrintDialog.cpp" line="438"/>
         <source>Orientation</source>
         <translation>方向</translation>
     </message>
     <message>
-        <location filename="../../src/ui/export/PrintDialog.cpp" line="436"/>
+        <location filename="../../src/ui/export/PrintDialog.cpp" line="439"/>
         <source>Scaling</source>
         <translation>缩放</translation>
     </message>
     <message>
-        <location filename="../../src/ui/export/PrintDialog.cpp" line="453"/>
+        <location filename="../../src/ui/export/PrintDialog.cpp" line="456"/>
         <source>Output</source>
         <translation>输出</translation>
     </message>
     <message>
-        <location filename="../../src/ui/export/PrintDialog.cpp" line="460"/>
+        <location filename="../../src/ui/export/PrintDialog.cpp" line="463"/>
         <source>1 page on %1 sheets</source>
         <translation>1 页分到 %1 张纸</translation>
     </message>
     <message>
-        <location filename="../../src/ui/export/PrintDialog.cpp" line="467"/>
+        <location filename="../../src/ui/export/PrintDialog.cpp" line="470"/>
         <source>Pages per sheet</source>
         <translation>每张页数</translation>
     </message>
     <message>
-        <location filename="../../src/ui/export/PrintDialog.cpp" line="468"/>
-        <location filename="../../src/ui/export/PrintDialog.cpp" line="740"/>
+        <location filename="../../src/ui/export/PrintDialog.cpp" line="471"/>
+        <location filename="../../src/ui/export/PrintDialog.cpp" line="743"/>
         <source>Two-sided</source>
         <translation>双面</translation>
     </message>
     <message>
-        <location filename="../../src/ui/export/PrintDialog.cpp" line="473"/>
+        <location filename="../../src/ui/export/PrintDialog.cpp" line="476"/>
         <source>Print in black and white</source>
         <translation>黑白打印</translation>
     </message>
     <message>
-        <location filename="../../src/ui/export/PrintDialog.cpp" line="482"/>
+        <location filename="../../src/ui/export/PrintDialog.cpp" line="485"/>
         <source>Output in black and white</source>
         <translation>以黑白输出</translation>
     </message>
     <message>
-        <location filename="../../src/ui/export/PrintDialog.cpp" line="502"/>
+        <location filename="../../src/ui/export/PrintDialog.cpp" line="505"/>
         <source>More settings</source>
         <translation>更多设置</translation>
     </message>
     <message>
-        <location filename="../../src/ui/export/PrintDialog.cpp" line="514"/>
+        <location filename="../../src/ui/export/PrintDialog.cpp" line="517"/>
         <source>Cut marks on posters</source>
         <translation>海报裁切标记</translation>
     </message>
     <message>
-        <location filename="../../src/ui/export/PrintDialog.cpp" line="517"/>
+        <location filename="../../src/ui/export/PrintDialog.cpp" line="520"/>
         <source>Print with the system dialog…</source>
         <translation>使用系统对话框打印…</translation>
     </message>
     <message>
-        <location filename="../../src/ui/export/PrintDialog.cpp" line="522"/>
+        <location filename="../../src/ui/export/PrintDialog.cpp" line="525"/>
         <source>For paper tray, print quality and other settings of the printer driver.</source>
         <translation>用于纸盒、打印质量和打印机驱动程序的其他设置。</translation>
     </message>
     <message>
-        <location filename="../../src/ui/export/PrintDialog.cpp" line="559"/>
+        <location filename="../../src/ui/export/PrintDialog.cpp" line="562"/>
         <source>Cancel</source>
         <translation>取消</translation>
     </message>
     <message>
-        <location filename="../../src/ui/export/PrintDialog.cpp" line="584"/>
+        <location filename="../../src/ui/export/PrintDialog.cpp" line="587"/>
         <source>Set up a printer in the system settings.</source>
         <translation>请在系统设置中设置打印机。</translation>
     </message>
     <message>
-        <location filename="../../src/ui/export/PrintDialog.cpp" line="593"/>
+        <location filename="../../src/ui/export/PrintDialog.cpp" line="596"/>
         <source>Ready</source>
         <translation>就绪</translation>
     </message>
     <message>
-        <location filename="../../src/ui/export/PrintDialog.cpp" line="594"/>
+        <location filename="../../src/ui/export/PrintDialog.cpp" line="597"/>
         <source>Printing</source>
         <translation>正在打印</translation>
     </message>
     <message>
-        <location filename="../../src/ui/export/PrintDialog.cpp" line="596"/>
+        <location filename="../../src/ui/export/PrintDialog.cpp" line="599"/>
         <source>Paused</source>
         <translation>已暂停</translation>
     </message>
     <message>
-        <location filename="../../src/ui/export/PrintDialog.cpp" line="601"/>
+        <location filename="../../src/ui/export/PrintDialog.cpp" line="604"/>
         <source>Not ready</source>
         <translation>未就绪</translation>
     </message>
     <message>
-        <location filename="../../src/ui/export/PrintDialog.cpp" line="609"/>
+        <location filename="../../src/ui/export/PrintDialog.cpp" line="612"/>
         <source>Color printer</source>
         <translation>彩色打印机</translation>
     </message>
     <message>
-        <location filename="../../src/ui/export/PrintDialog.cpp" line="609"/>
+        <location filename="../../src/ui/export/PrintDialog.cpp" line="612"/>
         <source>Black-and-white printer</source>
         <translation>黑白打印机</translation>
     </message>
     <message>
-        <location filename="../../src/ui/export/PrintDialog.cpp" line="637"/>
+        <location filename="../../src/ui/export/PrintDialog.cpp" line="640"/>
         <source>Off</source>
         <translation>关</translation>
     </message>
     <message>
-        <location filename="../../src/ui/export/PrintDialog.cpp" line="639"/>
+        <location filename="../../src/ui/export/PrintDialog.cpp" line="642"/>
         <source>Long edge</source>
         <translation>长边翻转</translation>
     </message>
     <message>
-        <location filename="../../src/ui/export/PrintDialog.cpp" line="641"/>
+        <location filename="../../src/ui/export/PrintDialog.cpp" line="644"/>
         <source>Short edge</source>
         <translation>短边翻转</translation>
     </message>
     <message>
-        <location filename="../../src/ui/export/PrintDialog.cpp" line="728"/>
+        <location filename="../../src/ui/export/PrintDialog.cpp" line="731"/>
         <source>Check the page range</source>
         <translation>请检查页面范围</translation>
     </message>
     <message>
-        <location filename="../../src/ui/export/PrintDialog.cpp" line="729"/>
+        <location filename="../../src/ui/export/PrintDialog.cpp" line="732"/>
         <source>Use page numbers like 1-3, 5, 8-10.</source>
         <translation>请使用 1-3, 5, 8-10 这样的页码。</translation>
     </message>
     <message>
-        <location filename="../../src/ui/export/PrintDialog.cpp" line="740"/>
+        <location filename="../../src/ui/export/PrintDialog.cpp" line="743"/>
         <source>One-sided</source>
         <translation>单面</translation>
     </message>
     <message>
-        <location filename="../../src/ui/export/PrintDialog.cpp" line="741"/>
+        <location filename="../../src/ui/export/PrintDialog.cpp" line="744"/>
         <source>Sheets overlap by 10 mm</source>
         <translation>纸张重叠 10 毫米</translation>
     </message>
     <message>
-        <location filename="../../src/ui/export/PrintDialog.cpp" line="742"/>
+        <location filename="../../src/ui/export/PrintDialog.cpp" line="745"/>
         <source>Black and white</source>
         <translation>黑白</translation>
     </message>
@@ -3334,67 +3569,16 @@ Enter the password to open it:</source>
     </message>
 </context>
 <context>
-    <name>PermissionGate</name>
-    <message>
-        <location filename="../../src/ui/protect/PermissionGate.cpp" line="15"/>
-        <source>This document does not allow printing.</source>
-        <translation>此文档不允许打印。</translation>
-    </message>
-    <message>
-        <location filename="../../src/ui/protect/PermissionGate.cpp" line="16"/>
-        <source>This document does not allow copying text.</source>
-        <translation>此文档不允许复制文本。</translation>
-    </message>
-    <message>
-        <location filename="../../src/ui/protect/PermissionGate.cpp" line="17"/>
-        <source>This document does not allow changing its content.</source>
-        <translation>此文档不允许更改内容。</translation>
-    </message>
-    <message>
-        <location filename="../../src/ui/protect/PermissionGate.cpp" line="18"/>
-        <source>This document does not allow adding comments.</source>
-        <translation>此文档不允许添加注释。</translation>
-    </message>
-    <message>
-        <location filename="../../src/ui/protect/PermissionGate.cpp" line="19"/>
-        <source>This document does not allow filling in forms.</source>
-        <translation>此文档不允许填写表单。</translation>
-    </message>
-    <message>
-        <location filename="../../src/ui/protect/PermissionGate.cpp" line="21"/>
-        <source>This document does not allow inserting, deleting and rotating pages.</source>
-        <translation>此文档不允许插入、删除和旋转页面。</translation>
-    </message>
-    <message>
-        <location filename="../../src/ui/protect/PermissionGate.cpp" line="23"/>
-        <source>The restrictions of this document can only be changed by its owner.</source>
-        <translation>只有此文档的所有者才能更改其限制。</translation>
-    </message>
-    <message>
-        <location filename="../../src/ui/protect/PermissionGate.cpp" line="52"/>
-        <source>Enter the permissions password to lift its restrictions:</source>
-        <translation>请输入权限密码以解除限制：</translation>
-    </message>
-    <message>
-        <location filename="../../src/ui/protect/PermissionGate.cpp" line="55"/>
-        <source>Restricted document</source>
-        <translation>受限文档</translation>
-    </message>
-    <message>
-        <location filename="../../src/ui/protect/PermissionGate.cpp" line="59"/>
-        <source>Wrong permissions password. Please try again:</source>
-        <translation>权限密码错误。请重试：</translation>
-    </message>
-</context>
-<context>
     <name>Printing</name>
     <message>
-        <location filename="../../src/ui/export/Printing.cpp" line="30"/>
+        <location filename="../../src/ui/export/Printing.cpp" line="26"/>
+        <location filename="../../src/ui/export/Printing.cpp" line="44"/>
         <source>Print</source>
         <translation>打印</translation>
     </message>
     <message>
-        <location filename="../../src/ui/export/Printing.cpp" line="31"/>
+        <location filename="../../src/ui/export/Printing.cpp" line="26"/>
+        <location filename="../../src/ui/export/Printing.cpp" line="45"/>
         <source>The document could not be printed.</source>
         <translation>无法打印该文档。</translation>
     </message>
@@ -3425,271 +3609,271 @@ Enter the password to open it:</source>
 <context>
     <name>ProtectDialog</name>
     <message>
-        <location filename="../../src/ui/protect/ProtectDialog.cpp" line="58"/>
+        <location filename="../../src/ui/protect/ProtectDialog.cpp" line="59"/>
         <source>AES-256 encryption provides strong protection and is supported by all modern PDF readers.</source>
         <translation>AES-256 加密提供强大的保护，所有现代 PDF 阅读器均支持。</translation>
     </message>
     <message>
-        <location filename="../../src/ui/protect/ProtectDialog.cpp" line="60"/>
+        <location filename="../../src/ui/protect/ProtectDialog.cpp" line="61"/>
         <source>AES-128 also opens in older readers, but is weaker than AES-256.</source>
         <translation>AES-128 在较旧的阅读器中也能打开，但比 AES-256 弱。</translation>
     </message>
     <message>
-        <location filename="../../src/ui/protect/ProtectDialog.cpp" line="62"/>
+        <location filename="../../src/ui/protect/ProtectDialog.cpp" line="63"/>
         <source>RC4 is outdated and can be broken. Use it only for very old PDF readers.</source>
         <translation>RC4 已过时且可被破解。仅用于非常旧的 PDF 阅读器。</translation>
     </message>
     <message>
-        <location filename="../../src/ui/protect/ProtectDialog.cpp" line="92"/>
+        <location filename="../../src/ui/protect/ProtectDialog.cpp" line="93"/>
         <source>Protect</source>
         <translation>保护</translation>
     </message>
     <message>
-        <location filename="../../src/ui/protect/ProtectDialog.cpp" line="93"/>
+        <location filename="../../src/ui/protect/ProtectDialog.cpp" line="94"/>
         <source>Protecting a PDF needs qpdf, which this build does not include.</source>
         <translation>保护 PDF 需要 qpdf，此版本未包含。</translation>
     </message>
     <message>
-        <location filename="../../src/ui/protect/ProtectDialog.cpp" line="121"/>
+        <location filename="../../src/ui/protect/ProtectDialog.cpp" line="124"/>
         <source>Protect - OpenPDF Studio</source>
         <translation>保护 - OpenPDF Studio</translation>
     </message>
     <message>
-        <location filename="../../src/ui/protect/ProtectDialog.cpp" line="141"/>
+        <location filename="../../src/ui/protect/ProtectDialog.cpp" line="144"/>
         <source>Password &amp; Encryption</source>
         <translation>密码和加密</translation>
     </message>
     <message>
-        <location filename="../../src/ui/protect/ProtectDialog.cpp" line="142"/>
-        <location filename="../../src/ui/protect/ProtectDialog.cpp" line="270"/>
+        <location filename="../../src/ui/protect/ProtectDialog.cpp" line="145"/>
+        <location filename="../../src/ui/protect/ProtectDialog.cpp" line="273"/>
         <source>Permissions</source>
         <translation>权限</translation>
     </message>
     <message>
-        <location filename="../../src/ui/protect/ProtectDialog.cpp" line="154"/>
+        <location filename="../../src/ui/protect/ProtectDialog.cpp" line="157"/>
         <source>Saving with changed protection rewrites the file, so its digital signatures will no longer be valid.</source>
         <translation>以更改后的保护设置保存会重写文件，因此其数字签名将失效。</translation>
     </message>
     <message>
-        <location filename="../../src/ui/protect/ProtectDialog.cpp" line="187"/>
+        <location filename="../../src/ui/protect/ProtectDialog.cpp" line="190"/>
         <source>This document is currently protected.</source>
         <translation>此文档当前受保护。</translation>
     </message>
     <message>
-        <location filename="../../src/ui/protect/ProtectDialog.cpp" line="188"/>
+        <location filename="../../src/ui/protect/ProtectDialog.cpp" line="191"/>
         <source>This document is not protected.</source>
         <translation>此文档未受保护。</translation>
     </message>
     <message>
-        <location filename="../../src/ui/protect/ProtectDialog.cpp" line="192"/>
+        <location filename="../../src/ui/protect/ProtectDialog.cpp" line="195"/>
         <source>You can change the password and encryption settings below.</source>
         <translation>您可以在下方更改密码和加密设置。</translation>
     </message>
     <message>
-        <location filename="../../src/ui/protect/ProtectDialog.cpp" line="193"/>
+        <location filename="../../src/ui/protect/ProtectDialog.cpp" line="196"/>
         <source>Set a password below, or restrict what readers may do.</source>
         <translation>在下方设置密码，或限制读者可执行的操作。</translation>
     </message>
     <message>
-        <location filename="../../src/ui/protect/ProtectDialog.cpp" line="197"/>
+        <location filename="../../src/ui/protect/ProtectDialog.cpp" line="200"/>
         <source>Remove protection</source>
         <translation>移除保护</translation>
     </message>
     <message>
-        <location filename="../../src/ui/protect/ProtectDialog.cpp" line="222"/>
-        <location filename="../../src/ui/protect/ProtectDialog.cpp" line="228"/>
-        <location filename="../../src/ui/protect/ProtectDialog.cpp" line="230"/>
+        <location filename="../../src/ui/protect/ProtectDialog.cpp" line="225"/>
+        <location filename="../../src/ui/protect/ProtectDialog.cpp" line="231"/>
+        <location filename="../../src/ui/protect/ProtectDialog.cpp" line="233"/>
         <source>Password</source>
         <translation>密码</translation>
     </message>
     <message>
-        <location filename="../../src/ui/protect/ProtectDialog.cpp" line="222"/>
+        <location filename="../../src/ui/protect/ProtectDialog.cpp" line="225"/>
         <source>Require a password to open this PDF.</source>
         <translation>打开此 PDF 时需要密码。</translation>
     </message>
     <message>
-        <location filename="../../src/ui/protect/ProtectDialog.cpp" line="223"/>
+        <location filename="../../src/ui/protect/ProtectDialog.cpp" line="226"/>
         <source>Enable password protection</source>
         <translation>启用密码保护</translation>
     </message>
     <message>
-        <location filename="../../src/ui/protect/ProtectDialog.cpp" line="229"/>
-        <location filename="../../src/ui/protect/ProtectDialog.cpp" line="231"/>
-        <location filename="../../src/ui/protect/ProtectDialog.cpp" line="278"/>
-        <location filename="../../src/ui/protect/ProtectDialog.cpp" line="280"/>
+        <location filename="../../src/ui/protect/ProtectDialog.cpp" line="232"/>
+        <location filename="../../src/ui/protect/ProtectDialog.cpp" line="234"/>
+        <location filename="../../src/ui/protect/ProtectDialog.cpp" line="281"/>
+        <location filename="../../src/ui/protect/ProtectDialog.cpp" line="283"/>
         <source>Confirm password</source>
         <translation>确认密码</translation>
     </message>
     <message>
-        <location filename="../../src/ui/protect/ProtectDialog.cpp" line="238"/>
+        <location filename="../../src/ui/protect/ProtectDialog.cpp" line="241"/>
         <source>Encryption</source>
         <translation>加密</translation>
     </message>
     <message>
-        <location filename="../../src/ui/protect/ProtectDialog.cpp" line="238"/>
+        <location filename="../../src/ui/protect/ProtectDialog.cpp" line="241"/>
         <source>Choose the encryption level for the PDF.</source>
         <translation>选择 PDF 的加密级别。</translation>
     </message>
     <message>
-        <location filename="../../src/ui/protect/ProtectDialog.cpp" line="239"/>
+        <location filename="../../src/ui/protect/ProtectDialog.cpp" line="242"/>
         <source>Encryption level</source>
         <translation>加密级别</translation>
     </message>
     <message>
-        <location filename="../../src/ui/protect/ProtectDialog.cpp" line="242"/>
+        <location filename="../../src/ui/protect/ProtectDialog.cpp" line="245"/>
         <source>AES-256 (Recommended)</source>
         <translation>AES-256（推荐）</translation>
     </message>
     <message>
-        <location filename="../../src/ui/protect/ProtectDialog.cpp" line="242"/>
+        <location filename="../../src/ui/protect/ProtectDialog.cpp" line="245"/>
         <source>AES-128</source>
         <translation>AES-128</translation>
     </message>
     <message>
-        <location filename="../../src/ui/protect/ProtectDialog.cpp" line="243"/>
+        <location filename="../../src/ui/protect/ProtectDialog.cpp" line="246"/>
         <source>RC4 128-bit (Legacy)</source>
         <translation>RC4 128 位（旧版）</translation>
     </message>
     <message>
-        <location filename="../../src/ui/protect/ProtectDialog.cpp" line="270"/>
+        <location filename="../../src/ui/protect/ProtectDialog.cpp" line="273"/>
         <source>Choose what readers may do with the PDF.</source>
         <translation>选择读者可以对 PDF 执行的操作。</translation>
     </message>
     <message>
-        <location filename="../../src/ui/protect/ProtectDialog.cpp" line="271"/>
+        <location filename="../../src/ui/protect/ProtectDialog.cpp" line="274"/>
         <source>Restrict printing, editing and copying</source>
         <translation>限制打印、编辑和复制</translation>
     </message>
     <message>
-        <location filename="../../src/ui/protect/ProtectDialog.cpp" line="277"/>
-        <location filename="../../src/ui/protect/ProtectDialog.cpp" line="279"/>
+        <location filename="../../src/ui/protect/ProtectDialog.cpp" line="280"/>
+        <location filename="../../src/ui/protect/ProtectDialog.cpp" line="282"/>
         <source>Permissions password</source>
         <translation>权限密码</translation>
     </message>
     <message>
-        <location filename="../../src/ui/protect/ProtectDialog.cpp" line="284"/>
+        <location filename="../../src/ui/protect/ProtectDialog.cpp" line="287"/>
         <source>Needed to lift the restrictions later. If you leave it empty, nobody can lift them.</source>
         <translation>以后解除限制时需要。如果留空，任何人都无法解除限制。</translation>
     </message>
     <message>
-        <location filename="../../src/ui/protect/ProtectDialog.cpp" line="290"/>
+        <location filename="../../src/ui/protect/ProtectDialog.cpp" line="293"/>
         <source>Allowed actions</source>
         <translation>允许的操作</translation>
     </message>
     <message>
-        <location filename="../../src/ui/protect/ProtectDialog.cpp" line="295"/>
+        <location filename="../../src/ui/protect/ProtectDialog.cpp" line="298"/>
         <source>Printing</source>
         <translation>打印</translation>
     </message>
     <message>
-        <location filename="../../src/ui/protect/ProtectDialog.cpp" line="295"/>
+        <location filename="../../src/ui/protect/ProtectDialog.cpp" line="298"/>
         <source>High-quality printing</source>
         <translation>高质量打印</translation>
     </message>
     <message>
-        <location filename="../../src/ui/protect/ProtectDialog.cpp" line="295"/>
+        <location filename="../../src/ui/protect/ProtectDialog.cpp" line="298"/>
         <source>Changing content</source>
         <translation>更改内容</translation>
     </message>
     <message>
-        <location filename="../../src/ui/protect/ProtectDialog.cpp" line="296"/>
+        <location filename="../../src/ui/protect/ProtectDialog.cpp" line="299"/>
         <source>Copying text and images</source>
         <translation>复制文本和图像</translation>
     </message>
     <message>
-        <location filename="../../src/ui/protect/ProtectDialog.cpp" line="296"/>
+        <location filename="../../src/ui/protect/ProtectDialog.cpp" line="299"/>
         <source>Adding comments</source>
         <translation>添加注释</translation>
     </message>
     <message>
-        <location filename="../../src/ui/protect/ProtectDialog.cpp" line="296"/>
+        <location filename="../../src/ui/protect/ProtectDialog.cpp" line="299"/>
         <source>Filling in forms</source>
         <translation>填写表单</translation>
     </message>
     <message>
-        <location filename="../../src/ui/protect/ProtectDialog.cpp" line="297"/>
+        <location filename="../../src/ui/protect/ProtectDialog.cpp" line="300"/>
         <source>Inserting, deleting and rotating pages</source>
         <translation>插入、删除和旋转页面</translation>
     </message>
     <message>
-        <location filename="../../src/ui/protect/ProtectDialog.cpp" line="297"/>
+        <location filename="../../src/ui/protect/ProtectDialog.cpp" line="300"/>
         <source>Reading aloud for accessibility</source>
         <translation>为辅助功能朗读</translation>
     </message>
     <message>
-        <location filename="../../src/ui/protect/ProtectDialog.cpp" line="308"/>
+        <location filename="../../src/ui/protect/ProtectDialog.cpp" line="311"/>
         <source>Most PDF readers respect these restrictions, but they are not a strong protection on their own. Use an open password for confidential documents.</source>
         <translation>大多数 PDF 阅读器会遵守这些限制，但仅靠它们并不能提供强保护。机密文档请使用打开密码。</translation>
     </message>
     <message>
-        <location filename="../../src/ui/protect/ProtectDialog.cpp" line="325"/>
+        <location filename="../../src/ui/protect/ProtectDialog.cpp" line="328"/>
         <source>Changes are applied when you save the document.</source>
         <translation>更改将在保存文档时应用。</translation>
     </message>
     <message>
-        <location filename="../../src/ui/protect/ProtectDialog.cpp" line="326"/>
+        <location filename="../../src/ui/protect/ProtectDialog.cpp" line="329"/>
         <source>Cancel</source>
         <translation>取消</translation>
     </message>
     <message>
-        <location filename="../../src/ui/protect/ProtectDialog.cpp" line="331"/>
+        <location filename="../../src/ui/protect/ProtectDialog.cpp" line="334"/>
         <source>Apply</source>
         <translation>应用</translation>
     </message>
     <message>
-        <location filename="../../src/ui/protect/ProtectDialog.cpp" line="350"/>
-        <location filename="../../src/ui/protect/ProtectDialog.cpp" line="357"/>
+        <location filename="../../src/ui/protect/ProtectDialog.cpp" line="353"/>
+        <location filename="../../src/ui/protect/ProtectDialog.cpp" line="360"/>
         <source>Show password</source>
         <translation>显示密码</translation>
     </message>
     <message>
-        <location filename="../../src/ui/protect/ProtectDialog.cpp" line="357"/>
+        <location filename="../../src/ui/protect/ProtectDialog.cpp" line="360"/>
         <source>Hide password</source>
         <translation>隐藏密码</translation>
     </message>
     <message>
-        <location filename="../../src/ui/protect/ProtectDialog.cpp" line="411"/>
+        <location filename="../../src/ui/protect/ProtectDialog.cpp" line="414"/>
         <source>Missing password</source>
         <translation>缺少密码</translation>
     </message>
     <message>
-        <location filename="../../src/ui/protect/ProtectDialog.cpp" line="412"/>
+        <location filename="../../src/ui/protect/ProtectDialog.cpp" line="415"/>
         <source>Please enter a password, or switch password protection off.</source>
         <translation>请输入密码，或关闭密码保护。</translation>
     </message>
     <message>
-        <location filename="../../src/ui/protect/ProtectDialog.cpp" line="416"/>
-        <location filename="../../src/ui/protect/ProtectDialog.cpp" line="423"/>
+        <location filename="../../src/ui/protect/ProtectDialog.cpp" line="419"/>
+        <location filename="../../src/ui/protect/ProtectDialog.cpp" line="426"/>
         <source>Passwords do not match</source>
         <translation>密码不匹配</translation>
     </message>
     <message>
-        <location filename="../../src/ui/protect/ProtectDialog.cpp" line="417"/>
+        <location filename="../../src/ui/protect/ProtectDialog.cpp" line="420"/>
         <source>The password and its confirmation are different.</source>
         <translation>密码与确认密码不同。</translation>
     </message>
     <message>
-        <location filename="../../src/ui/protect/ProtectDialog.cpp" line="424"/>
+        <location filename="../../src/ui/protect/ProtectDialog.cpp" line="427"/>
         <source>The permissions password and its confirmation are different.</source>
         <translation>权限密码与确认密码不同。</translation>
     </message>
     <message>
-        <location filename="../../src/ui/protect/ProtectDialog.cpp" line="429"/>
+        <location filename="../../src/ui/protect/ProtectDialog.cpp" line="432"/>
         <source>Same password twice</source>
         <translation>两次使用相同密码</translation>
     </message>
     <message>
-        <location filename="../../src/ui/protect/ProtectDialog.cpp" line="430"/>
+        <location filename="../../src/ui/protect/ProtectDialog.cpp" line="433"/>
         <source>The permissions password must differ from the open password, otherwise everyone who can open the PDF can lift the restrictions.</source>
         <translation>权限密码必须与打开密码不同，否则任何能打开 PDF 的人都能解除限制。</translation>
     </message>
     <message>
-        <location filename="../../src/ui/protect/ProtectDialog.cpp" line="186"/>
+        <location filename="../../src/ui/protect/ProtectDialog.cpp" line="189"/>
         <source>No document is open.</source>
         <translation>未打开任何文档。</translation>
     </message>
     <message>
-        <location filename="../../src/ui/protect/ProtectDialog.cpp" line="190"/>
+        <location filename="../../src/ui/protect/ProtectDialog.cpp" line="193"/>
         <source>Open a PDF to protect it.</source>
         <translation>打开一个 PDF 以保护它。</translation>
     </message>
@@ -3713,7 +3897,7 @@ Enter the password to open it:</source>
 <context>
     <name>Registration</name>
     <message>
-        <location filename="../../modules/rich-media/MediaModule.cpp" line="31"/>
+        <location filename="../../modules/rich-media/MediaModule.cpp" line="37"/>
         <source>Rich Media</source>
         <translation>富媒体</translation>
     </message>
@@ -3993,422 +4177,423 @@ Enter the password to open it:</source>
 <context>
     <name>SettingsPanel</name>
     <message>
-        <location filename="../../src/ui/settings/SettingsPanel.cpp" line="47"/>
-        <location filename="../../src/ui/settings/SettingsPanel.cpp" line="1159"/>
+        <location filename="../../src/ui/settings/SettingsPanel.cpp" line="35"/>
+        <location filename="../../src/ui/settings/SettingsPanel.cpp" line="480"/>
         <source>Settings - OpenPDF Studio</source>
         <translation>设置 - OpenPDF Studio</translation>
     </message>
     <message>
-        <location filename="../../src/ui/settings/SettingsPanel.cpp" line="426"/>
+        <location filename="../../src/ui/settings/SettingsPanel_Media.cpp" line="25"/>
         <source>Choose how video embedded in a PDF is played.</source>
         <translation>选择 PDF 中嵌入的视频如何播放。</translation>
     </message>
     <message>
-        <location filename="../../src/ui/settings/SettingsPanel.cpp" line="439"/>
+        <location filename="../../src/ui/settings/SettingsPanel_Media.cpp" line="38"/>
         <source>In OpenPDF Studio</source>
         <translation>在 OpenPDF Studio 中</translation>
     </message>
     <message>
-        <location filename="../../src/ui/settings/SettingsPanel.cpp" line="440"/>
+        <location filename="../../src/ui/settings/SettingsPanel_Media.cpp" line="39"/>
         <source>Plays on the page</source>
         <translation>在页面上播放</translation>
     </message>
     <message>
-        <location filename="../../src/ui/settings/SettingsPanel.cpp" line="441"/>
+        <location filename="../../src/ui/settings/SettingsPanel_Media.cpp" line="40"/>
         <source>System player</source>
         <translation>系统播放器</translation>
     </message>
     <message>
-        <location filename="../../src/ui/settings/SettingsPanel.cpp" line="442"/>
+        <location filename="../../src/ui/settings/SettingsPanel_Media.cpp" line="41"/>
         <source>Opens in your video player</source>
         <translation>在您的视频播放器中打开</translation>
     </message>
     <message>
-        <location filename="../../src/ui/settings/SettingsPanel.cpp" line="443"/>
+        <location filename="../../src/ui/settings/SettingsPanel_Media.cpp" line="42"/>
         <source>Custom command</source>
         <translation>自定义命令</translation>
     </message>
     <message>
-        <location filename="../../src/ui/settings/SettingsPanel.cpp" line="444"/>
+        <location filename="../../src/ui/settings/SettingsPanel_Media.cpp" line="43"/>
         <source>Run a player of your choice</source>
         <translation>运行您选择的播放器</translation>
     </message>
     <message>
-        <location filename="../../src/ui/settings/SettingsPanel.cpp" line="457"/>
+        <location filename="../../src/ui/settings/SettingsPanel_Media.cpp" line="56"/>
         <source>This build has no built-in player. &quot;In OpenPDF Studio&quot; falls back to the system player.</source>
         <translation>此版本没有内置播放器。“在 OpenPDF Studio 中”将改用系统播放器。</translation>
     </message>
     <message>
-        <location filename="../../src/ui/settings/SettingsPanel.cpp" line="470"/>
+        <location filename="../../src/ui/settings/SettingsPanel_Media.cpp" line="69"/>
         <source>Command:</source>
         <translation>命令：</translation>
     </message>
     <message>
-        <location filename="../../src/ui/settings/SettingsPanel.cpp" line="477"/>
+        <location filename="../../src/ui/settings/SettingsPanel_Media.cpp" line="76"/>
         <source>%1 is replaced with the video file. Without it the file is appended.</source>
         <translation>%1 将被替换为视频文件。没有它时文件会追加在末尾。</translation>
     </message>
     <message>
-        <location filename="../../src/ui/settings/SettingsPanel.cpp" line="480"/>
+        <location filename="../../src/ui/settings/SettingsPanel_Media.cpp" line="79"/>
         <source>Browse...</source>
         <translation>浏览…</translation>
     </message>
     <message>
-        <location filename="../../src/ui/settings/SettingsPanel.cpp" line="482"/>
+        <location filename="../../src/ui/settings/SettingsPanel_Media.cpp" line="81"/>
         <source>Choose a media player</source>
         <translation>选择媒体播放器</translation>
     </message>
     <message>
-        <location filename="../../src/ui/settings/SettingsPanel.cpp" line="511"/>
+        <location filename="../../src/ui/settings/SettingsPanel_Shortcuts.cpp" line="28"/>
         <source>Keyboard Shortcuts</source>
         <translation>键盘快捷键</translation>
     </message>
     <message>
-        <location filename="../../src/ui/settings/SettingsPanel.cpp" line="514"/>
+        <location filename="../../src/ui/settings/SettingsPanel_Shortcuts.cpp" line="31"/>
         <source>Configure keyboard shortcuts for frequent actions.</source>
         <translation>为常用操作配置键盘快捷键。</translation>
     </message>
     <message>
-        <location filename="../../src/ui/settings/SettingsPanel.cpp" line="528"/>
+        <location filename="../../src/ui/settings/SettingsPanel_Shortcuts.cpp" line="45"/>
         <source>Search action</source>
         <translation>搜索操作</translation>
     </message>
     <message>
-        <location filename="../../src/ui/settings/SettingsPanel.cpp" line="531"/>
+        <location filename="../../src/ui/settings/SettingsPanel_Shortcuts.cpp" line="48"/>
         <source>Show only global default shortcuts</source>
         <translation>仅显示全局默认快捷键</translation>
     </message>
     <message>
-        <location filename="../../src/ui/settings/SettingsPanel.cpp" line="549"/>
+        <location filename="../../src/ui/settings/SettingsPanel_Shortcuts.cpp" line="66"/>
         <source>Action</source>
         <translation>操作</translation>
     </message>
     <message>
-        <location filename="../../src/ui/settings/SettingsPanel.cpp" line="553"/>
+        <location filename="../../src/ui/settings/SettingsPanel_Shortcuts.cpp" line="70"/>
         <source>Key Combination</source>
         <translation>组合键</translation>
     </message>
     <message>
-        <location filename="../../src/ui/settings/SettingsPanel.cpp" line="582"/>
+        <location filename="../../src/ui/settings/SettingsPanel_Shortcuts.cpp" line="99"/>
         <source>Save As</source>
         <translation>另存为</translation>
     </message>
     <message>
-        <location filename="../../src/ui/settings/SettingsPanel.cpp" line="583"/>
+        <location filename="../../src/ui/settings/SettingsPanel_Shortcuts.cpp" line="100"/>
         <source>Print</source>
         <translation>打印</translation>
     </message>
     <message>
-        <location filename="../../src/ui/settings/SettingsPanel.cpp" line="584"/>
+        <location filename="../../src/ui/settings/SettingsPanel_Shortcuts.cpp" line="101"/>
         <source>Open</source>
         <translation>打开</translation>
     </message>
     <message>
-        <location filename="../../src/ui/settings/SettingsPanel.cpp" line="585"/>
+        <location filename="../../src/ui/settings/SettingsPanel_Shortcuts.cpp" line="103"/>
         <source>Undo</source>
         <translation>撤销</translation>
     </message>
     <message>
-        <location filename="../../src/ui/settings/SettingsPanel.cpp" line="586"/>
+        <location filename="../../src/ui/settings/SettingsPanel_Shortcuts.cpp" line="104"/>
         <source>Redo</source>
         <translation>重做</translation>
     </message>
     <message>
-        <location filename="../../src/ui/settings/SettingsPanel.cpp" line="587"/>
+        <location filename="../../src/ui/settings/SettingsPanel_Shortcuts.cpp" line="105"/>
         <source>Find</source>
         <translation>查找</translation>
     </message>
     <message>
-        <location filename="../../src/ui/settings/SettingsPanel.cpp" line="588"/>
+        <location filename="../../src/ui/settings/SettingsPanel_Shortcuts.cpp" line="106"/>
         <source>Text Tool</source>
         <translation>文本工具</translation>
     </message>
     <message>
-        <location filename="../../src/ui/settings/SettingsPanel.cpp" line="589"/>
+        <location filename="../../src/ui/settings/SettingsPanel_Shortcuts.cpp" line="107"/>
         <source>Notes</source>
         <translation>注释</translation>
     </message>
     <message>
-        <location filename="../../src/ui/settings/SettingsPanel.cpp" line="590"/>
+        <location filename="../../src/ui/settings/SettingsPanel_Shortcuts.cpp" line="108"/>
         <source>Zoom In</source>
         <translation>放大</translation>
     </message>
     <message>
-        <location filename="../../src/ui/settings/SettingsPanel.cpp" line="591"/>
+        <location filename="../../src/ui/settings/SettingsPanel_Shortcuts.cpp" line="109"/>
         <source>Zoom Out</source>
         <translation>缩小</translation>
     </message>
     <message>
-        <location filename="../../src/ui/settings/SettingsPanel.cpp" line="592"/>
+        <location filename="../../src/ui/settings/SettingsPanel_Shortcuts.cpp" line="110"/>
         <source>Presentation</source>
         <translation>演示</translation>
     </message>
     <message>
-        <location filename="../../src/ui/settings/SettingsPanel.cpp" line="640"/>
+        <location filename="../../src/ui/settings/SettingsPanel_Shortcuts.cpp" line="158"/>
         <source>Double-click on a key combination to change it.</source>
         <translation>双击组合键可进行更改。</translation>
     </message>
     <message>
-        <location filename="../../src/ui/settings/SettingsPanel.cpp" line="652"/>
+        <location filename="../../src/ui/settings/SettingsPanel_Zoom.cpp" line="16"/>
         <source>Configure how zoom works with the mouse wheel.</source>
         <translation>配置鼠标滚轮的缩放方式。</translation>
     </message>
     <message>
-        <location filename="../../src/ui/settings/SettingsPanel.cpp" line="680"/>
+        <location filename="../../src/ui/settings/SettingsPanel_Zoom.cpp" line="44"/>
         <source>Mouse Wheel Zoom Step</source>
         <translation>鼠标滚轮缩放步长</translation>
     </message>
     <message>
-        <location filename="../../src/ui/settings/SettingsPanel.cpp" line="686"/>
+        <location filename="../../src/ui/settings/SettingsPanel_Zoom.cpp" line="50"/>
         <source>Zoom step with Ctrl + Mouse Wheel</source>
         <translation>Ctrl + 鼠标滚轮的缩放步长</translation>
     </message>
     <message>
-        <location filename="../../src/ui/settings/SettingsPanel.cpp" line="698"/>
+        <location filename="../../src/ui/settings/SettingsPanel_Zoom.cpp" line="62"/>
         <source>Sets how much is zoomed per mouse wheel movement.</source>
         <translation>设置鼠标滚轮每次滚动的缩放量。</translation>
     </message>
     <message>
-        <location filename="../../src/ui/settings/SettingsPanel.cpp" line="720"/>
+        <location filename="../../src/ui/settings/SettingsPanel_Zoom.cpp" line="84"/>
         <source>Zoom with Ctrl + Mouse Wheel</source>
         <translation>使用 Ctrl + 鼠标滚轮缩放</translation>
     </message>
     <message>
-        <location filename="../../src/ui/settings/SettingsPanel.cpp" line="725"/>
+        <location filename="../../src/ui/settings/SettingsPanel_Zoom.cpp" line="89"/>
         <source>Zoom to Mouse Pointer</source>
         <translation>向鼠标指针缩放</translation>
     </message>
     <message>
-        <location filename="../../src/ui/settings/SettingsPanel.cpp" line="736"/>
+        <location filename="../../src/ui/settings/SettingsPanel_Zoom.cpp" line="100"/>
         <source>Action without Ctrl</source>
         <translation>不按 Ctrl 时的操作</translation>
     </message>
     <message>
-        <location filename="../../src/ui/settings/SettingsPanel.cpp" line="741"/>
+        <location filename="../../src/ui/settings/SettingsPanel_Zoom.cpp" line="105"/>
         <source>Scroll</source>
         <translation>滚动</translation>
     </message>
     <message>
-        <location filename="../../src/ui/settings/SettingsPanel.cpp" line="758"/>
+        <location filename="../../src/ui/settings/SettingsPanel_Zoom.cpp" line="122"/>
         <source>Example: 100 % → %1 %</source>
         <translation>示例：100 % → %1 %</translation>
     </message>
     <message>
-        <location filename="../../src/ui/settings/SettingsPanel.cpp" line="828"/>
+        <location filename="../../src/ui/settings/SettingsPanel_Advanced.cpp" line="21"/>
         <source>Updates</source>
         <translation>更新</translation>
     </message>
     <message>
-        <location filename="../../src/ui/settings/SettingsPanel.cpp" line="829"/>
+        <location filename="../../src/ui/settings/SettingsPanel_Advanced.cpp" line="22"/>
         <source>Check for automatic updates</source>
         <translation>自动检查更新</translation>
     </message>
     <message>
-        <location filename="../../src/ui/settings/SettingsPanel.cpp" line="830"/>
+        <location filename="../../src/ui/settings/SettingsPanel_Advanced.cpp" line="23"/>
         <source>Automatically check for updates in the background and notify you when a new version is available.</source>
         <translation>在后台自动检查更新，有新版本时通知您。</translation>
     </message>
     <message>
-        <location filename="../../src/ui/settings/SettingsPanel.cpp" line="834"/>
+        <location filename="../../src/ui/settings/SettingsPanel_Advanced.cpp" line="27"/>
         <source>Check interval:</source>
         <translation>检查间隔：</translation>
     </message>
     <message>
-        <location filename="../../src/ui/settings/SettingsPanel.cpp" line="835"/>
+        <location filename="../../src/ui/settings/SettingsPanel_Advanced.cpp" line="28"/>
         <source>On every start</source>
         <translation>每次启动时</translation>
     </message>
     <message>
-        <location filename="../../src/ui/settings/SettingsPanel.cpp" line="836"/>
+        <location filename="../../src/ui/settings/SettingsPanel_Advanced.cpp" line="29"/>
         <source>Daily</source>
         <translation>每天</translation>
     </message>
     <message>
-        <location filename="../../src/ui/settings/SettingsPanel.cpp" line="837"/>
+        <location filename="../../src/ui/settings/SettingsPanel_Advanced.cpp" line="30"/>
         <source>Weekly</source>
         <translation>每周</translation>
     </message>
     <message>
-        <location filename="../../src/ui/settings/SettingsPanel.cpp" line="838"/>
+        <location filename="../../src/ui/settings/SettingsPanel_Advanced.cpp" line="31"/>
         <source>Monthly</source>
         <translation>每月</translation>
     </message>
     <message>
-        <location filename="../../src/ui/settings/SettingsPanel.cpp" line="851"/>
+        <location filename="../../src/ui/settings/SettingsPanel_Advanced.cpp" line="44"/>
         <source>Check now</source>
         <translation>立即检查</translation>
     </message>
     <message>
-        <location filename="../../src/ui/settings/SettingsPanel.cpp" line="864"/>
+        <location filename="../../src/ui/settings/SettingsPanel_Advanced.cpp" line="57"/>
         <source>Last checked %1</source>
         <translation>上次检查：%1</translation>
     </message>
     <message>
-        <location filename="../../src/ui/settings/SettingsPanel.cpp" line="866"/>
+        <location filename="../../src/ui/settings/SettingsPanel_Advanced.cpp" line="59"/>
         <source>Not checked yet</source>
         <translation>尚未检查</translation>
     </message>
     <message>
-        <location filename="../../src/ui/settings/SettingsPanel.cpp" line="875"/>
+        <location filename="../../src/ui/settings/SettingsPanel_Advanced.cpp" line="68"/>
         <source>Checking…</source>
         <translation>正在检查…</translation>
     </message>
     <message>
-        <location filename="../../src/ui/settings/SettingsPanel.cpp" line="890"/>
+        <location filename="../../src/ui/settings/SettingsPanel_Advanced.cpp" line="83"/>
         <source>Check failed: %1</source>
         <translation>检查失败：%1</translation>
     </message>
     <message>
-        <location filename="../../src/ui/settings/SettingsPanel.cpp" line="895"/>
+        <location filename="../../src/ui/settings/SettingsPanel_Advanced.cpp" line="88"/>
         <source>Version %1 is up to date.</source>
         <translation>版本 %1 已是最新。</translation>
     </message>
     <message>
-        <location filename="../../src/ui/settings/SettingsPanel.cpp" line="901"/>
+        <location filename="../../src/ui/settings/SettingsPanel_Advanced.cpp" line="94"/>
         <source>Version %1 is available. &lt;a href=&quot;%2&quot; style=&quot;color:%3;&quot;&gt;Download&lt;/a&gt;</source>
         <translation>版本 %1 现已推出。&lt;a href=&quot;%2&quot; style=&quot;color:%3;&quot;&gt;下载&lt;/a&gt;</translation>
     </message>
     <message>
-        <location filename="../../src/ui/settings/SettingsPanel.cpp" line="910"/>
+        <location filename="../../src/ui/settings/SettingsPanel_Advanced.cpp" line="103"/>
         <source>Interface</source>
         <translation>界面</translation>
     </message>
     <message>
-        <location filename="../../src/ui/settings/SettingsPanel.cpp" line="911"/>
-        <source>Preserve panel layout</source>
-        <translation>保留面板布局</translation>
+        <location filename="../../src/ui/settings/SettingsPanel_Advanced.cpp" line="104"/>
+        <source>Save preferences</source>
+        <translation>保存偏好设置</translation>
     </message>
     <message>
-        <location filename="../../src/ui/settings/SettingsPanel.cpp" line="912"/>
-        <source>Restore expanded and collapsed panels after restart.</source>
-        <translation>重启后恢复展开和折叠的面板。</translation>
+        <location filename="../../src/ui/settings/SettingsPanel_Advanced.cpp" line="105"/>
+        <source>Keeps everything you set up for yourself, such as the panel layout and signing.</source>
+        <translation>保留您为自己所做的所有设置，例如面板布局和签名。</translation>
     </message>
     <message>
-        <location filename="../../src/ui/settings/SettingsPanel.cpp" line="918"/>
         <source>Performance</source>
-        <translation>性能</translation>
+        <translation type="vanished">性能</translation>
     </message>
     <message>
-        <location filename="../../src/ui/settings/SettingsPanel.cpp" line="919"/>
         <source>Use hardware acceleration when available</source>
-        <translation>可用时使用硬件加速</translation>
+        <translation type="vanished">可用时使用硬件加速</translation>
     </message>
     <message>
-        <location filename="../../src/ui/settings/SettingsPanel.cpp" line="920"/>
         <source>Improves performance for rendering and media playback.</source>
-        <translation>提升渲染和媒体播放的性能。</translation>
+        <translation type="vanished">提升渲染和媒体播放的性能。</translation>
     </message>
     <message>
-        <location filename="../../src/ui/settings/SettingsPanel.cpp" line="923"/>
         <source>Limit memory usage</source>
-        <translation>限制内存使用</translation>
+        <translation type="vanished">限制内存使用</translation>
     </message>
     <message>
-        <location filename="../../src/ui/settings/SettingsPanel.cpp" line="924"/>
         <source>Helps improve stability on systems with limited memory.</source>
-        <translation>有助于在内存有限的系统上提高稳定性。</translation>
+        <translation type="vanished">有助于在内存有限的系统上提高稳定性。</translation>
     </message>
     <message>
-        <location filename="../../src/ui/settings/SettingsPanel.cpp" line="930"/>
+        <location filename="../../src/ui/settings/SettingsPanel_Advanced.cpp" line="111"/>
         <source>Diagnostics</source>
         <translation>诊断</translation>
     </message>
     <message>
-        <location filename="../../src/ui/settings/SettingsPanel.cpp" line="931"/>
+        <location filename="../../src/ui/settings/SettingsPanel_Advanced.cpp" line="112"/>
         <source>Enable debug logging</source>
         <translation>启用调试日志</translation>
     </message>
     <message>
-        <location filename="../../src/ui/settings/SettingsPanel.cpp" line="932"/>
+        <location filename="../../src/ui/settings/SettingsPanel_Advanced.cpp" line="113"/>
         <source>Save detailed logs for troubleshooting purposes.</source>
         <translation>保存详细日志以便排查问题。</translation>
     </message>
     <message>
-        <location filename="../../src/ui/settings/SettingsPanel.cpp" line="935"/>
+        <location filename="../../src/ui/settings/SettingsPanel_Advanced.cpp" line="116"/>
         <source>Log level:</source>
         <translation>日志级别：</translation>
     </message>
     <message>
-        <location filename="../../src/ui/settings/SettingsPanel.cpp" line="936"/>
+        <location filename="../../src/ui/settings/SettingsPanel_Advanced.cpp" line="117"/>
         <source>Error</source>
         <translation>错误</translation>
     </message>
     <message>
-        <location filename="../../src/ui/settings/SettingsPanel.cpp" line="937"/>
+        <location filename="../../src/ui/settings/SettingsPanel_Advanced.cpp" line="118"/>
         <source>Warning</source>
         <translation>警告</translation>
     </message>
     <message>
-        <location filename="../../src/ui/settings/SettingsPanel.cpp" line="938"/>
+        <location filename="../../src/ui/settings/SettingsPanel_Advanced.cpp" line="119"/>
         <source>Info</source>
         <translation>信息</translation>
     </message>
     <message>
-        <location filename="../../src/ui/settings/SettingsPanel.cpp" line="939"/>
+        <location filename="../../src/ui/settings/SettingsPanel_Advanced.cpp" line="120"/>
         <source>Debug</source>
         <translation>调试</translation>
     </message>
     <message>
-        <location filename="../../src/ui/settings/SettingsPanel.cpp" line="949"/>
+        <location filename="../../src/ui/settings/SettingsPanel_Advanced.cpp" line="130"/>
         <source>Reset</source>
         <translation>重置</translation>
     </message>
     <message>
-        <location filename="../../src/ui/settings/SettingsPanel.cpp" line="1034"/>
+        <location filename="../../src/ui/settings/SettingsPanel_About.cpp" line="45"/>
         <source>Configuration (portable): %1</source>
         <translation>配置（便携版）：%1</translation>
     </message>
     <message>
-        <location filename="../../src/ui/settings/SettingsPanel.cpp" line="1035"/>
+        <location filename="../../src/ui/settings/SettingsPanel_About.cpp" line="46"/>
         <source>Configuration: %1</source>
         <translation>配置：%1</translation>
     </message>
     <message>
-        <location filename="../../src/ui/settings/SettingsPanel.cpp" line="110"/>
+        <location filename="../../src/ui/settings/SettingsPanel.cpp" line="107"/>
         <source>Cancel</source>
         <translation>取消</translation>
     </message>
     <message>
-        <location filename="../../src/ui/settings/SettingsPanel.cpp" line="115"/>
-        <location filename="../../src/ui/settings/SettingsPanel.cpp" line="581"/>
+        <location filename="../../src/ui/settings/SettingsPanel.cpp" line="112"/>
+        <location filename="../../src/ui/settings/SettingsPanel_Shortcuts.cpp" line="98"/>
         <source>Save</source>
         <translation>保存</translation>
     </message>
     <message>
-        <location filename="../../src/ui/settings/SettingsPanel.cpp" line="130"/>
-        <location filename="../../src/ui/settings/SettingsPanel.cpp" line="307"/>
+        <location filename="../../src/ui/settings/SettingsPanel.cpp" line="127"/>
+        <location filename="../../src/ui/settings/SettingsPanel_Appearance.cpp" line="16"/>
         <source>Appearance</source>
         <translation>外观</translation>
     </message>
     <message>
-        <location filename="../../src/ui/settings/SettingsPanel.cpp" line="131"/>
-        <location filename="../../src/ui/settings/SettingsPanel.cpp" line="351"/>
+        <location filename="../../src/ui/settings/SettingsPanel.cpp" line="128"/>
+        <location filename="../../src/ui/settings/SettingsPanel_Language.cpp" line="23"/>
         <source>Language</source>
         <translation>语言</translation>
     </message>
     <message>
-        <location filename="../../src/ui/settings/SettingsPanel.cpp" line="132"/>
-        <location filename="../../src/ui/settings/SettingsPanel.cpp" line="421"/>
+        <location filename="../../src/ui/settings/SettingsPanel.cpp" line="129"/>
+        <location filename="../../src/ui/settings/SettingsPanel_Media.cpp" line="20"/>
         <source>Media Playback</source>
         <translation>媒体播放</translation>
     </message>
     <message>
-        <location filename="../../src/ui/settings/SettingsPanel.cpp" line="133"/>
+        <location filename="../../src/ui/settings/SettingsPanel.cpp" line="130"/>
         <source>Shortcuts</source>
         <translation>快捷键</translation>
     </message>
     <message>
-        <location filename="../../src/ui/settings/SettingsPanel.cpp" line="134"/>
-        <location filename="../../src/ui/settings/SettingsPanel.cpp" line="652"/>
-        <location filename="../../src/ui/settings/SettingsPanel.cpp" line="742"/>
+        <location filename="../../src/ui/settings/SettingsPanel.cpp" line="131"/>
+        <location filename="../../src/ui/settings/SettingsPanel_Zoom.cpp" line="16"/>
+        <location filename="../../src/ui/settings/SettingsPanel_Zoom.cpp" line="106"/>
         <source>Zoom</source>
         <translation>缩放</translation>
     </message>
     <message>
-        <location filename="../../src/ui/settings/SettingsPanel.cpp" line="135"/>
-        <location filename="../../src/ui/settings/SettingsPanel.cpp" line="986"/>
+        <location filename="../../src/ui/settings/SettingsPanel.cpp" line="133"/>
+        <location filename="../../src/ui/settings/SettingsPanel_Advanced.cpp" line="181"/>
         <source>Advanced</source>
         <translation>高级</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/settings/SettingsPanel.cpp" line="136"/>
+        <location filename="../../src/ui/settings/SettingsPanel_AddOns.cpp" line="107"/>
+        <source>Add-on Packages</source>
+        <translation>附加组件包</translation>
     </message>
     <message>
         <location filename="../../src/ui/settings/SettingsPanel.cpp" line="139"/>
@@ -4422,42 +4607,42 @@ Enter the password to open it:</source>
         <translation>关于</translation>
     </message>
     <message>
-        <location filename="../../src/ui/settings/SettingsPanel.cpp" line="312"/>
+        <location filename="../../src/ui/settings/SettingsPanel_Appearance.cpp" line="21"/>
         <source>Choose how OpenPDF Studio is displayed.</source>
         <translation>选择OpenPDF Studio的显示方式。</translation>
     </message>
     <message>
-        <location filename="../../src/ui/settings/SettingsPanel.cpp" line="323"/>
+        <location filename="../../src/ui/settings/SettingsPanel_Appearance.cpp" line="32"/>
         <source>System</source>
         <translation>系统</translation>
     </message>
     <message>
-        <location filename="../../src/ui/settings/SettingsPanel.cpp" line="323"/>
+        <location filename="../../src/ui/settings/SettingsPanel_Appearance.cpp" line="32"/>
         <source>Follows system settings</source>
         <translation>跟随系统设置</translation>
     </message>
     <message>
-        <location filename="../../src/ui/settings/SettingsPanel.cpp" line="324"/>
+        <location filename="../../src/ui/settings/SettingsPanel_Appearance.cpp" line="33"/>
         <source>Light</source>
         <translation>浅色</translation>
     </message>
     <message>
-        <location filename="../../src/ui/settings/SettingsPanel.cpp" line="324"/>
+        <location filename="../../src/ui/settings/SettingsPanel_Appearance.cpp" line="33"/>
         <source>Light user interface</source>
         <translation>浅色界面</translation>
     </message>
     <message>
-        <location filename="../../src/ui/settings/SettingsPanel.cpp" line="325"/>
+        <location filename="../../src/ui/settings/SettingsPanel_Appearance.cpp" line="34"/>
         <source>Dark</source>
         <translation>深色</translation>
     </message>
     <message>
-        <location filename="../../src/ui/settings/SettingsPanel.cpp" line="325"/>
+        <location filename="../../src/ui/settings/SettingsPanel_Appearance.cpp" line="34"/>
         <source>Dark user interface</source>
         <translation>深色界面</translation>
     </message>
     <message>
-        <location filename="../../src/ui/settings/SettingsPanel.cpp" line="355"/>
+        <location filename="../../src/ui/settings/SettingsPanel_Language.cpp" line="27"/>
         <source>Choose your preferred interface language.</source>
         <translation>选择您首选的界面语言。</translation>
     </message>
@@ -4482,135 +4667,251 @@ Enter the password to open it:</source>
         <translation type="vanished">自定义媒体播放器</translation>
     </message>
     <message>
-        <location filename="../../src/ui/settings/SettingsPanel.cpp" line="986"/>
+        <location filename="../../src/ui/settings/SettingsPanel_Advanced.cpp" line="181"/>
         <source>Advanced settings for OpenPDF Studio.</source>
         <translation>OpenPDF Studio的高级设置。</translation>
     </message>
     <message>
-        <location filename="../../src/ui/settings/SettingsPanel.cpp" line="950"/>
+        <location filename="../../src/ui/settings/SettingsPanel_Advanced.cpp" line="131"/>
         <source>Reset All Settings to Defaults</source>
         <translation>重置所有设置</translation>
     </message>
     <message>
-        <location filename="../../src/ui/settings/SettingsPanel.cpp" line="1027"/>
+        <location filename="../../src/ui/settings/SettingsPanel_About.cpp" line="38"/>
         <source>A modern, open-source PDF editor built with Qt.</source>
         <translation>使用Qt构建的现代开源PDF编辑器。</translation>
     </message>
     <message>
-        <location filename="../../src/ui/settings/SettingsPanel.cpp" line="585"/>
+        <location filename="../../src/ui/settings/SettingsPanel_Shortcuts.cpp" line="102"/>
         <source>Add to Current Document</source>
         <translation>添加到当前文档</translation>
     </message>
     <message>
-        <location filename="../../src/ui/settings/SettingsPanel_Security.cpp"/>
+        <location filename="../../src/ui/settings/SettingsPanel.cpp" line="132"/>
+        <location filename="../../src/ui/settings/SettingsPanel_Security.cpp" line="13"/>
         <source>Security</source>
         <translation>安全</translation>
     </message>
     <message>
-        <location filename="../../src/ui/settings/SettingsPanel_Security.cpp"/>
+        <location filename="../../src/ui/settings/SettingsPanel_Security.cpp" line="14"/>
         <source>Protection for documents and external content.</source>
         <translation>保护文档和外部内容。</translation>
     </message>
     <message>
-        <location filename="../../src/ui/settings/SettingsPanel_Security.cpp"/>
+        <location filename="../../src/ui/settings/SettingsPanel_Security.cpp" line="16"/>
         <source>Edit Protection</source>
         <translation>编辑保护</translation>
     </message>
     <message>
-        <location filename="../../src/ui/settings/SettingsPanel_Security.cpp"/>
+        <location filename="../../src/ui/settings/SettingsPanel_Security.cpp" line="17"/>
         <source>Open new documents in reading mode</source>
         <translation>以阅读模式打开新文档</translation>
     </message>
     <message>
-        <location filename="../../src/ui/settings/SettingsPanel_Security.cpp"/>
+        <location filename="../../src/ui/settings/SettingsPanel_Security.cpp" line="21"/>
         <source>Restricted Documents</source>
         <translation>受限文档</translation>
     </message>
     <message>
-        <location filename="../../src/ui/settings/SettingsPanel_Security.cpp"/>
+        <location filename="../../src/ui/settings/SettingsPanel_Security.cpp" line="22"/>
         <source>Follow document permissions</source>
         <translation>遵守文档权限</translation>
     </message>
     <message>
-        <location filename="../../src/ui/settings/SettingsPanel_Security.cpp"/>
+        <location filename="../../src/ui/settings/SettingsPanel_Security.cpp" line="23"/>
         <source>Printing, copying and editing need the permissions password where a PDF restricts them.</source>
         <translation>PDF 限制打印、复制和编辑时，需要输入权限密码。</translation>
     </message>
     <message>
-        <location filename="../../src/ui/settings/SettingsPanel_Security.cpp"/>
+        <location filename="../../src/ui/settings/SettingsPanel_Security.cpp" line="27"/>
         <source>Digital Signatures</source>
         <translation>数字签名</translation>
     </message>
     <message>
-        <location filename="../../src/ui/settings/SettingsPanel_Security.cpp"/>
+        <location filename="../../src/ui/settings/SettingsPanel_Security.cpp" line="28"/>
         <source>Trust my own certificates</source>
         <translation>信任我自己的证书</translation>
     </message>
     <message>
-        <location filename="../../src/ui/settings/SettingsPanel_Security.cpp"/>
+        <location filename="../../src/ui/settings/SettingsPanel_Security.cpp" line="29"/>
         <source>Signatures made with a certificate on this computer count as valid.</source>
         <translation>使用此计算机上的证书所做的签名视为有效。</translation>
     </message>
     <message>
-        <location filename="../../src/ui/settings/SettingsPanel_Security.cpp"/>
+        <location filename="../../src/ui/settings/SettingsPanel_Security.cpp" line="18"/>
         <source>Changes require explicit approval.</source>
         <translation>更改需要明确授权。</translation>
     </message>
     <message>
-        <location filename="../../src/ui/settings/SettingsPanel_Security.cpp"/>
+        <location filename="../../src/ui/settings/SettingsPanel_Security.cpp" line="32"/>
         <source>External Content</source>
         <translation>外部内容</translation>
     </message>
     <message>
-        <location filename="../../src/ui/settings/SettingsPanel_Security.cpp"/>
+        <location filename="../../src/ui/settings/SettingsPanel_Security.cpp" line="38"/>
         <source>Open external links</source>
         <translation>打开外部链接</translation>
     </message>
     <message>
-        <location filename="../../src/ui/settings/SettingsPanel_Security.cpp"/>
+        <location filename="../../src/ui/settings/SettingsPanel_Security.cpp" line="53"/>
         <source>Ask</source>
         <translation>询问</translation>
     </message>
     <message>
-        <location filename="../../src/ui/settings/SettingsPanel_Security.cpp"/>
+        <location filename="../../src/ui/settings/SettingsPanel_Security.cpp" line="54"/>
         <source>Always open</source>
         <translation>始终打开</translation>
     </message>
     <message>
-        <location filename="../../src/ui/settings/SettingsPanel_Security.cpp"/>
+        <location filename="../../src/ui/settings/SettingsPanel_Security.cpp" line="55"/>
         <source>Never open</source>
         <translation>从不打开</translation>
     </message>
     <message>
-        <location filename="../../src/ui/settings/SettingsPanel_Security.cpp"/>
+        <location filename="../../src/ui/settings/SettingsPanel_Security.cpp" line="63"/>
         <source>Links open in the browser right away.</source>
         <translation>链接直接在浏览器中打开。</translation>
     </message>
     <message>
-        <location filename="../../src/ui/settings/SettingsPanel_Security.cpp"/>
+        <location filename="../../src/ui/settings/SettingsPanel_Security.cpp" line="65"/>
         <source>Links in documents are not opened.</source>
         <translation>不打开文档中的链接。</translation>
     </message>
     <message>
-        <location filename="../../src/ui/settings/SettingsPanel_Security.cpp"/>
+        <location filename="../../src/ui/settings/SettingsPanel_Security.cpp" line="66"/>
         <source>Confirmation before switching to the browser.</source>
         <translation>切换到浏览器前先确认。</translation>
     </message>
     <message>
-        <location filename="../../src/ui/settings/SettingsPanel.cpp"/>
+        <location filename="../../src/ui/settings/SettingsPanel_About.cpp" line="53"/>
         <source>Log file: %1</source>
         <translation>日志文件：%1</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/settings/SettingsPanel_AddOns.cpp" line="26"/>
+        <source>German</source>
+        <translation>德语</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/settings/SettingsPanel_AddOns.cpp" line="27"/>
+        <source>English</source>
+        <translation>英语</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/settings/SettingsPanel_AddOns.cpp" line="28"/>
+        <source>French</source>
+        <translation>法语</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/settings/SettingsPanel_AddOns.cpp" line="29"/>
+        <source>Spanish</source>
+        <translation>西班牙语</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/settings/SettingsPanel_AddOns.cpp" line="30"/>
+        <source>Italian</source>
+        <translation>意大利语</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/settings/SettingsPanel_AddOns.cpp" line="31"/>
+        <source>Dutch</source>
+        <translation>荷兰语</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/settings/SettingsPanel_AddOns.cpp" line="32"/>
+        <source>Polish</source>
+        <translation>波兰语</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/settings/SettingsPanel_AddOns.cpp" line="33"/>
+        <source>Portuguese</source>
+        <translation>葡萄牙语</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/settings/SettingsPanel_AddOns.cpp" line="34"/>
+        <source>Russian</source>
+        <translation>俄语</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/settings/SettingsPanel_AddOns.cpp" line="35"/>
+        <source>Japanese</source>
+        <translation>日语</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/settings/SettingsPanel_AddOns.cpp" line="36"/>
+        <source>Korean</source>
+        <translation>韩语</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/settings/SettingsPanel_AddOns.cpp" line="37"/>
+        <source>Chinese</source>
+        <translation>中文</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/settings/SettingsPanel_AddOns.cpp" line="60"/>
+        <source>The file could not be deleted.</source>
+        <translation>无法删除该文件。</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/settings/SettingsPanel_AddOns.cpp" line="102"/>
+        <source>Optional parts that OpenPDF Studio downloads and removes.</source>
+        <translation>由 OpenPDF Studio 下载和移除的可选组件。</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/settings/SettingsPanel_AddOns.cpp" line="105"/>
+        <source>Optional parts, installed and removed by your system&apos;s package manager.</source>
+        <translation>可选组件，由系统的软件包管理器安装和移除。</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/settings/SettingsPanel_AddOns.cpp" line="132"/>
+        <source>Text Recognition (OCR)</source>
+        <translation>文字识别 (OCR)</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/settings/SettingsPanel_AddOns.cpp" line="135"/>
+        <source>Language packs for recognising text in scanned documents.</source>
+        <translation>用于识别扫描文档中文字的语言包。</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/settings/SettingsPanel_AddOns.cpp" line="146"/>
+        <source>Installed languages:</source>
+        <translation>已安装的语言：</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/settings/SettingsPanel_AddOns.cpp" line="154"/>
+        <source>Language:</source>
+        <translation>语言：</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/settings/SettingsPanel_AddOns.cpp" line="180"/>
+        <source>None</source>
+        <translation>无</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/settings/SettingsPanel_AddOns.cpp" line="207"/>
+        <source>Fonts</source>
+        <translation>字体</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/settings/SettingsPanel_AddOns.cpp" line="212"/>
+        <source>Fonts are added and removed in your system&apos;s font management. OpenPDF Studio uses new fonts after a restart.</source>
+        <translation>字体在系统的字体管理中添加和移除。OpenPDF Studio 重启后使用新字体。</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/settings/SettingsPanel_AddOns.cpp" line="218"/>
+        <source>Manage Fonts</source>
+        <translation>管理字体</translation>
     </message>
 </context>
 <context>
     <name>SettingsSearch</name>
     <message>
-        <location filename="../../src/ui/settings/SettingsSearch.cpp"/>
+        <location filename="../../src/ui/settings/SettingsSearch.cpp" line="84"/>
         <source>Search…</source>
         <translation>搜索…</translation>
     </message>
     <message>
-        <location filename="../../src/ui/settings/SettingsSearch.cpp"/>
+        <location filename="../../src/ui/settings/SettingsSearch.cpp" line="85"/>
         <source>No results</source>
         <translation>无结果</translation>
     </message>
@@ -4618,22 +4919,22 @@ Enter the password to open it:</source>
 <context>
     <name>ShortcutRow</name>
     <message>
-        <location filename="../../src/ui/settings/ShortcutRow.hpp" line="132"/>
+        <location filename="../../src/ui/settings/ShortcutRow.hpp" line="138"/>
         <source>Reset to default</source>
         <translation>恢复默认</translation>
     </message>
     <message>
-        <location filename="../../src/ui/settings/ShortcutRow.hpp" line="143"/>
+        <location filename="../../src/ui/settings/ShortcutRow.hpp" line="145"/>
         <source>Edit</source>
         <translation>编辑</translation>
     </message>
     <message>
-        <location filename="../../src/ui/settings/ShortcutRow.hpp" line="153"/>
+        <location filename="../../src/ui/settings/ShortcutRow.hpp" line="155"/>
         <source>Save</source>
         <translation>保存</translation>
     </message>
     <message>
-        <location filename="../../src/ui/settings/ShortcutRow.hpp" line="161"/>
+        <location filename="../../src/ui/settings/ShortcutRow.hpp" line="163"/>
         <source>Cancel</source>
         <translation>取消</translation>
     </message>
@@ -4646,145 +4947,145 @@ Enter the password to open it:</source>
         <translation>签名 - OpenPDF Studio</translation>
     </message>
     <message>
-        <location filename="../../src/ui/sign/SignDialog.cpp" line="175"/>
+        <location filename="../../src/ui/sign/SignDialog.cpp" line="176"/>
         <source>Add signature</source>
         <translation>添加签名</translation>
     </message>
     <message>
-        <location filename="../../src/ui/sign/SignDialog.cpp" line="176"/>
+        <location filename="../../src/ui/sign/SignDialog.cpp" line="177"/>
         <source>Sign digitally</source>
         <translation>数字签名</translation>
     </message>
     <message>
-        <location filename="../../src/ui/sign/SignDialog.cpp" line="179"/>
+        <location filename="../../src/ui/sign/SignDialog.cpp" line="180"/>
         <source>Not available in this build</source>
         <translation>此版本中不可用</translation>
     </message>
     <message>
-        <location filename="../../src/ui/sign/SignDialog.cpp" line="196"/>
+        <location filename="../../src/ui/sign/SignDialog.cpp" line="197"/>
         <source>Create, import or choose a signature, then place it freely in the PDF.</source>
         <translation>创建、导入或选择签名，然后在 PDF 中自由放置。</translation>
     </message>
     <message>
-        <location filename="../../src/ui/sign/SignDialog.cpp" line="210"/>
+        <location filename="../../src/ui/sign/SignDialog.cpp" line="211"/>
         <source>Once created, the signature can be placed freely in the PDF and adjusted later.</source>
         <translation>签名创建后可在 PDF 中自由放置，并可稍后调整。</translation>
     </message>
     <message>
-        <location filename="../../src/ui/sign/SignDialog.cpp" line="241"/>
+        <location filename="../../src/ui/sign/SignDialog.cpp" line="242"/>
         <source>Draw</source>
         <translation>手绘</translation>
     </message>
     <message>
-        <location filename="../../src/ui/sign/SignDialog.cpp" line="242"/>
+        <location filename="../../src/ui/sign/SignDialog.cpp" line="243"/>
         <source>Type</source>
         <translation>输入</translation>
     </message>
     <message>
-        <location filename="../../src/ui/sign/SignDialog.cpp" line="243"/>
+        <location filename="../../src/ui/sign/SignDialog.cpp" line="244"/>
         <source>Import image</source>
         <translation>导入图片</translation>
     </message>
     <message>
-        <location filename="../../src/ui/sign/SignDialog.cpp" line="244"/>
+        <location filename="../../src/ui/sign/SignDialog.cpp" line="245"/>
         <source>Saved</source>
         <translation>已保存</translation>
     </message>
     <message>
-        <location filename="../../src/ui/sign/SignDialog.cpp" line="279"/>
+        <location filename="../../src/ui/sign/SignDialog.cpp" line="280"/>
         <source>Clear</source>
         <translation>清除</translation>
     </message>
     <message>
-        <location filename="../../src/ui/sign/SignDialog.cpp" line="294"/>
+        <location filename="../../src/ui/sign/SignDialog.cpp" line="295"/>
         <source>Type your name</source>
         <translation>输入您的姓名</translation>
     </message>
     <message>
-        <location filename="../../src/ui/sign/SignDialog.cpp" line="314"/>
+        <location filename="../../src/ui/sign/SignDialog.cpp" line="315"/>
         <source>Choose image...</source>
         <translation>选择图片...</translation>
     </message>
     <message>
-        <location filename="../../src/ui/sign/SignDialog.cpp" line="339"/>
+        <location filename="../../src/ui/sign/SignDialog.cpp" line="340"/>
         <source>Blue</source>
         <translation>蓝色</translation>
     </message>
     <message>
-        <location filename="../../src/ui/sign/SignDialog.cpp" line="340"/>
+        <location filename="../../src/ui/sign/SignDialog.cpp" line="341"/>
         <source>Dark blue</source>
         <translation>深蓝色</translation>
     </message>
     <message>
-        <location filename="../../src/ui/sign/SignDialog.cpp" line="341"/>
+        <location filename="../../src/ui/sign/SignDialog.cpp" line="342"/>
         <source>Black</source>
         <translation>黑色</translation>
     </message>
     <message>
-        <location filename="../../src/ui/sign/SignDialog.cpp" line="342"/>
+        <location filename="../../src/ui/sign/SignDialog.cpp" line="343"/>
         <source>Red</source>
         <translation>红色</translation>
     </message>
     <message>
-        <location filename="../../src/ui/sign/SignDialog.cpp" line="360"/>
-        <location filename="../../src/ui/sign/SignDialog.cpp" line="362"/>
+        <location filename="../../src/ui/sign/SignDialog.cpp" line="361"/>
+        <location filename="../../src/ui/sign/SignDialog.cpp" line="363"/>
         <source>%1 px</source>
         <translation>%1 px</translation>
     </message>
     <message>
-        <location filename="../../src/ui/sign/SignDialog.cpp" line="364"/>
+        <location filename="../../src/ui/sign/SignDialog.cpp" line="365"/>
         <source>Color</source>
         <translation>颜色</translation>
     </message>
     <message>
-        <location filename="../../src/ui/sign/SignDialog.cpp" line="367"/>
+        <location filename="../../src/ui/sign/SignDialog.cpp" line="368"/>
         <source>Line width</source>
         <translation>线条粗细</translation>
     </message>
     <message>
-        <location filename="../../src/ui/sign/SignDialog.cpp" line="383"/>
+        <location filename="../../src/ui/sign/SignDialog.cpp" line="384"/>
         <source>Cancel</source>
         <translation>取消</translation>
     </message>
     <message>
-        <location filename="../../src/ui/sign/SignDialog.cpp" line="455"/>
+        <location filename="../../src/ui/sign/SignDialog.cpp" line="456"/>
         <source>Could not save the signature.</source>
         <translation>无法保存签名。</translation>
     </message>
     <message>
-        <location filename="../../src/ui/sign/SignDialog.cpp" line="490"/>
+        <location filename="../../src/ui/sign/SignDialog.cpp" line="491"/>
         <source>Sign</source>
         <translation>签名</translation>
     </message>
     <message>
-        <location filename="../../src/ui/sign/SignDialog.cpp" line="450"/>
+        <location filename="../../src/ui/sign/SignDialog.cpp" line="451"/>
         <source>%1 (Image)</source>
         <translation>%1（图片）</translation>
     </message>
     <message>
-        <location filename="../../src/ui/sign/SignDialog.cpp" line="451"/>
+        <location filename="../../src/ui/sign/SignDialog.cpp" line="452"/>
         <source>Signature %1</source>
         <translation>签名 %1</translation>
     </message>
     <message>
-        <location filename="../../src/ui/sign/SignDialog.cpp" line="388"/>
+        <location filename="../../src/ui/sign/SignDialog.cpp" line="389"/>
         <source>Save</source>
         <translation>保存</translation>
     </message>
     <message>
-        <location filename="../../src/ui/sign/SignDialog.cpp" line="393"/>
-        <location filename="../../src/ui/sign/SignDialog.cpp" line="490"/>
-        <location filename="../../src/ui/sign/SignDialog.cpp" line="494"/>
+        <location filename="../../src/ui/sign/SignDialog.cpp" line="394"/>
+        <location filename="../../src/ui/sign/SignDialog.cpp" line="491"/>
+        <location filename="../../src/ui/sign/SignDialog.cpp" line="495"/>
         <source>Place</source>
         <translation>放置</translation>
     </message>
     <message>
-        <location filename="../../src/ui/sign/SignDialog.cpp" line="469"/>
+        <location filename="../../src/ui/sign/SignDialog.cpp" line="470"/>
         <source>Import signature image</source>
         <translation>导入签名图片</translation>
     </message>
     <message>
-        <location filename="../../src/ui/sign/SignDialog.cpp" line="470"/>
+        <location filename="../../src/ui/sign/SignDialog.cpp" line="471"/>
         <source>Images (%1)</source>
         <translation>图片 (%1)</translation>
     </message>
@@ -4972,73 +5273,73 @@ Enter the password to open it:</source>
 <context>
     <name>SignatureRemoval</name>
     <message>
-        <location filename="../../src/ui/sign/SignatureRemoval.cpp" line="14"/>
+        <location filename="../../src/ui/sign/SignatureRemoval.cpp" line="16"/>
         <source>Unknown signer</source>
         <translation>未知签名者</translation>
     </message>
     <message>
-        <location filename="../../src/ui/sign/SignatureRemoval.cpp" line="17"/>
-        <location filename="../../src/ui/sign/SignatureRemoval.cpp" line="60"/>
+        <location filename="../../src/ui/sign/SignatureRemoval.cpp" line="19"/>
+        <location filename="../../src/ui/sign/SignatureRemoval.cpp" line="65"/>
         <source>Remove signature</source>
         <translation>删除签名</translation>
     </message>
     <message>
-        <location filename="../../src/ui/sign/SignatureRemoval.cpp" line="32"/>
+        <location filename="../../src/ui/sign/SignatureRemoval.cpp" line="34"/>
         <source>The signature of %1 cannot be removed.</source>
         <translation>无法删除 %1 的签名。</translation>
     </message>
     <message>
-        <location filename="../../src/ui/sign/SignatureRemoval.cpp" line="20"/>
+        <location filename="../../src/ui/sign/SignatureRemoval.cpp" line="22"/>
         <source>Save or undo your changes first.</source>
         <translation>请先保存或撤销您的更改。</translation>
     </message>
     <message>
-        <location filename="../../src/ui/sign/SignatureRemoval.cpp" line="21"/>
+        <location filename="../../src/ui/sign/SignatureRemoval.cpp" line="23"/>
         <source>A signature can only be removed from the saved document.</source>
         <translation>只能从已保存的文档中删除签名。</translation>
     </message>
     <message>
-        <location filename="../../src/ui/sign/SignatureRemoval.cpp" line="33"/>
+        <location filename="../../src/ui/sign/SignatureRemoval.cpp" line="35"/>
         <source>The file could not be read.</source>
         <translation>无法读取文件。</translation>
     </message>
     <message>
-        <location filename="../../src/ui/sign/SignatureRemoval.cpp" line="41"/>
+        <location filename="../../src/ui/sign/SignatureRemoval.cpp" line="43"/>
         <source>The signature added after it is removed as well.</source>
         <translation>在它之后添加的签名也会被删除。</translation>
     </message>
     <message>
-        <location filename="../../src/ui/sign/SignatureRemoval.cpp" line="43"/>
+        <location filename="../../src/ui/sign/SignatureRemoval.cpp" line="45"/>
         <source>The %1 signatures added after it are removed as well.</source>
         <translation>在它之后添加的 %1 个签名也会被删除。</translation>
     </message>
     <message>
-        <location filename="../../src/ui/sign/SignatureRemoval.cpp" line="46"/>
+        <location filename="../../src/ui/sign/SignatureRemoval.cpp" line="48"/>
         <source>Changes saved after it are undone as well.</source>
         <translation>在它之后保存的更改也会被撤销。</translation>
     </message>
     <message>
-        <location filename="../../src/ui/sign/SignatureRemoval.cpp" line="51"/>
+        <location filename="../../src/ui/sign/SignatureRemoval.cpp" line="56"/>
         <source>Remove the signature of %1?</source>
         <translation>删除 %1 的签名？</translation>
     </message>
     <message>
-        <location filename="../../src/ui/sign/SignatureRemoval.cpp" line="47"/>
+        <location filename="../../src/ui/sign/SignatureRemoval.cpp" line="52"/>
         <source>The document goes back to how it was before this signature. The change is written when you save and can be undone until then.</source>
         <translation>文档将恢复到此签名之前的状态。更改在保存时写入，在此之前可以撤销。</translation>
     </message>
     <message>
-        <location filename="../../src/ui/sign/SignatureRemoval.cpp" line="47"/>
+        <location filename="../../src/ui/sign/SignatureRemoval.cpp" line="50"/>
         <source>The signature is taken out of the document, which otherwise stays as it is. The change is written when you save and can be undone until then.</source>
         <translation>签名将从文档中移除，文档的其他内容保持不变。更改在保存时写入，在此之前可以撤销。</translation>
     </message>
     <message>
-        <location filename="../../src/ui/sign/SignatureRemoval.cpp" line="53"/>
+        <location filename="../../src/ui/sign/SignatureRemoval.cpp" line="58"/>
         <source>Remove</source>
         <translation>删除</translation>
     </message>
     <message>
-        <location filename="../../src/ui/sign/SignatureRemoval.cpp" line="61"/>
+        <location filename="../../src/ui/sign/SignatureRemoval.cpp" line="66"/>
         <source>The signature could not be removed.</source>
         <translation>无法删除签名。</translation>
     </message>
@@ -5168,6 +5469,7 @@ Enter the password to open it:</source>
     <message>
         <location filename="../../src/ui/sign/SignerTrust.cpp" line="78"/>
         <location filename="../../src/ui/sign/SignerTrust.cpp" line="210"/>
+        <location filename="../../src/ui/sign/SignerTrust.cpp" line="268"/>
         <source>Unknown signer</source>
         <translation>未知签名者</translation>
     </message>
@@ -5259,6 +5561,71 @@ Enter the password to open it:</source>
     </message>
 </context>
 <context>
+    <name>StartPage</name>
+    <message>
+        <location filename="../../src/ui/open/StartPage.cpp" line="172"/>
+        <source>Drop a document here</source>
+        <translation>将文档拖放到此处</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/open/StartPage.cpp" line="173"/>
+        <source>or click a tab above to open</source>
+        <translation>或点击上方的标签页打开</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/open/StartPage.cpp" line="174"/>
+        <source>Recently opened files will appear here.</source>
+        <translation>最近打开的文件将显示在这里。</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/open/StartPage.cpp" line="175"/>
+        <source>Recently Opened</source>
+        <translation>最近打开</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/open/StartPage.cpp" line="176"/>
+        <source>Clear List</source>
+        <translation>清空列表</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/open/StartPage.cpp" line="194"/>
+        <source>Just now</source>
+        <translation>刚刚</translation>
+    </message>
+    <message numerus="yes">
+        <location filename="../../src/ui/open/StartPage.cpp" line="195"/>
+        <source>%n min ago</source>
+        <translation>
+            <numerusform>%n 分钟前</numerusform>
+        </translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/open/StartPage.cpp" line="200"/>
+        <source>Today, %1</source>
+        <translation>今天 %1</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/open/StartPage.cpp" line="201"/>
+        <source>Yesterday</source>
+        <translation>昨天</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/open/StartPage.cpp" line="202"/>
+        <source>d MMM</source>
+        <translation>M月d日</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/open/StartPage.cpp" line="245"/>
+        <source>Open File Location</source>
+        <translation>打开文件所在位置</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/open/StartPage.cpp" line="246"/>
+        <source>Remove from List</source>
+        <translation>从列表中移除</translation>
+    </message>
+</context>
+<context>
     <name>StatusBar</name>
     <message>
         <location filename="../../src/ui/bars/StatusBar.cpp" line="107"/>
@@ -5289,6 +5656,31 @@ Enter the password to open it:</source>
         <location filename="../../src/ui/bars/StatusBar.cpp" line="126"/>
         <source>Document information</source>
         <translation>文档信息</translation>
+    </message>
+</context>
+<context>
+    <name>SystemPackages</name>
+    <message>
+        <location filename="../../src/app/SystemPackages.cpp" line="248"/>
+        <location filename="../../src/app/SystemPackages.cpp" line="313"/>
+        <source>Packages are installed by the system&apos;s package manager.</source>
+        <translation>软件包由系统的软件包管理器安装。</translation>
+    </message>
+    <message>
+        <location filename="../../src/app/SystemPackages.cpp" line="330"/>
+        <source>No permission was given.</source>
+        <translation>未获得权限。</translation>
+    </message>
+    <message>
+        <location filename="../../src/app/SystemPackages.cpp" line="335"/>
+        <location filename="../../src/app/SystemPackages.cpp" line="382"/>
+        <source>The package manager stopped.</source>
+        <translation>软件包管理器已停止。</translation>
+    </message>
+    <message>
+        <location filename="../../src/app/SystemPackages.cpp" line="395"/>
+        <source>Not found in the package sources: %1</source>
+        <translation>在软件源中未找到：%1</translation>
     </message>
 </context>
 <context>
@@ -5377,57 +5769,57 @@ Enter the password to open it:</source>
 <context>
     <name>TopToolbar</name>
     <message>
-        <location filename="../../src/ui/bars/TopToolbar.cpp" line="56"/>
-        <location filename="../../src/ui/bars/TopToolbar.cpp" line="260"/>
+        <location filename="../../src/ui/bars/TopToolbar.cpp" line="64"/>
+        <location filename="../../src/ui/bars/TopToolbar.cpp" line="346"/>
         <source>Save</source>
         <translation>保存</translation>
     </message>
     <message>
-        <location filename="../../src/ui/bars/TopToolbar.cpp" line="57"/>
-        <location filename="../../src/ui/bars/TopToolbar.cpp" line="272"/>
+        <location filename="../../src/ui/bars/TopToolbar.cpp" line="65"/>
+        <location filename="../../src/ui/bars/TopToolbar.cpp" line="358"/>
         <source>Print</source>
         <translation>打印</translation>
     </message>
     <message>
-        <location filename="../../src/ui/bars/TopToolbar.cpp" line="58"/>
-        <location filename="../../src/ui/bars/TopToolbar.cpp" line="282"/>
+        <location filename="../../src/ui/bars/TopToolbar.cpp" line="66"/>
+        <location filename="../../src/ui/bars/TopToolbar.cpp" line="368"/>
         <source>Undo</source>
         <translation>撤销</translation>
     </message>
     <message>
-        <location filename="../../src/ui/bars/TopToolbar.cpp" line="59"/>
-        <location filename="../../src/ui/bars/TopToolbar.cpp" line="288"/>
+        <location filename="../../src/ui/bars/TopToolbar.cpp" line="67"/>
+        <location filename="../../src/ui/bars/TopToolbar.cpp" line="374"/>
         <source>Redo</source>
         <translation>重做</translation>
     </message>
     <message>
-        <location filename="../../src/ui/bars/TopToolbar.cpp" line="60"/>
-        <location filename="../../src/ui/bars/TopToolbar.cpp" line="298"/>
+        <location filename="../../src/ui/bars/TopToolbar.cpp" line="68"/>
+        <location filename="../../src/ui/bars/TopToolbar.cpp" line="385"/>
         <source>Zoom Out</source>
         <translation>缩小</translation>
     </message>
     <message>
-        <location filename="../../src/ui/bars/TopToolbar.cpp" line="61"/>
-        <location filename="../../src/ui/bars/TopToolbar.cpp" line="310"/>
+        <location filename="../../src/ui/bars/TopToolbar.cpp" line="69"/>
+        <location filename="../../src/ui/bars/TopToolbar.cpp" line="397"/>
         <source>Zoom In</source>
         <translation>放大</translation>
     </message>
     <message>
-        <location filename="../../src/ui/bars/TopToolbar.cpp" line="62"/>
-        <location filename="../../src/ui/bars/TopToolbar.cpp" line="320"/>
+        <location filename="../../src/ui/bars/TopToolbar.cpp" line="70"/>
+        <location filename="../../src/ui/bars/TopToolbar.cpp" line="407"/>
         <source>Single Page</source>
         <translation>单页</translation>
     </message>
     <message>
-        <location filename="../../src/ui/bars/TopToolbar.cpp" line="63"/>
-        <location filename="../../src/ui/bars/TopToolbar.cpp" line="332"/>
+        <location filename="../../src/ui/bars/TopToolbar.cpp" line="71"/>
+        <location filename="../../src/ui/bars/TopToolbar.cpp" line="419"/>
         <source>Grid View</source>
         <translation>网格视图</translation>
     </message>
     <message>
-        <location filename="../../src/ui/bars/TopToolbar.cpp" line="67"/>
-        <location filename="../../src/ui/bars/TopToolbar.cpp" line="92"/>
-        <location filename="../../src/ui/bars/TopToolbar.cpp" line="164"/>
+        <location filename="../../src/ui/bars/TopToolbar.cpp" line="75"/>
+        <location filename="../../src/ui/bars/TopToolbar.cpp" line="101"/>
+        <location filename="../../src/ui/bars/TopToolbar.cpp" line="177"/>
         <source>No Document</source>
         <translation>无文档</translation>
     </message>

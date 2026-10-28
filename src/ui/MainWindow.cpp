@@ -4,6 +4,7 @@
 #include "ui/DocumentView.hpp"
 #include "ui/bookmarks/BookmarkPanel.hpp"
 #include "ui/notes/NotesPanel.hpp"
+#include "ui/open/StartPage.hpp"
 #include "ui/bars/TopToolbar.hpp"
 #include "ui/bars/FormatBar.hpp"
 #include "ui/draw/DrawBar.hpp"
@@ -96,6 +97,11 @@ SettingsPanel *MainWindow::openSettings()
     });
     panel->open();
     return panel;
+}
+
+void MainWindow::openAddOns()
+{
+    openSettings()->showAddOnsPage();
 }
 
 void MainWindow::showLicenseNotices()
@@ -455,6 +461,17 @@ DocumentView *MainWindow::addDocView()
     m_docStack->addWidget(dv);
     m_recovery->watch(dv);
 
+    auto *start = new StartPage(m_appSettings);
+    dv->setStartWidget(start);
+    connect(start, &StartPage::openRequested, this, [this](const QString &path) {
+        for (int i = 0; i < m_docViews.size(); ++i)
+            if (QFileInfo(m_docViews.at(i)->currentFile()) == QFileInfo(path)) {
+                onTabActivated(i);
+                return;
+            }
+        openPath(path);
+    });
+
     const int idx = m_topToolbar->addTab();
 
     // Queued: a dropped Word file takes long enough to convert that the
@@ -666,6 +683,7 @@ void MainWindow::openPath(const QString &path, OpenMode mode)
     onTabActivated(m_docViews.indexOf(dv));
     applyOpeningMode();
     m_appSettings->setLastOpenedFile(path);
+    m_appSettings->addRecentFile(path);
     m_appSettings->sync();
 }
 
@@ -1159,6 +1177,7 @@ void MainWindow::savePanelLayout()
 
     m_appSettings->setRightPanelCollapsed(m_rightSidebarCollapsed);
     m_appSettings->setSplitterState(m_splitter->saveState());
+    m_leftSidebar->saveToolLayout();
     m_appSettings->sync();
 }
 

@@ -35,6 +35,8 @@ target_sources(OpenPDFStudio PRIVATE
     engine/RichMediaWriter.cpp
     engine/RichMediaWriter.hpp
 
+    ui/ConvertCard.cpp
+    ui/ConvertCard.hpp
     ui/MediaFrame.cpp
     ui/MediaFrame.hpp
     ui/MediaLayer.cpp

@@ -68,6 +68,20 @@ std::optional<EditSession::Edit> EditController::mergedFrameEdit(const QString &
         for (const TextLayout::OriginalLine &line : std::as_const(lines))
             sources.append(QList<TextLayout::Source>(line.text.size()));
     }
+    QList<QList<TextLayout::Mark>> marks = m_unitMarks;
+    for (int l = 0; l < lines.size(); ++l) {
+        if (l >= marks.size()) marks.append(QList<TextLayout::Mark>());
+        marks[l].resize(lines.at(l).text.size());
+    }
+    marks.resize(lines.size());
+    // The marks the framed text has now, line by line as it was typed.
+    const QList<TextLayout::Mark> typed = m_frame->charMarks();
+    QList<QList<TextLayout::Mark>> partMarks;
+    for (qsizetype k = 0, at = 0; k < parts.size(); at += parts.at(k).size() + 1, ++k) {
+        QList<TextLayout::Mark> own = typed.mid(at, parts.at(k).size());
+        own.resize(parts.at(k).size());
+        partMarks.append(own);
+    }
     for (int k = int(framed.size()) - 1; k >= 0; --k) {
         const TextLayout::OriginalLine &f = framed.at(k);
         if (f.charX.isEmpty()) return std::nullopt;
@@ -82,11 +96,14 @@ std::optional<EditSession::Edit> EditController::mergedFrameEdit(const QString &
             a.endX         = b.endX;
             a.rect         = a.rect.united(b.rect);
             sources[spot.line] += sources.at(spot.line + 1);
+            marks[spot.line] += marks.at(spot.line + 1);
             lines.removeAt(spot.line + 1);
             sources.removeAt(spot.line + 1);
+            marks.removeAt(spot.line + 1);
         }
         TextLayout::OriginalLine &line = lines[spot.line];
         QList<TextLayout::Source> &own = sources[spot.line];
+        QList<TextLayout::Mark> &ownMarks = marks[spot.line];
         const QString part = parts.at(k);
         // An emptied editor still reports the places its last text had.
         const QList<double> at = part.isEmpty() ? QList<double>{ 0.0 } : xs.value(k, { 0.0 });
@@ -140,26 +157,35 @@ std::optional<EditSession::Edit> EditController::mergedFrameEdit(const QString &
         merged.endX = tail ? line.endX + shift : from + newWidth;
         const QList<TextLayout::Source> mergedSources = own.mid(0, spot.first)
             + QList<TextLayout::Source>(part.size() + spaces.size(), style) + own.mid(spot.end);
+        const QList<TextLayout::Mark> mergedMarks = ownMarks.mid(0, spot.first) + partMarks.at(k)
+            + QList<TextLayout::Mark>(spaces.size()) + ownMarks.mid(spot.end);
         if (merged.text.trimmed().isEmpty()) {
             lines.removeAt(spot.line);
             sources.removeAt(spot.line);
+            marks.removeAt(spot.line);
             continue;
         }
         const double left = qMin(line.rect.left(), merged.charX.first());
         merged.rect = QRectF(left, line.rect.top(),
                              qMax(merged.endX, line.rect.right() + shift) - left, line.rect.height());
-        line = merged;
-        own  = mergedSources;
+        line     = merged;
+        own      = mergedSources;
+        ownMarks = mergedMarks;
     }
 
     EditSession::Edit e = m_unit;
     QStringList texts;
     QList<TextLayout::Source> flat;
+    QList<TextLayout::Mark> flatMarks;
+    bool marked = false;
     QRectF bounds = e.pdfBounds;
     for (int l = 0; l < lines.size(); ++l) {
         texts << lines.at(l).text;
         if (l > 0) flat.append(TextLayout::Source{});
         flat += sources.at(l);
+        if (l > 0) flatMarks.append(TextLayout::Mark{});
+        flatMarks += marks.at(l);
+        for (const TextLayout::Mark &m : marks.at(l)) marked |= !m.isEmpty();
         // The layout measures a line to its pen's end, which can lie past its ink.
         const TextLayout::OriginalLine &line = lines.at(l);
         bounds = bounds.united(line.rect).united(QRectF(line.rect.left(), line.rect.top(),
@@ -172,6 +198,7 @@ std::optional<EditSession::Edit> EditController::mergedFrameEdit(const QString &
     for (const QList<TextLayout::Source> &own : std::as_const(sources))
         for (const TextLayout::Source &source : own) styled &= source.isValid();
     e.sources       = styled ? flat : QList<TextLayout::Source>();
+    e.marks         = marked ? flatMarks : QList<TextLayout::Mark>();
     if (!e.sourceRect.isNull()) bounds = bounds.united(e.sourceRect);
     // A scan's lines are set anew in the face its pixels match, as wide as
     // that makes them, which its text layer's boxes may not reach.

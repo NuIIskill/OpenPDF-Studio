@@ -47,6 +47,7 @@ private:
     void    loadCertificates();
     void    loadCertificates(const QString &selectId);
     void    onCertificateActivated(int index);
+    void    rememberCertificate();
     void    showCertificateMenu(int index, const QPoint &globalPos);
     void    deleteCertificate(int index);
     void    updateDeleteButton();

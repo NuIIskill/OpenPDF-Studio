@@ -47,6 +47,10 @@ LeftSidebar::LeftSidebar(AppSettings *settings, QWidget *parent)
     setAttribute(Qt::WA_StyledBackground, true);
     setFixedWidth(60);
     setSizePolicy(QSizePolicy::Fixed, QSizePolicy::Expanding);
+    if (m_settings && m_settings->preservePanelLayout()) {
+        m_order  = m_settings->toolOrder();
+        m_hidden = m_settings->hiddenTools();
+    }
     buildLayout();
     applyToolLayout();
 }
@@ -93,10 +97,8 @@ void LeftSidebar::buildLayout()
 
 QStringList LeftSidebar::effectiveOrder() const
 {
-    const QStringList saved = m_settings ? m_settings->toolOrder() : QStringList{};
-
     QStringList order;
-    for (const QString &id : saved)
+    for (const QString &id : m_order)
         if (m_toolButtons.contains(id) && !order.contains(id))
             order << id;
 
@@ -109,8 +111,7 @@ QStringList LeftSidebar::effectiveOrder() const
 
 void LeftSidebar::applyToolLayout()
 {
-    const QStringList order  = effectiveOrder();
-    const QStringList hidden = m_settings ? m_settings->hiddenTools() : QStringList{};
+    const QStringList order = effectiveOrder();
 
     while (QLayoutItem *item = m_toolLayout->takeAt(0))
         delete item;
@@ -120,7 +121,7 @@ void LeftSidebar::applyToolLayout()
         IconButton *btn = m_toolButtons.value(id, nullptr);
         if (!btn)
             continue;
-        const bool visible = !hidden.contains(id);
+        const bool visible = !m_hidden.contains(id);
         btn->setVisible(visible);
         if (visible) {
             m_toolLayout->addWidget(btn);
@@ -149,25 +150,33 @@ void LeftSidebar::openCustomizePopup()
         return;
     }
 
-    const QStringList hidden = m_settings ? m_settings->hiddenTools() : QStringList{};
-    auto *popup = new ToolCustomizePopup(effectiveOrder(), hidden, window());
+    auto *popup = new ToolCustomizePopup(effectiveOrder(), m_hidden, window());
     m_popup = popup;
 
     connect(popup, &ToolCustomizePopup::configChanged, this,
             [this](const QStringList &order, const QStringList &hiddenIds) {
-        if (m_settings) {
-            m_settings->setToolOrder(order);
-            m_settings->setHiddenTools(hiddenIds);
-        }
+        m_order  = order;
+        m_hidden = hiddenIds;
+        saveToolLayout();
         applyToolLayout();
     });
     connect(popup, &ToolCustomizePopup::resetRequested, this, [this]() {
-        if (m_settings)
+        m_order.clear();
+        m_hidden.clear();
+        if (m_settings && m_settings->preservePanelLayout())
             m_settings->resetToolLayout();
         applyToolLayout();
     });
 
     popup->popupAt(m_customizeBtn);
+}
+
+void LeftSidebar::saveToolLayout()
+{
+    if (!m_settings || !m_settings->preservePanelLayout())
+        return;
+    m_settings->setToolOrder(m_order);
+    m_settings->setHiddenTools(m_hidden);
 }
 
 void LeftSidebar::refreshTheme()

@@ -72,6 +72,7 @@ struct EditTarget
     QString selectionIn;
     QList<TextLayout::OriginalLine> framedLines;
     QList<TextLayout::Source>       framedSources;
+    QList<TextLayout::Mark>         framedMarks;
     QList<EditSession::Edit>        rest;
     bool                            laid { false };
     bool                            scanned { false };
@@ -79,6 +80,7 @@ struct EditTarget
     bool                              hasUnit { false };
     EditSession::Edit                 unit;
     QList<QList<TextLayout::Source>>  unitSources;
+    QList<QList<TextLayout::Mark>>    unitMarks;
 };
 
 /// Finds and measures the text a click in the text tool opens, without touching the editor.
@@ -89,6 +91,7 @@ public:
     { m_canvas = canvas; m_src = src; m_zoom = zoom; m_ocr = ocr; }
     void setSession(EditSession *session) { m_session = session; }
     void clearOcrCache() { m_ocrCache.clear(); }
+    bool ocrMissing() const { return m_ocrMissing; }
 
     bool open(const QPoint &from, const QPoint &to, bool framed, int &lastCommittedPage,
               const QRectF &lastCommittedOrigBounds, EditTarget &target);
@@ -100,10 +103,13 @@ public:
         bool valid { false };
         EditSession::Edit edit;
         QList<QList<TextLayout::Source>> takenSources;
+        QList<QList<TextLayout::Mark>>   takenMarks;
         QList<TextLayout::OriginalLine>  rest;
         QList<QList<TextLayout::Source>> restSources;
+        QList<QList<TextLayout::Mark>>   restMarks;
         QList<TextLayout::OriginalLine>  lines;
         QList<QList<TextLayout::Source>> sources;
+        QList<QList<TextLayout::Mark>>   marks;
         QList<TextLayout::OriginalLine>  gapLines;
         QList<TextLayout::OriginalLine>  wholeLines;
     };
@@ -139,6 +145,7 @@ private:
     OcrEngine      *m_ocr     { nullptr };
     EditSession    *m_session { nullptr };
     QHash<int, QList<OcrEngine::Block>> m_ocrCache;
+    bool m_ocrMissing { false };
 
     struct PageLines { int page = -1; QList<TextLayout::OriginalLine> lines; };
     PageLines m_pageLines;
@@ -147,6 +154,7 @@ private:
         EditSession::Edit edit;
         QList<TextLayout::OriginalLine> lines;
         QList<QList<TextLayout::Source>> sources;
+        QList<QList<TextLayout::Mark>>   marks;
     };
     EditLines m_editLines;
 };

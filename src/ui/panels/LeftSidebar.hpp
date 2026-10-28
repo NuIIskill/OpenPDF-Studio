@@ -39,6 +39,7 @@ public:
     void setActiveTool(const QString &tool);
     void setEditMode(bool on);
     void refreshTheme();
+    void saveToolLayout();
     void retranslateUi();
 
 public Q_SLOTS:
@@ -59,6 +60,8 @@ private:
     QVBoxLayout                 *m_toolLayout { nullptr };
     QHash<QString, IconButton *> m_toolButtons;
     QStringList                  m_visibleIds;
+    QStringList                  m_order;
+    QStringList                  m_hidden;
     IconButton                  *m_customizeBtn { nullptr };
     IconButton                  *m_settingsBtn  { nullptr };
     QPointer<ToolCustomizePopup> m_popup;

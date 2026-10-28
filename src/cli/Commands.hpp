@@ -17,6 +17,7 @@ int importPdfCommand(const QStringList &args);
 int selectTextCommand(const QStringList &args);
 int applyEditCommand(const QStringList &args);
 int organizeSaveCommand(const QStringList &args);
+int removeAppFileCommand(const QStringList &args);
 
 int shotExportDialog(const QStringList &args);
 int shotHistoryDialog(const QStringList &args);

@@ -11,6 +11,7 @@
 #include <QString>
 
 #include <functional>
+#include <optional>
 
 /// Lays out edited text into lines, the same way for the PDF writer and the editor.
 namespace TextLayout {
@@ -50,6 +51,25 @@ struct Source {
 QList<Source> distinctSources(const QList<Source> &sources);
 QList<Source> alignSources(const QString &text, const QList<Source> &plain);
 
+// What the user set on some characters only, over the style they have.
+struct Mark {
+    QString             family;
+    std::optional<bool> bold;
+    std::optional<bool> italic;
+    std::optional<bool> underline;
+    double              scale { 0.0 };
+    QColor              color;
+
+    bool isEmpty() const { return *this == Mark{}; }
+    bool styled() const;
+    Mark over(const Mark &top) const;
+    Mark without(const Mark &fields) const;
+    bool operator==(const Mark &) const = default;
+};
+
+QList<Mark> distinctMarks(const QList<Mark> &marks);
+QList<Mark> alignMarks(const QString &text, const QList<Mark> &plain);
+
 // How the characters of one style look, as the format bar shows them.
 struct Appearance {
     QString family;
@@ -74,10 +94,14 @@ struct Metrics {
     QList<int>                sourceStyles;
     QList<Source>             styleSources;
     QList<Appearance>         appearances;
+    QList<Mark>               marks;
+    QList<QList<int>>         markStyles;
 
     bool isValid() const { return !advances.isEmpty() && sizes.size() == advances.size(); }
-    bool covers(const QString &text, const QList<Source> &chars = {}) const;
-    QList<int> stylesOf(const QString &text, const QList<Source> &chars = {}) const;
+    bool covers(const QString &text, const QList<Source> &chars = {},
+                const QList<Mark> &marked = {}) const;
+    QList<int> stylesOf(const QString &text, const QList<Source> &chars = {},
+                        const QList<Mark> &marked = {}) const;
     double sizeFor(const QList<int> &styles) const;
     Advance advanceFor(const QList<int> &styles) const;
 };

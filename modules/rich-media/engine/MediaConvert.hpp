@@ -12,6 +12,10 @@ bool available();
 
 QString toolPath();
 
+QString bundledPath();
+
+QString downloadedPath();
+
 bool run(const QString &in, const QString &out,
          const std::function<bool(int)> &progress, int maxHeight = 0);
 

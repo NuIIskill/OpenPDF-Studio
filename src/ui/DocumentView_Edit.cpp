@@ -94,11 +94,18 @@ DocumentView::DocumentView(QWidget *parent)
     m_layout->setContentsMargins(40, 40, 40, 40);
     m_layout->setSpacing(20);
 
-    m_dropHint = new QLabel(tr("Drop a document here or click a tab to open"), m_canvas);
+    m_startPage = new QWidget(m_canvas);
+    m_startPage->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
+    auto *start = new QVBoxLayout(m_startPage);
+    start->setContentsMargins(0, 0, 0, 0);
+    start->setSpacing(32);
+    start->addStretch(1);
+    m_dropHint = new QLabel(tr("Drop a document here or click a tab to open"), m_startPage);
     m_dropHint->setObjectName(QStringLiteral("DropHint"));
     m_dropHint->setAlignment(Qt::AlignCenter);
-    m_dropHint->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
-    m_layout->addWidget(m_dropHint);
+    start->addWidget(m_dropHint);
+    start->addStretch(1);
+    m_layout->addWidget(m_startPage);
 
     setWidget(m_canvas);
 
@@ -482,6 +489,15 @@ void DocumentView::setEditorUnderline(bool on)                 { m_edit.setUnder
 void DocumentView::setEditorFontSize(double ptSize)            { m_edit.setFontSize(ptSize); }
 void DocumentView::setEditorTextColor(const QColor &color)     { m_edit.setTextColor(color); }
 void DocumentView::setTextBoxProperties(const TextBoxProperties &p) { m_edit.setTextBoxProperties(p); }
+void DocumentView::setStartWidget(QWidget *widget)
+{
+    auto *start = static_cast<QVBoxLayout *>(m_startPage->layout());
+    start->insertWidget(start->count() - 1, widget, 0, Qt::AlignHCenter);
+#ifdef HAVE_PDF_RENDERING
+    m_dropHint->hide();
+#endif
+}
+
 void DocumentView::setTextBoxDefaults(const TextBoxProperties &p) { m_edit.setTextBoxDefaults(p); }
 void DocumentView::setEditorAlignment(Qt::Alignment a) { m_edit.setHorizontalAlignment(a); }
 void DocumentView::setEditorListStyle(TextBoxProperties::ListStyle s) { m_edit.setListStyle(s); }

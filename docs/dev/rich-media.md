@@ -49,6 +49,7 @@ modules/rich-media/
     MediaPlayerFrame.*     the player on the page, above a PlayerEngine
     *PlayerEngine.cpp      what decodes: Qt Multimedia, or Windows' own
     RichMediaPanel.*       options of the selected medium and the next insert
+    ConvertCard.*          the ffmpeg card on Settings > Add-on Packages
 ```
 
 `HAVE_RICH_MEDIA` gates the whole directory and requires qpdf, plus Qt
@@ -69,7 +70,7 @@ Everything the module does works the same on every platform it builds on:
 | poster | one frame through the same decoder that plays | see above |
 | format check | the container and codec read out of the file | nothing |
 | reading, writing | qpdf | qpdf |
-| conversion to H.264 | Media Foundation on Windows, ffmpeg as fallback and on Linux | ffmpeg on Linux; shipped in the Windows packages |
+| conversion to H.264 | Media Foundation on Windows, ffmpeg as fallback and on Linux | ffmpeg on Linux, with libx264 or OpenH264; shipped in the Windows packages |
 
 On Windows the conversion uses the H.264 and AAC encoders Windows ships
 (`SystemEncoder`: Source Reader into Sink Writer, NV12, High profile, AAC
@@ -81,7 +82,13 @@ the frame durations; given the reported one, the video processor drops every
 other frame. ffmpeg stays the fallback: when the system encoder fails or is
 missing (Windows N), and first when an H.264 stream only needs a new container,
 because ffmpeg repackages it without encoding it again. On Linux ffmpeg is the
-only way, as before.
+only way, as before. It encodes with libx264 where it has it and otherwise
+with OpenH264, the only H.264 encoder in Fedora's own ffmpeg; `MediaConvert`
+asks `ffmpeg -encoders` once per binary. ffmpeg is looked up on every use, so
+one installed from Settings > Add-on Packages (`ConvertCard`) counts at once,
+and the warning without it leads there. On Windows only the shipped
+`ffmpeg.exe` and the one downloaded on that page are used, never one on
+`PATH`, so a removed ffmpeg stays unused.
 
 The Windows packages ship their own `ffmpeg.exe` next to the program
 (`packaging/windows/build-ffmpeg-mingw.sh`), for what Media Foundation cannot
@@ -90,13 +97,13 @@ decodes only with a graphics adapter and otherwise hands out as empty frames;
 `SystemEncoder` treats an empty frame as failure. It is an LGPL build without
 x264, with dav1d for AV1; on Windows `MediaConvert` has it encode
 through Windows' own H.264 encoder (`h264_mf`) and ffmpeg's AAC encoder. The
-shipped one is found before any ffmpeg on `PATH`, whose features are unknown. It behaves identically everywhere: with an encoder the
+shipped one is the only one besides a downloaded copy of the same build. It behaves identically everywhere: with an encoder the
 offer appears, without one the user is told what the consequence is. Reading a file's format used to ask ffprobe and no longer does:
 `MediaFormat` walks the ISO base media boxes far enough to name the container
 and the codec, which is exactly the question being asked.
 
-Written on insert is what Acrobat writes itself, checked object by object
-against a document Acrobat produced:
+Written on insert matches, object by object, a RichMedia document made by a
+widely used PDF editor:
 
 ```
 /Annot /RichMedia  /F 68  /NM (RM1)  /BS << /S /S /W 0 >>  /Border [0 0 0]
@@ -111,7 +118,7 @@ against a document Acrobat produced:
                                     /Presentation << /Style /Embedded … >> >>
 ```
 
-Two places where we deliberately differ from Acrobat: it writes a `skin=…swf`
+Two places where we deliberately differ from that editor: it writes a `skin=…swf`
 into `/FlashVars` that it resolves from its own installation and does not embed,
 and it puts the file into `/EF` under both `/F` and `/UF`. The first is a
 promise nobody here can keep; the second is redundant.
@@ -197,7 +204,7 @@ Windows needs its own because the only backend packaged for MinGW is
 `windowsmediaplugin`, which builds a Media Foundation session with an EVR
 presenter and answers "Media session serious error" for files the same machine
 plays elsewhere without trouble. What the Windows engine uses instead is what
-the system has had all along, and what Acrobat plays through: DirectShow and
+the system has had all along: DirectShow and
 MFPlay, both part of every Windows, needing no DLL we ship. Each draws into a
 window that Windows clips to the player widget, so scrolling behaves. Grabbing
 a still follows the same split (`VideoStill`), or the poster of a video that

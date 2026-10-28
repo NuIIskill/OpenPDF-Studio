@@ -161,7 +161,8 @@ public:
 
     virtual TextLayout::Metrics editMetrics(const EditSession::Edit &edit) const;
     virtual QList<TextLayout::OriginalLine> editLines(const EditSession::Edit &edit,
-                                                      QList<QList<TextLayout::Source>> *sources) const;
+                                                      QList<QList<TextLayout::Source>> *sources,
+                                                      QList<QList<TextLayout::Mark>> *marks = nullptr) const;
 
     virtual QList<TextLayout::OriginalLine> originalLines(int page, const QRectF &area,
                                                           const QList<QRectF> &exclude) const;

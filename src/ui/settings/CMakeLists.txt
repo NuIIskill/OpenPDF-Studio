@@ -1,10 +1,17 @@
 target_sources(OpenPDFStudio PRIVATE
+    AddOns.cpp
+    AddOns.hpp
+    DownloadControl.cpp
+    DownloadControl.hpp
     LangRow.hpp
     OptionCard.hpp
+    PackageControl.cpp
+    PackageControl.hpp
     SettingCheckBox.hpp
     SettingsPanel.cpp
     SettingsPanel.hpp
     SettingsPanel_About.cpp
+    SettingsPanel_AddOns.cpp
     SettingsPanel_Advanced.cpp
     SettingsPanel_Appearance.cpp
     SettingsPanel_Language.cpp

@@ -33,6 +33,8 @@ public:
 
     void showLicensePage();
 
+    void showAddOnsPage();
+
     void selectPageForTest(const QString &navLabel);
 
 Q_SIGNALS:
@@ -58,6 +60,9 @@ private:
     QWidget *buildAppearancePage();
     QWidget *buildLanguagePage();
     QWidget *buildMediaPage();
+    QWidget *buildAddOnsPage();
+    void buildAddOnsOcr(QVBoxLayout *vl);
+    void buildAddOnsFonts(QVBoxLayout *vl);
     QWidget *buildShortcutsPage();
     QWidget *buildZoomPage();
     QWidget *buildSecurityPage();
@@ -110,6 +115,7 @@ private:
     int m_currentNav { 0 };
 
     LicensePage    *m_licensePage { nullptr };
+    QWidget        *m_addOnsPage  { nullptr };
     SettingsSearch *m_search      { nullptr };
 
     QList<QWidget *> m_themeCards;

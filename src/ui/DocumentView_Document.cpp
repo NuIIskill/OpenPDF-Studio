@@ -132,7 +132,7 @@ void DocumentView::clearDocument()
     for (PageOverlay *overlay : std::as_const(m_overlays))
         overlay->setDocument(QString());
 
-    m_dropHint->show();
+    m_startPage->show();
 }
 
 QString DocumentView::displayName() const
@@ -214,7 +214,7 @@ bool DocumentView::openContent(const QString &path, const QString &suggestedPath
         overlay->setDocument(m_src->contentPath());
     m_layoutEngine->setPageCount(m_src->pageCount());
     resetContentProvider();
-    m_dropHint->hide();
+    m_startPage->hide();
     m_layoutEngine->buildPages();
     m_find->documentChanged();
     m_annotations->start(m_src->pageCount());
@@ -236,7 +236,7 @@ bool DocumentView::openContent(const QString &path, const QString &suggestedPath
     Q_EMIT bookmarkDataChanged();
     m_src->setPageCount(1);
     m_find->documentChanged();
-    m_dropHint->show();
+    m_startPage->show();
     retranslateUi();
     m_journal.noteDocumentOpened(change);
     Q_EMIT fileOpened(m_src->contentPath(), m_src->pageCount());

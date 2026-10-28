@@ -100,10 +100,11 @@ SignDialog::SignDialog(QWidget *parent)
 {
     setWindowTitle(tr("Sign - OpenPDF Studio"));
     setModal(true);
+    setWindowFlag(Qt::WindowMaximizeButtonHint, false);
     applyDialogStyle();
 
     auto *root = new QVBoxLayout(this);
-    root->setSizeConstraint(QLayout::SetMinimumSize);
+    root->setSizeConstraint(QLayout::SetFixedSize);
     root->setContentsMargins(0, 0, 0, 0);
     root->setSpacing(0);
 

@@ -360,6 +360,55 @@ QPushButton#SignatureStatusButton:disabled { color: #9CA3AF; }
     background-color: #F3F4F6;
 }
 
+/* ── Recent documents ──────────────────────────────────────── */
+QLabel#StartTitle {
+    color: #111827;
+    font-size: 20px;
+    font-weight: 600;
+}
+QLabel#StartHint {
+    color: #6B7280;
+    font-size: 14px;
+}
+QLabel#StartEmptyNote {
+    color: #9CA3AF;
+    font-size: 12px;
+}
+QWidget#RecentHeader {
+    border-bottom: 1px solid #E5E7EB;
+}
+QLabel#RecentHeading {
+    color: #111827;
+    font-size: 13px;
+    font-weight: 600;
+}
+QPushButton#RecentClear {
+    background: transparent;
+    border: none;
+    color: #6B7280;
+    font-size: 12px;
+    padding: 2px 0;
+}
+QPushButton#RecentClear:hover { color: #111827; }
+QPushButton#RecentItem {
+    background: transparent;
+    border: none;
+    border-bottom: 1px solid #E5E7EB;
+    border-radius: 0;
+    padding: 0;
+}
+QPushButton#RecentItem:hover   { background: #E9EBEF; }
+QPushButton#RecentItem:pressed { background: #E5E7EB; }
+QLabel#RecentName {
+    color: #111827;
+    font-size: 13px;
+}
+QLabel#RecentFolder,
+QLabel#RecentTime {
+    color: #6B7280;
+    font-size: 11px;
+}
+
 #DocumentFindOverlay {
     background: transparent;
 }

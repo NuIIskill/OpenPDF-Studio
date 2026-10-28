@@ -91,6 +91,45 @@
     </message>
 </context>
 <context>
+    <name>ConvertCard</name>
+    <message>
+        <location filename="../../modules/rich-media/ui/ConvertCard.cpp" line="45"/>
+        <location filename="../../modules/rich-media/ui/ConvertCard.cpp" line="52"/>
+        <source>The download could not be unpacked.</source>
+        <translation>Не удалось распаковать загруженный файл.</translation>
+    </message>
+    <message>
+        <location filename="../../modules/rich-media/ui/ConvertCard.cpp" line="64"/>
+        <source>Included with the program</source>
+        <translation>Установлено вместе с программой</translation>
+    </message>
+    <message>
+        <location filename="../../modules/rich-media/ui/ConvertCard.cpp" line="65"/>
+        <source>Downloaded</source>
+        <translation>Загружено</translation>
+    </message>
+    <message>
+        <location filename="../../modules/rich-media/ui/ConvertCard.cpp" line="78"/>
+        <source>No permission was given.</source>
+        <translation>Разрешение не получено.</translation>
+    </message>
+    <message>
+        <location filename="../../modules/rich-media/ui/ConvertCard.cpp" line="79"/>
+        <source>The file could not be deleted.</source>
+        <translation>Не удалось удалить файл.</translation>
+    </message>
+    <message>
+        <location filename="../../modules/rich-media/ui/ConvertCard.cpp" line="89"/>
+        <source>Video Conversion</source>
+        <translation>Конвертация видео</translation>
+    </message>
+    <message>
+        <location filename="../../modules/rich-media/ui/ConvertCard.cpp" line="104"/>
+        <source>Converts videos before they are embedded in a PDF.</source>
+        <translation>Конвертирует видео перед встраиванием в PDF.</translation>
+    </message>
+</context>
+<context>
     <name>CreateCertificateDialog</name>
     <message>
         <location filename="../../src/ui/sign/CreateCertificateDialog.cpp" line="36"/>
@@ -177,157 +216,157 @@
 <context>
     <name>DigitalSignPage</name>
     <message>
-        <location filename="../../src/ui/sign/DigitalSignPage.cpp" line="92"/>
+        <location filename="../../src/ui/sign/DigitalSignPage.cpp" line="98"/>
         <source>Select certificate</source>
         <translation>Выбор сертификата</translation>
     </message>
     <message>
-        <location filename="../../src/ui/sign/DigitalSignPage.cpp" line="113"/>
-        <location filename="../../src/ui/sign/DigitalSignPage.cpp" line="342"/>
+        <location filename="../../src/ui/sign/DigitalSignPage.cpp" line="119"/>
+        <location filename="../../src/ui/sign/DigitalSignPage.cpp" line="349"/>
         <source>Please select a certificate...</source>
         <translation>Выберите сертификат...</translation>
     </message>
     <message>
-        <location filename="../../src/ui/sign/DigitalSignPage.cpp" line="150"/>
+        <location filename="../../src/ui/sign/DigitalSignPage.cpp" line="156"/>
         <source>Advanced</source>
         <translation>Дополнительно</translation>
     </message>
     <message>
-        <location filename="../../src/ui/sign/DigitalSignPage.cpp" line="152"/>
+        <location filename="../../src/ui/sign/DigitalSignPage.cpp" line="158"/>
         <source>Additional signing options.</source>
         <translation>Дополнительные параметры подписи.</translation>
     </message>
     <message>
-        <location filename="../../src/ui/sign/DigitalSignPage.cpp" line="180"/>
+        <location filename="../../src/ui/sign/DigitalSignPage.cpp" line="186"/>
         <source>Not available yet</source>
         <translation>Пока недоступно</translation>
     </message>
     <message>
-        <location filename="../../src/ui/sign/DigitalSignPage.cpp" line="182"/>
+        <location filename="../../src/ui/sign/DigitalSignPage.cpp" line="188"/>
         <source>Add timestamp</source>
         <translation>Добавить метку времени</translation>
     </message>
     <message>
-        <location filename="../../src/ui/sign/DigitalSignPage.cpp" line="183"/>
+        <location filename="../../src/ui/sign/DigitalSignPage.cpp" line="189"/>
         <source>Include a trusted timestamp in the signature.</source>
         <translation>Включить в подпись доверенную метку времени.</translation>
     </message>
     <message>
-        <location filename="../../src/ui/sign/DigitalSignPage.cpp" line="184"/>
+        <location filename="../../src/ui/sign/DigitalSignPage.cpp" line="190"/>
         <source>Lock document after signing</source>
         <translation>Заблокировать документ после подписи</translation>
     </message>
     <message>
-        <location filename="../../src/ui/sign/DigitalSignPage.cpp" line="185"/>
+        <location filename="../../src/ui/sign/DigitalSignPage.cpp" line="191"/>
         <source>Prevent further changes to the PDF.</source>
         <translation>Запретить дальнейшие изменения PDF.</translation>
     </message>
     <message>
-        <location filename="../../src/ui/sign/DigitalSignPage.cpp" line="190"/>
+        <location filename="../../src/ui/sign/DigitalSignPage.cpp" line="196"/>
         <source>Invisible signature</source>
         <translation>Невидимая подпись</translation>
     </message>
     <message>
-        <location filename="../../src/ui/sign/DigitalSignPage.cpp" line="191"/>
+        <location filename="../../src/ui/sign/DigitalSignPage.cpp" line="197"/>
         <source>Sign the document without a visible signature.</source>
         <translation>Подписать документ без видимой подписи.</translation>
     </message>
     <message>
-        <location filename="../../src/ui/sign/DigitalSignPage.cpp" line="224"/>
+        <location filename="../../src/ui/sign/DigitalSignPage.cpp" line="230"/>
         <source>Profile</source>
         <translation>Профиль</translation>
     </message>
     <message>
-        <location filename="../../src/ui/sign/DigitalSignPage.cpp" line="240"/>
+        <location filename="../../src/ui/sign/DigitalSignPage.cpp" line="247"/>
         <source>Default</source>
         <translation>По умолчанию</translation>
     </message>
     <message>
-        <location filename="../../src/ui/sign/DigitalSignPage.cpp" line="240"/>
+        <location filename="../../src/ui/sign/DigitalSignPage.cpp" line="247"/>
         <source>Unnamed profile</source>
         <translation>Профиль без имени</translation>
     </message>
     <message>
-        <location filename="../../src/ui/sign/DigitalSignPage.cpp" line="282"/>
+        <location filename="../../src/ui/sign/DigitalSignPage.cpp" line="289"/>
         <source>Profile %1</source>
         <translation>Профиль %1</translation>
     </message>
     <message>
-        <location filename="../../src/ui/sign/DigitalSignPage.cpp" line="291"/>
+        <location filename="../../src/ui/sign/DigitalSignPage.cpp" line="298"/>
         <source>%1 (copy)</source>
         <translation>%1 (копия)</translation>
     </message>
     <message>
-        <location filename="../../src/ui/sign/DigitalSignPage.cpp" line="298"/>
+        <location filename="../../src/ui/sign/DigitalSignPage.cpp" line="305"/>
         <source>Delete profile</source>
         <translation>Удалить профиль</translation>
     </message>
     <message>
-        <location filename="../../src/ui/sign/DigitalSignPage.cpp" line="299"/>
+        <location filename="../../src/ui/sign/DigitalSignPage.cpp" line="306"/>
         <source>Delete the profile &quot;%1&quot;?</source>
         <translation>Удалить профиль «%1»?</translation>
     </message>
     <message>
-        <location filename="../../src/ui/sign/DigitalSignPage.cpp" line="329"/>
-        <location filename="../../src/ui/sign/DigitalSignPage.cpp" line="394"/>
+        <location filename="../../src/ui/sign/DigitalSignPage.cpp" line="336"/>
+        <location filename="../../src/ui/sign/DigitalSignPage.cpp" line="401"/>
         <source>Unnamed certificate</source>
         <translation>Сертификат без имени</translation>
     </message>
     <message>
-        <location filename="../../src/ui/sign/DigitalSignPage.cpp" line="331"/>
+        <location filename="../../src/ui/sign/DigitalSignPage.cpp" line="338"/>
         <source>%1, expired</source>
         <translation>%1, истёк</translation>
     </message>
     <message>
-        <location filename="../../src/ui/sign/DigitalSignPage.cpp" line="336"/>
+        <location filename="../../src/ui/sign/DigitalSignPage.cpp" line="343"/>
         <source>Valid until %1</source>
         <translation>Действителен до %1</translation>
     </message>
     <message>
-        <location filename="../../src/ui/sign/DigitalSignPage.cpp" line="340"/>
+        <location filename="../../src/ui/sign/DigitalSignPage.cpp" line="347"/>
         <source>New certificate...</source>
         <translation>Новый сертификат...</translation>
     </message>
     <message>
-        <location filename="../../src/ui/sign/DigitalSignPage.cpp" line="341"/>
+        <location filename="../../src/ui/sign/DigitalSignPage.cpp" line="348"/>
         <source>No certificates found</source>
         <translation>Сертификаты не найдены</translation>
     </message>
     <message>
-        <location filename="../../src/ui/sign/DigitalSignPage.cpp" line="370"/>
+        <location filename="../../src/ui/sign/DigitalSignPage.cpp" line="377"/>
         <source>Delete certificate...</source>
         <translation>Удалить сертификат...</translation>
     </message>
     <message>
-        <location filename="../../src/ui/sign/DigitalSignPage.cpp" line="373"/>
-        <location filename="../../src/ui/sign/DigitalSignPage.cpp" line="387"/>
+        <location filename="../../src/ui/sign/DigitalSignPage.cpp" line="380"/>
+        <location filename="../../src/ui/sign/DigitalSignPage.cpp" line="394"/>
         <source>Only certificates created in OpenPDF Studio can be deleted.</source>
         <translation>Удалять можно только сертификаты, созданные в OpenPDF Studio.</translation>
     </message>
     <message>
-        <location filename="../../src/ui/sign/DigitalSignPage.cpp" line="386"/>
-        <location filename="../../src/ui/sign/DigitalSignPage.cpp" line="395"/>
+        <location filename="../../src/ui/sign/DigitalSignPage.cpp" line="393"/>
         <location filename="../../src/ui/sign/DigitalSignPage.cpp" line="402"/>
+        <location filename="../../src/ui/sign/DigitalSignPage.cpp" line="409"/>
         <source>Delete certificate</source>
         <translation>Удалить сертификат</translation>
     </message>
     <message>
-        <location filename="../../src/ui/sign/DigitalSignPage.cpp" line="396"/>
+        <location filename="../../src/ui/sign/DigitalSignPage.cpp" line="403"/>
         <source>Delete the certificate &quot;%1&quot;? Its private key is deleted as well, so it can no longer sign. Signatures already made with it stay valid.</source>
         <translation>Удалить сертификат «%1»? Его закрытый ключ тоже будет удалён, и подписывать им будет нельзя. Уже созданные подписи останутся действительными.</translation>
     </message>
     <message>
-        <location filename="../../src/ui/sign/DigitalSignPage.cpp" line="403"/>
+        <location filename="../../src/ui/sign/DigitalSignPage.cpp" line="410"/>
         <source>The certificate could not be deleted.</source>
         <translation>Не удалось удалить сертификат.</translation>
     </message>
     <message>
-        <location filename="../../src/ui/sign/DigitalSignPage.cpp" line="206"/>
+        <location filename="../../src/ui/sign/DigitalSignPage.cpp" line="212"/>
         <source>Trusted signers</source>
         <translation>Доверенные подписанты</translation>
     </message>
     <message>
-        <location filename="../../src/ui/sign/DigitalSignPage.cpp" line="207"/>
+        <location filename="../../src/ui/sign/DigitalSignPage.cpp" line="213"/>
         <source>Manage...</source>
         <translation>Управление…</translation>
     </message>
@@ -484,7 +523,7 @@
         <translation type="vanished">Перетащите PDF сюда или нажмите на вкладку для открытия</translation>
     </message>
     <message>
-        <location filename="../../src/ui/DocumentView.cpp" line="311"/>
+        <location filename="../../src/ui/DocumentView.cpp" line="320"/>
         <source>PDF rendering is not available in this build.
 Please use a build that includes Qt6::Pdf support.
 (See build-win.sh for instructions.)</source>
@@ -537,40 +576,40 @@ Please use a build that includes Qt6::Pdf support.
         <translation type="vanished">Переместить изображение</translation>
     </message>
     <message>
-        <location filename="../../src/ui/DocumentView.cpp" line="369"/>
+        <location filename="../../src/ui/DocumentView.cpp" line="378"/>
         <source>Shift+click extends the selection</source>
         <translation>Shift+щелчок расширяет выделение</translation>
     </message>
     <message>
-        <location filename="../../src/ui/DocumentView.cpp" line="372"/>
+        <location filename="../../src/ui/DocumentView.cpp" line="381"/>
         <source>Shift: straight line in 45° steps</source>
         <translation>Shift: прямая линия с шагом 45°</translation>
     </message>
     <message>
-        <location filename="../../src/ui/DocumentView.cpp" line="374"/>
+        <location filename="../../src/ui/DocumentView.cpp" line="383"/>
         <source>Shift: draw over detected images, keep the aspect ratio, move along one axis</source>
         <translation>Shift: рисовать поверх найденных изображений, сохранять пропорции, двигать по одной оси</translation>
     </message>
     <message>
-        <location filename="../../src/ui/DocumentView.cpp" line="377"/>
+        <location filename="../../src/ui/DocumentView.cpp" line="386"/>
         <source>Shift+drag edits the text inside the box</source>
         <translation>Shift+перетаскивание правит текст в рамке</translation>
     </message>
     <message>
-        <location filename="../../src/ui/DocumentView.cpp" line="541"/>
+        <location filename="../../src/ui/DocumentView.cpp" line="550"/>
         <location filename="../../src/ui/view/ImageAnnotationLayer.cpp" line="308"/>
         <source>Paste</source>
         <translation>Вставить</translation>
     </message>
     <message>
-        <location filename="../../src/ui/DocumentView.cpp" line="546"/>
+        <location filename="../../src/ui/DocumentView.cpp" line="555"/>
         <location filename="../../src/ui/view/ImageAnnotationLayer.cpp" line="319"/>
-        <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="252"/>
+        <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="258"/>
         <source>Delete</source>
         <translation>Удалить</translation>
     </message>
     <message>
-        <location filename="../../src/ui/DocumentView.cpp" line="535"/>
+        <location filename="../../src/ui/DocumentView.cpp" line="544"/>
         <location filename="../../src/ui/view/ImageAnnotationLayer.cpp" line="304"/>
         <source>Copy</source>
         <translation>Копировать</translation>
@@ -588,8 +627,8 @@ Please use a build that includes Qt6::Pdf support.
         <translation type="vanished">Все файлы (*)</translation>
     </message>
     <message>
-        <location filename="../../src/ui/DocumentView.cpp" line="309"/>
-        <location filename="../../src/ui/DocumentView_Edit.cpp" line="96"/>
+        <location filename="../../src/ui/DocumentView.cpp" line="318"/>
+        <location filename="../../src/ui/DocumentView_Edit.cpp" line="103"/>
         <source>Drop a document here or click a tab to open</source>
         <translation>Перетащите сюда документ или щёлкните вкладку</translation>
     </message>
@@ -599,7 +638,7 @@ Please use a build that includes Qt6::Pdf support.
         <translation>Страница %1</translation>
     </message>
     <message>
-        <location filename="../../src/ui/DocumentView_Document.cpp" line="255"/>
+        <location filename="../../src/ui/DocumentView_Document.cpp" line="291"/>
         <source>Signature removed</source>
         <translation>Подпись удалена</translation>
     </message>
@@ -615,6 +654,54 @@ Please use a build that includes Qt6::Pdf support.
         <location filename="../../src/engine/import/DocxReader.cpp" line="470"/>
         <source>The document is damaged: %1</source>
         <translation>Документ повреждён: %1</translation>
+    </message>
+</context>
+<context>
+    <name>DownloadControl</name>
+    <message>
+        <location filename="../../src/ui/settings/DownloadControl.cpp" line="23"/>
+        <source>Downloading… %1 %</source>
+        <translation>Загрузка… %1 %</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/settings/DownloadControl.cpp" line="30"/>
+        <source>Unpacking…</source>
+        <translation>Распаковка…</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/settings/DownloadControl.cpp" line="48"/>
+        <source>Not installed</source>
+        <translation>Не установлено</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/settings/DownloadControl.cpp" line="49"/>
+        <source>Installed</source>
+        <translation>Установлено</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/settings/DownloadControl.cpp" line="51"/>
+        <source>Remove</source>
+        <translation>Удалить</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/settings/DownloadControl.cpp" line="51"/>
+        <source>Download</source>
+        <translation>Загрузить</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/settings/DownloadControl.cpp" line="59"/>
+        <source>Downloading…</source>
+        <translation>Загрузка…</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/settings/DownloadControl.cpp" line="64"/>
+        <source>Removing…</source>
+        <translation>Удаление…</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/settings/DownloadControl.cpp" line="77"/>
+        <source>Not done: %1</source>
+        <translation>Не выполнено: %1</translation>
     </message>
 </context>
 <context>
@@ -674,24 +761,34 @@ Please use a build that includes Qt6::Pdf support.
 <context>
     <name>EditNotice</name>
     <message>
-        <location filename="../../src/ui/edit/EditNotice.cpp" line="40"/>
+        <location filename="../../src/ui/edit/EditNotice.cpp" line="41"/>
+        <source>Add-on Packages</source>
+        <translation>Дополнительные пакеты</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/edit/EditNotice.cpp" line="51"/>
         <source>Don&apos;t show again</source>
         <translation>Больше не показывать</translation>
     </message>
     <message>
-        <location filename="../../src/ui/edit/EditNotice.cpp" line="53"/>
+        <location filename="../../src/ui/edit/EditNotice.cpp" line="64"/>
         <source>Close</source>
         <translation>Закрыть</translation>
     </message>
     <message>
-        <location filename="../../src/ui/edit/EditNotice.cpp" line="80"/>
+        <location filename="../../src/ui/edit/EditNotice.cpp" line="97"/>
         <source>This text was scanned. It is recognised automatically, which can cause errors, and its font or font size can differ from the original. Please check the result.</source>
         <translation>Этот текст был отсканирован. Он распознаётся автоматически. При этом возможны ошибки, а шрифт или его размер могут отличаться от оригинала. Проверьте результат.</translation>
     </message>
     <message>
-        <location filename="../../src/ui/edit/EditNotice.cpp" line="83"/>
+        <location filename="../../src/ui/edit/EditNotice.cpp" line="102"/>
         <source>The font of this text cannot be used for editing. The text is set in the closest font available, which can look a little different.</source>
         <translation>Шрифт этого текста нельзя использовать для редактирования. Текст набирается наиболее похожим доступным шрифтом, который может выглядеть немного иначе.</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/edit/EditNotice.cpp" line="106"/>
+        <source>This page was scanned. Its text can only be recognised with a language for text recognition, and none is installed.</source>
+        <translation>Эта страница отсканирована. Её текст можно распознать только с языком распознавания текста, а ни один не установлен.</translation>
     </message>
 </context>
 <context>
@@ -1058,38 +1155,38 @@ Use page numbers like 1-3, 5, 8-10.</source>
         <translation type="vanished">Экспорт «%1»…</translation>
     </message>
     <message>
-        <location filename="../../src/ui/export/Exporting.cpp" line="157"/>
+        <location filename="../../src/ui/export/Exporting.cpp" line="132"/>
         <source>Exporting page %1 of %2…</source>
         <translation>Экспорт страницы %1 из %2…</translation>
     </message>
     <message>
-        <location filename="../../src/ui/export/Exporting.cpp" line="200"/>
+        <location filename="../../src/ui/export/Exporting.cpp" line="170"/>
         <source>Writing &quot;%1&quot;…</source>
         <translation>Запись «%1»…</translation>
     </message>
     <message>
-        <location filename="../../src/ui/export/Exporting.cpp" line="204"/>
+        <location filename="../../src/ui/export/Exporting.cpp" line="174"/>
         <source>Could not write to &quot;%1&quot;.</source>
         <translation>Не удалось записать в «%1».</translation>
     </message>
     <message>
-        <location filename="../../src/ui/export/Exporting.cpp" line="214"/>
+        <location filename="../../src/ui/export/Exporting.cpp" line="184"/>
         <source>Could not export JPEG images to &quot;%1&quot;.</source>
         <translation>Не удалось экспортировать изображения JPEG в «%1».</translation>
     </message>
     <message>
-        <location filename="../../src/ui/export/Exporting.cpp" line="215"/>
+        <location filename="../../src/ui/export/Exporting.cpp" line="185"/>
         <source>Could not export PNG images to &quot;%1&quot;.</source>
         <translation>Не удалось экспортировать изображения PNG в «%1».</translation>
     </message>
     <message>
-        <location filename="../../src/ui/export/Exporting.cpp" line="121"/>
-        <location filename="../../src/ui/export/Exporting.cpp" line="183"/>
+        <location filename="../../src/ui/export/Exporting.cpp" line="96"/>
+        <location filename="../../src/ui/export/Exporting.cpp" line="153"/>
         <source>Could not write &quot;%1&quot;.</source>
         <translation>Не удалось записать «%1».</translation>
     </message>
     <message>
-        <location filename="../../src/ui/export/Exporting.cpp" line="123"/>
+        <location filename="../../src/ui/export/Exporting.cpp" line="98"/>
         <source>Could not write &quot;%1&quot;.
 
 Selecting pages for a PDF needs qpdf, which this build does not include. Exporting as Word or PNG is unaffected.</source>
@@ -1098,24 +1195,32 @@ Selecting pages for a PDF needs qpdf, which this build does not include. Exporti
 Для выбора страниц PDF нужен qpdf, которого нет в этой сборке. Экспорт в Word или PNG не затронут.</translation>
     </message>
     <message>
-        <location filename="../../src/ui/export/Exporting.cpp" line="234"/>
+        <location filename="../../src/ui/export/Exporting.cpp" line="204"/>
         <source>Export failed</source>
         <translation>Ошибка экспорта</translation>
     </message>
     <message>
-        <location filename="../../src/ui/export/Exporting.cpp" line="241"/>
+        <location filename="../../src/ui/export/Exporting.cpp" line="211"/>
         <source>%1 pages exported as JPEG images</source>
         <translation>Экспортировано страниц в JPEG: %1</translation>
     </message>
     <message>
-        <location filename="../../src/ui/export/Exporting.cpp" line="242"/>
+        <location filename="../../src/ui/export/Exporting.cpp" line="212"/>
         <source>%1 pages exported as PNG images</source>
         <translation>Экспортировано страниц в PNG: %1</translation>
     </message>
     <message>
-        <location filename="../../src/ui/export/Exporting.cpp" line="240"/>
+        <location filename="../../src/ui/export/Exporting.cpp" line="210"/>
         <source>Exported &quot;%1&quot;</source>
         <translation>«%1» экспортирован</translation>
+    </message>
+</context>
+<context>
+    <name>FileDownload</name>
+    <message>
+        <location filename="../../src/app/FileDownload.cpp" line="63"/>
+        <source>The downloaded file is not the expected one.</source>
+        <translation>Загруженный файл не совпадает с ожидаемым.</translation>
     </message>
 </context>
 <context>
@@ -1634,12 +1739,12 @@ Text, image and drawing edits made since then are not part of any file yet and w
 <context>
     <name>Importing</name>
     <message>
-        <location filename="../../src/ui/import/Importing.cpp" line="47"/>
+        <location filename="../../src/ui/import/Importing.cpp" line="87"/>
         <source>Converting &quot;%1&quot;…</source>
         <translation>Преобразование «%1»…</translation>
     </message>
     <message>
-        <location filename="../../modules/rich-media/MediaModule.cpp" line="55"/>
+        <location filename="../../modules/rich-media/MediaModule.cpp" line="61"/>
         <source>Videos</source>
         <translation>Видео</translation>
     </message>
@@ -1996,14 +2101,14 @@ Text, image and drawing edits made since then are not part of any file yet and w
         <translation type="vanished">Вложение</translation>
     </message>
     <message>
-        <location filename="../../src/ui/panels/LeftSidebar.cpp" line="83"/>
-        <location filename="../../src/ui/panels/LeftSidebar.cpp" line="189"/>
+        <location filename="../../src/ui/panels/LeftSidebar.cpp" line="87"/>
+        <location filename="../../src/ui/panels/LeftSidebar.cpp" line="198"/>
         <source>Customize Tools</source>
         <translation>Настроить инструменты</translation>
     </message>
     <message>
-        <location filename="../../src/ui/panels/LeftSidebar.cpp" line="89"/>
-        <location filename="../../src/ui/panels/LeftSidebar.cpp" line="191"/>
+        <location filename="../../src/ui/panels/LeftSidebar.cpp" line="93"/>
+        <location filename="../../src/ui/panels/LeftSidebar.cpp" line="200"/>
         <source>Settings</source>
         <translation>Настройки</translation>
     </message>
@@ -2011,47 +2116,47 @@ Text, image and drawing edits made since then are not part of any file yet and w
 <context>
     <name>LicenseNotice</name>
     <message>
-        <location filename="../../src/drm/LicenseNotice.cpp" line="16"/>
+        <location filename="../../src/drm/LicenseNotice.cpp" line="19"/>
         <source>How do you use OpenPDF Studio?</source>
         <translation>Как вы используете OpenPDF Studio?</translation>
     </message>
     <message>
-        <location filename="../../src/drm/LicenseNotice.cpp" line="17"/>
+        <location filename="../../src/drm/LicenseNotice.cpp" line="20"/>
         <source>Is this a private or a business installation?</source>
         <translation>Это личная или рабочая установка?</translation>
     </message>
     <message>
-        <location filename="../../src/drm/LicenseNotice.cpp" line="18"/>
+        <location filename="../../src/drm/LicenseNotice.cpp" line="21"/>
         <source>Personal use is free. Business use needs a Business License after a 30-day evaluation. The answer is kept in the configuration file and can be changed there.</source>
         <translation>Личное использование бесплатно. Для коммерческого использования после 30-дневной оценки нужна лицензия Business. Ответ хранится в файле конфигурации, и его можно там изменить.</translation>
     </message>
     <message>
-        <location filename="../../src/drm/LicenseNotice.cpp" line="21"/>
+        <location filename="../../src/drm/LicenseNotice.cpp" line="24"/>
         <source>Personal</source>
         <translation>Личное</translation>
     </message>
     <message>
-        <location filename="../../src/drm/LicenseNotice.cpp" line="22"/>
+        <location filename="../../src/drm/LicenseNotice.cpp" line="25"/>
         <source>Business</source>
         <translation>Коммерческое</translation>
     </message>
     <message>
-        <location filename="../../src/drm/LicenseNotice.cpp" line="45"/>
+        <location filename="../../src/drm/LicenseNotice.cpp" line="49"/>
         <source>License</source>
         <translation>Лицензия</translation>
     </message>
     <message>
-        <location filename="../../src/drm/LicenseNotice.cpp" line="46"/>
+        <location filename="../../src/drm/LicenseNotice.cpp" line="50"/>
         <source>Your %1-day evaluation for business use has ended.</source>
         <translation>Ваш %1-дневный пробный период для коммерческого использования закончился.</translation>
     </message>
     <message>
-        <location filename="../../src/drm/LicenseNotice.cpp" line="48"/>
+        <location filename="../../src/drm/LicenseNotice.cpp" line="52"/>
         <source>Business use requires a license. Please enter a license key.</source>
         <translation>Для коммерческого использования нужна лицензия. Введите лицензионный ключ.</translation>
     </message>
     <message>
-        <location filename="../../src/drm/LicenseNotice.cpp" line="50"/>
+        <location filename="../../src/drm/LicenseNotice.cpp" line="54"/>
         <source>Enter license key</source>
         <translation>Ввести лицензионный ключ</translation>
     </message>
@@ -2199,69 +2304,71 @@ Text, image and drawing edits made since then are not part of any file yet and w
 <context>
     <name>LinkAnnotationLayer</name>
     <message>
-        <location filename="../../src/ui/view/LinkAnnotationLayer.cpp" line="175"/>
+        <location filename="../../src/ui/view/LinkAnnotationLayer.cpp" line="179"/>
+        <location filename="../../src/ui/view/LinkAnnotationLayer.cpp" line="195"/>
         <source>Link</source>
         <translation>Ссылка</translation>
     </message>
     <message>
-        <location filename="../../src/ui/view/LinkAnnotationLayer.cpp" line="175"/>
+        <location filename="../../src/ui/view/LinkAnnotationLayer.cpp" line="196"/>
         <source>Link address:</source>
         <translation>Адрес ссылки:</translation>
     </message>
     <message>
-        <location filename="../../src/ui/view/LinkAnnotationLayer.cpp" line="180"/>
+        <location filename="../../src/ui/view/LinkAnnotationLayer.cpp" line="199"/>
         <source>Set Link</source>
         <translation>Установить ссылку</translation>
     </message>
     <message>
-        <location filename="../../src/ui/view/LinkAnnotationLayer.cpp" line="191"/>
+        <location filename="../../src/ui/view/LinkAnnotationLayer.cpp" line="183"/>
+        <location filename="../../src/ui/view/LinkAnnotationLayer.cpp" line="216"/>
         <source>Open Link</source>
         <translation>Открыть ссылку</translation>
     </message>
     <message>
-        <location filename="../../src/ui/view/LinkAnnotationLayer.cpp" line="193"/>
+        <location filename="../../src/ui/view/LinkAnnotationLayer.cpp" line="218"/>
         <source>Open Link in New Tab</source>
         <translation>Открыть ссылку в новой вкладке</translation>
     </message>
     <message>
-        <location filename="../../src/ui/view/LinkAnnotationLayer.cpp" line="195"/>
+        <location filename="../../src/ui/view/LinkAnnotationLayer.cpp" line="223"/>
         <source>Copy Link Address</source>
         <translation>Копировать адрес ссылки</translation>
     </message>
     <message>
-        <location filename="../../src/ui/view/LinkAnnotationLayer.cpp" line="198"/>
+        <location filename="../../src/ui/view/LinkAnnotationLayer.cpp" line="226"/>
         <source>Edit Link</source>
         <translation>Изменить ссылку</translation>
     </message>
     <message>
-        <location filename="../../src/ui/view/LinkAnnotationLayer.cpp" line="200"/>
+        <location filename="../../src/ui/view/LinkAnnotationLayer.cpp" line="228"/>
         <source>Delete Link</source>
         <translation>Удалить ссылку</translation>
     </message>
     <message>
-        <location filename="../../src/ui/view/LinkAnnotationLayer.cpp" line="202"/>
-        <location filename="../../src/ui/view/LinkAnnotationLayer.cpp" line="255"/>
+        <location filename="../../src/ui/view/LinkAnnotationLayer.cpp" line="230"/>
+        <location filename="../../src/ui/view/LinkAnnotationLayer.cpp" line="283"/>
         <source>Add Link...</source>
         <translation>Добавить ссылку…</translation>
     </message>
     <message>
-        <location filename="../../src/ui/view/LinkAnnotationLayer.cpp" line="224"/>
+        <location filename="../../src/ui/view/LinkAnnotationLayer.cpp" line="252"/>
         <source>Edit link</source>
         <translation>Изменить ссылку</translation>
     </message>
     <message>
-        <location filename="../../src/ui/view/LinkAnnotationLayer.cpp" line="241"/>
+        <location filename="../../src/ui/view/LinkAnnotationLayer.cpp" line="269"/>
         <source>Delete link</source>
         <translation>Удалить ссылку</translation>
     </message>
     <message>
-        <location filename="../../src/ui/view/LinkAnnotationLayer.cpp" line="291"/>
-        <location filename="../../src/ui/view/LinkAnnotationLayer.cpp" line="333"/>
+        <location filename="../../src/ui/view/LinkAnnotationLayer.cpp" line="319"/>
+        <location filename="../../src/ui/view/LinkAnnotationLayer.cpp" line="361"/>
         <source>Add link</source>
         <translation>Добавить ссылку</translation>
     </message>
     <message>
-        <location filename="../../src/ui/view/LinkAnnotationLayer.cpp"/>
+        <location filename="../../src/ui/view/LinkAnnotationLayer.cpp" line="180"/>
         <source>Open this link in the browser?</source>
         <translation>Открыть эту ссылку в браузере?</translation>
     </message>
@@ -2269,33 +2376,33 @@ Text, image and drawing edits made since then are not part of any file yet and w
 <context>
     <name>MainWindow</name>
     <message>
-        <location filename="../../src/ui/MainWindow.cpp" line="120"/>
-        <location filename="../../src/ui/MainWindow.cpp" line="134"/>
+        <location filename="../../src/ui/MainWindow.cpp" line="132"/>
+        <location filename="../../src/ui/MainWindow.cpp" line="146"/>
         <source>Default PDF Application</source>
         <translation>Приложение PDF по умолчанию</translation>
     </message>
     <message>
-        <location filename="../../src/ui/MainWindow.cpp" line="121"/>
+        <location filename="../../src/ui/MainWindow.cpp" line="133"/>
         <source>OpenPDF Studio is not your default application for PDF files. Would you like to make it the default?</source>
         <translation>OpenPDF Studio не является приложением по умолчанию для PDF-файлов. Сделать его приложением по умолчанию?</translation>
     </message>
     <message>
-        <location filename="../../src/ui/MainWindow.cpp" line="124"/>
+        <location filename="../../src/ui/MainWindow.cpp" line="136"/>
         <source>Windows then opens its settings for default apps, where you choose OpenPDF Studio for PDF files.</source>
         <translation>Затем Windows откроет параметры приложений по умолчанию, где можно выбрать OpenPDF Studio для PDF-файлов.</translation>
     </message>
     <message>
-        <location filename="../../src/ui/MainWindow.cpp" line="126"/>
+        <location filename="../../src/ui/MainWindow.cpp" line="138"/>
         <source>Make Default</source>
         <translation>Сделать по умолчанию</translation>
     </message>
     <message>
-        <location filename="../../src/ui/MainWindow.cpp" line="127"/>
+        <location filename="../../src/ui/MainWindow.cpp" line="139"/>
         <source>No</source>
         <translation>Нет</translation>
     </message>
     <message>
-        <location filename="../../src/ui/MainWindow.cpp" line="135"/>
+        <location filename="../../src/ui/MainWindow.cpp" line="147"/>
         <source>OpenPDF Studio could not be made the default application for PDF files.</source>
         <translation>Не удалось сделать OpenPDF Studio приложением по умолчанию для PDF-файлов.</translation>
     </message>
@@ -2304,48 +2411,48 @@ Text, image and drawing edits made since then are not part of any file yet and w
         <translation type="vanished">Открыть PDF</translation>
     </message>
     <message>
-        <location filename="../../src/ui/MainWindow.cpp" line="692"/>
+        <location filename="../../src/ui/MainWindow.cpp" line="826"/>
         <source>PDF files (*.pdf)</source>
         <translation>Файлы PDF (*.pdf)</translation>
     </message>
     <message>
-        <location filename="../../src/ui/MainWindow.cpp" line="691"/>
+        <location filename="../../src/ui/MainWindow.cpp" line="825"/>
         <source>Save PDF As</source>
         <translation>Сохранить PDF как</translation>
     </message>
     <message>
-        <location filename="../../src/ui/MainWindow.cpp" line="114"/>
+        <location filename="../../src/ui/MainWindow.cpp" line="167"/>
         <source>Update available</source>
         <translation>Доступно обновление</translation>
     </message>
     <message>
-        <location filename="../../src/ui/MainWindow.cpp" line="115"/>
+        <location filename="../../src/ui/MainWindow.cpp" line="168"/>
         <source>OpenPDF Studio %1 is available.</source>
         <translation>Доступна версия OpenPDF Studio %1.</translation>
     </message>
     <message>
-        <location filename="../../src/ui/MainWindow.cpp" line="116"/>
+        <location filename="../../src/ui/MainWindow.cpp" line="169"/>
         <source>You are running %1.</source>
         <translation>У вас установлена версия %1.</translation>
     </message>
     <message>
-        <location filename="../../src/ui/MainWindow.cpp" line="117"/>
+        <location filename="../../src/ui/MainWindow.cpp" line="170"/>
         <source>Open download page</source>
         <translation>Открыть страницу загрузки</translation>
     </message>
     <message>
-        <location filename="../../src/ui/MainWindow.cpp" line="119"/>
+        <location filename="../../src/ui/MainWindow.cpp" line="172"/>
         <source>Later</source>
         <translation>Позже</translation>
     </message>
     <message>
-        <location filename="../../src/ui/MainWindow.cpp" line="676"/>
-        <location filename="../../src/ui/MainWindow.cpp" line="681"/>
+        <location filename="../../src/ui/MainWindow.cpp" line="810"/>
+        <location filename="../../src/ui/MainWindow.cpp" line="815"/>
         <source>Save failed</source>
         <translation>Ошибка сохранения</translation>
     </message>
     <message>
-        <location filename="../../src/ui/MainWindow.cpp" line="682"/>
+        <location filename="../../src/ui/MainWindow.cpp" line="816"/>
         <source>Could not write &quot;%1&quot;.
 
 The file may be write-protected or open in another program. The document is unchanged. Try saving it under a different name.</source>
@@ -2354,58 +2461,58 @@ The file may be write-protected or open in another program. The document is unch
 Возможно, файл защищён от записи или открыт в другой программе. Документ не изменён. Попробуйте сохранить его под другим именем.</translation>
     </message>
     <message>
-        <location filename="../../src/ui/MainWindow.cpp" line="846"/>
+        <location filename="../../src/ui/MainWindow.cpp" line="1000"/>
         <source>Edit Mode</source>
         <translation>Режим редактирования</translation>
     </message>
     <message>
-        <location filename="../../src/ui/MainWindow.cpp" line="847"/>
+        <location filename="../../src/ui/MainWindow.cpp" line="1001"/>
         <source>Do you want to enable Edit Mode?</source>
         <translation>Включить режим редактирования?</translation>
     </message>
     <message>
-        <location filename="../../src/ui/MainWindow.cpp" line="1074"/>
+        <location filename="../../src/ui/MainWindow.cpp" line="1234"/>
         <source>Untitled</source>
         <translation>Без названия</translation>
     </message>
     <message>
-        <location filename="../../src/ui/MainWindow.cpp" line="1078"/>
+        <location filename="../../src/ui/MainWindow.cpp" line="1238"/>
         <source>Unsaved Changes</source>
         <translation>Несохранённые изменения</translation>
     </message>
     <message>
-        <location filename="../../src/ui/MainWindow.cpp" line="1079"/>
+        <location filename="../../src/ui/MainWindow.cpp" line="1239"/>
         <source>Save changes to &quot;%1&quot;?</source>
         <translation>Сохранить изменения в «%1»?</translation>
     </message>
     <message>
-        <location filename="../../src/ui/MainWindow.cpp" line="555"/>
+        <location filename="../../src/ui/MainWindow.cpp" line="639"/>
         <source>Open Document</source>
         <translation>Открыть документ</translation>
     </message>
     <message>
-        <location filename="../../src/ui/MainWindow.cpp" line="570"/>
+        <location filename="../../src/ui/MainWindow.cpp" line="657"/>
         <source>Cannot open file</source>
         <translation>Не удаётся открыть файл</translation>
     </message>
     <message>
-        <location filename="../../src/ui/MainWindow.cpp" line="592"/>
+        <location filename="../../src/ui/MainWindow.cpp" line="713"/>
         <source>There is no room to put the converted file.</source>
         <translation>Нет места для преобразованного файла.</translation>
     </message>
     <message>
-        <location filename="../../src/ui/MainWindow.cpp" line="606"/>
-        <location filename="../../src/ui/MainWindow.cpp" line="624"/>
+        <location filename="../../src/ui/MainWindow.cpp" line="728"/>
+        <location filename="../../src/ui/MainWindow.cpp" line="751"/>
         <source>Import failed</source>
         <translation>Импорт не удался</translation>
     </message>
     <message>
-        <location filename="../../src/ui/MainWindow.cpp" line="571"/>
+        <location filename="../../src/ui/MainWindow.cpp" line="658"/>
         <source>&quot;%1&quot; is not a PDF and cannot be turned into one.</source>
         <translation>«%1» не является PDF и не может быть преобразован в PDF.</translation>
     </message>
     <message>
-        <location filename="../../src/ui/MainWindow.cpp" line="607"/>
+        <location filename="../../src/ui/MainWindow.cpp" line="729"/>
         <source>&quot;%1&quot; could not be turned into a PDF.
 
 %2</source>
@@ -2414,17 +2521,17 @@ The file may be write-protected or open in another program. The document is unch
 %2</translation>
     </message>
     <message>
-        <location filename="../../src/ui/MainWindow.cpp" line="625"/>
+        <location filename="../../src/ui/MainWindow.cpp" line="752"/>
         <source>&quot;%1&quot; was converted, but the result could not be opened.</source>
         <translation>«%1» преобразован, но открыть результат не удалось.</translation>
     </message>
     <message>
-        <location filename="../../src/ui/MainWindow.cpp" line="620"/>
+        <location filename="../../src/ui/MainWindow.cpp" line="698"/>
         <source>Cannot add pages</source>
         <translation>Не удалось добавить страницы</translation>
     </message>
     <message>
-        <location filename="../../src/ui/MainWindow.cpp" line="621"/>
+        <location filename="../../src/ui/MainWindow.cpp" line="699"/>
         <source>The pages of &quot;%1&quot; could not be added.</source>
         <translation>Не удалось добавить страницы из «%1».</translation>
     </message>
@@ -2436,12 +2543,12 @@ The file may be write-protected or open in another program. The document is unch
         <translation type="vanished">Изменить свойства</translation>
     </message>
     <message>
-        <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="242"/>
+        <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="248"/>
         <source>Play</source>
         <translation>Воспроизвести</translation>
     </message>
     <message>
-        <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="244"/>
+        <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="250"/>
         <source>Save media as...</source>
         <translation>Сохранить медиа как…</translation>
     </message>
@@ -2450,72 +2557,72 @@ The file may be write-protected or open in another program. The document is unch
         <translation type="vanished">Удалить</translation>
     </message>
     <message>
-        <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="247"/>
+        <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="253"/>
         <source>Replace media</source>
         <translation>Заменить медиа</translation>
     </message>
     <message>
-        <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="288"/>
-        <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="298"/>
+        <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="294"/>
+        <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="304"/>
         <source>Media removed</source>
         <translation>Медиа удалено</translation>
     </message>
     <message>
-        <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="389"/>
+        <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="395"/>
         <source>Save media as</source>
         <translation>Сохранить медиа как</translation>
     </message>
     <message>
-        <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="394"/>
-        <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="770"/>
-        <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="781"/>
-        <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="803"/>
+        <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="400"/>
+        <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="775"/>
+        <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="795"/>
         <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="817"/>
-        <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="907"/>
-        <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="924"/>
+        <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="833"/>
+        <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="923"/>
         <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="940"/>
-        <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="955"/>
-        <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="978"/>
-        <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="1011"/>
-        <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="1019"/>
-        <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="1043"/>
-        <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="1078"/>
-        <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="1151"/>
+        <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="956"/>
+        <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="972"/>
+        <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="995"/>
+        <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="1023"/>
+        <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="1031"/>
+        <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="1055"/>
+        <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="1090"/>
+        <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="1163"/>
         <source>Rich Media</source>
         <translation>Rich Media</translation>
     </message>
     <message>
-        <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="395"/>
+        <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="401"/>
         <source>Could not write &quot;%1&quot;.</source>
         <translation>Не удалось записать «%1».</translation>
     </message>
     <message>
-        <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="589"/>
+        <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="595"/>
         <source>Media files (*.mp4 *.m4v *.mov *.webm *.mkv *.avi *.mp3 *.m4a *.wav *.ogg *.opus *.flac);;All files (*)</source>
         <translation>Медиафайлы (*.mp4 *.m4v *.mov *.webm *.mkv *.avi *.mp3 *.m4a *.wav *.ogg *.opus *.flac);;Все файлы (*)</translation>
     </message>
     <message>
-        <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="591"/>
+        <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="597"/>
         <source>Choose media</source>
         <translation>Выберите медиа</translation>
     </message>
     <message>
-        <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="753"/>
+        <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="759"/>
         <source>Media changed</source>
         <translation>Медиа изменено</translation>
     </message>
     <message>
-        <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="765"/>
+        <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="771"/>
         <source>%1, an unsupported format</source>
         <translation>%1, неподдерживаемый формат</translation>
     </message>
     <message>
-        <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="766"/>
+        <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="772"/>
         <source>%1 in %2</source>
         <translation>%1 в %2</translation>
     </message>
     <message>
-        <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="771"/>
+        <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="776"/>
         <source>This file is %1. Most PDF viewers play only H.264 video in an MP4 container, so for many people the video will be a still image.
 
 Install ffmpeg to convert it, or embed it as it is.</source>
@@ -2524,139 +2631,142 @@ Install ffmpeg to convert it, or embed it as it is.</source>
 Установите ffmpeg, чтобы преобразовать его, или встройте как есть.</translation>
     </message>
     <message>
-        <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="782"/>
+        <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="784"/>
+        <source>Install ffmpeg…</source>
+        <translation>Установить ffmpeg…</translation>
+    </message>
+    <message>
+        <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="796"/>
         <source>This file is %1.</source>
         <translation>Этот файл: %1.</translation>
     </message>
     <message>
-        <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="784"/>
+        <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="798"/>
         <source>H.264 in an MP4 container is what plays everywhere: in PDF viewers, in browsers and on phones. Convert it now so the video works for everyone who opens the document?</source>
         <translation>H.264 в контейнере MP4 воспроизводится везде: в программах просмотра PDF, браузерах и на телефонах. Преобразовать сейчас, чтобы видео работало у всех, кто откроет документ?</translation>
     </message>
     <message>
-        <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="787"/>
+        <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="801"/>
         <source>Convert</source>
         <translation>Преобразовать</translation>
     </message>
     <message>
-        <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="788"/>
+        <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="802"/>
         <source>Embed as is</source>
         <translation>Встроить как есть</translation>
     </message>
     <message>
-        <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="801"/>
+        <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="815"/>
         <source>Converting %1...</source>
         <translation>Преобразование %1…</translation>
     </message>
     <message>
-        <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="802"/>
-        <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="938"/>
+        <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="816"/>
+        <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="954"/>
         <source>Cancel</source>
         <translation>Отмена</translation>
     </message>
     <message>
-        <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="818"/>
+        <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="834"/>
         <source>The file could not be converted.</source>
         <translation>Не удалось преобразовать файл.</translation>
     </message>
     <message>
-        <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="856"/>
-        <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="1142"/>
+        <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="872"/>
+        <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="1154"/>
         <source>Media inserted</source>
         <translation>Медиа вставлено</translation>
     </message>
     <message>
-        <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="893"/>
+        <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="909"/>
         <source>%1 in %2, %3 by %4 pixels.</source>
         <translation>%1 в %2, %3 × %4 пикс.</translation>
     </message>
     <message>
-        <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="896"/>
+        <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="912"/>
         <source>%1 in %2.</source>
         <translation>%1 в %2.</translation>
     </message>
     <message>
-        <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="900"/>
+        <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="916"/>
         <source>Video this large is more than some systems will decode. A smaller copy usually plays, and the document keeps the original.</source>
         <translation>Такое большое видео некоторые системы не могут декодировать. Уменьшенная копия обычно воспроизводится, а в документе остаётся оригинал.</translation>
     </message>
     <message>
-        <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="908"/>
+        <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="924"/>
         <source>This video could not be played here: %1</source>
         <translation>Не удалось воспроизвести это видео здесь: %1</translation>
     </message>
     <message>
-        <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="915"/>
+        <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="931"/>
         <source>Play a smaller copy</source>
         <translation>Воспроизвести уменьшенную копию</translation>
     </message>
     <message>
-        <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="917"/>
+        <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="933"/>
         <source>Open in system player</source>
         <translation>Открыть в системном проигрывателе</translation>
     </message>
     <message>
-        <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="925"/>
+        <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="941"/>
         <source>No media player was found on this system.</source>
         <translation>В этой системе не найден медиапроигрыватель.</translation>
     </message>
     <message>
-        <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="938"/>
+        <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="954"/>
         <source>Preparing a smaller copy...</source>
         <translation>Подготовка уменьшенной копии…</translation>
     </message>
     <message>
-        <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="956"/>
+        <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="973"/>
         <source>The smaller copy could not be made.</source>
         <translation>Не удалось создать уменьшенную копию.</translation>
     </message>
     <message>
-        <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="979"/>
+        <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="996"/>
         <source>Play &quot;%1&quot; from this document?</source>
         <translation>Воспроизвести «%1» из этого документа?</translation>
     </message>
     <message>
-        <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="981"/>
+        <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="998"/>
         <source>Media in a PDF is chosen by whoever made the file. Playing it hands the data to a decoder, in this build possibly to a player outside OpenPDF Studio. Play it only if you trust the document.</source>
         <translation>Медиа в PDF выбирает автор файла. При воспроизведении данные передаются декодеру, в этой сборке, возможно, проигрывателю вне OpenPDF Studio. Воспроизводите, только если доверяете документу.</translation>
     </message>
     <message>
-        <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="984"/>
         <source>Play once</source>
-        <translation>Воспроизвести один раз</translation>
+        <translation type="vanished">Воспроизвести один раз</translation>
     </message>
     <message>
-        <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="985"/>
         <source>Always for this document</source>
-        <translation>Всегда для этого документа</translation>
+        <translation type="vanished">Всегда для этого документа</translation>
     </message>
     <message>
-        <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="1012"/>
+        <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="1024"/>
         <source>This media points to a file outside the document, so OpenPDF Studio does not open it.</source>
         <translation>Это медиа указывает на файл вне документа, поэтому OpenPDF Studio его не открывает.</translation>
     </message>
     <message>
-        <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="1020"/>
+        <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="1032"/>
         <source>The media could not be read from the document.</source>
         <translation>Не удалось прочитать медиа из документа.</translation>
     </message>
     <message>
-        <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="1044"/>
+        <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="1056"/>
         <source>The page this media sits on is not on screen, so it cannot be played here.</source>
         <translation>Страница с этим медиа не на экране, поэтому его нельзя воспроизвести здесь.</translation>
     </message>
     <message>
-        <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="1079"/>
+        <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="1091"/>
         <source>No media player was found. Install VLC or mpv, or set a custom player under Settings, Media Playback.</source>
         <translation>Медиапроигрыватель не найден. Установите VLC или mpv либо укажите свой проигрыватель в разделе «Настройки», «Воспроизведение медиа».</translation>
     </message>
     <message>
-        <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="1152"/>
+        <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="1164"/>
         <source>The video could not be added as a new page.</source>
         <translation>Не удалось добавить видео как новую страницу.</translation>
     </message>
     <message>
-        <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="987"/>
+        <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="1001"/>
         <source>Trust</source>
         <translation>Доверять</translation>
     </message>
@@ -2664,17 +2774,17 @@ Install ffmpeg to convert it, or embed it as it is.</source>
 <context>
     <name>MediaPlayerFrame</name>
     <message>
-        <location filename="../../modules/rich-media/ui/MediaPlayerFrame.cpp" line="70"/>
+        <location filename="../../modules/rich-media/ui/MediaPlayerFrame.cpp" line="104"/>
         <source>Close the player</source>
         <translation>Закрыть проигрыватель</translation>
     </message>
     <message>
-        <location filename="../../modules/rich-media/ui/MediaPlayerFrame.cpp" line="105"/>
+        <location filename="../../modules/rich-media/ui/MediaPlayerFrame.cpp" line="139"/>
         <source>nothing was decoded within six seconds</source>
         <translation>за шесть секунд ничего не было декодировано</translation>
     </message>
     <message>
-        <location filename="../../modules/rich-media/ui/MediaPlayerFrame.cpp" line="97"/>
+        <location filename="../../modules/rich-media/ui/MediaPlayerFrame.cpp" line="102"/>
         <source>Volume</source>
         <translation>Громкость</translation>
     </message>
@@ -2809,6 +2919,78 @@ Install ffmpeg to convert it, or embed it as it is.</source>
     </message>
 </context>
 <context>
+    <name>PackageControl</name>
+    <message>
+        <location filename="../../src/ui/settings/PackageControl.cpp" line="38"/>
+        <source>Installed</source>
+        <translation>Установлено</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/settings/PackageControl.cpp" line="38"/>
+        <source>Not installed</source>
+        <translation>Не установлено</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/settings/PackageControl.cpp" line="43"/>
+        <location filename="../../src/ui/settings/PackageControl.cpp" line="68"/>
+        <source>Remove</source>
+        <translation>Удалить</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/settings/PackageControl.cpp" line="43"/>
+        <source>Install</source>
+        <translation>Установить</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/settings/PackageControl.cpp" line="47"/>
+        <source>Remove with: %1</source>
+        <translation>Удалить командой: %1</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/settings/PackageControl.cpp" line="47"/>
+        <source>Install with: %1</source>
+        <translation>Установить командой: %1</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/settings/PackageControl.cpp" line="50"/>
+        <source>Install it with your system&apos;s package manager.</source>
+        <translation>Установите его через менеджер пакетов системы.</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/settings/PackageControl.cpp" line="69"/>
+        <source>Other programs need this package and would be removed with it:
+
+%1
+
+Remove them too?</source>
+        <translation>Этот пакет нужен другим программам, и они будут удалены вместе с ним:
+
+%1
+
+Удалить и их?</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/settings/PackageControl.cpp" line="72"/>
+        <source>Remove All</source>
+        <translation>Удалить все</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/settings/PackageControl.cpp" line="79"/>
+        <source>Removing…</source>
+        <translation>Удаление…</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/settings/PackageControl.cpp" line="59"/>
+        <source>Installing…</source>
+        <translation>Установка…</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/settings/PackageControl.cpp" line="87"/>
+        <source>Not done: %1</source>
+        <translation>Не выполнено: %1</translation>
+    </message>
+</context>
+<context>
     <name>PasswordDialog</name>
     <message>
         <location filename="../../src/ui/widgets/PasswordDialog.cpp" line="12"/>
@@ -2857,7 +3039,7 @@ Enter the password to open it:</source>
         <translation type="vanished">Удалить выбранное</translation>
     </message>
     <message>
-        <location filename="../../src/ui/organizer/PdfOrganizerDialog.cpp" line="260"/>
+        <location filename="../../src/ui/organizer/PdfOrganizerDialog.cpp" line="267"/>
         <source>Cancel</source>
         <translation>Отмена</translation>
     </message>
@@ -2866,157 +3048,157 @@ Enter the password to open it:</source>
         <translation type="vanished">Сохранить как…</translation>
     </message>
     <message>
-        <location filename="../../src/ui/organizer/PdfOrganizerDialog.cpp" line="63"/>
-        <location filename="../../src/ui/organizer/PdfOrganizerDialog.cpp" line="842"/>
+        <location filename="../../src/ui/organizer/PdfOrganizerDialog.cpp" line="64"/>
+        <location filename="../../src/ui/organizer/PdfOrganizerDialog.cpp" line="849"/>
         <source>PDF Organizer - OpenPDF Studio</source>
         <translation>Органайзер PDF - OpenPDF Studio</translation>
     </message>
     <message>
-        <location filename="../../src/ui/organizer/PdfOrganizerDialog.cpp" line="134"/>
+        <location filename="../../src/ui/organizer/PdfOrganizerDialog.cpp" line="141"/>
         <source>Add PDF</source>
         <translation>Добавить PDF</translation>
     </message>
     <message>
-        <location filename="../../src/ui/organizer/PdfOrganizerDialog.cpp" line="140"/>
+        <location filename="../../src/ui/organizer/PdfOrganizerDialog.cpp" line="147"/>
         <source>Open PDF file…</source>
         <translation>Открыть файл PDF…</translation>
     </message>
     <message>
-        <location filename="../../src/ui/organizer/PdfOrganizerDialog.cpp" line="142"/>
-        <location filename="../../src/ui/organizer/PdfOrganizerDialog.cpp" line="148"/>
-        <location filename="../../src/ui/organizer/PdfOrganizerDialog.cpp" line="294"/>
+        <location filename="../../src/ui/organizer/PdfOrganizerDialog.cpp" line="149"/>
+        <location filename="../../src/ui/organizer/PdfOrganizerDialog.cpp" line="155"/>
+        <location filename="../../src/ui/organizer/PdfOrganizerDialog.cpp" line="301"/>
         <source>Open PDF</source>
         <translation>Открыть PDF</translation>
     </message>
     <message>
-        <location filename="../../src/ui/organizer/PdfOrganizerDialog.cpp" line="142"/>
-        <location filename="../../src/ui/organizer/PdfOrganizerDialog.cpp" line="148"/>
-        <location filename="../../src/ui/organizer/PdfOrganizerDialog.cpp" line="761"/>
+        <location filename="../../src/ui/organizer/PdfOrganizerDialog.cpp" line="149"/>
+        <location filename="../../src/ui/organizer/PdfOrganizerDialog.cpp" line="155"/>
+        <location filename="../../src/ui/organizer/PdfOrganizerDialog.cpp" line="768"/>
         <source>PDF files (*.pdf)</source>
         <translation>Файлы PDF (*.pdf)</translation>
     </message>
     <message>
-        <location filename="../../src/ui/organizer/PdfOrganizerDialog.cpp" line="153"/>
+        <location filename="../../src/ui/organizer/PdfOrganizerDialog.cpp" line="160"/>
         <source>Blank Page</source>
         <translation>Пустая страница</translation>
     </message>
     <message>
-        <location filename="../../src/ui/organizer/PdfOrganizerDialog.cpp" line="181"/>
+        <location filename="../../src/ui/organizer/PdfOrganizerDialog.cpp" line="188"/>
         <source>Move left</source>
         <translation>Сдвинуть влево</translation>
     </message>
     <message>
-        <location filename="../../src/ui/organizer/PdfOrganizerDialog.cpp" line="181"/>
+        <location filename="../../src/ui/organizer/PdfOrganizerDialog.cpp" line="188"/>
         <source>Move page left</source>
         <translation>Сдвинуть страницу влево</translation>
     </message>
     <message>
-        <location filename="../../src/ui/organizer/PdfOrganizerDialog.cpp" line="182"/>
+        <location filename="../../src/ui/organizer/PdfOrganizerDialog.cpp" line="189"/>
         <source>Move right</source>
         <translation>Сдвинуть вправо</translation>
     </message>
     <message>
-        <location filename="../../src/ui/organizer/PdfOrganizerDialog.cpp" line="182"/>
+        <location filename="../../src/ui/organizer/PdfOrganizerDialog.cpp" line="189"/>
         <source>Move page right</source>
         <translation>Сдвинуть страницу вправо</translation>
     </message>
     <message>
-        <location filename="../../src/ui/organizer/PdfOrganizerDialog.cpp" line="185"/>
+        <location filename="../../src/ui/organizer/PdfOrganizerDialog.cpp" line="192"/>
         <source>Rotate left</source>
         <translation>Повернуть влево</translation>
     </message>
     <message>
-        <location filename="../../src/ui/organizer/PdfOrganizerDialog.cpp" line="185"/>
+        <location filename="../../src/ui/organizer/PdfOrganizerDialog.cpp" line="192"/>
         <source>Rotate left 90°</source>
         <translation>Повернуть на 90° влево</translation>
     </message>
     <message>
-        <location filename="../../src/ui/organizer/PdfOrganizerDialog.cpp" line="186"/>
+        <location filename="../../src/ui/organizer/PdfOrganizerDialog.cpp" line="193"/>
         <source>Rotate right</source>
         <translation>Повернуть вправо</translation>
     </message>
     <message>
-        <location filename="../../src/ui/organizer/PdfOrganizerDialog.cpp" line="186"/>
+        <location filename="../../src/ui/organizer/PdfOrganizerDialog.cpp" line="193"/>
         <source>Rotate right 90°</source>
         <translation>Повернуть на 90° вправо</translation>
     </message>
     <message>
-        <location filename="../../src/ui/organizer/PdfOrganizerDialog.cpp" line="189"/>
+        <location filename="../../src/ui/organizer/PdfOrganizerDialog.cpp" line="196"/>
         <source>Delete page</source>
         <translation>Удалить страницу</translation>
     </message>
     <message>
-        <location filename="../../src/ui/organizer/PdfOrganizerDialog.cpp" line="232"/>
+        <location filename="../../src/ui/organizer/PdfOrganizerDialog.cpp" line="239"/>
         <source>Drag &amp; drop pages to reorder</source>
         <translation>Перетаскивайте страницы, чтобы изменить порядок</translation>
     </message>
     <message>
-        <location filename="../../src/ui/organizer/PdfOrganizerDialog.cpp" line="255"/>
-        <location filename="../../src/ui/organizer/PdfOrganizerDialog.cpp" line="475"/>
+        <location filename="../../src/ui/organizer/PdfOrganizerDialog.cpp" line="262"/>
+        <location filename="../../src/ui/organizer/PdfOrganizerDialog.cpp" line="482"/>
         <source>Pages</source>
         <translation>Страницы</translation>
     </message>
     <message>
-        <location filename="../../src/ui/organizer/PdfOrganizerDialog.cpp" line="265"/>
+        <location filename="../../src/ui/organizer/PdfOrganizerDialog.cpp" line="272"/>
         <source>Save as</source>
         <translation>Сохранить как</translation>
     </message>
     <message>
-        <location filename="../../src/ui/organizer/PdfOrganizerDialog.cpp" line="270"/>
+        <location filename="../../src/ui/organizer/PdfOrganizerDialog.cpp" line="277"/>
         <source>Save</source>
         <translation>Сохранить</translation>
     </message>
     <message>
-        <location filename="../../src/ui/organizer/PdfOrganizerDialog.cpp" line="295"/>
+        <location filename="../../src/ui/organizer/PdfOrganizerDialog.cpp" line="302"/>
         <source>Could not open: </source>
         <translation>Не удалось открыть: </translation>
     </message>
     <message>
-        <location filename="../../src/ui/organizer/PdfOrganizerDialog.cpp" line="424"/>
-        <location filename="../../src/ui/organizer/PdfOrganizerDialog.cpp" line="468"/>
+        <location filename="../../src/ui/organizer/PdfOrganizerDialog.cpp" line="431"/>
+        <location filename="../../src/ui/organizer/PdfOrganizerDialog.cpp" line="475"/>
         <source>Page %1</source>
         <translation>Страница %1</translation>
     </message>
     <message>
-        <location filename="../../src/ui/organizer/PdfOrganizerDialog.cpp" line="687"/>
         <location filename="../../src/ui/organizer/PdfOrganizerDialog.cpp" line="694"/>
+        <location filename="../../src/ui/organizer/PdfOrganizerDialog.cpp" line="701"/>
         <source>Save failed</source>
         <translation>Ошибка сохранения</translation>
     </message>
     <message>
-        <location filename="../../src/ui/organizer/PdfOrganizerDialog.cpp" line="688"/>
+        <location filename="../../src/ui/organizer/PdfOrganizerDialog.cpp" line="695"/>
         <source>%1 of %2 pages could not be rendered, so the document would have been saved blank. Your PDF was not changed.</source>
         <translation>Не удалось отрисовать %1 из %2 страниц, поэтому документ сохранился бы пустым. Ваш PDF не изменён.</translation>
     </message>
     <message>
-        <location filename="../../src/ui/organizer/PdfOrganizerDialog.cpp" line="695"/>
+        <location filename="../../src/ui/organizer/PdfOrganizerDialog.cpp" line="702"/>
         <source>The organized document could not be written to &quot;%1&quot;. Your PDF was not changed.</source>
         <translation>Не удалось записать упорядоченный документ в «%1». Ваш PDF не изменён.</translation>
     </message>
     <message>
-        <location filename="../../src/ui/organizer/PdfOrganizerDialog.cpp" line="701"/>
+        <location filename="../../src/ui/organizer/PdfOrganizerDialog.cpp" line="708"/>
         <source>PDF writing requires a PDF backend (Qt6Pdf or Poppler).</source>
         <translation>Для записи PDF нужен движок PDF (Qt6Pdf или Poppler).</translation>
     </message>
     <message>
-        <location filename="../../src/ui/organizer/PdfOrganizerDialog.cpp" line="734"/>
-        <location filename="../../src/ui/organizer/PdfOrganizerDialog.cpp" line="755"/>
+        <location filename="../../src/ui/organizer/PdfOrganizerDialog.cpp" line="741"/>
+        <location filename="../../src/ui/organizer/PdfOrganizerDialog.cpp" line="762"/>
         <source>Empty</source>
         <translation>Пусто</translation>
     </message>
     <message>
-        <location filename="../../src/ui/organizer/PdfOrganizerDialog.cpp" line="735"/>
-        <location filename="../../src/ui/organizer/PdfOrganizerDialog.cpp" line="756"/>
+        <location filename="../../src/ui/organizer/PdfOrganizerDialog.cpp" line="742"/>
+        <location filename="../../src/ui/organizer/PdfOrganizerDialog.cpp" line="763"/>
         <source>Add at least one page before saving.</source>
         <translation>Добавьте хотя бы одну страницу перед сохранением.</translation>
     </message>
     <message>
-        <location filename="../../src/ui/organizer/PdfOrganizerDialog.cpp" line="761"/>
+        <location filename="../../src/ui/organizer/PdfOrganizerDialog.cpp" line="768"/>
         <source>Save PDF As</source>
         <translation>Сохранить PDF как</translation>
     </message>
     <message>
-        <location filename="../../src/ui/organizer/PdfOrganizerDialog.cpp" line="700"/>
+        <location filename="../../src/ui/organizer/PdfOrganizerDialog.cpp" line="707"/>
         <source>Not Available</source>
         <translation>Недоступно</translation>
     </message>
@@ -3025,15 +3207,68 @@ Enter the password to open it:</source>
         <translation type="vanished">Запись PDF требует Qt6Pdf.</translation>
     </message>
     <message>
-        <location filename="../../src/ui/organizer/PdfOrganizerDialog.cpp" line="198"/>
-        <location filename="../../src/ui/organizer/PdfOrganizerDialog.cpp" line="493"/>
+        <location filename="../../src/ui/organizer/PdfOrganizerDialog.cpp" line="205"/>
+        <location filename="../../src/ui/organizer/PdfOrganizerDialog.cpp" line="500"/>
         <source>Select all</source>
         <translation>Выбрать все</translation>
     </message>
     <message>
-        <location filename="../../src/ui/organizer/PdfOrganizerDialog.cpp" line="493"/>
+        <location filename="../../src/ui/organizer/PdfOrganizerDialog.cpp" line="500"/>
         <source>Deselect all</source>
         <translation>Снять выделение</translation>
+    </message>
+</context>
+<context>
+    <name>PermissionGate</name>
+    <message>
+        <location filename="../../src/ui/protect/PermissionGate.cpp" line="18"/>
+        <source>This document does not allow printing.</source>
+        <translation>Этот документ не разрешает печать.</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/protect/PermissionGate.cpp" line="19"/>
+        <source>This document does not allow copying text.</source>
+        <translation>Этот документ не разрешает копирование текста.</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/protect/PermissionGate.cpp" line="20"/>
+        <source>This document does not allow changing its content.</source>
+        <translation>Этот документ не разрешает изменение содержимого.</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/protect/PermissionGate.cpp" line="21"/>
+        <source>This document does not allow adding comments.</source>
+        <translation>Этот документ не разрешает добавление комментариев.</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/protect/PermissionGate.cpp" line="22"/>
+        <source>This document does not allow filling in forms.</source>
+        <translation>Этот документ не разрешает заполнение форм.</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/protect/PermissionGate.cpp" line="24"/>
+        <source>This document does not allow inserting, deleting and rotating pages.</source>
+        <translation>Этот документ не разрешает вставку, удаление и поворот страниц.</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/protect/PermissionGate.cpp" line="26"/>
+        <source>The restrictions of this document can only be changed by its owner.</source>
+        <translation>Ограничения этого документа может изменить только его владелец.</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/protect/PermissionGate.cpp" line="56"/>
+        <source>Enter the permissions password to lift its restrictions:</source>
+        <translation>Введите пароль прав, чтобы снять ограничения:</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/protect/PermissionGate.cpp" line="59"/>
+        <source>Restricted document</source>
+        <translation>Документ с ограничениями</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/protect/PermissionGate.cpp" line="63"/>
+        <source>Wrong permissions password. Please try again:</source>
+        <translation>Неверный пароль прав. Повторите попытку:</translation>
     </message>
 </context>
 <context>
@@ -3089,234 +3324,234 @@ Enter the password to open it:</source>
         </translation>
     </message>
     <message>
-        <location filename="../../src/ui/export/PrintDialog.cpp" line="121"/>
+        <location filename="../../src/ui/export/PrintDialog.cpp" line="123"/>
         <source>Print - OpenPDF Studio</source>
         <translation>Печать - OpenPDF Studio</translation>
     </message>
     <message>
-        <location filename="../../src/ui/export/PrintDialog.cpp" line="283"/>
-        <location filename="../../src/ui/export/PrintDialog.cpp" line="564"/>
+        <location filename="../../src/ui/export/PrintDialog.cpp" line="286"/>
+        <location filename="../../src/ui/export/PrintDialog.cpp" line="567"/>
         <source>Print</source>
         <translation>Печать</translation>
     </message>
     <message>
-        <location filename="../../src/ui/export/PrintDialog.cpp" line="329"/>
+        <location filename="../../src/ui/export/PrintDialog.cpp" line="332"/>
         <source>Printer</source>
         <translation>Принтер</translation>
     </message>
     <message>
-        <location filename="../../src/ui/export/PrintDialog.cpp" line="342"/>
+        <location filename="../../src/ui/export/PrintDialog.cpp" line="345"/>
         <source>No printer found</source>
         <translation>Принтер не найден</translation>
     </message>
     <message>
-        <location filename="../../src/ui/export/PrintDialog.cpp" line="365"/>
+        <location filename="../../src/ui/export/PrintDialog.cpp" line="368"/>
         <source>Pages &amp; copies</source>
         <translation>Страницы и копии</translation>
     </message>
     <message>
-        <location filename="../../src/ui/export/PrintDialog.cpp" line="367"/>
+        <location filename="../../src/ui/export/PrintDialog.cpp" line="370"/>
         <source>All %1</source>
         <translation>Все (%1)</translation>
     </message>
     <message>
-        <location filename="../../src/ui/export/PrintDialog.cpp" line="368"/>
+        <location filename="../../src/ui/export/PrintDialog.cpp" line="371"/>
         <source>Current page</source>
         <translation>Текущая страница</translation>
     </message>
     <message>
-        <location filename="../../src/ui/export/PrintDialog.cpp" line="369"/>
+        <location filename="../../src/ui/export/PrintDialog.cpp" line="372"/>
         <source>Range</source>
         <translation>Диапазон</translation>
     </message>
     <message>
-        <location filename="../../src/ui/export/PrintDialog.cpp" line="373"/>
+        <location filename="../../src/ui/export/PrintDialog.cpp" line="376"/>
         <source>For example: 1-3, 5, 8-10</source>
         <translation>Например: 1-3, 5, 8-10</translation>
     </message>
     <message>
-        <location filename="../../src/ui/export/PrintDialog.cpp" line="396"/>
+        <location filename="../../src/ui/export/PrintDialog.cpp" line="399"/>
         <source>Copies</source>
         <translation>Копии</translation>
     </message>
     <message>
-        <location filename="../../src/ui/export/PrintDialog.cpp" line="403"/>
+        <location filename="../../src/ui/export/PrintDialog.cpp" line="406"/>
         <source>Collate</source>
         <translation>Разобрать по копиям</translation>
     </message>
     <message>
-        <location filename="../../src/ui/export/PrintDialog.cpp" line="420"/>
+        <location filename="../../src/ui/export/PrintDialog.cpp" line="423"/>
         <source>Paper &amp; layout</source>
         <translation>Бумага и макет</translation>
     </message>
     <message>
-        <location filename="../../src/ui/export/PrintDialog.cpp" line="424"/>
+        <location filename="../../src/ui/export/PrintDialog.cpp" line="427"/>
         <source>Portrait</source>
         <translation>Книжная</translation>
     </message>
     <message>
-        <location filename="../../src/ui/export/PrintDialog.cpp" line="425"/>
+        <location filename="../../src/ui/export/PrintDialog.cpp" line="428"/>
         <source>Landscape</source>
         <translation>Альбомная</translation>
     </message>
     <message>
-        <location filename="../../src/ui/export/PrintDialog.cpp" line="427"/>
+        <location filename="../../src/ui/export/PrintDialog.cpp" line="430"/>
         <source>Fit to printable area</source>
         <translation>По размеру области печати</translation>
     </message>
     <message>
-        <location filename="../../src/ui/export/PrintDialog.cpp" line="428"/>
+        <location filename="../../src/ui/export/PrintDialog.cpp" line="431"/>
         <source>Shrink oversized pages</source>
         <translation>Уменьшать слишком большие страницы</translation>
     </message>
     <message>
-        <location filename="../../src/ui/export/PrintDialog.cpp" line="429"/>
+        <location filename="../../src/ui/export/PrintDialog.cpp" line="432"/>
         <source>Actual size</source>
         <translation>Фактический размер</translation>
     </message>
     <message>
-        <location filename="../../src/ui/export/PrintDialog.cpp" line="434"/>
+        <location filename="../../src/ui/export/PrintDialog.cpp" line="437"/>
         <source>Paper size</source>
         <translation>Размер бумаги</translation>
     </message>
     <message>
-        <location filename="../../src/ui/export/PrintDialog.cpp" line="435"/>
+        <location filename="../../src/ui/export/PrintDialog.cpp" line="438"/>
         <source>Orientation</source>
         <translation>Ориентация</translation>
     </message>
     <message>
-        <location filename="../../src/ui/export/PrintDialog.cpp" line="436"/>
+        <location filename="../../src/ui/export/PrintDialog.cpp" line="439"/>
         <source>Scaling</source>
         <translation>Масштаб</translation>
     </message>
     <message>
-        <location filename="../../src/ui/export/PrintDialog.cpp" line="453"/>
+        <location filename="../../src/ui/export/PrintDialog.cpp" line="456"/>
         <source>Output</source>
         <translation>Вывод</translation>
     </message>
     <message>
-        <location filename="../../src/ui/export/PrintDialog.cpp" line="460"/>
+        <location filename="../../src/ui/export/PrintDialog.cpp" line="463"/>
         <source>1 page on %1 sheets</source>
         <translation>1 страница на %1 листах</translation>
     </message>
     <message>
-        <location filename="../../src/ui/export/PrintDialog.cpp" line="467"/>
+        <location filename="../../src/ui/export/PrintDialog.cpp" line="470"/>
         <source>Pages per sheet</source>
         <translation>Страниц на листе</translation>
     </message>
     <message>
-        <location filename="../../src/ui/export/PrintDialog.cpp" line="468"/>
-        <location filename="../../src/ui/export/PrintDialog.cpp" line="740"/>
+        <location filename="../../src/ui/export/PrintDialog.cpp" line="471"/>
+        <location filename="../../src/ui/export/PrintDialog.cpp" line="743"/>
         <source>Two-sided</source>
         <translation>Двусторонняя</translation>
     </message>
     <message>
-        <location filename="../../src/ui/export/PrintDialog.cpp" line="473"/>
+        <location filename="../../src/ui/export/PrintDialog.cpp" line="476"/>
         <source>Print in black and white</source>
         <translation>Печатать в черно-белом</translation>
     </message>
     <message>
-        <location filename="../../src/ui/export/PrintDialog.cpp" line="482"/>
+        <location filename="../../src/ui/export/PrintDialog.cpp" line="485"/>
         <source>Output in black and white</source>
         <translation>Черно-белая печать</translation>
     </message>
     <message>
-        <location filename="../../src/ui/export/PrintDialog.cpp" line="502"/>
+        <location filename="../../src/ui/export/PrintDialog.cpp" line="505"/>
         <source>More settings</source>
         <translation>Другие параметры</translation>
     </message>
     <message>
-        <location filename="../../src/ui/export/PrintDialog.cpp" line="514"/>
+        <location filename="../../src/ui/export/PrintDialog.cpp" line="517"/>
         <source>Cut marks on posters</source>
         <translation>Метки обрезки для плакатов</translation>
     </message>
     <message>
-        <location filename="../../src/ui/export/PrintDialog.cpp" line="517"/>
+        <location filename="../../src/ui/export/PrintDialog.cpp" line="520"/>
         <source>Print with the system dialog…</source>
         <translation>Печать через системный диалог…</translation>
     </message>
     <message>
-        <location filename="../../src/ui/export/PrintDialog.cpp" line="522"/>
+        <location filename="../../src/ui/export/PrintDialog.cpp" line="525"/>
         <source>For paper tray, print quality and other settings of the printer driver.</source>
         <translation>Для лотка, качества печати и других параметров драйвера принтера.</translation>
     </message>
     <message>
-        <location filename="../../src/ui/export/PrintDialog.cpp" line="559"/>
+        <location filename="../../src/ui/export/PrintDialog.cpp" line="562"/>
         <source>Cancel</source>
         <translation>Отмена</translation>
     </message>
     <message>
-        <location filename="../../src/ui/export/PrintDialog.cpp" line="584"/>
+        <location filename="../../src/ui/export/PrintDialog.cpp" line="587"/>
         <source>Set up a printer in the system settings.</source>
         <translation>Настройте принтер в параметрах системы.</translation>
     </message>
     <message>
-        <location filename="../../src/ui/export/PrintDialog.cpp" line="593"/>
+        <location filename="../../src/ui/export/PrintDialog.cpp" line="596"/>
         <source>Ready</source>
         <translation>Готов</translation>
     </message>
     <message>
-        <location filename="../../src/ui/export/PrintDialog.cpp" line="594"/>
+        <location filename="../../src/ui/export/PrintDialog.cpp" line="597"/>
         <source>Printing</source>
         <translation>Печатает</translation>
     </message>
     <message>
-        <location filename="../../src/ui/export/PrintDialog.cpp" line="596"/>
+        <location filename="../../src/ui/export/PrintDialog.cpp" line="599"/>
         <source>Paused</source>
         <translation>Приостановлен</translation>
     </message>
     <message>
-        <location filename="../../src/ui/export/PrintDialog.cpp" line="601"/>
+        <location filename="../../src/ui/export/PrintDialog.cpp" line="604"/>
         <source>Not ready</source>
         <translation>Не готов</translation>
     </message>
     <message>
-        <location filename="../../src/ui/export/PrintDialog.cpp" line="609"/>
+        <location filename="../../src/ui/export/PrintDialog.cpp" line="612"/>
         <source>Color printer</source>
         <translation>Цветной принтер</translation>
     </message>
     <message>
-        <location filename="../../src/ui/export/PrintDialog.cpp" line="609"/>
+        <location filename="../../src/ui/export/PrintDialog.cpp" line="612"/>
         <source>Black-and-white printer</source>
         <translation>Черно-белый принтер</translation>
     </message>
     <message>
-        <location filename="../../src/ui/export/PrintDialog.cpp" line="637"/>
+        <location filename="../../src/ui/export/PrintDialog.cpp" line="640"/>
         <source>Off</source>
         <translation>Выкл.</translation>
     </message>
     <message>
-        <location filename="../../src/ui/export/PrintDialog.cpp" line="639"/>
+        <location filename="../../src/ui/export/PrintDialog.cpp" line="642"/>
         <source>Long edge</source>
         <translation>По длинному краю</translation>
     </message>
     <message>
-        <location filename="../../src/ui/export/PrintDialog.cpp" line="641"/>
+        <location filename="../../src/ui/export/PrintDialog.cpp" line="644"/>
         <source>Short edge</source>
         <translation>По короткому краю</translation>
     </message>
     <message>
-        <location filename="../../src/ui/export/PrintDialog.cpp" line="728"/>
+        <location filename="../../src/ui/export/PrintDialog.cpp" line="731"/>
         <source>Check the page range</source>
         <translation>Проверьте диапазон страниц</translation>
     </message>
     <message>
-        <location filename="../../src/ui/export/PrintDialog.cpp" line="729"/>
+        <location filename="../../src/ui/export/PrintDialog.cpp" line="732"/>
         <source>Use page numbers like 1-3, 5, 8-10.</source>
         <translation>Используйте номера страниц, например 1-3, 5, 8-10.</translation>
     </message>
     <message>
-        <location filename="../../src/ui/export/PrintDialog.cpp" line="740"/>
+        <location filename="../../src/ui/export/PrintDialog.cpp" line="743"/>
         <source>One-sided</source>
         <translation>Односторонняя</translation>
     </message>
     <message>
-        <location filename="../../src/ui/export/PrintDialog.cpp" line="741"/>
+        <location filename="../../src/ui/export/PrintDialog.cpp" line="744"/>
         <source>Sheets overlap by 10 mm</source>
         <translation>Листы перекрываются на 10 мм</translation>
     </message>
     <message>
-        <location filename="../../src/ui/export/PrintDialog.cpp" line="742"/>
+        <location filename="../../src/ui/export/PrintDialog.cpp" line="745"/>
         <source>Black and white</source>
         <translation>Черно-белая</translation>
     </message>
@@ -3340,67 +3575,16 @@ Enter the password to open it:</source>
     </message>
 </context>
 <context>
-    <name>PermissionGate</name>
-    <message>
-        <location filename="../../src/ui/protect/PermissionGate.cpp" line="15"/>
-        <source>This document does not allow printing.</source>
-        <translation>Этот документ не разрешает печать.</translation>
-    </message>
-    <message>
-        <location filename="../../src/ui/protect/PermissionGate.cpp" line="16"/>
-        <source>This document does not allow copying text.</source>
-        <translation>Этот документ не разрешает копирование текста.</translation>
-    </message>
-    <message>
-        <location filename="../../src/ui/protect/PermissionGate.cpp" line="17"/>
-        <source>This document does not allow changing its content.</source>
-        <translation>Этот документ не разрешает изменение содержимого.</translation>
-    </message>
-    <message>
-        <location filename="../../src/ui/protect/PermissionGate.cpp" line="18"/>
-        <source>This document does not allow adding comments.</source>
-        <translation>Этот документ не разрешает добавление комментариев.</translation>
-    </message>
-    <message>
-        <location filename="../../src/ui/protect/PermissionGate.cpp" line="19"/>
-        <source>This document does not allow filling in forms.</source>
-        <translation>Этот документ не разрешает заполнение форм.</translation>
-    </message>
-    <message>
-        <location filename="../../src/ui/protect/PermissionGate.cpp" line="21"/>
-        <source>This document does not allow inserting, deleting and rotating pages.</source>
-        <translation>Этот документ не разрешает вставку, удаление и поворот страниц.</translation>
-    </message>
-    <message>
-        <location filename="../../src/ui/protect/PermissionGate.cpp" line="23"/>
-        <source>The restrictions of this document can only be changed by its owner.</source>
-        <translation>Ограничения этого документа может изменить только его владелец.</translation>
-    </message>
-    <message>
-        <location filename="../../src/ui/protect/PermissionGate.cpp" line="52"/>
-        <source>Enter the permissions password to lift its restrictions:</source>
-        <translation>Введите пароль прав, чтобы снять ограничения:</translation>
-    </message>
-    <message>
-        <location filename="../../src/ui/protect/PermissionGate.cpp" line="55"/>
-        <source>Restricted document</source>
-        <translation>Документ с ограничениями</translation>
-    </message>
-    <message>
-        <location filename="../../src/ui/protect/PermissionGate.cpp" line="59"/>
-        <source>Wrong permissions password. Please try again:</source>
-        <translation>Неверный пароль прав. Повторите попытку:</translation>
-    </message>
-</context>
-<context>
     <name>Printing</name>
     <message>
-        <location filename="../../src/ui/export/Printing.cpp" line="30"/>
+        <location filename="../../src/ui/export/Printing.cpp" line="26"/>
+        <location filename="../../src/ui/export/Printing.cpp" line="44"/>
         <source>Print</source>
         <translation>Печать</translation>
     </message>
     <message>
-        <location filename="../../src/ui/export/Printing.cpp" line="31"/>
+        <location filename="../../src/ui/export/Printing.cpp" line="26"/>
+        <location filename="../../src/ui/export/Printing.cpp" line="45"/>
         <source>The document could not be printed.</source>
         <translation>Не удалось напечатать документ.</translation>
     </message>
@@ -3431,271 +3615,271 @@ Enter the password to open it:</source>
 <context>
     <name>ProtectDialog</name>
     <message>
-        <location filename="../../src/ui/protect/ProtectDialog.cpp" line="58"/>
+        <location filename="../../src/ui/protect/ProtectDialog.cpp" line="59"/>
         <source>AES-256 encryption provides strong protection and is supported by all modern PDF readers.</source>
         <translation>Шифрование AES-256 обеспечивает надёжную защиту и поддерживается всеми современными программами для чтения PDF.</translation>
     </message>
     <message>
-        <location filename="../../src/ui/protect/ProtectDialog.cpp" line="60"/>
+        <location filename="../../src/ui/protect/ProtectDialog.cpp" line="61"/>
         <source>AES-128 also opens in older readers, but is weaker than AES-256.</source>
         <translation>AES-128 открывается и в старых программах, но слабее AES-256.</translation>
     </message>
     <message>
-        <location filename="../../src/ui/protect/ProtectDialog.cpp" line="62"/>
+        <location filename="../../src/ui/protect/ProtectDialog.cpp" line="63"/>
         <source>RC4 is outdated and can be broken. Use it only for very old PDF readers.</source>
         <translation>RC4 устарел и может быть взломан. Используйте его только для очень старых программ чтения PDF.</translation>
     </message>
     <message>
-        <location filename="../../src/ui/protect/ProtectDialog.cpp" line="92"/>
+        <location filename="../../src/ui/protect/ProtectDialog.cpp" line="93"/>
         <source>Protect</source>
         <translation>Защитить</translation>
     </message>
     <message>
-        <location filename="../../src/ui/protect/ProtectDialog.cpp" line="93"/>
+        <location filename="../../src/ui/protect/ProtectDialog.cpp" line="94"/>
         <source>Protecting a PDF needs qpdf, which this build does not include.</source>
         <translation>Для защиты PDF нужен qpdf, которого нет в этой версии.</translation>
     </message>
     <message>
-        <location filename="../../src/ui/protect/ProtectDialog.cpp" line="121"/>
+        <location filename="../../src/ui/protect/ProtectDialog.cpp" line="124"/>
         <source>Protect - OpenPDF Studio</source>
         <translation>Защитить - OpenPDF Studio</translation>
     </message>
     <message>
-        <location filename="../../src/ui/protect/ProtectDialog.cpp" line="141"/>
+        <location filename="../../src/ui/protect/ProtectDialog.cpp" line="144"/>
         <source>Password &amp; Encryption</source>
         <translation>Пароль и шифрование</translation>
     </message>
     <message>
-        <location filename="../../src/ui/protect/ProtectDialog.cpp" line="142"/>
-        <location filename="../../src/ui/protect/ProtectDialog.cpp" line="270"/>
+        <location filename="../../src/ui/protect/ProtectDialog.cpp" line="145"/>
+        <location filename="../../src/ui/protect/ProtectDialog.cpp" line="273"/>
         <source>Permissions</source>
         <translation>Права</translation>
     </message>
     <message>
-        <location filename="../../src/ui/protect/ProtectDialog.cpp" line="154"/>
+        <location filename="../../src/ui/protect/ProtectDialog.cpp" line="157"/>
         <source>Saving with changed protection rewrites the file, so its digital signatures will no longer be valid.</source>
         <translation>Сохранение с изменённой защитой перезаписывает файл, поэтому его цифровые подписи станут недействительными.</translation>
     </message>
     <message>
-        <location filename="../../src/ui/protect/ProtectDialog.cpp" line="187"/>
+        <location filename="../../src/ui/protect/ProtectDialog.cpp" line="190"/>
         <source>This document is currently protected.</source>
         <translation>Этот документ защищён.</translation>
     </message>
     <message>
-        <location filename="../../src/ui/protect/ProtectDialog.cpp" line="188"/>
+        <location filename="../../src/ui/protect/ProtectDialog.cpp" line="191"/>
         <source>This document is not protected.</source>
         <translation>Этот документ не защищён.</translation>
     </message>
     <message>
-        <location filename="../../src/ui/protect/ProtectDialog.cpp" line="192"/>
+        <location filename="../../src/ui/protect/ProtectDialog.cpp" line="195"/>
         <source>You can change the password and encryption settings below.</source>
         <translation>Ниже можно изменить пароль и шифрование.</translation>
     </message>
     <message>
-        <location filename="../../src/ui/protect/ProtectDialog.cpp" line="193"/>
+        <location filename="../../src/ui/protect/ProtectDialog.cpp" line="196"/>
         <source>Set a password below, or restrict what readers may do.</source>
         <translation>Задайте пароль ниже или ограничьте действия читателей.</translation>
     </message>
     <message>
-        <location filename="../../src/ui/protect/ProtectDialog.cpp" line="197"/>
+        <location filename="../../src/ui/protect/ProtectDialog.cpp" line="200"/>
         <source>Remove protection</source>
         <translation>Снять защиту</translation>
     </message>
     <message>
-        <location filename="../../src/ui/protect/ProtectDialog.cpp" line="222"/>
-        <location filename="../../src/ui/protect/ProtectDialog.cpp" line="228"/>
-        <location filename="../../src/ui/protect/ProtectDialog.cpp" line="230"/>
+        <location filename="../../src/ui/protect/ProtectDialog.cpp" line="225"/>
+        <location filename="../../src/ui/protect/ProtectDialog.cpp" line="231"/>
+        <location filename="../../src/ui/protect/ProtectDialog.cpp" line="233"/>
         <source>Password</source>
         <translation>Пароль</translation>
     </message>
     <message>
-        <location filename="../../src/ui/protect/ProtectDialog.cpp" line="222"/>
+        <location filename="../../src/ui/protect/ProtectDialog.cpp" line="225"/>
         <source>Require a password to open this PDF.</source>
         <translation>Запрашивать пароль при открытии этого PDF.</translation>
     </message>
     <message>
-        <location filename="../../src/ui/protect/ProtectDialog.cpp" line="223"/>
+        <location filename="../../src/ui/protect/ProtectDialog.cpp" line="226"/>
         <source>Enable password protection</source>
         <translation>Включить защиту паролем</translation>
     </message>
     <message>
-        <location filename="../../src/ui/protect/ProtectDialog.cpp" line="229"/>
-        <location filename="../../src/ui/protect/ProtectDialog.cpp" line="231"/>
-        <location filename="../../src/ui/protect/ProtectDialog.cpp" line="278"/>
-        <location filename="../../src/ui/protect/ProtectDialog.cpp" line="280"/>
+        <location filename="../../src/ui/protect/ProtectDialog.cpp" line="232"/>
+        <location filename="../../src/ui/protect/ProtectDialog.cpp" line="234"/>
+        <location filename="../../src/ui/protect/ProtectDialog.cpp" line="281"/>
+        <location filename="../../src/ui/protect/ProtectDialog.cpp" line="283"/>
         <source>Confirm password</source>
         <translation>Подтверждение пароля</translation>
     </message>
     <message>
-        <location filename="../../src/ui/protect/ProtectDialog.cpp" line="238"/>
+        <location filename="../../src/ui/protect/ProtectDialog.cpp" line="241"/>
         <source>Encryption</source>
         <translation>Шифрование</translation>
     </message>
     <message>
-        <location filename="../../src/ui/protect/ProtectDialog.cpp" line="238"/>
+        <location filename="../../src/ui/protect/ProtectDialog.cpp" line="241"/>
         <source>Choose the encryption level for the PDF.</source>
         <translation>Выберите уровень шифрования PDF.</translation>
     </message>
     <message>
-        <location filename="../../src/ui/protect/ProtectDialog.cpp" line="239"/>
+        <location filename="../../src/ui/protect/ProtectDialog.cpp" line="242"/>
         <source>Encryption level</source>
         <translation>Уровень шифрования</translation>
     </message>
     <message>
-        <location filename="../../src/ui/protect/ProtectDialog.cpp" line="242"/>
+        <location filename="../../src/ui/protect/ProtectDialog.cpp" line="245"/>
         <source>AES-256 (Recommended)</source>
         <translation>AES-256 (рекомендуется)</translation>
     </message>
     <message>
-        <location filename="../../src/ui/protect/ProtectDialog.cpp" line="242"/>
+        <location filename="../../src/ui/protect/ProtectDialog.cpp" line="245"/>
         <source>AES-128</source>
         <translation>AES-128</translation>
     </message>
     <message>
-        <location filename="../../src/ui/protect/ProtectDialog.cpp" line="243"/>
+        <location filename="../../src/ui/protect/ProtectDialog.cpp" line="246"/>
         <source>RC4 128-bit (Legacy)</source>
         <translation>RC4 128 бит (устаревший)</translation>
     </message>
     <message>
-        <location filename="../../src/ui/protect/ProtectDialog.cpp" line="270"/>
+        <location filename="../../src/ui/protect/ProtectDialog.cpp" line="273"/>
         <source>Choose what readers may do with the PDF.</source>
         <translation>Выберите, что читатели могут делать с PDF.</translation>
     </message>
     <message>
-        <location filename="../../src/ui/protect/ProtectDialog.cpp" line="271"/>
+        <location filename="../../src/ui/protect/ProtectDialog.cpp" line="274"/>
         <source>Restrict printing, editing and copying</source>
         <translation>Ограничить печать, изменение и копирование</translation>
     </message>
     <message>
-        <location filename="../../src/ui/protect/ProtectDialog.cpp" line="277"/>
-        <location filename="../../src/ui/protect/ProtectDialog.cpp" line="279"/>
+        <location filename="../../src/ui/protect/ProtectDialog.cpp" line="280"/>
+        <location filename="../../src/ui/protect/ProtectDialog.cpp" line="282"/>
         <source>Permissions password</source>
         <translation>Пароль прав</translation>
     </message>
     <message>
-        <location filename="../../src/ui/protect/ProtectDialog.cpp" line="284"/>
+        <location filename="../../src/ui/protect/ProtectDialog.cpp" line="287"/>
         <source>Needed to lift the restrictions later. If you leave it empty, nobody can lift them.</source>
         <translation>Нужен, чтобы позже снять ограничения. Если оставить его пустым, снять их не сможет никто.</translation>
     </message>
     <message>
-        <location filename="../../src/ui/protect/ProtectDialog.cpp" line="290"/>
+        <location filename="../../src/ui/protect/ProtectDialog.cpp" line="293"/>
         <source>Allowed actions</source>
         <translation>Разрешённые действия</translation>
     </message>
     <message>
-        <location filename="../../src/ui/protect/ProtectDialog.cpp" line="295"/>
+        <location filename="../../src/ui/protect/ProtectDialog.cpp" line="298"/>
         <source>Printing</source>
         <translation>Печать</translation>
     </message>
     <message>
-        <location filename="../../src/ui/protect/ProtectDialog.cpp" line="295"/>
+        <location filename="../../src/ui/protect/ProtectDialog.cpp" line="298"/>
         <source>High-quality printing</source>
         <translation>Печать в высоком качестве</translation>
     </message>
     <message>
-        <location filename="../../src/ui/protect/ProtectDialog.cpp" line="295"/>
+        <location filename="../../src/ui/protect/ProtectDialog.cpp" line="298"/>
         <source>Changing content</source>
         <translation>Изменение содержимого</translation>
     </message>
     <message>
-        <location filename="../../src/ui/protect/ProtectDialog.cpp" line="296"/>
+        <location filename="../../src/ui/protect/ProtectDialog.cpp" line="299"/>
         <source>Copying text and images</source>
         <translation>Копирование текста и изображений</translation>
     </message>
     <message>
-        <location filename="../../src/ui/protect/ProtectDialog.cpp" line="296"/>
+        <location filename="../../src/ui/protect/ProtectDialog.cpp" line="299"/>
         <source>Adding comments</source>
         <translation>Добавление комментариев</translation>
     </message>
     <message>
-        <location filename="../../src/ui/protect/ProtectDialog.cpp" line="296"/>
+        <location filename="../../src/ui/protect/ProtectDialog.cpp" line="299"/>
         <source>Filling in forms</source>
         <translation>Заполнение форм</translation>
     </message>
     <message>
-        <location filename="../../src/ui/protect/ProtectDialog.cpp" line="297"/>
+        <location filename="../../src/ui/protect/ProtectDialog.cpp" line="300"/>
         <source>Inserting, deleting and rotating pages</source>
         <translation>Вставка, удаление и поворот страниц</translation>
     </message>
     <message>
-        <location filename="../../src/ui/protect/ProtectDialog.cpp" line="297"/>
+        <location filename="../../src/ui/protect/ProtectDialog.cpp" line="300"/>
         <source>Reading aloud for accessibility</source>
         <translation>Чтение вслух для специальных возможностей</translation>
     </message>
     <message>
-        <location filename="../../src/ui/protect/ProtectDialog.cpp" line="308"/>
+        <location filename="../../src/ui/protect/ProtectDialog.cpp" line="311"/>
         <source>Most PDF readers respect these restrictions, but they are not a strong protection on their own. Use an open password for confidential documents.</source>
         <translation>Большинство программ чтения PDF соблюдают эти ограничения, но сами по себе они не являются надёжной защитой. Для конфиденциальных документов используйте пароль на открытие.</translation>
     </message>
     <message>
-        <location filename="../../src/ui/protect/ProtectDialog.cpp" line="325"/>
+        <location filename="../../src/ui/protect/ProtectDialog.cpp" line="328"/>
         <source>Changes are applied when you save the document.</source>
         <translation>Изменения применяются при сохранении документа.</translation>
     </message>
     <message>
-        <location filename="../../src/ui/protect/ProtectDialog.cpp" line="326"/>
+        <location filename="../../src/ui/protect/ProtectDialog.cpp" line="329"/>
         <source>Cancel</source>
         <translation>Отмена</translation>
     </message>
     <message>
-        <location filename="../../src/ui/protect/ProtectDialog.cpp" line="331"/>
+        <location filename="../../src/ui/protect/ProtectDialog.cpp" line="334"/>
         <source>Apply</source>
         <translation>Применить</translation>
     </message>
     <message>
-        <location filename="../../src/ui/protect/ProtectDialog.cpp" line="350"/>
-        <location filename="../../src/ui/protect/ProtectDialog.cpp" line="357"/>
+        <location filename="../../src/ui/protect/ProtectDialog.cpp" line="353"/>
+        <location filename="../../src/ui/protect/ProtectDialog.cpp" line="360"/>
         <source>Show password</source>
         <translation>Показать пароль</translation>
     </message>
     <message>
-        <location filename="../../src/ui/protect/ProtectDialog.cpp" line="357"/>
+        <location filename="../../src/ui/protect/ProtectDialog.cpp" line="360"/>
         <source>Hide password</source>
         <translation>Скрыть пароль</translation>
     </message>
     <message>
-        <location filename="../../src/ui/protect/ProtectDialog.cpp" line="411"/>
+        <location filename="../../src/ui/protect/ProtectDialog.cpp" line="414"/>
         <source>Missing password</source>
         <translation>Нет пароля</translation>
     </message>
     <message>
-        <location filename="../../src/ui/protect/ProtectDialog.cpp" line="412"/>
+        <location filename="../../src/ui/protect/ProtectDialog.cpp" line="415"/>
         <source>Please enter a password, or switch password protection off.</source>
         <translation>Введите пароль или отключите защиту паролем.</translation>
     </message>
     <message>
-        <location filename="../../src/ui/protect/ProtectDialog.cpp" line="416"/>
-        <location filename="../../src/ui/protect/ProtectDialog.cpp" line="423"/>
+        <location filename="../../src/ui/protect/ProtectDialog.cpp" line="419"/>
+        <location filename="../../src/ui/protect/ProtectDialog.cpp" line="426"/>
         <source>Passwords do not match</source>
         <translation>Пароли не совпадают</translation>
     </message>
     <message>
-        <location filename="../../src/ui/protect/ProtectDialog.cpp" line="417"/>
+        <location filename="../../src/ui/protect/ProtectDialog.cpp" line="420"/>
         <source>The password and its confirmation are different.</source>
         <translation>Пароль и подтверждение различаются.</translation>
     </message>
     <message>
-        <location filename="../../src/ui/protect/ProtectDialog.cpp" line="424"/>
+        <location filename="../../src/ui/protect/ProtectDialog.cpp" line="427"/>
         <source>The permissions password and its confirmation are different.</source>
         <translation>Пароль прав и подтверждение различаются.</translation>
     </message>
     <message>
-        <location filename="../../src/ui/protect/ProtectDialog.cpp" line="429"/>
+        <location filename="../../src/ui/protect/ProtectDialog.cpp" line="432"/>
         <source>Same password twice</source>
         <translation>Один и тот же пароль дважды</translation>
     </message>
     <message>
-        <location filename="../../src/ui/protect/ProtectDialog.cpp" line="430"/>
+        <location filename="../../src/ui/protect/ProtectDialog.cpp" line="433"/>
         <source>The permissions password must differ from the open password, otherwise everyone who can open the PDF can lift the restrictions.</source>
         <translation>Пароль прав должен отличаться от пароля на открытие, иначе любой, кто может открыть PDF, сможет снять ограничения.</translation>
     </message>
     <message>
-        <location filename="../../src/ui/protect/ProtectDialog.cpp" line="186"/>
+        <location filename="../../src/ui/protect/ProtectDialog.cpp" line="189"/>
         <source>No document is open.</source>
         <translation>Документ не открыт.</translation>
     </message>
     <message>
-        <location filename="../../src/ui/protect/ProtectDialog.cpp" line="190"/>
+        <location filename="../../src/ui/protect/ProtectDialog.cpp" line="193"/>
         <source>Open a PDF to protect it.</source>
         <translation>Откройте PDF, чтобы защитить его.</translation>
     </message>
@@ -3719,7 +3903,7 @@ Enter the password to open it:</source>
 <context>
     <name>Registration</name>
     <message>
-        <location filename="../../modules/rich-media/MediaModule.cpp" line="31"/>
+        <location filename="../../modules/rich-media/MediaModule.cpp" line="37"/>
         <source>Rich Media</source>
         <translation>Rich Media</translation>
     </message>
@@ -3999,422 +4183,423 @@ Enter the password to open it:</source>
 <context>
     <name>SettingsPanel</name>
     <message>
-        <location filename="../../src/ui/settings/SettingsPanel.cpp" line="47"/>
-        <location filename="../../src/ui/settings/SettingsPanel.cpp" line="1159"/>
+        <location filename="../../src/ui/settings/SettingsPanel.cpp" line="35"/>
+        <location filename="../../src/ui/settings/SettingsPanel.cpp" line="480"/>
         <source>Settings - OpenPDF Studio</source>
         <translation>Настройки - OpenPDF Studio</translation>
     </message>
     <message>
-        <location filename="../../src/ui/settings/SettingsPanel.cpp" line="426"/>
+        <location filename="../../src/ui/settings/SettingsPanel_Media.cpp" line="25"/>
         <source>Choose how video embedded in a PDF is played.</source>
         <translation>Выберите, как воспроизводить видео, встроенное в PDF.</translation>
     </message>
     <message>
-        <location filename="../../src/ui/settings/SettingsPanel.cpp" line="439"/>
+        <location filename="../../src/ui/settings/SettingsPanel_Media.cpp" line="38"/>
         <source>In OpenPDF Studio</source>
         <translation>В OpenPDF Studio</translation>
     </message>
     <message>
-        <location filename="../../src/ui/settings/SettingsPanel.cpp" line="440"/>
+        <location filename="../../src/ui/settings/SettingsPanel_Media.cpp" line="39"/>
         <source>Plays on the page</source>
         <translation>Воспроизводится на странице</translation>
     </message>
     <message>
-        <location filename="../../src/ui/settings/SettingsPanel.cpp" line="441"/>
+        <location filename="../../src/ui/settings/SettingsPanel_Media.cpp" line="40"/>
         <source>System player</source>
         <translation>Системный проигрыватель</translation>
     </message>
     <message>
-        <location filename="../../src/ui/settings/SettingsPanel.cpp" line="442"/>
+        <location filename="../../src/ui/settings/SettingsPanel_Media.cpp" line="41"/>
         <source>Opens in your video player</source>
         <translation>Открывается в вашем видеопроигрывателе</translation>
     </message>
     <message>
-        <location filename="../../src/ui/settings/SettingsPanel.cpp" line="443"/>
+        <location filename="../../src/ui/settings/SettingsPanel_Media.cpp" line="42"/>
         <source>Custom command</source>
         <translation>Своя команда</translation>
     </message>
     <message>
-        <location filename="../../src/ui/settings/SettingsPanel.cpp" line="444"/>
+        <location filename="../../src/ui/settings/SettingsPanel_Media.cpp" line="43"/>
         <source>Run a player of your choice</source>
         <translation>Запускает выбранный вами проигрыватель</translation>
     </message>
     <message>
-        <location filename="../../src/ui/settings/SettingsPanel.cpp" line="457"/>
+        <location filename="../../src/ui/settings/SettingsPanel_Media.cpp" line="56"/>
         <source>This build has no built-in player. &quot;In OpenPDF Studio&quot; falls back to the system player.</source>
         <translation>В этой сборке нет встроенного проигрывателя. «В OpenPDF Studio» использует системный проигрыватель.</translation>
     </message>
     <message>
-        <location filename="../../src/ui/settings/SettingsPanel.cpp" line="470"/>
+        <location filename="../../src/ui/settings/SettingsPanel_Media.cpp" line="69"/>
         <source>Command:</source>
         <translation>Команда:</translation>
     </message>
     <message>
-        <location filename="../../src/ui/settings/SettingsPanel.cpp" line="477"/>
+        <location filename="../../src/ui/settings/SettingsPanel_Media.cpp" line="76"/>
         <source>%1 is replaced with the video file. Without it the file is appended.</source>
         <translation>%1 заменяется видеофайлом. Без него файл добавляется в конец.</translation>
     </message>
     <message>
-        <location filename="../../src/ui/settings/SettingsPanel.cpp" line="480"/>
+        <location filename="../../src/ui/settings/SettingsPanel_Media.cpp" line="79"/>
         <source>Browse...</source>
         <translation>Обзор…</translation>
     </message>
     <message>
-        <location filename="../../src/ui/settings/SettingsPanel.cpp" line="482"/>
+        <location filename="../../src/ui/settings/SettingsPanel_Media.cpp" line="81"/>
         <source>Choose a media player</source>
         <translation>Выберите медиапроигрыватель</translation>
     </message>
     <message>
-        <location filename="../../src/ui/settings/SettingsPanel.cpp" line="511"/>
+        <location filename="../../src/ui/settings/SettingsPanel_Shortcuts.cpp" line="28"/>
         <source>Keyboard Shortcuts</source>
         <translation>Сочетания клавиш</translation>
     </message>
     <message>
-        <location filename="../../src/ui/settings/SettingsPanel.cpp" line="514"/>
+        <location filename="../../src/ui/settings/SettingsPanel_Shortcuts.cpp" line="31"/>
         <source>Configure keyboard shortcuts for frequent actions.</source>
         <translation>Настройте сочетания клавиш для частых действий.</translation>
     </message>
     <message>
-        <location filename="../../src/ui/settings/SettingsPanel.cpp" line="528"/>
+        <location filename="../../src/ui/settings/SettingsPanel_Shortcuts.cpp" line="45"/>
         <source>Search action</source>
         <translation>Поиск действия</translation>
     </message>
     <message>
-        <location filename="../../src/ui/settings/SettingsPanel.cpp" line="531"/>
+        <location filename="../../src/ui/settings/SettingsPanel_Shortcuts.cpp" line="48"/>
         <source>Show only global default shortcuts</source>
         <translation>Показывать только глобальные сочетания по умолчанию</translation>
     </message>
     <message>
-        <location filename="../../src/ui/settings/SettingsPanel.cpp" line="549"/>
+        <location filename="../../src/ui/settings/SettingsPanel_Shortcuts.cpp" line="66"/>
         <source>Action</source>
         <translation>Действие</translation>
     </message>
     <message>
-        <location filename="../../src/ui/settings/SettingsPanel.cpp" line="553"/>
+        <location filename="../../src/ui/settings/SettingsPanel_Shortcuts.cpp" line="70"/>
         <source>Key Combination</source>
         <translation>Сочетание клавиш</translation>
     </message>
     <message>
-        <location filename="../../src/ui/settings/SettingsPanel.cpp" line="582"/>
+        <location filename="../../src/ui/settings/SettingsPanel_Shortcuts.cpp" line="99"/>
         <source>Save As</source>
         <translation>Сохранить как</translation>
     </message>
     <message>
-        <location filename="../../src/ui/settings/SettingsPanel.cpp" line="583"/>
+        <location filename="../../src/ui/settings/SettingsPanel_Shortcuts.cpp" line="100"/>
         <source>Print</source>
         <translation>Печать</translation>
     </message>
     <message>
-        <location filename="../../src/ui/settings/SettingsPanel.cpp" line="584"/>
+        <location filename="../../src/ui/settings/SettingsPanel_Shortcuts.cpp" line="101"/>
         <source>Open</source>
         <translation>Открыть</translation>
     </message>
     <message>
-        <location filename="../../src/ui/settings/SettingsPanel.cpp" line="585"/>
+        <location filename="../../src/ui/settings/SettingsPanel_Shortcuts.cpp" line="103"/>
         <source>Undo</source>
         <translation>Отменить</translation>
     </message>
     <message>
-        <location filename="../../src/ui/settings/SettingsPanel.cpp" line="586"/>
+        <location filename="../../src/ui/settings/SettingsPanel_Shortcuts.cpp" line="104"/>
         <source>Redo</source>
         <translation>Повторить</translation>
     </message>
     <message>
-        <location filename="../../src/ui/settings/SettingsPanel.cpp" line="587"/>
+        <location filename="../../src/ui/settings/SettingsPanel_Shortcuts.cpp" line="105"/>
         <source>Find</source>
         <translation>Найти</translation>
     </message>
     <message>
-        <location filename="../../src/ui/settings/SettingsPanel.cpp" line="588"/>
+        <location filename="../../src/ui/settings/SettingsPanel_Shortcuts.cpp" line="106"/>
         <source>Text Tool</source>
         <translation>Инструмент «Текст»</translation>
     </message>
     <message>
-        <location filename="../../src/ui/settings/SettingsPanel.cpp" line="589"/>
+        <location filename="../../src/ui/settings/SettingsPanel_Shortcuts.cpp" line="107"/>
         <source>Notes</source>
         <translation>Заметки</translation>
     </message>
     <message>
-        <location filename="../../src/ui/settings/SettingsPanel.cpp" line="590"/>
+        <location filename="../../src/ui/settings/SettingsPanel_Shortcuts.cpp" line="108"/>
         <source>Zoom In</source>
         <translation>Увеличить</translation>
     </message>
     <message>
-        <location filename="../../src/ui/settings/SettingsPanel.cpp" line="591"/>
+        <location filename="../../src/ui/settings/SettingsPanel_Shortcuts.cpp" line="109"/>
         <source>Zoom Out</source>
         <translation>Уменьшить</translation>
     </message>
     <message>
-        <location filename="../../src/ui/settings/SettingsPanel.cpp" line="592"/>
+        <location filename="../../src/ui/settings/SettingsPanel_Shortcuts.cpp" line="110"/>
         <source>Presentation</source>
         <translation>Презентация</translation>
     </message>
     <message>
-        <location filename="../../src/ui/settings/SettingsPanel.cpp" line="640"/>
+        <location filename="../../src/ui/settings/SettingsPanel_Shortcuts.cpp" line="158"/>
         <source>Double-click on a key combination to change it.</source>
         <translation>Дважды щёлкните сочетание клавиш, чтобы изменить его.</translation>
     </message>
     <message>
-        <location filename="../../src/ui/settings/SettingsPanel.cpp" line="652"/>
+        <location filename="../../src/ui/settings/SettingsPanel_Zoom.cpp" line="16"/>
         <source>Configure how zoom works with the mouse wheel.</source>
         <translation>Настройте масштабирование колесом мыши.</translation>
     </message>
     <message>
-        <location filename="../../src/ui/settings/SettingsPanel.cpp" line="680"/>
+        <location filename="../../src/ui/settings/SettingsPanel_Zoom.cpp" line="44"/>
         <source>Mouse Wheel Zoom Step</source>
         <translation>Шаг масштабирования колесом мыши</translation>
     </message>
     <message>
-        <location filename="../../src/ui/settings/SettingsPanel.cpp" line="686"/>
+        <location filename="../../src/ui/settings/SettingsPanel_Zoom.cpp" line="50"/>
         <source>Zoom step with Ctrl + Mouse Wheel</source>
         <translation>Шаг масштаба с Ctrl + колесо мыши</translation>
     </message>
     <message>
-        <location filename="../../src/ui/settings/SettingsPanel.cpp" line="698"/>
+        <location filename="../../src/ui/settings/SettingsPanel_Zoom.cpp" line="62"/>
         <source>Sets how much is zoomed per mouse wheel movement.</source>
         <translation>Задаёт, насколько меняется масштаб за один шаг колеса мыши.</translation>
     </message>
     <message>
-        <location filename="../../src/ui/settings/SettingsPanel.cpp" line="720"/>
+        <location filename="../../src/ui/settings/SettingsPanel_Zoom.cpp" line="84"/>
         <source>Zoom with Ctrl + Mouse Wheel</source>
         <translation>Масштабировать с Ctrl + колесо мыши</translation>
     </message>
     <message>
-        <location filename="../../src/ui/settings/SettingsPanel.cpp" line="725"/>
+        <location filename="../../src/ui/settings/SettingsPanel_Zoom.cpp" line="89"/>
         <source>Zoom to Mouse Pointer</source>
         <translation>Масштабировать к указателю мыши</translation>
     </message>
     <message>
-        <location filename="../../src/ui/settings/SettingsPanel.cpp" line="736"/>
+        <location filename="../../src/ui/settings/SettingsPanel_Zoom.cpp" line="100"/>
         <source>Action without Ctrl</source>
         <translation>Действие без Ctrl</translation>
     </message>
     <message>
-        <location filename="../../src/ui/settings/SettingsPanel.cpp" line="741"/>
+        <location filename="../../src/ui/settings/SettingsPanel_Zoom.cpp" line="105"/>
         <source>Scroll</source>
         <translation>Прокрутка</translation>
     </message>
     <message>
-        <location filename="../../src/ui/settings/SettingsPanel.cpp" line="758"/>
+        <location filename="../../src/ui/settings/SettingsPanel_Zoom.cpp" line="122"/>
         <source>Example: 100 % → %1 %</source>
         <translation>Пример: 100 % → %1 %</translation>
     </message>
     <message>
-        <location filename="../../src/ui/settings/SettingsPanel.cpp" line="828"/>
+        <location filename="../../src/ui/settings/SettingsPanel_Advanced.cpp" line="21"/>
         <source>Updates</source>
         <translation>Обновления</translation>
     </message>
     <message>
-        <location filename="../../src/ui/settings/SettingsPanel.cpp" line="829"/>
+        <location filename="../../src/ui/settings/SettingsPanel_Advanced.cpp" line="22"/>
         <source>Check for automatic updates</source>
         <translation>Автоматически проверять обновления</translation>
     </message>
     <message>
-        <location filename="../../src/ui/settings/SettingsPanel.cpp" line="830"/>
+        <location filename="../../src/ui/settings/SettingsPanel_Advanced.cpp" line="23"/>
         <source>Automatically check for updates in the background and notify you when a new version is available.</source>
         <translation>Проверяет обновления в фоне и сообщает, когда доступна новая версия.</translation>
     </message>
     <message>
-        <location filename="../../src/ui/settings/SettingsPanel.cpp" line="834"/>
+        <location filename="../../src/ui/settings/SettingsPanel_Advanced.cpp" line="27"/>
         <source>Check interval:</source>
         <translation>Интервал проверки:</translation>
     </message>
     <message>
-        <location filename="../../src/ui/settings/SettingsPanel.cpp" line="835"/>
+        <location filename="../../src/ui/settings/SettingsPanel_Advanced.cpp" line="28"/>
         <source>On every start</source>
         <translation>При каждом запуске</translation>
     </message>
     <message>
-        <location filename="../../src/ui/settings/SettingsPanel.cpp" line="836"/>
+        <location filename="../../src/ui/settings/SettingsPanel_Advanced.cpp" line="29"/>
         <source>Daily</source>
         <translation>Ежедневно</translation>
     </message>
     <message>
-        <location filename="../../src/ui/settings/SettingsPanel.cpp" line="837"/>
+        <location filename="../../src/ui/settings/SettingsPanel_Advanced.cpp" line="30"/>
         <source>Weekly</source>
         <translation>Еженедельно</translation>
     </message>
     <message>
-        <location filename="../../src/ui/settings/SettingsPanel.cpp" line="838"/>
+        <location filename="../../src/ui/settings/SettingsPanel_Advanced.cpp" line="31"/>
         <source>Monthly</source>
         <translation>Ежемесячно</translation>
     </message>
     <message>
-        <location filename="../../src/ui/settings/SettingsPanel.cpp" line="851"/>
+        <location filename="../../src/ui/settings/SettingsPanel_Advanced.cpp" line="44"/>
         <source>Check now</source>
         <translation>Проверить сейчас</translation>
     </message>
     <message>
-        <location filename="../../src/ui/settings/SettingsPanel.cpp" line="864"/>
+        <location filename="../../src/ui/settings/SettingsPanel_Advanced.cpp" line="57"/>
         <source>Last checked %1</source>
         <translation>Последняя проверка: %1</translation>
     </message>
     <message>
-        <location filename="../../src/ui/settings/SettingsPanel.cpp" line="866"/>
+        <location filename="../../src/ui/settings/SettingsPanel_Advanced.cpp" line="59"/>
         <source>Not checked yet</source>
         <translation>Ещё не проверялось</translation>
     </message>
     <message>
-        <location filename="../../src/ui/settings/SettingsPanel.cpp" line="875"/>
+        <location filename="../../src/ui/settings/SettingsPanel_Advanced.cpp" line="68"/>
         <source>Checking…</source>
         <translation>Проверка…</translation>
     </message>
     <message>
-        <location filename="../../src/ui/settings/SettingsPanel.cpp" line="890"/>
+        <location filename="../../src/ui/settings/SettingsPanel_Advanced.cpp" line="83"/>
         <source>Check failed: %1</source>
         <translation>Ошибка проверки: %1</translation>
     </message>
     <message>
-        <location filename="../../src/ui/settings/SettingsPanel.cpp" line="895"/>
+        <location filename="../../src/ui/settings/SettingsPanel_Advanced.cpp" line="88"/>
         <source>Version %1 is up to date.</source>
         <translation>Версия %1 актуальна.</translation>
     </message>
     <message>
-        <location filename="../../src/ui/settings/SettingsPanel.cpp" line="901"/>
+        <location filename="../../src/ui/settings/SettingsPanel_Advanced.cpp" line="94"/>
         <source>Version %1 is available. &lt;a href=&quot;%2&quot; style=&quot;color:%3;&quot;&gt;Download&lt;/a&gt;</source>
         <translation>Доступна версия %1. &lt;a href=&quot;%2&quot; style=&quot;color:%3;&quot;&gt;Скачать&lt;/a&gt;</translation>
     </message>
     <message>
-        <location filename="../../src/ui/settings/SettingsPanel.cpp" line="910"/>
+        <location filename="../../src/ui/settings/SettingsPanel_Advanced.cpp" line="103"/>
         <source>Interface</source>
         <translation>Интерфейс</translation>
     </message>
     <message>
-        <location filename="../../src/ui/settings/SettingsPanel.cpp" line="911"/>
-        <source>Preserve panel layout</source>
-        <translation>Сохранять расположение панелей</translation>
+        <location filename="../../src/ui/settings/SettingsPanel_Advanced.cpp" line="104"/>
+        <source>Save preferences</source>
+        <translation>Сохранять предпочтения</translation>
     </message>
     <message>
-        <location filename="../../src/ui/settings/SettingsPanel.cpp" line="912"/>
-        <source>Restore expanded and collapsed panels after restart.</source>
-        <translation>Восстанавливать развёрнутые и свёрнутые панели после перезапуска.</translation>
+        <location filename="../../src/ui/settings/SettingsPanel_Advanced.cpp" line="105"/>
+        <source>Keeps everything you set up for yourself, such as the panel layout and signing.</source>
+        <translation>Сохраняет всё, что вы настроили под себя, например расположение панелей и подпись.</translation>
     </message>
     <message>
-        <location filename="../../src/ui/settings/SettingsPanel.cpp" line="918"/>
         <source>Performance</source>
-        <translation>Производительность</translation>
+        <translation type="vanished">Производительность</translation>
     </message>
     <message>
-        <location filename="../../src/ui/settings/SettingsPanel.cpp" line="919"/>
         <source>Use hardware acceleration when available</source>
-        <translation>Использовать аппаратное ускорение, если доступно</translation>
+        <translation type="vanished">Использовать аппаратное ускорение, если доступно</translation>
     </message>
     <message>
-        <location filename="../../src/ui/settings/SettingsPanel.cpp" line="920"/>
         <source>Improves performance for rendering and media playback.</source>
-        <translation>Повышает производительность отрисовки и воспроизведения медиа.</translation>
+        <translation type="vanished">Повышает производительность отрисовки и воспроизведения медиа.</translation>
     </message>
     <message>
-        <location filename="../../src/ui/settings/SettingsPanel.cpp" line="923"/>
         <source>Limit memory usage</source>
-        <translation>Ограничить использование памяти</translation>
+        <translation type="vanished">Ограничить использование памяти</translation>
     </message>
     <message>
-        <location filename="../../src/ui/settings/SettingsPanel.cpp" line="924"/>
         <source>Helps improve stability on systems with limited memory.</source>
-        <translation>Помогает стабильности в системах с небольшим объёмом памяти.</translation>
+        <translation type="vanished">Помогает стабильности в системах с небольшим объёмом памяти.</translation>
     </message>
     <message>
-        <location filename="../../src/ui/settings/SettingsPanel.cpp" line="930"/>
+        <location filename="../../src/ui/settings/SettingsPanel_Advanced.cpp" line="111"/>
         <source>Diagnostics</source>
         <translation>Диагностика</translation>
     </message>
     <message>
-        <location filename="../../src/ui/settings/SettingsPanel.cpp" line="931"/>
+        <location filename="../../src/ui/settings/SettingsPanel_Advanced.cpp" line="112"/>
         <source>Enable debug logging</source>
         <translation>Включить отладочный журнал</translation>
     </message>
     <message>
-        <location filename="../../src/ui/settings/SettingsPanel.cpp" line="932"/>
+        <location filename="../../src/ui/settings/SettingsPanel_Advanced.cpp" line="113"/>
         <source>Save detailed logs for troubleshooting purposes.</source>
         <translation>Сохранять подробные журналы для устранения неполадок.</translation>
     </message>
     <message>
-        <location filename="../../src/ui/settings/SettingsPanel.cpp" line="935"/>
+        <location filename="../../src/ui/settings/SettingsPanel_Advanced.cpp" line="116"/>
         <source>Log level:</source>
         <translation>Уровень журнала:</translation>
     </message>
     <message>
-        <location filename="../../src/ui/settings/SettingsPanel.cpp" line="936"/>
+        <location filename="../../src/ui/settings/SettingsPanel_Advanced.cpp" line="117"/>
         <source>Error</source>
         <translation>Ошибка</translation>
     </message>
     <message>
-        <location filename="../../src/ui/settings/SettingsPanel.cpp" line="937"/>
+        <location filename="../../src/ui/settings/SettingsPanel_Advanced.cpp" line="118"/>
         <source>Warning</source>
         <translation>Предупреждение</translation>
     </message>
     <message>
-        <location filename="../../src/ui/settings/SettingsPanel.cpp" line="938"/>
+        <location filename="../../src/ui/settings/SettingsPanel_Advanced.cpp" line="119"/>
         <source>Info</source>
         <translation>Сведения</translation>
     </message>
     <message>
-        <location filename="../../src/ui/settings/SettingsPanel.cpp" line="939"/>
+        <location filename="../../src/ui/settings/SettingsPanel_Advanced.cpp" line="120"/>
         <source>Debug</source>
         <translation>Отладка</translation>
     </message>
     <message>
-        <location filename="../../src/ui/settings/SettingsPanel.cpp" line="949"/>
+        <location filename="../../src/ui/settings/SettingsPanel_Advanced.cpp" line="130"/>
         <source>Reset</source>
         <translation>Сбросить</translation>
     </message>
     <message>
-        <location filename="../../src/ui/settings/SettingsPanel.cpp" line="1034"/>
+        <location filename="../../src/ui/settings/SettingsPanel_About.cpp" line="45"/>
         <source>Configuration (portable): %1</source>
         <translation>Конфигурация (портативная): %1</translation>
     </message>
     <message>
-        <location filename="../../src/ui/settings/SettingsPanel.cpp" line="1035"/>
+        <location filename="../../src/ui/settings/SettingsPanel_About.cpp" line="46"/>
         <source>Configuration: %1</source>
         <translation>Конфигурация: %1</translation>
     </message>
     <message>
-        <location filename="../../src/ui/settings/SettingsPanel.cpp" line="110"/>
+        <location filename="../../src/ui/settings/SettingsPanel.cpp" line="107"/>
         <source>Cancel</source>
         <translation>Отмена</translation>
     </message>
     <message>
-        <location filename="../../src/ui/settings/SettingsPanel.cpp" line="115"/>
-        <location filename="../../src/ui/settings/SettingsPanel.cpp" line="581"/>
+        <location filename="../../src/ui/settings/SettingsPanel.cpp" line="112"/>
+        <location filename="../../src/ui/settings/SettingsPanel_Shortcuts.cpp" line="98"/>
         <source>Save</source>
         <translation>Сохранить</translation>
     </message>
     <message>
-        <location filename="../../src/ui/settings/SettingsPanel.cpp" line="130"/>
-        <location filename="../../src/ui/settings/SettingsPanel.cpp" line="307"/>
+        <location filename="../../src/ui/settings/SettingsPanel.cpp" line="127"/>
+        <location filename="../../src/ui/settings/SettingsPanel_Appearance.cpp" line="16"/>
         <source>Appearance</source>
         <translation>Внешний вид</translation>
     </message>
     <message>
-        <location filename="../../src/ui/settings/SettingsPanel.cpp" line="131"/>
-        <location filename="../../src/ui/settings/SettingsPanel.cpp" line="351"/>
+        <location filename="../../src/ui/settings/SettingsPanel.cpp" line="128"/>
+        <location filename="../../src/ui/settings/SettingsPanel_Language.cpp" line="23"/>
         <source>Language</source>
         <translation>Язык</translation>
     </message>
     <message>
-        <location filename="../../src/ui/settings/SettingsPanel.cpp" line="132"/>
-        <location filename="../../src/ui/settings/SettingsPanel.cpp" line="421"/>
+        <location filename="../../src/ui/settings/SettingsPanel.cpp" line="129"/>
+        <location filename="../../src/ui/settings/SettingsPanel_Media.cpp" line="20"/>
         <source>Media Playback</source>
         <translation>Воспроизведение медиа</translation>
     </message>
     <message>
-        <location filename="../../src/ui/settings/SettingsPanel.cpp" line="133"/>
+        <location filename="../../src/ui/settings/SettingsPanel.cpp" line="130"/>
         <source>Shortcuts</source>
         <translation>Сочетания клавиш</translation>
     </message>
     <message>
-        <location filename="../../src/ui/settings/SettingsPanel.cpp" line="134"/>
-        <location filename="../../src/ui/settings/SettingsPanel.cpp" line="652"/>
-        <location filename="../../src/ui/settings/SettingsPanel.cpp" line="742"/>
+        <location filename="../../src/ui/settings/SettingsPanel.cpp" line="131"/>
+        <location filename="../../src/ui/settings/SettingsPanel_Zoom.cpp" line="16"/>
+        <location filename="../../src/ui/settings/SettingsPanel_Zoom.cpp" line="106"/>
         <source>Zoom</source>
         <translation>Масштаб</translation>
     </message>
     <message>
-        <location filename="../../src/ui/settings/SettingsPanel.cpp" line="135"/>
-        <location filename="../../src/ui/settings/SettingsPanel.cpp" line="986"/>
+        <location filename="../../src/ui/settings/SettingsPanel.cpp" line="133"/>
+        <location filename="../../src/ui/settings/SettingsPanel_Advanced.cpp" line="181"/>
         <source>Advanced</source>
         <translation>Дополнительно</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/settings/SettingsPanel.cpp" line="136"/>
+        <location filename="../../src/ui/settings/SettingsPanel_AddOns.cpp" line="107"/>
+        <source>Add-on Packages</source>
+        <translation>Дополнительные пакеты</translation>
     </message>
     <message>
         <location filename="../../src/ui/settings/SettingsPanel.cpp" line="139"/>
@@ -4428,42 +4613,42 @@ Enter the password to open it:</source>
         <translation>О программе</translation>
     </message>
     <message>
-        <location filename="../../src/ui/settings/SettingsPanel.cpp" line="312"/>
+        <location filename="../../src/ui/settings/SettingsPanel_Appearance.cpp" line="21"/>
         <source>Choose how OpenPDF Studio is displayed.</source>
         <translation>Выберите способ отображения OpenPDF Studio.</translation>
     </message>
     <message>
-        <location filename="../../src/ui/settings/SettingsPanel.cpp" line="323"/>
+        <location filename="../../src/ui/settings/SettingsPanel_Appearance.cpp" line="32"/>
         <source>System</source>
         <translation>Система</translation>
     </message>
     <message>
-        <location filename="../../src/ui/settings/SettingsPanel.cpp" line="323"/>
+        <location filename="../../src/ui/settings/SettingsPanel_Appearance.cpp" line="32"/>
         <source>Follows system settings</source>
         <translation>Следует системным настройкам</translation>
     </message>
     <message>
-        <location filename="../../src/ui/settings/SettingsPanel.cpp" line="324"/>
+        <location filename="../../src/ui/settings/SettingsPanel_Appearance.cpp" line="33"/>
         <source>Light</source>
         <translation>Светлая</translation>
     </message>
     <message>
-        <location filename="../../src/ui/settings/SettingsPanel.cpp" line="324"/>
+        <location filename="../../src/ui/settings/SettingsPanel_Appearance.cpp" line="33"/>
         <source>Light user interface</source>
         <translation>Светлый интерфейс</translation>
     </message>
     <message>
-        <location filename="../../src/ui/settings/SettingsPanel.cpp" line="325"/>
+        <location filename="../../src/ui/settings/SettingsPanel_Appearance.cpp" line="34"/>
         <source>Dark</source>
         <translation>Тёмная</translation>
     </message>
     <message>
-        <location filename="../../src/ui/settings/SettingsPanel.cpp" line="325"/>
+        <location filename="../../src/ui/settings/SettingsPanel_Appearance.cpp" line="34"/>
         <source>Dark user interface</source>
         <translation>Тёмный интерфейс</translation>
     </message>
     <message>
-        <location filename="../../src/ui/settings/SettingsPanel.cpp" line="355"/>
+        <location filename="../../src/ui/settings/SettingsPanel_Language.cpp" line="27"/>
         <source>Choose your preferred interface language.</source>
         <translation>Выберите предпочитаемый язык интерфейса.</translation>
     </message>
@@ -4488,135 +4673,251 @@ Enter the password to open it:</source>
         <translation type="vanished">Пользовательский медиаплеер</translation>
     </message>
     <message>
-        <location filename="../../src/ui/settings/SettingsPanel.cpp" line="986"/>
+        <location filename="../../src/ui/settings/SettingsPanel_Advanced.cpp" line="181"/>
         <source>Advanced settings for OpenPDF Studio.</source>
         <translation>Расширенные настройки OpenPDF Studio.</translation>
     </message>
     <message>
-        <location filename="../../src/ui/settings/SettingsPanel.cpp" line="950"/>
+        <location filename="../../src/ui/settings/SettingsPanel_Advanced.cpp" line="131"/>
         <source>Reset All Settings to Defaults</source>
         <translation>Сбросить все настройки</translation>
     </message>
     <message>
-        <location filename="../../src/ui/settings/SettingsPanel.cpp" line="1027"/>
+        <location filename="../../src/ui/settings/SettingsPanel_About.cpp" line="38"/>
         <source>A modern, open-source PDF editor built with Qt.</source>
         <translation>Современный редактор PDF с открытым исходным кодом на Qt.</translation>
     </message>
     <message>
-        <location filename="../../src/ui/settings/SettingsPanel.cpp" line="585"/>
+        <location filename="../../src/ui/settings/SettingsPanel_Shortcuts.cpp" line="102"/>
         <source>Add to Current Document</source>
         <translation>Добавить в текущий документ</translation>
     </message>
     <message>
-        <location filename="../../src/ui/settings/SettingsPanel_Security.cpp"/>
+        <location filename="../../src/ui/settings/SettingsPanel.cpp" line="132"/>
+        <location filename="../../src/ui/settings/SettingsPanel_Security.cpp" line="13"/>
         <source>Security</source>
         <translation>Безопасность</translation>
     </message>
     <message>
-        <location filename="../../src/ui/settings/SettingsPanel_Security.cpp"/>
+        <location filename="../../src/ui/settings/SettingsPanel_Security.cpp" line="14"/>
         <source>Protection for documents and external content.</source>
         <translation>Защита документов и внешнего содержимого.</translation>
     </message>
     <message>
-        <location filename="../../src/ui/settings/SettingsPanel_Security.cpp"/>
+        <location filename="../../src/ui/settings/SettingsPanel_Security.cpp" line="16"/>
         <source>Edit Protection</source>
         <translation>Защита от изменений</translation>
     </message>
     <message>
-        <location filename="../../src/ui/settings/SettingsPanel_Security.cpp"/>
+        <location filename="../../src/ui/settings/SettingsPanel_Security.cpp" line="17"/>
         <source>Open new documents in reading mode</source>
         <translation>Открывать новые документы в режиме чтения</translation>
     </message>
     <message>
-        <location filename="../../src/ui/settings/SettingsPanel_Security.cpp"/>
+        <location filename="../../src/ui/settings/SettingsPanel_Security.cpp" line="21"/>
         <source>Restricted Documents</source>
         <translation>Документы с ограничениями</translation>
     </message>
     <message>
-        <location filename="../../src/ui/settings/SettingsPanel_Security.cpp"/>
+        <location filename="../../src/ui/settings/SettingsPanel_Security.cpp" line="22"/>
         <source>Follow document permissions</source>
         <translation>Соблюдать права документа</translation>
     </message>
     <message>
-        <location filename="../../src/ui/settings/SettingsPanel_Security.cpp"/>
+        <location filename="../../src/ui/settings/SettingsPanel_Security.cpp" line="23"/>
         <source>Printing, copying and editing need the permissions password where a PDF restricts them.</source>
         <translation>Печать, копирование и изменение требуют пароль прав, если PDF их ограничивает.</translation>
     </message>
     <message>
-        <location filename="../../src/ui/settings/SettingsPanel_Security.cpp"/>
+        <location filename="../../src/ui/settings/SettingsPanel_Security.cpp" line="27"/>
         <source>Digital Signatures</source>
         <translation>Цифровые подписи</translation>
     </message>
     <message>
-        <location filename="../../src/ui/settings/SettingsPanel_Security.cpp"/>
+        <location filename="../../src/ui/settings/SettingsPanel_Security.cpp" line="28"/>
         <source>Trust my own certificates</source>
         <translation>Доверять моим сертификатам</translation>
     </message>
     <message>
-        <location filename="../../src/ui/settings/SettingsPanel_Security.cpp"/>
+        <location filename="../../src/ui/settings/SettingsPanel_Security.cpp" line="29"/>
         <source>Signatures made with a certificate on this computer count as valid.</source>
         <translation>Подписи, сделанные сертификатом на этом компьютере, считаются действительными.</translation>
     </message>
     <message>
-        <location filename="../../src/ui/settings/SettingsPanel_Security.cpp"/>
+        <location filename="../../src/ui/settings/SettingsPanel_Security.cpp" line="18"/>
         <source>Changes require explicit approval.</source>
         <translation>Изменения требуют явного разрешения.</translation>
     </message>
     <message>
-        <location filename="../../src/ui/settings/SettingsPanel_Security.cpp"/>
+        <location filename="../../src/ui/settings/SettingsPanel_Security.cpp" line="32"/>
         <source>External Content</source>
         <translation>Внешнее содержимое</translation>
     </message>
     <message>
-        <location filename="../../src/ui/settings/SettingsPanel_Security.cpp"/>
+        <location filename="../../src/ui/settings/SettingsPanel_Security.cpp" line="38"/>
         <source>Open external links</source>
         <translation>Открытие внешних ссылок</translation>
     </message>
     <message>
-        <location filename="../../src/ui/settings/SettingsPanel_Security.cpp"/>
+        <location filename="../../src/ui/settings/SettingsPanel_Security.cpp" line="53"/>
         <source>Ask</source>
         <translation>Спрашивать</translation>
     </message>
     <message>
-        <location filename="../../src/ui/settings/SettingsPanel_Security.cpp"/>
+        <location filename="../../src/ui/settings/SettingsPanel_Security.cpp" line="54"/>
         <source>Always open</source>
         <translation>Всегда открывать</translation>
     </message>
     <message>
-        <location filename="../../src/ui/settings/SettingsPanel_Security.cpp"/>
+        <location filename="../../src/ui/settings/SettingsPanel_Security.cpp" line="55"/>
         <source>Never open</source>
         <translation>Никогда не открывать</translation>
     </message>
     <message>
-        <location filename="../../src/ui/settings/SettingsPanel_Security.cpp"/>
+        <location filename="../../src/ui/settings/SettingsPanel_Security.cpp" line="63"/>
         <source>Links open in the browser right away.</source>
         <translation>Ссылки сразу открываются в браузере.</translation>
     </message>
     <message>
-        <location filename="../../src/ui/settings/SettingsPanel_Security.cpp"/>
+        <location filename="../../src/ui/settings/SettingsPanel_Security.cpp" line="65"/>
         <source>Links in documents are not opened.</source>
         <translation>Ссылки в документах не открываются.</translation>
     </message>
     <message>
-        <location filename="../../src/ui/settings/SettingsPanel_Security.cpp"/>
+        <location filename="../../src/ui/settings/SettingsPanel_Security.cpp" line="66"/>
         <source>Confirmation before switching to the browser.</source>
         <translation>Подтверждение перед переходом в браузер.</translation>
     </message>
     <message>
-        <location filename="../../src/ui/settings/SettingsPanel.cpp"/>
+        <location filename="../../src/ui/settings/SettingsPanel_About.cpp" line="53"/>
         <source>Log file: %1</source>
         <translation>Файл журнала: %1</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/settings/SettingsPanel_AddOns.cpp" line="26"/>
+        <source>German</source>
+        <translation>Немецкий</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/settings/SettingsPanel_AddOns.cpp" line="27"/>
+        <source>English</source>
+        <translation>Английский</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/settings/SettingsPanel_AddOns.cpp" line="28"/>
+        <source>French</source>
+        <translation>Французский</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/settings/SettingsPanel_AddOns.cpp" line="29"/>
+        <source>Spanish</source>
+        <translation>Испанский</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/settings/SettingsPanel_AddOns.cpp" line="30"/>
+        <source>Italian</source>
+        <translation>Итальянский</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/settings/SettingsPanel_AddOns.cpp" line="31"/>
+        <source>Dutch</source>
+        <translation>Нидерландский</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/settings/SettingsPanel_AddOns.cpp" line="32"/>
+        <source>Polish</source>
+        <translation>Польский</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/settings/SettingsPanel_AddOns.cpp" line="33"/>
+        <source>Portuguese</source>
+        <translation>Португальский</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/settings/SettingsPanel_AddOns.cpp" line="34"/>
+        <source>Russian</source>
+        <translation>Русский</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/settings/SettingsPanel_AddOns.cpp" line="35"/>
+        <source>Japanese</source>
+        <translation>Японский</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/settings/SettingsPanel_AddOns.cpp" line="36"/>
+        <source>Korean</source>
+        <translation>Корейский</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/settings/SettingsPanel_AddOns.cpp" line="37"/>
+        <source>Chinese</source>
+        <translation>Китайский</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/settings/SettingsPanel_AddOns.cpp" line="60"/>
+        <source>The file could not be deleted.</source>
+        <translation>Не удалось удалить файл.</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/settings/SettingsPanel_AddOns.cpp" line="102"/>
+        <source>Optional parts that OpenPDF Studio downloads and removes.</source>
+        <translation>Дополнительные компоненты, которые OpenPDF Studio загружает и удаляет.</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/settings/SettingsPanel_AddOns.cpp" line="105"/>
+        <source>Optional parts, installed and removed by your system&apos;s package manager.</source>
+        <translation>Дополнительные компоненты, которые устанавливает и удаляет менеджер пакетов системы.</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/settings/SettingsPanel_AddOns.cpp" line="132"/>
+        <source>Text Recognition (OCR)</source>
+        <translation>Распознавание текста (OCR)</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/settings/SettingsPanel_AddOns.cpp" line="135"/>
+        <source>Language packs for recognising text in scanned documents.</source>
+        <translation>Языковые пакеты для распознавания текста в отсканированных документах.</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/settings/SettingsPanel_AddOns.cpp" line="146"/>
+        <source>Installed languages:</source>
+        <translation>Установленные языки:</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/settings/SettingsPanel_AddOns.cpp" line="154"/>
+        <source>Language:</source>
+        <translation>Язык:</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/settings/SettingsPanel_AddOns.cpp" line="180"/>
+        <source>None</source>
+        <translation>Нет</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/settings/SettingsPanel_AddOns.cpp" line="207"/>
+        <source>Fonts</source>
+        <translation>Шрифты</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/settings/SettingsPanel_AddOns.cpp" line="212"/>
+        <source>Fonts are added and removed in your system&apos;s font management. OpenPDF Studio uses new fonts after a restart.</source>
+        <translation>Шрифты добавляются и удаляются в средстве управления шрифтами системы. OpenPDF Studio использует новые шрифты после перезапуска.</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/settings/SettingsPanel_AddOns.cpp" line="218"/>
+        <source>Manage Fonts</source>
+        <translation>Управление шрифтами</translation>
     </message>
 </context>
 <context>
     <name>SettingsSearch</name>
     <message>
-        <location filename="../../src/ui/settings/SettingsSearch.cpp"/>
+        <location filename="../../src/ui/settings/SettingsSearch.cpp" line="84"/>
         <source>Search…</source>
         <translation>Поиск…</translation>
     </message>
     <message>
-        <location filename="../../src/ui/settings/SettingsSearch.cpp"/>
+        <location filename="../../src/ui/settings/SettingsSearch.cpp" line="85"/>
         <source>No results</source>
         <translation>Ничего не найдено</translation>
     </message>
@@ -4624,22 +4925,22 @@ Enter the password to open it:</source>
 <context>
     <name>ShortcutRow</name>
     <message>
-        <location filename="../../src/ui/settings/ShortcutRow.hpp" line="132"/>
+        <location filename="../../src/ui/settings/ShortcutRow.hpp" line="138"/>
         <source>Reset to default</source>
         <translation>Сбросить по умолчанию</translation>
     </message>
     <message>
-        <location filename="../../src/ui/settings/ShortcutRow.hpp" line="143"/>
+        <location filename="../../src/ui/settings/ShortcutRow.hpp" line="145"/>
         <source>Edit</source>
         <translation>Изменить</translation>
     </message>
     <message>
-        <location filename="../../src/ui/settings/ShortcutRow.hpp" line="153"/>
+        <location filename="../../src/ui/settings/ShortcutRow.hpp" line="155"/>
         <source>Save</source>
         <translation>Сохранить</translation>
     </message>
     <message>
-        <location filename="../../src/ui/settings/ShortcutRow.hpp" line="161"/>
+        <location filename="../../src/ui/settings/ShortcutRow.hpp" line="163"/>
         <source>Cancel</source>
         <translation>Отмена</translation>
     </message>
@@ -4652,145 +4953,145 @@ Enter the password to open it:</source>
         <translation>Подписать - OpenPDF Studio</translation>
     </message>
     <message>
-        <location filename="../../src/ui/sign/SignDialog.cpp" line="175"/>
+        <location filename="../../src/ui/sign/SignDialog.cpp" line="176"/>
         <source>Add signature</source>
         <translation>Добавить подпись</translation>
     </message>
     <message>
-        <location filename="../../src/ui/sign/SignDialog.cpp" line="176"/>
+        <location filename="../../src/ui/sign/SignDialog.cpp" line="177"/>
         <source>Sign digitally</source>
         <translation>Цифровая подпись</translation>
     </message>
     <message>
-        <location filename="../../src/ui/sign/SignDialog.cpp" line="179"/>
+        <location filename="../../src/ui/sign/SignDialog.cpp" line="180"/>
         <source>Not available in this build</source>
         <translation>Недоступно в этой сборке</translation>
     </message>
     <message>
-        <location filename="../../src/ui/sign/SignDialog.cpp" line="196"/>
+        <location filename="../../src/ui/sign/SignDialog.cpp" line="197"/>
         <source>Create, import or choose a signature, then place it freely in the PDF.</source>
         <translation>Создайте, импортируйте или выберите подпись, а затем разместите её в PDF где угодно.</translation>
     </message>
     <message>
-        <location filename="../../src/ui/sign/SignDialog.cpp" line="210"/>
+        <location filename="../../src/ui/sign/SignDialog.cpp" line="211"/>
         <source>Once created, the signature can be placed freely in the PDF and adjusted later.</source>
         <translation>После создания подпись можно свободно разместить в PDF и позже изменить.</translation>
     </message>
     <message>
-        <location filename="../../src/ui/sign/SignDialog.cpp" line="241"/>
+        <location filename="../../src/ui/sign/SignDialog.cpp" line="242"/>
         <source>Draw</source>
         <translation>Нарисовать</translation>
     </message>
     <message>
-        <location filename="../../src/ui/sign/SignDialog.cpp" line="242"/>
+        <location filename="../../src/ui/sign/SignDialog.cpp" line="243"/>
         <source>Type</source>
         <translation>Ввести</translation>
     </message>
     <message>
-        <location filename="../../src/ui/sign/SignDialog.cpp" line="243"/>
+        <location filename="../../src/ui/sign/SignDialog.cpp" line="244"/>
         <source>Import image</source>
         <translation>Импорт изображения</translation>
     </message>
     <message>
-        <location filename="../../src/ui/sign/SignDialog.cpp" line="244"/>
+        <location filename="../../src/ui/sign/SignDialog.cpp" line="245"/>
         <source>Saved</source>
         <translation>Сохранённые</translation>
     </message>
     <message>
-        <location filename="../../src/ui/sign/SignDialog.cpp" line="279"/>
+        <location filename="../../src/ui/sign/SignDialog.cpp" line="280"/>
         <source>Clear</source>
         <translation>Очистить</translation>
     </message>
     <message>
-        <location filename="../../src/ui/sign/SignDialog.cpp" line="294"/>
+        <location filename="../../src/ui/sign/SignDialog.cpp" line="295"/>
         <source>Type your name</source>
         <translation>Введите своё имя</translation>
     </message>
     <message>
-        <location filename="../../src/ui/sign/SignDialog.cpp" line="314"/>
+        <location filename="../../src/ui/sign/SignDialog.cpp" line="315"/>
         <source>Choose image...</source>
         <translation>Выбрать изображение...</translation>
     </message>
     <message>
-        <location filename="../../src/ui/sign/SignDialog.cpp" line="339"/>
+        <location filename="../../src/ui/sign/SignDialog.cpp" line="340"/>
         <source>Blue</source>
         <translation>Синий</translation>
     </message>
     <message>
-        <location filename="../../src/ui/sign/SignDialog.cpp" line="340"/>
+        <location filename="../../src/ui/sign/SignDialog.cpp" line="341"/>
         <source>Dark blue</source>
         <translation>Тёмно-синий</translation>
     </message>
     <message>
-        <location filename="../../src/ui/sign/SignDialog.cpp" line="341"/>
+        <location filename="../../src/ui/sign/SignDialog.cpp" line="342"/>
         <source>Black</source>
         <translation>Чёрный</translation>
     </message>
     <message>
-        <location filename="../../src/ui/sign/SignDialog.cpp" line="342"/>
+        <location filename="../../src/ui/sign/SignDialog.cpp" line="343"/>
         <source>Red</source>
         <translation>Красный</translation>
     </message>
     <message>
-        <location filename="../../src/ui/sign/SignDialog.cpp" line="360"/>
-        <location filename="../../src/ui/sign/SignDialog.cpp" line="362"/>
+        <location filename="../../src/ui/sign/SignDialog.cpp" line="361"/>
+        <location filename="../../src/ui/sign/SignDialog.cpp" line="363"/>
         <source>%1 px</source>
         <translation>%1 пикс.</translation>
     </message>
     <message>
-        <location filename="../../src/ui/sign/SignDialog.cpp" line="364"/>
+        <location filename="../../src/ui/sign/SignDialog.cpp" line="365"/>
         <source>Color</source>
         <translation>Цвет</translation>
     </message>
     <message>
-        <location filename="../../src/ui/sign/SignDialog.cpp" line="367"/>
+        <location filename="../../src/ui/sign/SignDialog.cpp" line="368"/>
         <source>Line width</source>
         <translation>Толщина линии</translation>
     </message>
     <message>
-        <location filename="../../src/ui/sign/SignDialog.cpp" line="383"/>
+        <location filename="../../src/ui/sign/SignDialog.cpp" line="384"/>
         <source>Cancel</source>
         <translation>Отмена</translation>
     </message>
     <message>
-        <location filename="../../src/ui/sign/SignDialog.cpp" line="455"/>
+        <location filename="../../src/ui/sign/SignDialog.cpp" line="456"/>
         <source>Could not save the signature.</source>
         <translation>Не удалось сохранить подпись.</translation>
     </message>
     <message>
-        <location filename="../../src/ui/sign/SignDialog.cpp" line="490"/>
+        <location filename="../../src/ui/sign/SignDialog.cpp" line="491"/>
         <source>Sign</source>
         <translation>Подписать</translation>
     </message>
     <message>
-        <location filename="../../src/ui/sign/SignDialog.cpp" line="450"/>
+        <location filename="../../src/ui/sign/SignDialog.cpp" line="451"/>
         <source>%1 (Image)</source>
         <translation>%1 (изображение)</translation>
     </message>
     <message>
-        <location filename="../../src/ui/sign/SignDialog.cpp" line="451"/>
+        <location filename="../../src/ui/sign/SignDialog.cpp" line="452"/>
         <source>Signature %1</source>
         <translation>Подпись %1</translation>
     </message>
     <message>
-        <location filename="../../src/ui/sign/SignDialog.cpp" line="388"/>
+        <location filename="../../src/ui/sign/SignDialog.cpp" line="389"/>
         <source>Save</source>
         <translation>Сохранить</translation>
     </message>
     <message>
-        <location filename="../../src/ui/sign/SignDialog.cpp" line="393"/>
-        <location filename="../../src/ui/sign/SignDialog.cpp" line="490"/>
-        <location filename="../../src/ui/sign/SignDialog.cpp" line="494"/>
+        <location filename="../../src/ui/sign/SignDialog.cpp" line="394"/>
+        <location filename="../../src/ui/sign/SignDialog.cpp" line="491"/>
+        <location filename="../../src/ui/sign/SignDialog.cpp" line="495"/>
         <source>Place</source>
         <translation>Разместить</translation>
     </message>
     <message>
-        <location filename="../../src/ui/sign/SignDialog.cpp" line="469"/>
+        <location filename="../../src/ui/sign/SignDialog.cpp" line="470"/>
         <source>Import signature image</source>
         <translation>Импорт изображения подписи</translation>
     </message>
     <message>
-        <location filename="../../src/ui/sign/SignDialog.cpp" line="470"/>
+        <location filename="../../src/ui/sign/SignDialog.cpp" line="471"/>
         <source>Images (%1)</source>
         <translation>Изображения (%1)</translation>
     </message>
@@ -4978,73 +5279,73 @@ Enter the password to open it:</source>
 <context>
     <name>SignatureRemoval</name>
     <message>
-        <location filename="../../src/ui/sign/SignatureRemoval.cpp" line="14"/>
+        <location filename="../../src/ui/sign/SignatureRemoval.cpp" line="16"/>
         <source>Unknown signer</source>
         <translation>Неизвестный подписант</translation>
     </message>
     <message>
-        <location filename="../../src/ui/sign/SignatureRemoval.cpp" line="17"/>
-        <location filename="../../src/ui/sign/SignatureRemoval.cpp" line="60"/>
+        <location filename="../../src/ui/sign/SignatureRemoval.cpp" line="19"/>
+        <location filename="../../src/ui/sign/SignatureRemoval.cpp" line="65"/>
         <source>Remove signature</source>
         <translation>Удалить подпись</translation>
     </message>
     <message>
-        <location filename="../../src/ui/sign/SignatureRemoval.cpp" line="32"/>
+        <location filename="../../src/ui/sign/SignatureRemoval.cpp" line="34"/>
         <source>The signature of %1 cannot be removed.</source>
         <translation>Подпись %1 нельзя удалить.</translation>
     </message>
     <message>
-        <location filename="../../src/ui/sign/SignatureRemoval.cpp" line="20"/>
+        <location filename="../../src/ui/sign/SignatureRemoval.cpp" line="22"/>
         <source>Save or undo your changes first.</source>
         <translation>Сначала сохраните или отмените изменения.</translation>
     </message>
     <message>
-        <location filename="../../src/ui/sign/SignatureRemoval.cpp" line="21"/>
+        <location filename="../../src/ui/sign/SignatureRemoval.cpp" line="23"/>
         <source>A signature can only be removed from the saved document.</source>
         <translation>Подпись можно удалить только из сохранённого документа.</translation>
     </message>
     <message>
-        <location filename="../../src/ui/sign/SignatureRemoval.cpp" line="33"/>
+        <location filename="../../src/ui/sign/SignatureRemoval.cpp" line="35"/>
         <source>The file could not be read.</source>
         <translation>Не удалось прочитать файл.</translation>
     </message>
     <message>
-        <location filename="../../src/ui/sign/SignatureRemoval.cpp" line="41"/>
+        <location filename="../../src/ui/sign/SignatureRemoval.cpp" line="43"/>
         <source>The signature added after it is removed as well.</source>
         <translation>Подпись, добавленная после неё, тоже будет удалена.</translation>
     </message>
     <message>
-        <location filename="../../src/ui/sign/SignatureRemoval.cpp" line="43"/>
+        <location filename="../../src/ui/sign/SignatureRemoval.cpp" line="45"/>
         <source>The %1 signatures added after it are removed as well.</source>
         <translation>Подписи, добавленные после неё (%1), тоже будут удалены.</translation>
     </message>
     <message>
-        <location filename="../../src/ui/sign/SignatureRemoval.cpp" line="46"/>
+        <location filename="../../src/ui/sign/SignatureRemoval.cpp" line="48"/>
         <source>Changes saved after it are undone as well.</source>
         <translation>Изменения, сохранённые после неё, тоже будут отменены.</translation>
     </message>
     <message>
-        <location filename="../../src/ui/sign/SignatureRemoval.cpp" line="51"/>
+        <location filename="../../src/ui/sign/SignatureRemoval.cpp" line="56"/>
         <source>Remove the signature of %1?</source>
         <translation>Удалить подпись %1?</translation>
     </message>
     <message>
-        <location filename="../../src/ui/sign/SignatureRemoval.cpp" line="47"/>
+        <location filename="../../src/ui/sign/SignatureRemoval.cpp" line="52"/>
         <source>The document goes back to how it was before this signature. The change is written when you save and can be undone until then.</source>
         <translation>Документ вернётся к состоянию до этой подписи. Изменение записывается при сохранении, до этого его можно отменить.</translation>
     </message>
     <message>
-        <location filename="../../src/ui/sign/SignatureRemoval.cpp" line="47"/>
+        <location filename="../../src/ui/sign/SignatureRemoval.cpp" line="50"/>
         <source>The signature is taken out of the document, which otherwise stays as it is. The change is written when you save and can be undone until then.</source>
         <translation>Подпись будет удалена из документа, в остальном он останется без изменений. Изменение записывается при сохранении, до этого его можно отменить.</translation>
     </message>
     <message>
-        <location filename="../../src/ui/sign/SignatureRemoval.cpp" line="53"/>
+        <location filename="../../src/ui/sign/SignatureRemoval.cpp" line="58"/>
         <source>Remove</source>
         <translation>Удалить</translation>
     </message>
     <message>
-        <location filename="../../src/ui/sign/SignatureRemoval.cpp" line="61"/>
+        <location filename="../../src/ui/sign/SignatureRemoval.cpp" line="66"/>
         <source>The signature could not be removed.</source>
         <translation>Не удалось удалить подпись.</translation>
     </message>
@@ -5174,6 +5475,7 @@ Enter the password to open it:</source>
     <message>
         <location filename="../../src/ui/sign/SignerTrust.cpp" line="78"/>
         <location filename="../../src/ui/sign/SignerTrust.cpp" line="210"/>
+        <location filename="../../src/ui/sign/SignerTrust.cpp" line="268"/>
         <source>Unknown signer</source>
         <translation>Неизвестный подписант</translation>
     </message>
@@ -5265,6 +5567,73 @@ Enter the password to open it:</source>
     </message>
 </context>
 <context>
+    <name>StartPage</name>
+    <message>
+        <location filename="../../src/ui/open/StartPage.cpp" line="172"/>
+        <source>Drop a document here</source>
+        <translation>Перетащите сюда документ</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/open/StartPage.cpp" line="173"/>
+        <source>or click a tab above to open</source>
+        <translation>или нажмите на вкладку выше, чтобы открыть</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/open/StartPage.cpp" line="174"/>
+        <source>Recently opened files will appear here.</source>
+        <translation>Здесь появятся недавно открытые файлы.</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/open/StartPage.cpp" line="175"/>
+        <source>Recently Opened</source>
+        <translation>Недавно открытые</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/open/StartPage.cpp" line="176"/>
+        <source>Clear List</source>
+        <translation>Очистить список</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/open/StartPage.cpp" line="194"/>
+        <source>Just now</source>
+        <translation>Только что</translation>
+    </message>
+    <message numerus="yes">
+        <location filename="../../src/ui/open/StartPage.cpp" line="195"/>
+        <source>%n min ago</source>
+        <translation>
+            <numerusform>%n мин. назад</numerusform>
+            <numerusform>%n мин. назад</numerusform>
+            <numerusform>%n мин. назад</numerusform>
+        </translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/open/StartPage.cpp" line="200"/>
+        <source>Today, %1</source>
+        <translation>Сегодня, %1</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/open/StartPage.cpp" line="201"/>
+        <source>Yesterday</source>
+        <translation>Вчера</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/open/StartPage.cpp" line="202"/>
+        <source>d MMM</source>
+        <translation>d MMM</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/open/StartPage.cpp" line="245"/>
+        <source>Open File Location</source>
+        <translation>Открыть расположение файла</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/open/StartPage.cpp" line="246"/>
+        <source>Remove from List</source>
+        <translation>Удалить из списка</translation>
+    </message>
+</context>
+<context>
     <name>StatusBar</name>
     <message>
         <location filename="../../src/ui/bars/StatusBar.cpp" line="107"/>
@@ -5295,6 +5664,31 @@ Enter the password to open it:</source>
         <location filename="../../src/ui/bars/StatusBar.cpp" line="126"/>
         <source>Document information</source>
         <translation>Сведения о документе</translation>
+    </message>
+</context>
+<context>
+    <name>SystemPackages</name>
+    <message>
+        <location filename="../../src/app/SystemPackages.cpp" line="248"/>
+        <location filename="../../src/app/SystemPackages.cpp" line="313"/>
+        <source>Packages are installed by the system&apos;s package manager.</source>
+        <translation>Пакеты устанавливает менеджер пакетов системы.</translation>
+    </message>
+    <message>
+        <location filename="../../src/app/SystemPackages.cpp" line="330"/>
+        <source>No permission was given.</source>
+        <translation>Разрешение не получено.</translation>
+    </message>
+    <message>
+        <location filename="../../src/app/SystemPackages.cpp" line="335"/>
+        <location filename="../../src/app/SystemPackages.cpp" line="382"/>
+        <source>The package manager stopped.</source>
+        <translation>Менеджер пакетов остановился.</translation>
+    </message>
+    <message>
+        <location filename="../../src/app/SystemPackages.cpp" line="395"/>
+        <source>Not found in the package sources: %1</source>
+        <translation>Не найдено в источниках пакетов: %1</translation>
     </message>
 </context>
 <context>
@@ -5383,57 +5777,57 @@ Enter the password to open it:</source>
 <context>
     <name>TopToolbar</name>
     <message>
-        <location filename="../../src/ui/bars/TopToolbar.cpp" line="56"/>
-        <location filename="../../src/ui/bars/TopToolbar.cpp" line="260"/>
+        <location filename="../../src/ui/bars/TopToolbar.cpp" line="64"/>
+        <location filename="../../src/ui/bars/TopToolbar.cpp" line="346"/>
         <source>Save</source>
         <translation>Сохранить</translation>
     </message>
     <message>
-        <location filename="../../src/ui/bars/TopToolbar.cpp" line="57"/>
-        <location filename="../../src/ui/bars/TopToolbar.cpp" line="272"/>
+        <location filename="../../src/ui/bars/TopToolbar.cpp" line="65"/>
+        <location filename="../../src/ui/bars/TopToolbar.cpp" line="358"/>
         <source>Print</source>
         <translation>Печать</translation>
     </message>
     <message>
-        <location filename="../../src/ui/bars/TopToolbar.cpp" line="58"/>
-        <location filename="../../src/ui/bars/TopToolbar.cpp" line="282"/>
+        <location filename="../../src/ui/bars/TopToolbar.cpp" line="66"/>
+        <location filename="../../src/ui/bars/TopToolbar.cpp" line="368"/>
         <source>Undo</source>
         <translation>Отменить</translation>
     </message>
     <message>
-        <location filename="../../src/ui/bars/TopToolbar.cpp" line="59"/>
-        <location filename="../../src/ui/bars/TopToolbar.cpp" line="288"/>
+        <location filename="../../src/ui/bars/TopToolbar.cpp" line="67"/>
+        <location filename="../../src/ui/bars/TopToolbar.cpp" line="374"/>
         <source>Redo</source>
         <translation>Повторить</translation>
     </message>
     <message>
-        <location filename="../../src/ui/bars/TopToolbar.cpp" line="60"/>
-        <location filename="../../src/ui/bars/TopToolbar.cpp" line="298"/>
+        <location filename="../../src/ui/bars/TopToolbar.cpp" line="68"/>
+        <location filename="../../src/ui/bars/TopToolbar.cpp" line="385"/>
         <source>Zoom Out</source>
         <translation>Уменьшить</translation>
     </message>
     <message>
-        <location filename="../../src/ui/bars/TopToolbar.cpp" line="61"/>
-        <location filename="../../src/ui/bars/TopToolbar.cpp" line="310"/>
+        <location filename="../../src/ui/bars/TopToolbar.cpp" line="69"/>
+        <location filename="../../src/ui/bars/TopToolbar.cpp" line="397"/>
         <source>Zoom In</source>
         <translation>Увеличить</translation>
     </message>
     <message>
-        <location filename="../../src/ui/bars/TopToolbar.cpp" line="62"/>
-        <location filename="../../src/ui/bars/TopToolbar.cpp" line="320"/>
+        <location filename="../../src/ui/bars/TopToolbar.cpp" line="70"/>
+        <location filename="../../src/ui/bars/TopToolbar.cpp" line="407"/>
         <source>Single Page</source>
         <translation>Одна страница</translation>
     </message>
     <message>
-        <location filename="../../src/ui/bars/TopToolbar.cpp" line="63"/>
-        <location filename="../../src/ui/bars/TopToolbar.cpp" line="332"/>
+        <location filename="../../src/ui/bars/TopToolbar.cpp" line="71"/>
+        <location filename="../../src/ui/bars/TopToolbar.cpp" line="419"/>
         <source>Grid View</source>
         <translation>Вид сеткой</translation>
     </message>
     <message>
-        <location filename="../../src/ui/bars/TopToolbar.cpp" line="67"/>
-        <location filename="../../src/ui/bars/TopToolbar.cpp" line="92"/>
-        <location filename="../../src/ui/bars/TopToolbar.cpp" line="164"/>
+        <location filename="../../src/ui/bars/TopToolbar.cpp" line="75"/>
+        <location filename="../../src/ui/bars/TopToolbar.cpp" line="101"/>
+        <location filename="../../src/ui/bars/TopToolbar.cpp" line="177"/>
         <source>No Document</source>
         <translation>Нет документа</translation>
     </message>

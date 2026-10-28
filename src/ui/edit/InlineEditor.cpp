@@ -238,11 +238,12 @@ void InlineEditor::refreshMetrics()
     const QString text = plainText();
     if (!m_metricsStale && text == m_metricsText) return;
     const QList<TextLayout::Source> sources = charSources();
-    if (m_metricsStale || !m_metrics.covers(text, sources))
+    const QList<TextLayout::Mark> marks = charMarks();
+    if (m_metricsStale || !m_metrics.covers(text, sources, marks))
         m_metrics = m_source ? m_source(text) : TextLayout::Metrics();
     m_metricsText  = text;
     m_metricsStale = false;
-    m_styles  = m_metrics.stylesOf(text, sources);
+    m_styles  = m_metrics.stylesOf(text, sources, marks);
     m_sizePt  = m_metrics.sizeFor(m_styles);
     m_advance = m_metrics.advanceFor(m_styles);
     Q_EMIT lookChanged();
@@ -500,6 +501,8 @@ void InlineEditor::present(const QString &text, qreal pixelFontSize, const QColo
     m_metricsStale  = true;
     m_goalXPt       = -1.0;
     applyStyle();
+    // The new text takes nothing of the format the last one ended in.
+    setCurrentCharFormat(QTextCharFormat());
     setPlainText(TextLayout::withoutSoftBreaks(text));
     applyParagraphSpacing();
     moveCursor(QTextCursor::End);

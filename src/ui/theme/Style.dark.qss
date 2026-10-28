@@ -483,6 +483,55 @@ QLabel#PageLabel {
     font-size: 14px;
 }
 
+/* ── Recent documents ──────────────────────────────────────── */
+QLabel#StartTitle {
+    color: #E5E5E5;
+    font-size: 20px;
+    font-weight: 600;
+}
+QLabel#StartHint {
+    color: #8E8E8E;
+    font-size: 14px;
+}
+QLabel#StartEmptyNote {
+    color: #6E6E6E;
+    font-size: 12px;
+}
+QWidget#RecentHeader {
+    border-bottom: 1px solid #3D3D3D;
+}
+QLabel#RecentHeading {
+    color: #E5E5E5;
+    font-size: 13px;
+    font-weight: 600;
+}
+QPushButton#RecentClear {
+    background: transparent;
+    border: none;
+    color: #8E8E8E;
+    font-size: 12px;
+    padding: 2px 0;
+}
+QPushButton#RecentClear:hover { color: #E5E5E5; }
+QPushButton#RecentItem {
+    background: transparent;
+    border: none;
+    border-bottom: 1px solid #3D3D3D;
+    border-radius: 0;
+    padding: 0;
+}
+QPushButton#RecentItem:hover   { background: #333333; }
+QPushButton#RecentItem:pressed { background: #383838; }
+QLabel#RecentName {
+    color: #E5E5E5;
+    font-size: 13px;
+}
+QLabel#RecentFolder,
+QLabel#RecentTime {
+    color: #8E8E8E;
+    font-size: 11px;
+}
+
 /* ── Image region overlay ────────────────────────────────── */
 QFrame#ImageRegionOverlay {
     border: 1px solid rgba(96, 165, 250, 170);

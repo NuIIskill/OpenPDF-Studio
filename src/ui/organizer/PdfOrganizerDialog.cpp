@@ -1,4 +1,5 @@
 #include "ui/organizer/PdfOrganizerDialog.hpp"
+#include "app/AppSettings.hpp"
 #include "app/PdfPwStore.hpp"
 #include "ui/widgets/PasswordDialog.hpp"
 #include "engine/document/OrganizerDoc.hpp"
@@ -63,6 +64,12 @@ PdfOrganizerDialog::PdfOrganizerDialog(const QString &initialPath, QWidget *pare
     setWindowTitle(tr("PDF Organizer - OpenPDF Studio"));
     setMinimumSize(860, 620);
     resize(1040, 700);
+    if (AppSettings settings; settings.preservePanelLayout())
+        restoreGeometry(settings.organizerGeometry());
+    connect(this, &QDialog::finished, this, [this]() {
+        if (AppSettings settings; settings.preservePanelLayout())
+            settings.setOrganizerGeometry(saveGeometry());
+    });
     buildUi();
 
 #ifdef HAVE_PDF_RENDERING

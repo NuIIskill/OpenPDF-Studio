@@ -7,7 +7,7 @@ namespace EditCodec {
 
 namespace {
 
-constexpr quint8 kVersion = 1;
+constexpr quint8 kVersion = 2;
 
 void write(QDataStream &out, const TextBoxProperties &b)
 {
@@ -48,9 +48,15 @@ void write(QDataStream &out, const EditSession::Edit &e)
     out << qint32(e.sources.size());
     for (const TextLayout::Source &s : e.sources)
         out << qint32(s.page) << s.at << s.rise;
+    // Not set is -1 for a switch and 0 for the scale.
+    const auto state = [](const std::optional<bool> &on) { return qint8(on ? *on : -1); };
+    out << qint32(e.marks.size());
+    for (const TextLayout::Mark &m : e.marks)
+        out << m.family << state(m.bold) << state(m.italic) << state(m.underline) << m.scale
+            << m.color;
 }
 
-bool read(QDataStream &in, EditSession::Edit &e)
+bool read(QDataStream &in, EditSession::Edit &e, quint8 version)
 {
     qint32 page = -1, sourcePage = -1;
     in >> page >> sourcePage >> e.pdfBounds >> e.sourceRect >> e.newText
@@ -79,6 +85,20 @@ bool read(QDataStream &in, EditSession::Edit &e)
         s.page = sourcePageOf;
         e.sources.append(s);
     }
+    if (version < 2) return in.status() == QDataStream::Ok;
+    const auto state = [](qint8 on) { return on < 0 ? std::optional<bool>() : std::optional<bool>(on > 0); };
+    qint32 marks = 0;
+    in >> marks;
+    if (marks < 0) return false;
+    for (qint32 i = 0; i < marks && in.status() == QDataStream::Ok; ++i) {
+        TextLayout::Mark m;
+        qint8 bold = -1, italic = -1, underline = -1;
+        in >> m.family >> bold >> italic >> underline >> m.scale >> m.color;
+        m.bold      = state(bold);
+        m.italic    = state(italic);
+        m.underline = state(underline);
+        e.marks.append(m);
+    }
     return in.status() == QDataStream::Ok;
 }
 
@@ -87,7 +107,7 @@ void write(QDataStream &out, const EditSession::DrawStroke &s)
     out << qint32(s.page) << s.points << s.color << s.widthPt;
 }
 
-bool read(QDataStream &in, EditSession::DrawStroke &s)
+bool read(QDataStream &in, EditSession::DrawStroke &s, quint8)
 {
     qint32 page = -1;
     in >> page >> s.points >> s.color >> s.widthPt;
@@ -101,7 +121,7 @@ void write(QDataStream &out, const EditSession::ImageChange &c)
         << c.replacement << c.removed;
 }
 
-bool read(QDataStream &in, EditSession::ImageChange &c)
+bool read(QDataStream &in, EditSession::ImageChange &c, quint8)
 {
     qint32 page = -1, turns = 0;
     in >> page >> c.key >> c.from >> c.to >> turns >> c.replacement >> c.removed;
@@ -129,11 +149,11 @@ bool decodeList(const QByteArray &data, QList<T> *items)
     quint8 version = 0;
     qint32 count = 0;
     in >> version >> count;
-    if (version != kVersion || count < 0) return false;
+    if (version < 1 || version > kVersion || count < 0) return false;
     QList<T> out;
     for (qint32 i = 0; i < count; ++i) {
         T item;
-        if (!read(in, item)) return false;
+        if (!read(in, item, version)) return false;
         out.append(std::move(item));
     }
     *items = std::move(out);
