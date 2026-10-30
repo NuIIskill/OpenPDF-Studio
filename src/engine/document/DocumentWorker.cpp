@@ -87,7 +87,7 @@ void DocumentWorker::readAnnotations(const QList<int> &pages)
     m_wake.notify_all();
 }
 
-void DocumentWorker::writeCopy(const QString &output, std::shared_ptr<const EditSession> session)
+void DocumentWorker::writeCopy(const WriteGrant &output, std::shared_ptr<const EditSession> session)
 {
     {
         std::lock_guard lock(m_mutex);
@@ -107,7 +107,7 @@ void DocumentWorker::stop()
         m_annotationPages.clear();
         m_search = {};
         m_helperPages.clear();
-        for (const Copy &copy : std::as_const(m_copies)) cancelled.append(copy.output);
+        for (const Copy &copy : std::as_const(m_copies)) cancelled.append(copy.output.path());
         m_copies.clear();
         if (!m_runningCopy.isEmpty()) cancelled.append(m_runningCopy);
         m_cancelRender = true;
@@ -256,7 +256,7 @@ void DocumentWorker::run()
                 m_cancelRender  = false;
             } else if (!m_copies.isEmpty()) {
                 copy = m_copies.takeFirst();
-                m_runningCopy = copy->output;
+                m_runningCopy = copy->output.path();
                 m_cancelCopy  = false;
             } else {
                 const int focus = m_focusPage;
@@ -305,7 +305,7 @@ void DocumentWorker::runCopy(const Copy &copy, quint64 generation)
     const bool ok = m_backend->saveWithEdits(copy.output, copy.session ? *copy.session : empty,
                                              [this] { return m_cancelCopy.load(); });
     if (m_cancelCopy) return;
-    post(generation, [this, output = copy.output, ok] { Q_EMIT copyWritten(output, ok); });
+    post(generation, [this, output = copy.output.path(), ok] { Q_EMIT copyWritten(output, ok); });
 }
 
 void DocumentWorker::runAnnotations(int page, quint64 generation)

@@ -81,7 +81,7 @@ Importing::Result Importing::convert(QWidget *window, DocumentView *busyView,
     // A format from an optional part may ask the user, so it runs here and
     // not on the worker thread.
     if (const Format *format = formatFor(path))
-        return format->toPdf(window, path, working, error);
+        return format->toPdf(window, path, WriteGrant(working), error);
 
     if (busyView) busyView->setBusy(true);
     indicator->showProgress(tr("Converting \"%1\"…").arg(QFileInfo(path).fileName()));
@@ -91,7 +91,7 @@ Importing::Result Importing::convert(QWidget *window, DocumentView *busyView,
     bool converted = false;
     QEventLoop loop;
     QThread *thread = QThread::create([&] {
-        converted = DocumentImport::convertToPdf(path, working, error);
+        converted = DocumentImport::convertToPdf(path, WriteGrant(working), error);
     });
     QObject::connect(thread, &QThread::finished, &loop, &QEventLoop::quit);
     thread->start();

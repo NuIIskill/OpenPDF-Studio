@@ -169,8 +169,9 @@ bool OrganizerWriter::verifyWritten(const QString &path) const
 #endif
 }
 
-OrganizerWriter::Result OrganizerWriter::write(const QString &outPath)
+OrganizerWriter::Result OrganizerWriter::write(const WriteGrant &outPathGrant)
 {
+    const QString outPath = outPathGrant.path();
 #ifdef HAVE_QPDF
     if (writeVector(outPath) && verifyWritten(outPath)) {
         qInfo() << "[Organizer] saved" << m_pages.size() << "pages (vector) to"

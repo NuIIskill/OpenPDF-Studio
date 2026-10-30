@@ -44,7 +44,7 @@ public:
     void setRenders(const QList<Render> &renders);
     void readAnnotations(const QList<int> &pages);
     void setFocusPage(int page) { m_focusPage = page; }
-    void writeCopy(const QString &output, std::shared_ptr<const EditSession> session);
+    void writeCopy(const WriteGrant &output, std::shared_ptr<const EditSession> session);
     void stop();
     void setDocument(const QString &path);
     void findText(int search, const QString &needle);
@@ -65,7 +65,7 @@ Q_SIGNALS:
 
 private:
     struct Copy {
-        QString output;
+        WriteGrant output;
         std::shared_ptr<const EditSession> session;
     };
 

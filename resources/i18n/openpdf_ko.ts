@@ -483,12 +483,12 @@
         <translation type="vanished">PDF를 쓸 수 없습니다.</translation>
     </message>
     <message>
-        <location filename="../../src/engine/import/DocumentImport.cpp" line="88"/>
+        <location filename="../../src/engine/import/DocumentImport.cpp" line="89"/>
         <source>The file does not exist.</source>
         <translation>파일이 없습니다.</translation>
     </message>
     <message>
-        <location filename="../../src/engine/import/DocumentImport.cpp" line="112"/>
+        <location filename="../../src/engine/import/DocumentImport.cpp" line="113"/>
         <source>The file could not be read. It may be damaged.</source>
         <translation>파일을 읽을 수 없습니다. 손상되었을 수 있습니다.</translation>
     </message>
@@ -501,17 +501,17 @@
         <translation type="vanished">문서가 손상되었습니다: %1</translation>
     </message>
     <message>
-        <location filename="../../src/engine/import/DocumentImport.cpp" line="98"/>
+        <location filename="../../src/engine/import/DocumentImport.cpp" line="99"/>
         <source>This build was made without zlib and cannot read Word or OpenDocument files.</source>
         <translation>이 빌드는 zlib 없이 만들어져 Word 또는 OpenDocument 파일을 읽을 수 없습니다.</translation>
     </message>
     <message>
-        <location filename="../../src/engine/import/DocumentImport.cpp" line="103"/>
+        <location filename="../../src/engine/import/DocumentImport.cpp" line="104"/>
         <source>This is an older Word file that only carries a .docx name. Save it as a real .docx first.</source>
         <translation>이것은 .docx 이름만 가진 오래된 Word 파일입니다. 먼저 실제 .docx로 저장하세요.</translation>
     </message>
     <message>
-        <location filename="../../src/engine/import/DocumentImport.cpp" line="131"/>
+        <location filename="../../src/engine/import/DocumentImport.cpp" line="132"/>
         <source>%1 files cannot be opened.</source>
         <translation>%1 파일은 열 수 없습니다.</translation>
     </message>
@@ -523,7 +523,7 @@
         <translation type="vanished">PDF를 여기에 놓거나 탭을 클릭하여 열기</translation>
     </message>
     <message>
-        <location filename="../../src/ui/DocumentView.cpp" line="320"/>
+        <location filename="../../src/ui/DocumentView.cpp" line="321"/>
         <source>PDF rendering is not available in this build.
 Please use a build that includes Qt6::Pdf support.
 (See build-win.sh for instructions.)</source>
@@ -576,40 +576,40 @@ Qt6::Pdf를 지원하는 빌드를 사용하세요.
         <translation type="vanished">이미지 이동</translation>
     </message>
     <message>
-        <location filename="../../src/ui/DocumentView.cpp" line="378"/>
+        <location filename="../../src/ui/DocumentView.cpp" line="379"/>
         <source>Shift+click extends the selection</source>
         <translation>Shift+클릭으로 선택 영역 확장</translation>
     </message>
     <message>
-        <location filename="../../src/ui/DocumentView.cpp" line="381"/>
+        <location filename="../../src/ui/DocumentView.cpp" line="382"/>
         <source>Shift: straight line in 45° steps</source>
         <translation>Shift: 45° 단위 직선</translation>
     </message>
     <message>
-        <location filename="../../src/ui/DocumentView.cpp" line="383"/>
+        <location filename="../../src/ui/DocumentView.cpp" line="384"/>
         <source>Shift: draw over detected images, keep the aspect ratio, move along one axis</source>
         <translation>Shift: 감지된 이미지 위에 그리기, 가로세로 비율 유지, 한 축으로만 이동</translation>
     </message>
     <message>
-        <location filename="../../src/ui/DocumentView.cpp" line="386"/>
+        <location filename="../../src/ui/DocumentView.cpp" line="387"/>
         <source>Shift+drag edits the text inside the box</source>
         <translation>Shift+드래그는 상자 안의 텍스트를 편집합니다</translation>
     </message>
     <message>
-        <location filename="../../src/ui/DocumentView.cpp" line="550"/>
+        <location filename="../../src/ui/DocumentView.cpp" line="551"/>
         <location filename="../../src/ui/view/ImageAnnotationLayer.cpp" line="308"/>
         <source>Paste</source>
         <translation>붙여넣기</translation>
     </message>
     <message>
-        <location filename="../../src/ui/DocumentView.cpp" line="555"/>
+        <location filename="../../src/ui/DocumentView.cpp" line="556"/>
         <location filename="../../src/ui/view/ImageAnnotationLayer.cpp" line="319"/>
         <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="258"/>
         <source>Delete</source>
         <translation>삭제</translation>
     </message>
     <message>
-        <location filename="../../src/ui/DocumentView.cpp" line="544"/>
+        <location filename="../../src/ui/DocumentView.cpp" line="545"/>
         <location filename="../../src/ui/view/ImageAnnotationLayer.cpp" line="304"/>
         <source>Copy</source>
         <translation>복사</translation>
@@ -627,8 +627,8 @@ Qt6::Pdf를 지원하는 빌드를 사용하세요.
         <translation type="vanished">모든 파일 (*)</translation>
     </message>
     <message>
-        <location filename="../../src/ui/DocumentView.cpp" line="318"/>
-        <location filename="../../src/ui/DocumentView_Edit.cpp" line="103"/>
+        <location filename="../../src/ui/DocumentView.cpp" line="319"/>
+        <location filename="../../src/ui/DocumentView_Edit.cpp" line="104"/>
         <source>Drop a document here or click a tab to open</source>
         <translation>문서를 여기에 놓거나 탭을 클릭하세요</translation>
     </message>
@@ -638,7 +638,7 @@ Qt6::Pdf를 지원하는 빌드를 사용하세요.
         <translation>%1페이지</translation>
     </message>
     <message>
-        <location filename="../../src/ui/DocumentView_Document.cpp" line="291"/>
+        <location filename="../../src/ui/DocumentView_Document.cpp" line="296"/>
         <source>Signature removed</source>
         <translation>서명 제거됨</translation>
     </message>
@@ -753,7 +753,7 @@ Qt6::Pdf를 지원하는 빌드를 사용하세요.
 <context>
     <name>EditController</name>
     <message>
-        <location filename="../../src/ui/edit/EditController.cpp" line="38"/>
+        <location filename="../../src/ui/edit/EditController.cpp" line="39"/>
         <source>Text bearbeiten</source>
         <translation>텍스트 편집</translation>
     </message>
@@ -1155,38 +1155,38 @@ Use page numbers like 1-3, 5, 8-10.</source>
         <translation type="vanished">&quot;%1&quot; 내보내는 중…</translation>
     </message>
     <message>
-        <location filename="../../src/ui/export/Exporting.cpp" line="132"/>
+        <location filename="../../src/ui/export/Exporting.cpp" line="134"/>
         <source>Exporting page %1 of %2…</source>
         <translation>%2페이지 중 %1페이지 내보내는 중…</translation>
     </message>
     <message>
-        <location filename="../../src/ui/export/Exporting.cpp" line="170"/>
+        <location filename="../../src/ui/export/Exporting.cpp" line="172"/>
         <source>Writing &quot;%1&quot;…</source>
         <translation>&quot;%1&quot; 쓰는 중…</translation>
     </message>
     <message>
-        <location filename="../../src/ui/export/Exporting.cpp" line="174"/>
+        <location filename="../../src/ui/export/Exporting.cpp" line="176"/>
         <source>Could not write to &quot;%1&quot;.</source>
         <translation>&quot;%1&quot;에 쓸 수 없습니다.</translation>
     </message>
     <message>
-        <location filename="../../src/ui/export/Exporting.cpp" line="184"/>
+        <location filename="../../src/ui/export/Exporting.cpp" line="186"/>
         <source>Could not export JPEG images to &quot;%1&quot;.</source>
         <translation>JPEG 이미지를 &quot;%1&quot;(으)로 내보낼 수 없습니다.</translation>
     </message>
     <message>
-        <location filename="../../src/ui/export/Exporting.cpp" line="185"/>
+        <location filename="../../src/ui/export/Exporting.cpp" line="187"/>
         <source>Could not export PNG images to &quot;%1&quot;.</source>
         <translation>PNG 이미지를 &quot;%1&quot;(으)로 내보낼 수 없습니다.</translation>
     </message>
     <message>
-        <location filename="../../src/ui/export/Exporting.cpp" line="96"/>
-        <location filename="../../src/ui/export/Exporting.cpp" line="153"/>
+        <location filename="../../src/ui/export/Exporting.cpp" line="98"/>
+        <location filename="../../src/ui/export/Exporting.cpp" line="155"/>
         <source>Could not write &quot;%1&quot;.</source>
         <translation>&quot;%1&quot;을(를) 쓸 수 없습니다.</translation>
     </message>
     <message>
-        <location filename="../../src/ui/export/Exporting.cpp" line="98"/>
+        <location filename="../../src/ui/export/Exporting.cpp" line="100"/>
         <source>Could not write &quot;%1&quot;.
 
 Selecting pages for a PDF needs qpdf, which this build does not include. Exporting as Word or PNG is unaffected.</source>
@@ -1195,22 +1195,22 @@ Selecting pages for a PDF needs qpdf, which this build does not include. Exporti
 PDF의 페이지 선택에는 qpdf가 필요하지만 이 빌드에는 포함되어 있지 않습니다. Word 또는 PNG로 내보내기는 영향을 받지 않습니다.</translation>
     </message>
     <message>
-        <location filename="../../src/ui/export/Exporting.cpp" line="204"/>
+        <location filename="../../src/ui/export/Exporting.cpp" line="206"/>
         <source>Export failed</source>
         <translation>내보내기 실패</translation>
     </message>
     <message>
-        <location filename="../../src/ui/export/Exporting.cpp" line="211"/>
+        <location filename="../../src/ui/export/Exporting.cpp" line="213"/>
         <source>%1 pages exported as JPEG images</source>
         <translation>%1페이지를 JPEG 이미지로 내보냈습니다</translation>
     </message>
     <message>
-        <location filename="../../src/ui/export/Exporting.cpp" line="212"/>
+        <location filename="../../src/ui/export/Exporting.cpp" line="214"/>
         <source>%1 pages exported as PNG images</source>
         <translation>%1페이지를 PNG 이미지로 내보냄</translation>
     </message>
     <message>
-        <location filename="../../src/ui/export/Exporting.cpp" line="210"/>
+        <location filename="../../src/ui/export/Exporting.cpp" line="212"/>
         <source>Exported &quot;%1&quot;</source>
         <translation>&quot;%1&quot; 내보냄</translation>
     </message>
@@ -2101,14 +2101,14 @@ Text, image and drawing edits made since then are not part of any file yet and w
         <translation type="vanished">첨부파일</translation>
     </message>
     <message>
-        <location filename="../../src/ui/panels/LeftSidebar.cpp" line="87"/>
-        <location filename="../../src/ui/panels/LeftSidebar.cpp" line="198"/>
+        <location filename="../../src/ui/panels/LeftSidebar.cpp" line="88"/>
+        <location filename="../../src/ui/panels/LeftSidebar.cpp" line="199"/>
         <source>Customize Tools</source>
         <translation>도구 사용자 지정</translation>
     </message>
     <message>
-        <location filename="../../src/ui/panels/LeftSidebar.cpp" line="93"/>
-        <location filename="../../src/ui/panels/LeftSidebar.cpp" line="200"/>
+        <location filename="../../src/ui/panels/LeftSidebar.cpp" line="94"/>
+        <location filename="../../src/ui/panels/LeftSidebar.cpp" line="201"/>
         <source>Settings</source>
         <translation>설정</translation>
     </message>
@@ -2376,33 +2376,33 @@ Text, image and drawing edits made since then are not part of any file yet and w
 <context>
     <name>MainWindow</name>
     <message>
-        <location filename="../../src/ui/MainWindow.cpp" line="132"/>
-        <location filename="../../src/ui/MainWindow.cpp" line="146"/>
+        <location filename="../../src/ui/MainWindow.cpp" line="133"/>
+        <location filename="../../src/ui/MainWindow.cpp" line="147"/>
         <source>Default PDF Application</source>
         <translation>기본 PDF 응용 프로그램</translation>
     </message>
     <message>
-        <location filename="../../src/ui/MainWindow.cpp" line="133"/>
+        <location filename="../../src/ui/MainWindow.cpp" line="134"/>
         <source>OpenPDF Studio is not your default application for PDF files. Would you like to make it the default?</source>
         <translation>OpenPDF Studio가 PDF 파일의 기본 응용 프로그램이 아닙니다. 기본값으로 설정하시겠습니까?</translation>
     </message>
     <message>
-        <location filename="../../src/ui/MainWindow.cpp" line="136"/>
+        <location filename="../../src/ui/MainWindow.cpp" line="137"/>
         <source>Windows then opens its settings for default apps, where you choose OpenPDF Studio for PDF files.</source>
         <translation>그러면 Windows에서 기본 앱 설정이 열리며, 여기에서 PDF 파일에 OpenPDF Studio를 선택합니다.</translation>
     </message>
     <message>
-        <location filename="../../src/ui/MainWindow.cpp" line="138"/>
+        <location filename="../../src/ui/MainWindow.cpp" line="139"/>
         <source>Make Default</source>
         <translation>기본값으로 설정</translation>
     </message>
     <message>
-        <location filename="../../src/ui/MainWindow.cpp" line="139"/>
+        <location filename="../../src/ui/MainWindow.cpp" line="140"/>
         <source>No</source>
         <translation>아니요</translation>
     </message>
     <message>
-        <location filename="../../src/ui/MainWindow.cpp" line="147"/>
+        <location filename="../../src/ui/MainWindow.cpp" line="148"/>
         <source>OpenPDF Studio could not be made the default application for PDF files.</source>
         <translation>OpenPDF Studio를 PDF 파일의 기본 응용 프로그램으로 설정할 수 없습니다.</translation>
     </message>
@@ -2411,48 +2411,49 @@ Text, image and drawing edits made since then are not part of any file yet and w
         <translation type="vanished">PDF 열기</translation>
     </message>
     <message>
-        <location filename="../../src/ui/MainWindow.cpp" line="826"/>
+        <location filename="../../src/ui/MainWindow.cpp" line="840"/>
         <source>PDF files (*.pdf)</source>
         <translation>PDF 파일 (*.pdf)</translation>
     </message>
     <message>
-        <location filename="../../src/ui/MainWindow.cpp" line="825"/>
+        <location filename="../../src/ui/MainWindow.cpp" line="839"/>
         <source>Save PDF As</source>
         <translation>PDF 다른 이름으로 저장</translation>
     </message>
     <message>
-        <location filename="../../src/ui/MainWindow.cpp" line="167"/>
+        <location filename="../../src/ui/MainWindow.cpp" line="168"/>
         <source>Update available</source>
         <translation>업데이트 사용 가능</translation>
     </message>
     <message>
-        <location filename="../../src/ui/MainWindow.cpp" line="168"/>
+        <location filename="../../src/ui/MainWindow.cpp" line="169"/>
         <source>OpenPDF Studio %1 is available.</source>
         <translation>OpenPDF Studio %1을(를) 사용할 수 있습니다.</translation>
     </message>
     <message>
-        <location filename="../../src/ui/MainWindow.cpp" line="169"/>
+        <location filename="../../src/ui/MainWindow.cpp" line="170"/>
         <source>You are running %1.</source>
         <translation>현재 %1을(를) 사용 중입니다.</translation>
     </message>
     <message>
-        <location filename="../../src/ui/MainWindow.cpp" line="170"/>
+        <location filename="../../src/ui/MainWindow.cpp" line="171"/>
         <source>Open download page</source>
         <translation>다운로드 페이지 열기</translation>
     </message>
     <message>
-        <location filename="../../src/ui/MainWindow.cpp" line="172"/>
+        <location filename="../../src/ui/MainWindow.cpp" line="173"/>
         <source>Later</source>
         <translation>나중에</translation>
     </message>
     <message>
-        <location filename="../../src/ui/MainWindow.cpp" line="810"/>
-        <location filename="../../src/ui/MainWindow.cpp" line="815"/>
+        <location filename="../../src/ui/MainWindow.cpp" line="820"/>
+        <location filename="../../src/ui/MainWindow.cpp" line="825"/>
+        <location filename="../../src/ui/MainWindow.cpp" line="829"/>
         <source>Save failed</source>
         <translation>저장 실패</translation>
     </message>
     <message>
-        <location filename="../../src/ui/MainWindow.cpp" line="816"/>
+        <location filename="../../src/ui/MainWindow.cpp" line="830"/>
         <source>Could not write &quot;%1&quot;.
 
 The file may be write-protected or open in another program. The document is unchanged. Try saving it under a different name.</source>
@@ -2461,58 +2462,58 @@ The file may be write-protected or open in another program. The document is unch
 파일이 쓰기 금지되어 있거나 다른 프로그램에서 열려 있을 수 있습니다. 문서는 변경되지 않았습니다. 다른 이름으로 저장해 보세요.</translation>
     </message>
     <message>
-        <location filename="../../src/ui/MainWindow.cpp" line="1000"/>
+        <location filename="../../src/ui/MainWindow.cpp" line="1014"/>
         <source>Edit Mode</source>
         <translation>편집 모드</translation>
     </message>
     <message>
-        <location filename="../../src/ui/MainWindow.cpp" line="1001"/>
+        <location filename="../../src/ui/MainWindow.cpp" line="1015"/>
         <source>Do you want to enable Edit Mode?</source>
         <translation>편집 모드를 켤까요?</translation>
     </message>
     <message>
-        <location filename="../../src/ui/MainWindow.cpp" line="1234"/>
+        <location filename="../../src/ui/MainWindow.cpp" line="1248"/>
         <source>Untitled</source>
         <translation>제목 없음</translation>
     </message>
     <message>
-        <location filename="../../src/ui/MainWindow.cpp" line="1238"/>
+        <location filename="../../src/ui/MainWindow.cpp" line="1252"/>
         <source>Unsaved Changes</source>
         <translation>저장되지 않은 변경 사항</translation>
     </message>
     <message>
-        <location filename="../../src/ui/MainWindow.cpp" line="1239"/>
+        <location filename="../../src/ui/MainWindow.cpp" line="1253"/>
         <source>Save changes to &quot;%1&quot;?</source>
         <translation>&quot;%1&quot;의 변경 사항을 저장할까요?</translation>
     </message>
     <message>
-        <location filename="../../src/ui/MainWindow.cpp" line="639"/>
+        <location filename="../../src/ui/MainWindow.cpp" line="649"/>
         <source>Open Document</source>
         <translation>문서 열기</translation>
     </message>
     <message>
-        <location filename="../../src/ui/MainWindow.cpp" line="657"/>
+        <location filename="../../src/ui/MainWindow.cpp" line="667"/>
         <source>Cannot open file</source>
         <translation>파일을 열 수 없음</translation>
     </message>
     <message>
-        <location filename="../../src/ui/MainWindow.cpp" line="713"/>
+        <location filename="../../src/ui/MainWindow.cpp" line="723"/>
         <source>There is no room to put the converted file.</source>
         <translation>변환된 파일을 둘 공간이 없습니다.</translation>
     </message>
     <message>
-        <location filename="../../src/ui/MainWindow.cpp" line="728"/>
-        <location filename="../../src/ui/MainWindow.cpp" line="751"/>
+        <location filename="../../src/ui/MainWindow.cpp" line="738"/>
+        <location filename="../../src/ui/MainWindow.cpp" line="761"/>
         <source>Import failed</source>
         <translation>가져오기 실패</translation>
     </message>
     <message>
-        <location filename="../../src/ui/MainWindow.cpp" line="658"/>
+        <location filename="../../src/ui/MainWindow.cpp" line="668"/>
         <source>&quot;%1&quot; is not a PDF and cannot be turned into one.</source>
         <translation>“%1”은(는) PDF가 아니며 PDF로 변환할 수도 없습니다.</translation>
     </message>
     <message>
-        <location filename="../../src/ui/MainWindow.cpp" line="729"/>
+        <location filename="../../src/ui/MainWindow.cpp" line="739"/>
         <source>&quot;%1&quot; could not be turned into a PDF.
 
 %2</source>
@@ -2521,17 +2522,17 @@ The file may be write-protected or open in another program. The document is unch
 %2</translation>
     </message>
     <message>
-        <location filename="../../src/ui/MainWindow.cpp" line="752"/>
+        <location filename="../../src/ui/MainWindow.cpp" line="762"/>
         <source>&quot;%1&quot; was converted, but the result could not be opened.</source>
         <translation>“%1”은(는) 변환되었지만 결과를 열 수 없습니다.</translation>
     </message>
     <message>
-        <location filename="../../src/ui/MainWindow.cpp" line="698"/>
+        <location filename="../../src/ui/MainWindow.cpp" line="708"/>
         <source>Cannot add pages</source>
         <translation>페이지를 추가할 수 없습니다</translation>
     </message>
     <message>
-        <location filename="../../src/ui/MainWindow.cpp" line="699"/>
+        <location filename="../../src/ui/MainWindow.cpp" line="709"/>
         <source>The pages of &quot;%1&quot; could not be added.</source>
         <translation>&quot;%1&quot;의 페이지를 추가할 수 없습니다.</translation>
     </message>
@@ -2568,61 +2569,61 @@ The file may be write-protected or open in another program. The document is unch
         <translation>미디어 제거됨</translation>
     </message>
     <message>
-        <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="395"/>
+        <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="393"/>
         <source>Save media as</source>
         <translation>미디어를 다른 이름으로 저장</translation>
     </message>
     <message>
-        <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="400"/>
-        <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="775"/>
-        <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="795"/>
-        <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="817"/>
-        <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="833"/>
-        <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="923"/>
-        <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="940"/>
-        <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="956"/>
-        <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="972"/>
-        <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="995"/>
-        <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="1023"/>
-        <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="1031"/>
-        <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="1055"/>
-        <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="1090"/>
-        <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="1163"/>
+        <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="398"/>
+        <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="773"/>
+        <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="793"/>
+        <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="815"/>
+        <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="831"/>
+        <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="921"/>
+        <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="938"/>
+        <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="954"/>
+        <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="970"/>
+        <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="993"/>
+        <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="1021"/>
+        <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="1029"/>
+        <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="1053"/>
+        <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="1088"/>
+        <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="1160"/>
         <source>Rich Media</source>
         <translation>리치 미디어</translation>
     </message>
     <message>
-        <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="401"/>
+        <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="399"/>
         <source>Could not write &quot;%1&quot;.</source>
         <translation>&quot;%1&quot;을(를) 쓸 수 없습니다.</translation>
     </message>
     <message>
-        <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="595"/>
+        <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="593"/>
         <source>Media files (*.mp4 *.m4v *.mov *.webm *.mkv *.avi *.mp3 *.m4a *.wav *.ogg *.opus *.flac);;All files (*)</source>
         <translation>미디어 파일 (*.mp4 *.m4v *.mov *.webm *.mkv *.avi *.mp3 *.m4a *.wav *.ogg *.opus *.flac);;모든 파일 (*)</translation>
     </message>
     <message>
-        <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="597"/>
+        <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="595"/>
         <source>Choose media</source>
         <translation>미디어 선택</translation>
     </message>
     <message>
-        <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="759"/>
+        <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="757"/>
         <source>Media changed</source>
         <translation>미디어 변경됨</translation>
     </message>
     <message>
-        <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="771"/>
+        <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="769"/>
         <source>%1, an unsupported format</source>
         <translation>%1, 지원되지 않는 형식</translation>
     </message>
     <message>
-        <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="772"/>
+        <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="770"/>
         <source>%1 in %2</source>
         <translation>%2의 %1</translation>
     </message>
     <message>
-        <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="776"/>
+        <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="774"/>
         <source>This file is %1. Most PDF viewers play only H.264 video in an MP4 container, so for many people the video will be a still image.
 
 Install ffmpeg to convert it, or embed it as it is.</source>
@@ -2631,104 +2632,104 @@ Install ffmpeg to convert it, or embed it as it is.</source>
 변환하려면 ffmpeg를 설치하거나 그대로 포함하세요.</translation>
     </message>
     <message>
-        <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="784"/>
+        <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="782"/>
         <source>Install ffmpeg…</source>
         <translation>ffmpeg 설치…</translation>
     </message>
     <message>
-        <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="796"/>
+        <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="794"/>
         <source>This file is %1.</source>
         <translation>이 파일은 %1입니다.</translation>
     </message>
     <message>
-        <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="798"/>
+        <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="796"/>
         <source>H.264 in an MP4 container is what plays everywhere: in PDF viewers, in browsers and on phones. Convert it now so the video works for everyone who opens the document?</source>
         <translation>MP4 컨테이너의 H.264는 PDF 뷰어, 브라우저, 휴대폰 등 어디서나 재생됩니다. 문서를 여는 모든 사람이 동영상을 볼 수 있도록 지금 변환할까요?</translation>
     </message>
     <message>
-        <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="801"/>
+        <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="799"/>
         <source>Convert</source>
         <translation>변환</translation>
     </message>
     <message>
-        <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="802"/>
+        <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="800"/>
         <source>Embed as is</source>
         <translation>그대로 포함</translation>
     </message>
     <message>
-        <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="815"/>
+        <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="813"/>
         <source>Converting %1...</source>
         <translation>%1 변환 중…</translation>
     </message>
     <message>
-        <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="816"/>
-        <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="954"/>
+        <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="814"/>
+        <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="952"/>
         <source>Cancel</source>
         <translation>취소</translation>
     </message>
     <message>
-        <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="834"/>
+        <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="832"/>
         <source>The file could not be converted.</source>
         <translation>파일을 변환할 수 없습니다.</translation>
     </message>
     <message>
-        <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="872"/>
-        <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="1154"/>
+        <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="870"/>
+        <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="1152"/>
         <source>Media inserted</source>
         <translation>미디어 삽입됨</translation>
     </message>
     <message>
-        <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="909"/>
+        <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="907"/>
         <source>%1 in %2, %3 by %4 pixels.</source>
         <translation>%2의 %1, %3 × %4 픽셀.</translation>
     </message>
     <message>
-        <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="912"/>
+        <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="910"/>
         <source>%1 in %2.</source>
         <translation>%2의 %1.</translation>
     </message>
     <message>
-        <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="916"/>
+        <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="914"/>
         <source>Video this large is more than some systems will decode. A smaller copy usually plays, and the document keeps the original.</source>
         <translation>이렇게 큰 동영상은 일부 시스템에서 디코딩할 수 없습니다. 작은 복사본은 대개 재생되며 문서에는 원본이 유지됩니다.</translation>
     </message>
     <message>
-        <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="924"/>
+        <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="922"/>
         <source>This video could not be played here: %1</source>
         <translation>이 동영상을 여기서 재생할 수 없습니다: %1</translation>
     </message>
     <message>
-        <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="931"/>
+        <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="929"/>
         <source>Play a smaller copy</source>
         <translation>작은 복사본 재생</translation>
     </message>
     <message>
-        <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="933"/>
+        <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="931"/>
         <source>Open in system player</source>
         <translation>시스템 플레이어에서 열기</translation>
     </message>
     <message>
-        <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="941"/>
+        <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="939"/>
         <source>No media player was found on this system.</source>
         <translation>이 시스템에서 미디어 플레이어를 찾을 수 없습니다.</translation>
     </message>
     <message>
-        <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="954"/>
+        <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="952"/>
         <source>Preparing a smaller copy...</source>
         <translation>작은 복사본 준비 중…</translation>
     </message>
     <message>
-        <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="973"/>
+        <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="971"/>
         <source>The smaller copy could not be made.</source>
         <translation>작은 복사본을 만들 수 없습니다.</translation>
     </message>
     <message>
-        <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="996"/>
+        <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="994"/>
         <source>Play &quot;%1&quot; from this document?</source>
         <translation>이 문서의 &quot;%1&quot;을(를) 재생할까요?</translation>
     </message>
     <message>
-        <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="998"/>
+        <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="996"/>
         <source>Media in a PDF is chosen by whoever made the file. Playing it hands the data to a decoder, in this build possibly to a player outside OpenPDF Studio. Play it only if you trust the document.</source>
         <translation>PDF의 미디어는 파일을 만든 사람이 선택한 것입니다. 재생하면 데이터가 디코더에 전달되며, 이 빌드에서는 OpenPDF Studio 외부의 플레이어에 전달될 수도 있습니다. 문서를 신뢰하는 경우에만 재생하세요.</translation>
     </message>
@@ -2741,32 +2742,32 @@ Install ffmpeg to convert it, or embed it as it is.</source>
         <translation type="vanished">이 문서에서는 항상</translation>
     </message>
     <message>
-        <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="1024"/>
+        <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="1022"/>
         <source>This media points to a file outside the document, so OpenPDF Studio does not open it.</source>
         <translation>이 미디어는 문서 외부의 파일을 가리키므로 OpenPDF Studio에서 열지 않습니다.</translation>
     </message>
     <message>
-        <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="1032"/>
+        <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="1030"/>
         <source>The media could not be read from the document.</source>
         <translation>문서에서 미디어를 읽을 수 없습니다.</translation>
     </message>
     <message>
-        <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="1056"/>
+        <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="1054"/>
         <source>The page this media sits on is not on screen, so it cannot be played here.</source>
         <translation>이 미디어가 있는 페이지가 화면에 없어 여기서 재생할 수 없습니다.</translation>
     </message>
     <message>
-        <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="1091"/>
+        <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="1089"/>
         <source>No media player was found. Install VLC or mpv, or set a custom player under Settings, Media Playback.</source>
         <translation>미디어 플레이어를 찾을 수 없습니다. VLC나 mpv를 설치하거나 설정의 미디어 재생에서 사용자 지정 플레이어를 지정하세요.</translation>
     </message>
     <message>
-        <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="1164"/>
+        <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="1161"/>
         <source>The video could not be added as a new page.</source>
         <translation>동영상을 새 페이지로 추가할 수 없습니다.</translation>
     </message>
     <message>
-        <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="1001"/>
+        <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="999"/>
         <source>Trust</source>
         <translation>신뢰</translation>
     </message>
@@ -3039,7 +3040,7 @@ Enter the password to open it:</source>
         <translation type="vanished">선택 항목 제거</translation>
     </message>
     <message>
-        <location filename="../../src/ui/organizer/PdfOrganizerDialog.cpp" line="267"/>
+        <location filename="../../src/ui/organizer/PdfOrganizerDialog.cpp" line="265"/>
         <source>Cancel</source>
         <translation>취소</translation>
     </message>
@@ -3048,157 +3049,157 @@ Enter the password to open it:</source>
         <translation type="vanished">다른 이름으로 저장…</translation>
     </message>
     <message>
-        <location filename="../../src/ui/organizer/PdfOrganizerDialog.cpp" line="64"/>
-        <location filename="../../src/ui/organizer/PdfOrganizerDialog.cpp" line="849"/>
+        <location filename="../../src/ui/organizer/PdfOrganizerDialog.cpp" line="62"/>
+        <location filename="../../src/ui/organizer/PdfOrganizerDialog.cpp" line="847"/>
         <source>PDF Organizer - OpenPDF Studio</source>
         <translation>PDF 정리 도구 - OpenPDF Studio</translation>
     </message>
     <message>
-        <location filename="../../src/ui/organizer/PdfOrganizerDialog.cpp" line="141"/>
+        <location filename="../../src/ui/organizer/PdfOrganizerDialog.cpp" line="139"/>
         <source>Add PDF</source>
         <translation>PDF 추가</translation>
     </message>
     <message>
-        <location filename="../../src/ui/organizer/PdfOrganizerDialog.cpp" line="147"/>
+        <location filename="../../src/ui/organizer/PdfOrganizerDialog.cpp" line="145"/>
         <source>Open PDF file…</source>
         <translation>PDF 파일 열기…</translation>
     </message>
     <message>
-        <location filename="../../src/ui/organizer/PdfOrganizerDialog.cpp" line="149"/>
-        <location filename="../../src/ui/organizer/PdfOrganizerDialog.cpp" line="155"/>
-        <location filename="../../src/ui/organizer/PdfOrganizerDialog.cpp" line="301"/>
+        <location filename="../../src/ui/organizer/PdfOrganizerDialog.cpp" line="147"/>
+        <location filename="../../src/ui/organizer/PdfOrganizerDialog.cpp" line="153"/>
+        <location filename="../../src/ui/organizer/PdfOrganizerDialog.cpp" line="299"/>
         <source>Open PDF</source>
         <translation>PDF 열기</translation>
     </message>
     <message>
-        <location filename="../../src/ui/organizer/PdfOrganizerDialog.cpp" line="149"/>
-        <location filename="../../src/ui/organizer/PdfOrganizerDialog.cpp" line="155"/>
-        <location filename="../../src/ui/organizer/PdfOrganizerDialog.cpp" line="768"/>
+        <location filename="../../src/ui/organizer/PdfOrganizerDialog.cpp" line="147"/>
+        <location filename="../../src/ui/organizer/PdfOrganizerDialog.cpp" line="153"/>
+        <location filename="../../src/ui/organizer/PdfOrganizerDialog.cpp" line="766"/>
         <source>PDF files (*.pdf)</source>
         <translation>PDF 파일 (*.pdf)</translation>
     </message>
     <message>
-        <location filename="../../src/ui/organizer/PdfOrganizerDialog.cpp" line="160"/>
+        <location filename="../../src/ui/organizer/PdfOrganizerDialog.cpp" line="158"/>
         <source>Blank Page</source>
         <translation>빈 페이지</translation>
     </message>
     <message>
-        <location filename="../../src/ui/organizer/PdfOrganizerDialog.cpp" line="188"/>
+        <location filename="../../src/ui/organizer/PdfOrganizerDialog.cpp" line="186"/>
         <source>Move left</source>
         <translation>왼쪽으로 이동</translation>
     </message>
     <message>
-        <location filename="../../src/ui/organizer/PdfOrganizerDialog.cpp" line="188"/>
+        <location filename="../../src/ui/organizer/PdfOrganizerDialog.cpp" line="186"/>
         <source>Move page left</source>
         <translation>페이지를 왼쪽으로 이동</translation>
     </message>
     <message>
-        <location filename="../../src/ui/organizer/PdfOrganizerDialog.cpp" line="189"/>
+        <location filename="../../src/ui/organizer/PdfOrganizerDialog.cpp" line="187"/>
         <source>Move right</source>
         <translation>오른쪽으로 이동</translation>
     </message>
     <message>
-        <location filename="../../src/ui/organizer/PdfOrganizerDialog.cpp" line="189"/>
+        <location filename="../../src/ui/organizer/PdfOrganizerDialog.cpp" line="187"/>
         <source>Move page right</source>
         <translation>페이지를 오른쪽으로 이동</translation>
     </message>
     <message>
-        <location filename="../../src/ui/organizer/PdfOrganizerDialog.cpp" line="192"/>
+        <location filename="../../src/ui/organizer/PdfOrganizerDialog.cpp" line="190"/>
         <source>Rotate left</source>
         <translation>왼쪽으로 회전</translation>
     </message>
     <message>
-        <location filename="../../src/ui/organizer/PdfOrganizerDialog.cpp" line="192"/>
+        <location filename="../../src/ui/organizer/PdfOrganizerDialog.cpp" line="190"/>
         <source>Rotate left 90°</source>
         <translation>왼쪽으로 90° 회전</translation>
     </message>
     <message>
-        <location filename="../../src/ui/organizer/PdfOrganizerDialog.cpp" line="193"/>
+        <location filename="../../src/ui/organizer/PdfOrganizerDialog.cpp" line="191"/>
         <source>Rotate right</source>
         <translation>오른쪽으로 회전</translation>
     </message>
     <message>
-        <location filename="../../src/ui/organizer/PdfOrganizerDialog.cpp" line="193"/>
+        <location filename="../../src/ui/organizer/PdfOrganizerDialog.cpp" line="191"/>
         <source>Rotate right 90°</source>
         <translation>오른쪽으로 90° 회전</translation>
     </message>
     <message>
-        <location filename="../../src/ui/organizer/PdfOrganizerDialog.cpp" line="196"/>
+        <location filename="../../src/ui/organizer/PdfOrganizerDialog.cpp" line="194"/>
         <source>Delete page</source>
         <translation>페이지 삭제</translation>
     </message>
     <message>
-        <location filename="../../src/ui/organizer/PdfOrganizerDialog.cpp" line="239"/>
+        <location filename="../../src/ui/organizer/PdfOrganizerDialog.cpp" line="237"/>
         <source>Drag &amp; drop pages to reorder</source>
         <translation>페이지를 끌어서 놓아 순서 변경</translation>
     </message>
     <message>
-        <location filename="../../src/ui/organizer/PdfOrganizerDialog.cpp" line="262"/>
-        <location filename="../../src/ui/organizer/PdfOrganizerDialog.cpp" line="482"/>
+        <location filename="../../src/ui/organizer/PdfOrganizerDialog.cpp" line="260"/>
+        <location filename="../../src/ui/organizer/PdfOrganizerDialog.cpp" line="480"/>
         <source>Pages</source>
         <translation>페이지</translation>
     </message>
     <message>
-        <location filename="../../src/ui/organizer/PdfOrganizerDialog.cpp" line="272"/>
+        <location filename="../../src/ui/organizer/PdfOrganizerDialog.cpp" line="270"/>
         <source>Save as</source>
         <translation>다른 이름으로 저장</translation>
     </message>
     <message>
-        <location filename="../../src/ui/organizer/PdfOrganizerDialog.cpp" line="277"/>
+        <location filename="../../src/ui/organizer/PdfOrganizerDialog.cpp" line="275"/>
         <source>Save</source>
         <translation>저장</translation>
     </message>
     <message>
-        <location filename="../../src/ui/organizer/PdfOrganizerDialog.cpp" line="302"/>
+        <location filename="../../src/ui/organizer/PdfOrganizerDialog.cpp" line="300"/>
         <source>Could not open: </source>
         <translation>열 수 없음: </translation>
     </message>
     <message>
-        <location filename="../../src/ui/organizer/PdfOrganizerDialog.cpp" line="431"/>
-        <location filename="../../src/ui/organizer/PdfOrganizerDialog.cpp" line="475"/>
+        <location filename="../../src/ui/organizer/PdfOrganizerDialog.cpp" line="429"/>
+        <location filename="../../src/ui/organizer/PdfOrganizerDialog.cpp" line="473"/>
         <source>Page %1</source>
         <translation>%1페이지</translation>
     </message>
     <message>
-        <location filename="../../src/ui/organizer/PdfOrganizerDialog.cpp" line="694"/>
-        <location filename="../../src/ui/organizer/PdfOrganizerDialog.cpp" line="701"/>
+        <location filename="../../src/ui/organizer/PdfOrganizerDialog.cpp" line="692"/>
+        <location filename="../../src/ui/organizer/PdfOrganizerDialog.cpp" line="699"/>
         <source>Save failed</source>
         <translation>저장 실패</translation>
     </message>
     <message>
-        <location filename="../../src/ui/organizer/PdfOrganizerDialog.cpp" line="695"/>
+        <location filename="../../src/ui/organizer/PdfOrganizerDialog.cpp" line="693"/>
         <source>%1 of %2 pages could not be rendered, so the document would have been saved blank. Your PDF was not changed.</source>
         <translation>%2페이지 중 %1페이지를 렌더링할 수 없어 문서가 빈 상태로 저장될 뻔했습니다. PDF는 변경되지 않았습니다.</translation>
     </message>
     <message>
-        <location filename="../../src/ui/organizer/PdfOrganizerDialog.cpp" line="702"/>
+        <location filename="../../src/ui/organizer/PdfOrganizerDialog.cpp" line="700"/>
         <source>The organized document could not be written to &quot;%1&quot;. Your PDF was not changed.</source>
         <translation>정리된 문서를 &quot;%1&quot;에 쓸 수 없습니다. PDF는 변경되지 않았습니다.</translation>
     </message>
     <message>
-        <location filename="../../src/ui/organizer/PdfOrganizerDialog.cpp" line="708"/>
+        <location filename="../../src/ui/organizer/PdfOrganizerDialog.cpp" line="706"/>
         <source>PDF writing requires a PDF backend (Qt6Pdf or Poppler).</source>
         <translation>PDF를 쓰려면 PDF 백엔드(Qt6Pdf 또는 Poppler)가 필요합니다.</translation>
     </message>
     <message>
-        <location filename="../../src/ui/organizer/PdfOrganizerDialog.cpp" line="741"/>
-        <location filename="../../src/ui/organizer/PdfOrganizerDialog.cpp" line="762"/>
+        <location filename="../../src/ui/organizer/PdfOrganizerDialog.cpp" line="739"/>
+        <location filename="../../src/ui/organizer/PdfOrganizerDialog.cpp" line="760"/>
         <source>Empty</source>
         <translation>비어 있음</translation>
     </message>
     <message>
-        <location filename="../../src/ui/organizer/PdfOrganizerDialog.cpp" line="742"/>
-        <location filename="../../src/ui/organizer/PdfOrganizerDialog.cpp" line="763"/>
+        <location filename="../../src/ui/organizer/PdfOrganizerDialog.cpp" line="740"/>
+        <location filename="../../src/ui/organizer/PdfOrganizerDialog.cpp" line="761"/>
         <source>Add at least one page before saving.</source>
         <translation>저장하기 전에 최소 한 페이지를 추가하세요.</translation>
     </message>
     <message>
-        <location filename="../../src/ui/organizer/PdfOrganizerDialog.cpp" line="768"/>
+        <location filename="../../src/ui/organizer/PdfOrganizerDialog.cpp" line="766"/>
         <source>Save PDF As</source>
         <translation>PDF 다른 이름으로 저장</translation>
     </message>
     <message>
-        <location filename="../../src/ui/organizer/PdfOrganizerDialog.cpp" line="707"/>
+        <location filename="../../src/ui/organizer/PdfOrganizerDialog.cpp" line="705"/>
         <source>Not Available</source>
         <translation>사용 불가</translation>
     </message>
@@ -3207,13 +3208,13 @@ Enter the password to open it:</source>
         <translation type="vanished">PDF 쓰기에는 Qt6Pdf가 필요합니다.</translation>
     </message>
     <message>
-        <location filename="../../src/ui/organizer/PdfOrganizerDialog.cpp" line="205"/>
-        <location filename="../../src/ui/organizer/PdfOrganizerDialog.cpp" line="500"/>
+        <location filename="../../src/ui/organizer/PdfOrganizerDialog.cpp" line="203"/>
+        <location filename="../../src/ui/organizer/PdfOrganizerDialog.cpp" line="498"/>
         <source>Select all</source>
         <translation>모두 선택</translation>
     </message>
     <message>
-        <location filename="../../src/ui/organizer/PdfOrganizerDialog.cpp" line="500"/>
+        <location filename="../../src/ui/organizer/PdfOrganizerDialog.cpp" line="498"/>
         <source>Deselect all</source>
         <translation>모두 선택 해제</translation>
     </message>
@@ -3892,6 +3893,57 @@ Enter the password to open it:</source>
         <location filename="../../src/ui/view/ImageAnnotationLayer.cpp" line="38"/>
         <source>Del</source>
         <translation>Del</translation>
+    </message>
+</context>
+<context>
+    <name>RedactionLayer</name>
+    <message>
+        <location filename="../../src/ui/redact/RedactionLayer.cpp" line="306"/>
+        <source>Redaction area added</source>
+        <translation>가리기 영역 추가</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/redact/RedactionLayer.cpp" line="308"/>
+        <source>Redaction area moved</source>
+        <translation>가리기 영역 이동</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/redact/RedactionLayer.cpp" line="309"/>
+        <source>Redaction area resized</source>
+        <translation>가리기 영역 크기 변경</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/redact/RedactionLayer.cpp" line="424"/>
+        <source>Redaction area removed</source>
+        <translation>가리기 영역 제거</translation>
+    </message>
+</context>
+<context>
+    <name>RedactionPanel</name>
+    <message>
+        <location filename="../../src/ui/redact/RedactionPanel.cpp" line="42"/>
+        <source>Region %1</source>
+        <translation>영역 %1</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/redact/RedactionPanel.cpp" line="45"/>
+        <source>Page %1</source>
+        <translation>%1페이지</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/redact/RedactionPanel.cpp" line="53"/>
+        <source>Remove region</source>
+        <translation>영역 제거</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/redact/RedactionPanel.cpp" line="144"/>
+        <source>Redact</source>
+        <translation>가리기</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/redact/RedactionPanel.cpp" line="145"/>
+        <source>Close</source>
+        <translation>닫기</translation>
     </message>
 </context>
 <context>
@@ -5661,26 +5713,23 @@ Enter the password to open it:</source>
 <context>
     <name>SystemPackages</name>
     <message>
-        <location filename="../../src/app/SystemPackages.cpp" line="248"/>
-        <location filename="../../src/app/SystemPackages.cpp" line="313"/>
+        <location filename="../../src/app/SystemPackages.cpp" line="184"/>
         <source>Packages are installed by the system&apos;s package manager.</source>
         <translation>패키지는 시스템의 패키지 관리자가 설치합니다.</translation>
     </message>
     <message>
-        <location filename="../../src/app/SystemPackages.cpp" line="330"/>
+        <location filename="../../src/app/SystemPackages.cpp" line="230"/>
         <source>No permission was given.</source>
         <translation>권한이 부여되지 않았습니다.</translation>
     </message>
     <message>
-        <location filename="../../src/app/SystemPackages.cpp" line="335"/>
-        <location filename="../../src/app/SystemPackages.cpp" line="382"/>
+        <location filename="../../src/app/SystemPackages.cpp" line="235"/>
         <source>The package manager stopped.</source>
         <translation>패키지 관리자가 중지되었습니다.</translation>
     </message>
     <message>
-        <location filename="../../src/app/SystemPackages.cpp" line="395"/>
         <source>Not found in the package sources: %1</source>
-        <translation>패키지 소스에서 찾을 수 없음: %1</translation>
+        <translation type="vanished">패키지 소스에서 찾을 수 없음: %1</translation>
     </message>
 </context>
 <context>
@@ -5697,8 +5746,8 @@ Enter the password to open it:</source>
 <context>
     <name>TextDocumentPdf</name>
     <message>
-        <location filename="../../src/engine/import/TextDocumentPdf.cpp" line="40"/>
-        <location filename="../../src/engine/import/TextDocumentPdf.cpp" line="128"/>
+        <location filename="../../src/engine/import/TextDocumentPdf.cpp" line="41"/>
+        <location filename="../../src/engine/import/TextDocumentPdf.cpp" line="129"/>
         <source>The PDF could not be written.</source>
         <translation>PDF를 쓸 수 없습니다.</translation>
     </message>
@@ -5835,6 +5884,28 @@ Enter the password to open it:</source>
         <location filename="../../src/app/UpdateChecker.cpp" line="206"/>
         <source>No released version found.</source>
         <translation>게시된 버전을 찾을 수 없습니다.</translation>
+    </message>
+</context>
+<context>
+    <name>WriteGate</name>
+    <message>
+        <location filename="../../src/ui/view/WriteGate.cpp" line="40"/>
+        <source>A change was made without the history knowing about it, so the document is not written. Undo or redo once and save again; if that does not help, the last saved file is unchanged.</source>
+        <translation>기록에 남지 않은 변경이 있어 문서를 쓰지 않습니다. 한 번 실행 취소하거나 다시 실행한 뒤 다시 저장하세요. 그래도 안 되면 마지막으로 저장한 파일은 그대로입니다.</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/view/WriteGate.cpp" line="50"/>
+        <source>The PDF version of the document could not be brought in line with its content.</source>
+        <translation>문서의 PDF 버전을 내용에 맞출 수 없습니다.</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/view/WriteGate.cpp" line="70"/>
+        <source>The written file failed its check, so the document on disk was left as it was:
+
+%1</source>
+        <translation>쓴 파일이 검사를 통과하지 못해 디스크의 문서는 그대로입니다:
+
+%1</translation>
     </message>
 </context>
 </TS>

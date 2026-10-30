@@ -19,6 +19,7 @@ QT_END_NAMESPACE
 class DigitalSignatureLayer;
 class DocumentInfoLoader;
 class ProtectionLayer;
+class RedactionLayer;
 struct SignatureAppearance;
 class ImageAnnotationLayer;
 class SignaturePlacement;
@@ -40,6 +41,8 @@ class ZoomController;
 #include "engine/historymanager/DocumentJournal.hpp"
 #include "engine/sign/SignatureManager.hpp"
 #include "engine/document/PdfBookmark.hpp"
+#include "engine/document/WriteGrant.hpp"
+#include "ui/view/WriteGate.hpp"
 #include "engine/document/DocumentSource.hpp"
 #include "engine/document/ProtectionWriter.hpp"
 #include "ui/edit/EditController.hpp"
@@ -89,6 +92,7 @@ public:
     void   setViewMode(ViewMode mode);
     bool   saveToFile(const QString &path);
     bool   writeRecoveryCopy(const QString &path);
+    WriteGrant newWorkingCopy() const;
     void   writeRecoveryCopyInBackground(const QString &path,
                                          const std::function<void(bool)> &done);
     void   retranslateUi();
@@ -117,6 +121,7 @@ public:
                                std::function<void(int page, const QRectF &pdfBounds)> onPlaced);
     void   addDigitalSignature(const SignRequest &request, const SignatureAppearance &appearance);
     SignError signatureError() const;
+    QString   saveRefusal() const { return m_writeGate.refusal(); }
 
     QString     currentFile()      const { return m_journal.currentFile(); }
 
@@ -330,6 +335,8 @@ private:
 
     DocumentInfoLoader *m_info { nullptr };
     ProtectionLayer    *m_protectionLayer { nullptr };
+    RedactionLayer     *m_redactionLayer { nullptr };
+    WriteGate           m_writeGate;
 
 
     EditController m_edit;
@@ -344,7 +351,7 @@ private:
 
     QString stageDocument(const QString &path);
     bool    writeEditsAndWait(const QString &staging);
-    bool    finishStaging(const QString &staging);
+    bool    finishStaging(const QString &staging, bool conform);
 
     bool detachSourceFrom(const QString &saveTarget);
     bool hasEditsBesideSignatures() const;

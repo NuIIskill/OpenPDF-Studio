@@ -1,5 +1,6 @@
 #pragma once
 
+#include "engine/document/WriteGrant.hpp"
 #include <QString>
 
 #include <string>
@@ -15,7 +16,7 @@ struct Removal {
 };
 
 Removal plan(const QString &source, const QString &field, const std::string &password = {});
-bool    remove(const QString &source, const QString &output, const QString &field,
+bool    remove(const QString &source, const WriteGrant &output, const QString &field,
                const std::string &password = {});
 
 }

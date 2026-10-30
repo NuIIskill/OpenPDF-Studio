@@ -1,10 +1,9 @@
 #pragma once
 
-#include <QHash>
 #include <QObject>
 #include <QStringList>
 
-/// Installs and removes packages of the Linux distribution through PackageKit.
+/// Installs and removes packages of the Linux distribution, behind the system's password prompt.
 class SystemPackages : public QObject
 {
     Q_OBJECT
@@ -24,8 +23,6 @@ public:
 
     static QString command(const QStringList &packages, bool install);
 
-    static bool available();
-
     static bool canChange();
 
     static QStringList dependents(const QStringList &packages);
@@ -35,34 +32,17 @@ public:
     void install(const QStringList &packages);
     void remove(const QStringList &packages, bool withDependents);
 
-    [[nodiscard]] bool isBusy() const { return !m_transaction.isEmpty() || m_starting; }
+    [[nodiscard]] bool isBusy() const { return m_running; }
 
 Q_SIGNALS:
     void finished(bool ok, const QString &error);
 
-private Q_SLOTS:
-    void onPackage(uint info, const QString &id, const QString &summary);
-    void onErrorCode(uint code, const QString &details);
-    void onFinished(uint exit, uint runtime);
-
 private:
-    enum class Step { Resolve, Change };
-
-    void start();
-    void begin(Step step);
     void run();
-    void elevate();
-    void listen(bool on);
     void done(bool ok, const QString &error);
 
-    bool        m_install  { true };
+    bool        m_install        { true };
     bool        m_withDependents { false };
-    bool        m_starting { false };
-    Step        m_step     { Step::Resolve };
+    bool        m_running        { false };
     QStringList m_names;
-    QString     m_transaction;
-    QString     m_error;
-
-    struct Found { QString id; int rank { 0 }; bool installed { false }; };
-    QHash<QString, Found> m_found;
 };

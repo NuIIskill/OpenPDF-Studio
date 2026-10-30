@@ -288,6 +288,53 @@ journal: undo stack, change log, and snapshots in the session folder.
    untouched.
 6. The view reopens the saved file.
 
+## Writing guard
+
+No PDF is written past the history manager. Every writer takes a
+`WriteGrant`; only `DocumentView` (staging, recovery copies, working copies),
+`Exporting`, `Importing` and the command line issue them, and `cmake/CheckWritePaths.cmake` fails the build when a file outside
+its list uses a low-level writer or issues a grant. Scratch grants name files
+nobody chose and are never opened as documents.
+
+Before anything is staged, `WriteGate::recorded()` compares the document's
+state with the history's current entry; a difference means a change went past
+the journal, and nothing is written. Staging ends with
+`PdfConformance::raiseVersion()`, which lifts the header to what the features
+need (soft masks 1.4, optional content 1.5, rich media 1.7 extension level 3).
+Before the target is replaced, `WriteGate::sound()` checks the file: page tree,
+media boxes, resources named by content streams and appearance streams,
+annotations, decodable objects and the version. Only problems the opened file
+did not have already stop the save. Test and debug builds abort instead
+(`OPENPDF_STRICT=1` in release builds).
+
+The organizer writes only into a working copy from
+`DocumentView::newWorkingCopy()`, which `openWorkingCopy()` takes into the
+history; its Save As then saves the document like any other save.
+
+## Redacting
+
+The Redact tool (`ui/redact/`) keeps its marked areas in `RedactionLayer`, an
+overlay: every area added, moved, resized or removed is a journal entry and
+part of the state history, undo and recovery restore. The areas are carried out
+in `RedactionLayer::writeTo()`, the last overlay step of staging, so saving,
+recovery copies, exports and prints all hold the redacted document; after a
+save the view reloads the file like after signing. `RedactionWriter`
+(`engine/redact/`) works on the staging file:
+
+1. `PdfiumWriter::rewrite()` runs `PdfiumRedaction::apply()` on each marked
+   page in the same pass saving uses, so the original content is kept where
+   only text was taken out. Characters touching an area leave their text
+   objects and the rest is set again (`PdfiumTextCut`, shared with the Text
+   tool); image pixels under it turn black; paths keep what lies outside, a
+   stroke as its outline; annotations over it go. Anything else under an area,
+   such as a form XObject or transparency, makes the page an image.
+2. qpdf builds a new file from the pages alone and drops unused resources, so
+   nothing of the removed content stays reachable. Image pages are replaced
+   there.
+3. `PdfiumRedaction::leaks()` checks every area for text, image pixels, paths
+   and the bar. A failing page is made an image and the copy checked again;
+   if that fails too, the save fails.
+
 ## Crash recovery
 
 `SessionStore` (`app/`) keeps working copies, snapshots and a list of the open
@@ -323,12 +370,13 @@ on startup.
 ## Add-on packages
 
 On Linux, Settings > Add-on Packages (`ui/settings/SettingsPanel_AddOns.cpp`)
-installs and removes OCR languages and, from the module, ffmpeg through the
-distribution's package manager: `app/SystemPackages` resolves the names for
-Fedora, Debian or Arch and asks PackageKit on the system bus, which brings its
-own authentication dialog; without it, or when it fails to start, the package
-manager runs through `pkexec`. Before a removal the programs that need the
-package are looked up and named, and only removed with it if the user agrees.
+installs and removes OCR languages and, from the module, ffmpeg with the
+distribution's package manager: `app/SystemPackages` picks the names for
+Fedora, Debian or Arch and runs dnf, apt-get or pacman through `pkexec`, so
+the system asks for the password every time. Before a removal it asks the
+package manager what would go along (`dnf remove --assumeno`, `apt-get -s
+remove`, `pacman -Rcp`) and names that in a question. Without `pkexec` the card
+shows the command.
 Fonts are left to the desktop's font management, which the page only opens.
 
 On Windows the page downloads instead (`ui/settings/DownloadControl`,

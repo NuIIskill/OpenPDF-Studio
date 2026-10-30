@@ -60,7 +60,7 @@ struct Registration
         Importing::addFormat({
             QStringLiteral(QT_TRANSLATE_NOOP("Importing", "Videos")),
             MediaDrop::videoSuffixes(),
-            [](QWidget *, const QString &path, const QString &working, QString *) {
+            [](QWidget *, const QString &path, const WriteGrant &working, QString *) {
                 QStringList tempFiles;
                 const QString playable = MediaLayer::ensurePlayableSource(path, &tempFiles);
                 const bool made = !playable.isEmpty()

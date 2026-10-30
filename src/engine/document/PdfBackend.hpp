@@ -4,6 +4,7 @@
 
 #include "engine/document/DocumentInfo.hpp"
 #include "engine/document/PdfBookmark.hpp"
+#include "engine/document/WriteGrant.hpp"
 #include "engine/edit/EditSession.hpp"
 #include "engine/edit/TextBlock.hpp"
 #include "engine/edit/TextLayout.hpp"
@@ -114,7 +115,7 @@ public:
 
     virtual std::unique_ptr<ContentProvider> makeContentProvider() const = 0;
 
-    virtual bool saveWithEdits(const QString &outputPath, const EditSession &session,
+    virtual bool saveWithEdits(const WriteGrant &output, const EditSession &session,
                                const std::function<bool()> &cancelled = {}) const = 0;
 
     virtual TextBlock textAt(int page, const QPointF &pdfPt,

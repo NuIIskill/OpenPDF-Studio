@@ -1,5 +1,6 @@
 #pragma once
 
+#include "engine/document/WriteGrant.hpp"
 #include "engine/document/DocumentInfo.hpp"
 
 #include <QString>
@@ -23,7 +24,7 @@ struct PdfProtection
 namespace ProtectionWriter {
 
 bool available();
-bool apply(const QString &file, const std::string &currentPassword,
+bool apply(const WriteGrant &file, const std::string &currentPassword,
            const PdfProtection &protection);
 
 }

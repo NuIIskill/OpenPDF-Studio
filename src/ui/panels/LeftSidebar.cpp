@@ -17,6 +17,7 @@ QVector<ToolDef> &catalog()
         { QStringLiteral("text"),     QStringLiteral("type"),            QStringLiteral(QT_TR_NOOP("Text")),       true },
         { QStringLiteral("comment"),  QStringLiteral("message-square"),  QStringLiteral(QT_TR_NOOP("Notes")),      true },
         { QStringLiteral("draw"),     QStringLiteral("pencil"),          QStringLiteral(QT_TR_NOOP("Draw")),       true },
+        { QStringLiteral("redact"),   QStringLiteral("redact"),          QStringLiteral(QT_TR_NOOP("Redact")),     true },
         { QStringLiteral("image"),    QStringLiteral("image"),           QStringLiteral(QT_TR_NOOP("Image")),      true },
         { QStringLiteral("bookmark"), QStringLiteral("bookmark"),        QStringLiteral(QT_TR_NOOP("Bookmark"))   },
         { QStringLiteral("attach"),   QStringLiteral("link"),            QStringLiteral(QT_TR_NOOP("Link")),       true },
@@ -36,7 +37,7 @@ void LeftSidebar::registerTool(const ToolDef &tool)
     if (tool.id.isEmpty()) return;
     for (const ToolDef &t : catalog())
         if (t.id == tool.id) return;
-    catalog().insert(qMin(6, static_cast<int>(catalog().size())), tool);
+    catalog().insert(qMin(7, static_cast<int>(catalog().size())), tool);
 }
 
 LeftSidebar::LeftSidebar(AppSettings *settings, QWidget *parent)

@@ -37,9 +37,7 @@
 #include <memory>
 
 #include "app/SafeWrite.hpp"
-#include "app/SessionStore.hpp"
 
-#include <QPdfWriter>
 
 #ifdef HAVE_PDF_RENDERING
 #include "engine/document/PdfBackend.hpp"
@@ -49,7 +47,6 @@
 #ifdef HAVE_QPDF
 #include <qpdf/Constants.h>
 #include <qpdf/QPDF.hh>
-#include <qpdf/QPDFWriter.hh>
 #include <qpdf/QPDFPageDocumentHelper.hh>
 #include <qpdf/QPDFPageObjectHelper.hh>
 #include <qpdf/QPDFAcroFormDocumentHelper.hh>
@@ -678,15 +675,16 @@ QPixmap PdfOrganizerDialog::thumbFor(const PageEntry &e) const
 
 #endif
 
-bool PdfOrganizerDialog::writePdf(const QString &outPath)
+bool PdfOrganizerDialog::writePdf(const WriteGrant &output)
 {
+    const QString outPath = output.path();
     const QList<const PageEntry *> entries = pagesToSave();
     QList<OrganizerPage> pages;
     pages.reserve(entries.size());
     for (const PageEntry *e : entries)
         pages.append({ e->pdfPath, e->pageIndex, e->isBlank, e->rotation });
 
-    const OrganizerWriter::Result r = OrganizerWriter(pages, m_docs).write(outPath);
+    const OrganizerWriter::Result r = OrganizerWriter(pages, m_docs).write(output);
     if (r.ok) return true;
 
     switch (r.error) {
@@ -730,11 +728,13 @@ QList<const PageEntry *> PdfOrganizerDialog::pagesToSave() const
     return pages;
 }
 
-bool PdfOrganizerDialog::writeForTest(const QString &path)
+bool PdfOrganizerDialog::writeForTest(const WriteGrant &output)
 {
-    return writePdf(path);
+    return writePdf(output);
 }
 
+// Both write the working copy the document view handed over; the view takes
+// it into the history, and Save As then saves the document like any other.
 void PdfOrganizerDialog::save()
 {
     if (m_pages.isEmpty()) {
@@ -742,18 +742,10 @@ void PdfOrganizerDialog::save()
                              tr("Add at least one page before saving."));
         return;
     }
-
-    const QString workPath = SessionStore::newWorkingFile(m_targetPath);
-    if (workPath.isEmpty()) {
-        saveAs();
-        return;
-    }
-
-    if (writePdf(workPath)) {
-        m_resultPath      = workPath;
-        m_resultIsWorking = true;
-        accept();
-    }
+    if (!m_workingCopy || !writePdf(*m_workingCopy)) return;
+    m_resultPath = m_workingCopy->path();
+    m_saveAsPath.clear();
+    accept();
 }
 
 void PdfOrganizerDialog::saveAs()
@@ -766,14 +758,10 @@ void PdfOrganizerDialog::saveAs()
 
     const QString outPath = QFileDialog::getSaveFileName(
         this, tr("Save PDF As"), m_targetPath, tr("PDF files (*.pdf)"));
-    if (outPath.isEmpty()) return;
-
-    if (writePdf(outPath)) {
-        m_targetPath      = outPath;
-        m_resultPath      = outPath;
-        m_resultIsWorking = false;
-        accept();
-    }
+    if (outPath.isEmpty() || !m_workingCopy || !writePdf(*m_workingCopy)) return;
+    m_resultPath = m_workingCopy->path();
+    m_saveAsPath = outPath;
+    accept();
 }
 
 DocumentHistory::Change PdfOrganizerDialog::appliedChange() const

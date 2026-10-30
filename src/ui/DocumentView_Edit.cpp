@@ -16,6 +16,7 @@
 #include "ui/view/LoadingSpinner.hpp"
 #include "ui/notes/NoteLayer.hpp"
 #include "ui/draw/DrawingLayer.hpp"
+#include "ui/redact/RedactionLayer.hpp"
 #include "ui/edit/TextToolInput.hpp"
 #include "ui/view/HoldKeys.hpp"
 #include "ui/view/HoverHighlight.hpp"
@@ -229,6 +230,8 @@ DocumentView::DocumentView(QWidget *parent)
     m_protectionLayer = new ProtectionLayer(this);
     m_overlays.append(m_protectionLayer);
     m_overlays.append(new SignatureStatusLayer(this, m_info, this));
+    m_redactionLayer = new RedactionLayer(this, this);
+    m_overlays.append(m_redactionLayer);
     for (PageOverlay *overlay : std::as_const(m_overlays))
         overlay->setChangeReporter([this](const QString &title, int page) {
             m_journal.recordSideChange(

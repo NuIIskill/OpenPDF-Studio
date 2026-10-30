@@ -1,5 +1,7 @@
 #pragma once
 
+#include "engine/document/WriteGrant.hpp"
+
 #include <QByteArray>
 #include <QList>
 #include <QPoint>
@@ -34,13 +36,14 @@ public:
 
     virtual bool handleDroppedFile(const QString &path, int page,
                                    const QPoint &canvasPosition,
-                                   QString *newDocument)
+                                   const WriteGrant &workingCopy, bool *wroteWorkingCopy)
     {
-        Q_UNUSED(path) Q_UNUSED(page) Q_UNUSED(canvasPosition) Q_UNUSED(newDocument)
+        Q_UNUSED(path) Q_UNUSED(page) Q_UNUSED(canvasPosition) Q_UNUSED(workingCopy)
+        Q_UNUSED(wroteWorkingCopy)
         return false;
     }
 
-    virtual bool writeTo(const QString &stagingPath) { Q_UNUSED(stagingPath) return true; }
+    virtual bool writeTo(const WriteGrant &staging) { Q_UNUSED(staging) return true; }
 
     virtual QString stateKey() const { return {}; }
 

@@ -80,9 +80,10 @@ QString DocumentImport::openFilter()
     return parts.join(QStringLiteral(";;"));
 }
 
-bool DocumentImport::convertToPdf(const QString &path, const QString &outPdf,
+bool DocumentImport::convertToPdf(const QString &path, const WriteGrant &outPdfGrant,
                                   QString *error, const QString &textDumpPath)
 {
+    const QString outPdf = outPdfGrant.path();
 
     if (!QFileInfo::exists(path)) {
         if (error) *error = tr("The file does not exist.");
@@ -125,7 +126,7 @@ bool DocumentImport::convertToPdf(const QString &path, const QString &outPdf,
                 dump.write(builder.document()->toPlainText().toUtf8());
         }
         return TextDocumentPdf::write(builder.document(), builder.pageLayout(),
-                                      outPdf, error, builder.decorations());
+                                      outPdfGrant, error, builder.decorations());
     }
 
     if (error) *error = tr("%1 files cannot be opened.").arg(suffix.toUpper());

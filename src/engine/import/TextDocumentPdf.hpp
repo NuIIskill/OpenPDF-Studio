@@ -1,5 +1,6 @@
 #pragma once
 
+#include "engine/document/WriteGrant.hpp"
 #include "engine/import/DocumentBuilder.hpp"
 
 #include <QList>
@@ -14,7 +15,7 @@ QT_END_NAMESPACE
 namespace TextDocumentPdf {
 
 bool write(QTextDocument *document, const QPageLayout &layout,
-           const QString &outPdf, QString *error = nullptr,
+           const WriteGrant &outPdf, QString *error = nullptr,
            const QList<DocumentBuilder::Decoration> &decorations = {});
 
 }

@@ -20,9 +20,10 @@ bool available()
 #endif
 }
 
-bool apply(const QString &file, const std::string &currentPassword,
+bool apply(const WriteGrant &fileGrant, const std::string &currentPassword,
            const PdfProtection &protection)
 {
+    const QString file = fileGrant.path();
 #ifdef HAVE_QPDF
     const QString temp = file + QStringLiteral(".protect");
     try {

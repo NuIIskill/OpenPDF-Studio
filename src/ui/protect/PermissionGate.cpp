@@ -69,7 +69,8 @@ std::optional<PermissionGate::Action> PermissionGate::forTool(const QString &too
     for (const ToolDef &tool : LeftSidebar::toolCatalog()) {
         if (tool.id != toolId) continue;
         if (!tool.needsEditMode) return std::nullopt;
-        if (toolId == QLatin1String("text") || toolId == QLatin1String("image"))
+        if (toolId == QLatin1String("text") || toolId == QLatin1String("image")
+                || toolId == QLatin1String("redact"))
             return Action::Modify;
         return Action::Annotate;
     }

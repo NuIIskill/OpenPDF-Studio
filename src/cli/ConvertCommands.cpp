@@ -1,3 +1,4 @@
+#include "cli/CliWrites.hpp"
 #include "cli/Commands.hpp"
 #include "app/PdfPwStore.hpp"
 #include "engine/export/DocxExporter.hpp"
@@ -28,7 +29,7 @@ int exportPdfCommand(const QStringList &args)
         else if (o.startsWith(QLatin1String("pages=")))
             appendPages(o.mid(6), opt.pages);
     }
-    return exportPdf(args.at(2), args.at(3), opt) ? 0 : 3;
+    return exportPdf(args.at(2), CliWrites::to(args.at(3)), opt) ? 0 : 3;
 }
 
 int exportDocxCommand(const QStringList &args)
@@ -73,7 +74,7 @@ int importPdfCommand(const QStringList &args)
             dump = args.at(a).mid(5);
 
     QString error;
-    if (!DocumentImport::convertToPdf(args.at(2), args.at(3), &error, dump)) {
+    if (!DocumentImport::convertToPdf(args.at(2), CliWrites::to(args.at(3)), &error, dump)) {
         qWarning().noquote() << "[import]" << error;
         return 3;
     }

@@ -1,5 +1,6 @@
 #pragma once
 
+#include "engine/document/WriteGrant.hpp"
 #include "engine/document/OrganizerDoc.hpp"
 
 #include <QList>
@@ -30,7 +31,7 @@ public:
                     const QMap<QString, OrganizerDoc *> &docs)
         : m_pages(pages), m_docs(docs) {}
 
-    Result write(const QString &outPath);
+    Result write(const WriteGrant &outPath);
 
 private:
     bool writeVector(const QString &outPath);

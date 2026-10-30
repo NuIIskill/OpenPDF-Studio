@@ -398,11 +398,11 @@ std::unique_ptr<ContentProvider> PdfiumBackend::makeContentProvider() const
     return std::make_unique<PdfiumContentProvider>(m_doc);
 }
 
-bool PdfiumBackend::saveWithEdits(const QString &outputPath,
+bool PdfiumBackend::saveWithEdits(const WriteGrant &output,
                                   const EditSession &session,
                                   const std::function<bool()> &cancelled) const
 {
-    return PdfiumWriter::save(m_path, outputPath, session, cancelled);
+    return PdfiumWriter::save(m_path, output, session, cancelled);
 }
 
 struct PdfiumChar {

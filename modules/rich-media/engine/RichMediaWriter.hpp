@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: LicenseRef-OpenPDF-Business
 #pragma once
 
+#include "engine/document/WriteGrant.hpp"
+
 #include <QString>
 
 class MediaSession;
@@ -10,9 +12,9 @@ namespace RichMediaWriter {
 
 bool available();
 
-bool apply(const QString &pdfPath, const MediaSession &session,
+bool apply(const WriteGrant &pdf, const MediaSession &session,
            const QString &password = QString());
 
-bool writeEmpty(const QString &pdfPath);
+bool writeEmpty(const WriteGrant &pdf);
 
 }

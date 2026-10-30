@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: LicenseRef-OpenPDF-Business
 #pragma once
 
+#include "engine/document/WriteGrant.hpp"
 #include <QPointF>
 #include <QRectF>
 #include <QSize>
@@ -24,10 +25,10 @@ QString mimeTypeFor(const QString &path);
 
 QString displayNameFor(const QString &original, const QString &actual);
 
-QString addAsOwnPage(const QString &pdfPath, const QString &source, int afterPage,
-                     const QString &displayName = QString());
+bool addAsOwnPage(const QString &pdfPath, const QString &source, int afterPage,
+                  const WriteGrant &work, const QString &displayName = QString());
 
-bool newDocument(const QString &source, const QString &outPdf,
+bool newDocument(const QString &source, const WriteGrant &outPdf,
                  const QString &displayName = QString());
 
 }

@@ -232,6 +232,23 @@ QPushButton#NoteMarker {
 QPushButton#NoteMarker:hover { background: #FACC15; }
 QFrame#NotePopup { background: #3D3D3D; border: 1px solid #5A5A5A; border-radius: 9px; }
 
+/* ── Redact ─────────────────────────────────────────────── */
+#RedactionPanel { background: #353535; border-left: 1px solid #484848; }
+QLabel#RedactionTitle { color: #F3F4F6; font-size: 20px; font-weight: 700; }
+QPushButton#RedactionClose, QPushButton#RedactionRemove {
+    background: transparent; border: none; border-radius: 6px; padding: 3px;
+}
+QPushButton#RedactionClose:hover, QPushButton#RedactionRemove:hover { background: #484848; }
+QScrollArea#RedactionScroll, QWidget#RedactionList { background: transparent; border: none; }
+QFrame#RedactionCard { background: #3D3D3D; border: 1px solid #555555; border-radius: 8px; }
+QFrame#RedactionCard:hover { border-color: #64748B; }
+QFrame#RedactionCard[selected="true"] { border: 1px solid #3B82F6; background: #323E52; }
+QLabel#RedactionNumber {
+    background: #0B0B0B; color: #FFFFFF; border-radius: 5px; font-size: 11px; font-weight: 600;
+}
+QLabel#RedactionCardTitle { color: #F3F4F6; font-size: 13px; font-weight: 600; }
+QLabel#RedactionCardMeta { color: #9CA3AF; font-size: 11px; }
+
 /* ── Customize Tools card ────────────────────────────────── */
 QFrame#ToolCustomizeCard {
     background: #404040;

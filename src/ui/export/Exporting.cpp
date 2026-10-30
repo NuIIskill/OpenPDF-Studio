@@ -5,6 +5,7 @@
 #include "ui/export/ExportCopy.hpp"
 #include "app/SafeWrite.hpp"
 #include "engine/export/DocxExporter.hpp"
+#include "engine/document/WriteGrant.hpp"
 #include "engine/export/PdfExporter.hpp"
 
 #include <QApplication>
@@ -49,8 +50,9 @@ private:
     std::atomic<bool> m_requested { false };
 };
 
-bool copyFile(const QString &source, const QString &target)
+bool copyFile(const QString &source, const WriteGrant &output)
 {
+    const QString target = output.path();
     const QString staging = SafeWrite::stagingPath(target);
     if (staging.isEmpty()) return false;
     QFile::remove(staging);
@@ -73,7 +75,7 @@ void runInBackground(const std::function<void()> &work)
 }
 
 bool writePdf(const QString &source, int pageCount, const ExportRequest &request,
-              QString *failure)
+              const WriteGrant &output, QString *failure)
 {
     const QString shownName = QFileInfo(request.path).fileName();
     PdfExportOptions opt;
@@ -89,8 +91,8 @@ bool writePdf(const QString &source, int pageCount, const ExportRequest &request
                            && request.embedFonts;
     bool ok = false;
     if (pdfExportAvailable())
-        runInBackground([&] { ok = exportPdf(source, request.path, opt); });
-    if (!ok && plainRequest) ok = copyFile(source, request.path);
+        runInBackground([&] { ok = exportPdf(source, output, opt); });
+    if (!ok && plainRequest) ok = copyFile(source, output);
     *failure = ok ? QString{}
                   : pdfExportAvailable()
                       ? Exporting::tr("Could not write \"%1\".").arg(shownName)
@@ -185,7 +187,7 @@ void Exporting::run(QWidget *parent, DocumentView *view, const ExportRequest &re
                        : tr("Could not export PNG images to \"%1\".").arg(folder);
 
     } else {
-        ok = writePdf(copy.path(), view->pageCount(), request, &failure);
+        ok = writePdf(copy.path(), view->pageCount(), request, WriteGrant(request.path), &failure);
     }
 
     if (busy.elapsed() < MinBusyMs) {

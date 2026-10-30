@@ -1,5 +1,6 @@
 #pragma once
 
+#include "engine/document/WriteGrant.hpp"
 #include "engine/sign/CertificateProvider.hpp"
 #include "engine/sign/SignatureVerifier.hpp"
 
@@ -28,7 +29,7 @@ public:
     QList<Certificate>     certificates();
     QString                createCertificate(const NewCertificate &request, SignError *error);
     bool                   removeCertificate(const QString &certificateId);
-    SignError              sign(const QString &source, const QString &target, const SignRequest &request);
+    SignError              sign(const QString &source, const WriteGrant &target, const SignRequest &request);
     QList<SignatureStatus> verify(const QString &path, const std::string &password = {},
                                   bool trustOwn = true);
     CertificateFacts       readCertificate(const QByteArray &file);

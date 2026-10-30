@@ -254,6 +254,23 @@ QFrame#NotePopup {
     background: #FFFFFF; border: 1px solid #D1D5DB; border-radius: 9px;
 }
 
+/* ── Redact ─────────────────────────────────────────────── */
+#RedactionPanel { background: #FFFFFF; border-left: 1px solid #E5E7EB; }
+QLabel#RedactionTitle { color: #111827; font-size: 20px; font-weight: 700; }
+QPushButton#RedactionClose, QPushButton#RedactionRemove {
+    background: transparent; border: none; border-radius: 6px; padding: 3px;
+}
+QPushButton#RedactionClose:hover, QPushButton#RedactionRemove:hover { background: #F3F4F6; }
+QScrollArea#RedactionScroll, QWidget#RedactionList { background: transparent; border: none; }
+QFrame#RedactionCard { background: #FFFFFF; border: 1px solid #E5E7EB; border-radius: 8px; }
+QFrame#RedactionCard:hover { border-color: #93C5FD; }
+QFrame#RedactionCard[selected="true"] { border: 1px solid #93B4FF; background: #F8FAFF; }
+QLabel#RedactionNumber {
+    background: #111827; color: #FFFFFF; border-radius: 5px; font-size: 11px; font-weight: 600;
+}
+QLabel#RedactionCardTitle { color: #111827; font-size: 13px; font-weight: 600; }
+QLabel#RedactionCardMeta { color: #6B7280; font-size: 11px; }
+
 /* ── Customize Tools card ────────────────────────────────── */
 QFrame#ToolCustomizeCard {
     background: #FFFFFF;

@@ -1,5 +1,6 @@
 #include "ui/DocumentView.hpp"
 
+#include "app/SessionStore.hpp"
 #include "app/PdfPwStore.hpp"
 #include "engine/document/DocumentSource.hpp"
 #include "engine/edit/InkMetrics.hpp"
@@ -756,19 +757,19 @@ void DocumentView::dropEvent(QDropEvent *e)
             const QPoint canvasPosition = e->position().toPoint() + scroll;
             const auto [page, label] = pageAtCanvasPos(canvasPosition);
             bool taken = false;
-            QString replacement;
+            bool wrote = false;
+            const WriteGrant work = newWorkingCopy();
             for (PageOverlay *overlay : std::as_const(m_overlays))
-                if (overlay->handleDroppedFile(path, page, canvasPosition,
-                                               &replacement)) {
+                if (overlay->handleDroppedFile(path, page, canvasPosition, work, &wrote)) {
                     taken = true;
                     break;
                 }
+            if (!wrote || !openWorkingCopy(work.path(), currentFile(),
+                                           { DocumentHistory::Kind::PageAdded,
+                                             qMax(0, page + 1) }))
+                SessionStore::discard(work.path());
             if (taken) {
                 e->acceptProposedAction();
-                if (!replacement.isEmpty())
-                    openWorkingCopy(replacement, currentFile(),
-                                    { DocumentHistory::Kind::PageAdded,
-                                      qMax(0, page + 1) });
                 return;
             }
         }

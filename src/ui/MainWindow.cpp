@@ -4,6 +4,7 @@
 #include "ui/DocumentView.hpp"
 #include "ui/bookmarks/BookmarkPanel.hpp"
 #include "ui/notes/NotesPanel.hpp"
+#include "ui/redact/RedactionPanel.hpp"
 #include "ui/open/StartPage.hpp"
 #include "ui/bars/TopToolbar.hpp"
 #include "ui/bars/FormatBar.hpp"
@@ -232,6 +233,15 @@ void MainWindow::buildUi()
     row->addWidget(m_textPanel,    0);
     row->addWidget(m_notesPanel,   0);
     m_toolPanels.insert(QStringLiteral("comment"), { m_notesPanel, 356 });
+
+    auto *redactionPanel = new RedactionPanel(central);
+    redactionPanel->setFixedWidth(0);
+    redactionPanel->hide();
+    row->addWidget(redactionPanel, 0);
+    m_toolPanels.insert(QStringLiteral("redact"), { redactionPanel, RedactionPanel::kWidth });
+    connect(redactionPanel, &RedactionPanel::closeRequested, this, [this]() {
+        onToolSelected(QStringLiteral("select"));
+    });
 
     for (const ToolPanels::Panel &def : ToolPanels::all()) {
         QWidget *panel = def.create(central);
@@ -811,6 +821,10 @@ bool MainWindow::saveDocument(DocumentView *dv, const QString &path)
                              DigitalSigning::message(dv->signatureError(), path));
         return false;
     }
+    if (!dv->saveRefusal().isEmpty()) {
+        QMessageBox::warning(this, tr("Save failed"), dv->saveRefusal());
+        return false;
+    }
     QMessageBox::warning(
         this, tr("Save failed"),
         tr("Could not write \"%1\".\n\nThe file may be write-protected or "
@@ -940,16 +954,19 @@ void MainWindow::onModeSelected(const QString &mode)
         if (!PermissionGate::request(dv, PermissionGate::Action::Assemble, this)) return;
 
         auto *dlg = new PdfOrganizerDialog(dv ? dv->contentFile() : QString{}, this);
-        if (dv) dlg->setTargetPath(dv->currentFile());
+        if (dv) {
+            dlg->setTargetPath(dv->currentFile());
+            dlg->setWorkingCopy(dv->newWorkingCopy());
+        }
         dlg->setAttribute(Qt::WA_DeleteOnClose);
         connect(dlg, &QDialog::finished, this, [this, dv, dlg](int result) {
-            if (result != QDialog::Accepted || !dv) return;
             const QString path = dlg->resultPath();
-            if (path.isEmpty()) return;
-            if (dlg->resultIsWorkingCopy())
-                dv->openWorkingCopy(path, dlg->targetPath(), dlg->appliedChange());
-            else
-                dv->openFile(path);
+            if (result != QDialog::Accepted || !dv || path.isEmpty()
+                    || !dv->openWorkingCopy(path, dlg->targetPath(), dlg->appliedChange())) {
+                SessionStore::discard(dlg->workingCopyPath());
+                return;
+            }
+            if (!dlg->saveAsPath().isEmpty()) saveDocument(dv, dlg->saveAsPath());
         });
         dlg->open();
     } else if (mode == QLatin1String("history")) {

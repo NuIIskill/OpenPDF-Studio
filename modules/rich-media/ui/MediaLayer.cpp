@@ -330,18 +330,16 @@ QImage MediaLayer::backgroundWithoutMedia(const MediaAsset &asset) const
 #ifdef HAVE_PDF_RENDERING
     if (!m_canvas || m_documentPath.isEmpty() || asset.annotObject <= 0) return {};
 
-    QTemporaryFile cleanFile(QDir::tempPath()
-        + QStringLiteral("/openpdf-media-background-XXXXXX.pdf"));
-    if (!cleanFile.open()) return {};
-    const QString cleanPath = cleanFile.fileName();
-    cleanFile.close();
-    QFile::remove(cleanPath);
+    // Only for painting the page without the medium; a scratch file never opens as a document.
+    const WriteGrant clean = WriteGrant::scratch(QStringLiteral("media-background.pdf"));
+    const QString cleanPath = clean.path();
+    const auto removeClean = qScopeGuard([&cleanPath] { QFile::remove(cleanPath); });
     if (!QFile::copy(m_documentPath, cleanPath)) return {};
 
     MediaSession removal;
     removal.addRemoval(asset);
     const QString password = PdfPwStore::get(m_documentPath);
-    if (!RichMediaWriter::apply(cleanPath, removal, password)) return {};
+    if (!RichMediaWriter::apply(clean, removal, password)) return {};
 
     std::unique_ptr<PdfBackend> backend = PdfBackend::create();
     if (!backend || !backend->open(cleanPath,
@@ -1108,10 +1106,10 @@ bool MediaLayer::acceptsDroppedFile(const QString &path) const
 
 bool MediaLayer::handleDroppedFile(const QString &path, int page,
                                    const QPoint &canvasPosition,
-                                   QString *newDocument)
+                                   const WriteGrant &workingCopy, bool *wroteWorkingCopy)
 {
     if (!acceptsDroppedFile(path)) return false;
-    if (newDocument) newDocument->clear();
+    if (wroteWorkingCopy) *wroteWorkingCopy = false;
 
     const QString source = ensurePlayableSource(path, &m_tempFiles);
     if (source.isEmpty()) return true;
@@ -1156,19 +1154,18 @@ bool MediaLayer::handleDroppedFile(const QString &path, int page,
         }
     }
 
-    const QString work = MediaDrop::addAsOwnPage(
-        m_documentPath, source, page >= 0 ? page : m_canvas->pageCount() - 1,
-        MediaDrop::displayNameFor(path, source));
-    if (work.isEmpty()) {
+    if (!MediaDrop::addAsOwnPage(m_documentPath, source,
+                                 page >= 0 ? page : m_canvas->pageCount() - 1, workingCopy,
+                                 MediaDrop::displayNameFor(path, source))) {
         QMessageBox::warning(QApplication::activeWindow(), tr("Rich Media"),
                              tr("The video could not be added as a new page."));
         return true;
     }
-    if (newDocument) *newDocument = work;
+    if (wroteWorkingCopy) *wroteWorkingCopy = true;
     return true;
 }
 
-bool MediaLayer::writeTo(const QString &stagingPath)
+bool MediaLayer::writeTo(const WriteGrant &staging)
 {
     if (m_session.isEmpty()) return true;
     if (!RichMediaWriter::available()) {
@@ -1176,6 +1173,6 @@ bool MediaLayer::writeTo(const QString &stagingPath)
         return false;
     }
 
-    return RichMediaWriter::apply(stagingPath, m_session,
+    return RichMediaWriter::apply(staging, m_session,
                                   PdfPwStore::get(m_documentPath));
 }

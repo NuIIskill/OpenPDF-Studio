@@ -50,9 +50,10 @@ bool SignatureManager::removeCertificate(const QString &certificateId)
     return m_provider && m_provider->remove(certificateId);
 }
 
-SignError SignatureManager::sign(const QString &source, const QString &target,
+SignError SignatureManager::sign(const QString &source, const WriteGrant &targetGrant,
                                  const SignRequest &request)
 {
+    const QString target = targetGrant.path();
     if (!available() || !m_provider) return SignError::NotAvailable;
 
     PdfSignatureWriter::Field field;

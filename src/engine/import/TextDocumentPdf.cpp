@@ -26,9 +26,10 @@ QString tr(const char *text) { return QCoreApplication::translate("DocumentImpor
 // whether the images registered as resources survive that clone depends on the
 // Qt version. The loop below is what print does anyway, minus the guessing.
 bool TextDocumentPdf::write(QTextDocument *document, const QPageLayout &layout,
-                            const QString &outPdf, QString *error,
+                            const WriteGrant &outPdfGrant, QString *error,
                             const QList<DocumentBuilder::Decoration> &decorations)
 {
+    const QString outPdf = outPdfGrant.path();
     if (!document) return false;
 
     QPdfWriter writer(outPdf);

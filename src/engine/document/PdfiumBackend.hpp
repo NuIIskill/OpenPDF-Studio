@@ -49,7 +49,7 @@ public:
 
     std::unique_ptr<ContentProvider> makeContentProvider() const override;
 
-    bool saveWithEdits(const QString &outputPath, const EditSession &session,
+    bool saveWithEdits(const WriteGrant &output, const EditSession &session,
                        const std::function<bool()> &cancelled = {}) const override;
 
     TextBlock textAt(int page, const QPointF &pdfPt,

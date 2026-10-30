@@ -1,5 +1,6 @@
 #pragma once
 
+#include "engine/document/WriteGrant.hpp"
 #include <QList>
 #include <QString>
 
@@ -14,7 +15,7 @@ struct PdfExportOptions {
     QString    userPassword;
 };
 
-bool exportPdf(const QString &sourcePath, const QString &outPath,
+bool exportPdf(const QString &sourcePath, const WriteGrant &outPath,
                const PdfExportOptions &options);
 
 bool pdfExportAvailable();

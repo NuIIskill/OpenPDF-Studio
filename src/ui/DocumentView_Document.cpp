@@ -12,6 +12,7 @@
 #include "ui/view/AnnotationLoader.hpp"
 #include "ui/view/DocumentInfoLoader.hpp"
 #include "ui/view/ProtectionLayer.hpp"
+#include "ui/redact/RedactionLayer.hpp"
 #include "ui/view/ImageAnnotation.hpp"
 #include "ui/view/ImageAnnotationLayer.hpp"
 #include "ui/view/LinkAnnotationLayer.hpp"
@@ -189,6 +190,10 @@ bool DocumentView::openContent(const QString &path, const QString &suggestedPath
                                const DocumentHistory::Change &change)
 {
     if (path.isEmpty()) return false;
+    if (WriteGrant::isScratch(path)) {
+        qCritical() << "[History] a scratch file is never opened as a document:" << path;
+        return false;
+    }
     cancelCurrentEdit();
 
     if (m_viewMode == ViewMode::Grid)
@@ -280,7 +285,7 @@ bool DocumentView::removeSignature(const QString &field)
     if (source.isEmpty() || hasUnsavedEdits()) return false;
     const QString work = m_journal.copyToWorkingFile(source, currentFile());
     if (work.isEmpty()) return false;
-    if (!SignatureRemover::remove(source, work, field, PdfPwStore::forQpdf(source))) {
+    if (!SignatureRemover::remove(source, WriteGrant(work), field, PdfPwStore::forQpdf(source))) {
         m_journal.discardCopy(work);
         return false;
     }
@@ -310,6 +315,7 @@ bool DocumentView::saveToFile(const QString &path)
     if (!m_src->backend() || !m_session || m_src->pageCount() <= 0) return false;
 
     const bool signing = m_signatureLayer->hasPending();
+    const bool redacting = m_redactionLayer->hasPending();
     // Without edits on top of the content its bytes are kept, so the
     // signatures in it stay valid.
     const bool keepBytes = !hasEditsBesideSignatures();
@@ -322,18 +328,23 @@ bool DocumentView::saveToFile(const QString &path)
 
     const QString staging = keepBytes ? copyContent(path) : stageDocument(path);
     if (staging.isEmpty()) return false;
-    if (protecting && !ProtectionWriter::apply(staging, password, *protection)) {
+    if (protecting && !ProtectionWriter::apply(WriteGrant(staging), password, *protection)) {
         SafeWrite::discard(staging);
         return false;
     }
-    if (signing && m_signatureLayer->signInto(staging) != SignError::None) {
+    if (signing && m_signatureLayer->signInto(WriteGrant(staging)) != SignError::None) {
+        SafeWrite::discard(staging);
+        return false;
+    }
+    const std::string finalPassword = protecting ? newPassword.toStdString() : password;
+    if (!keepBytes && !m_writeGate.sound(staging, finalPassword, m_src->contentPath(), password)) {
         SafeWrite::discard(staging);
         return false;
     }
 
-    // A signed or newly protected file is final: the view reloads it instead
-    // of staying on a working copy that still carries the old encryption.
-    if (detached && !signing && !protecting) {
+    // A signed, newly protected or redacted file is final: the view reloads it
+    // instead of staying on a working copy that still holds what it replaced.
+    if (detached && !signing && !protecting && !redacting) {
         if (!SafeWrite::commit(staging, path)) return false;
         m_bookmarksDirty = false;
         m_journal.markSaved(path);
@@ -400,11 +411,13 @@ QString DocumentView::stageDocument(const QString &path)
 {
     auto *backend = m_src->backend();
     if (!backend || !m_session || m_src->pageCount() <= 0) return {};
+    m_writeGate.clear();
+    if (!m_writeGate.recorded(m_journal.history(), documentState())) return {};
 
     const QString staging = SafeWrite::stagingPath(path);
     if (staging.isEmpty()) return {};
 
-    if (!writeEditsAndWait(staging) || !finishStaging(staging)) {
+    if (!writeEditsAndWait(staging) || !finishStaging(staging, true)) {
         SafeWrite::discard(staging);
         return {};
     }
@@ -424,21 +437,32 @@ bool DocumentView::writeEditsAndWait(const QString &staging)
         loop.quit();
     });
     m_spinner->showNow();
-    m_src->worker()->writeCopy(staging, std::make_shared<EditSession>(*m_session));
+    m_src->worker()->writeCopy(WriteGrant(staging), std::make_shared<EditSession>(*m_session));
     loop.exec(QEventLoop::ExcludeUserInputEvents);
     m_spinner->setBusy(m_layoutEngine->busy());
     return written;
 }
 
-bool DocumentView::finishStaging(const QString &staging)
+bool DocumentView::finishStaging(const QString &staging, bool conform)
 {
     for (PageOverlay *overlay : std::as_const(m_overlays))
-        if (!overlay->writeTo(staging)) return false;
+        if (!overlay->writeTo(WriteGrant(staging))) return false;
 
-    return !m_bookmarksDirty
-        || BookmarkWriter::write(staging, m_bookmarks, PdfPwStore::get(m_src->contentPath()));
+    if (m_bookmarksDirty
+            && !BookmarkWriter::write(WriteGrant(staging), m_bookmarks,
+                                      PdfPwStore::get(m_src->contentPath())))
+        return false;
+    return !conform
+        || m_writeGate.conform(WriteGrant(staging), PdfPwStore::forQpdf(m_src->contentPath()));
 }
 #endif
+
+WriteGrant DocumentView::newWorkingCopy() const
+{
+    // What is written there counts only once openWorkingCopy() takes it into the history.
+    return WriteGrant(SessionStore::newWorkingFile(currentFile().isEmpty() ? contentFile()
+                                                                            : currentFile()));
+}
 
 bool DocumentView::writeRecoveryCopy(const QString &path)
 {
@@ -461,7 +485,8 @@ void DocumentView::writeRecoveryCopyInBackground(const QString &path,
 #ifdef HAVE_PDF_RENDERING
     const bool usable = !path.isEmpty() && path != m_src->contentPath()
                      && m_src->backend() && m_src->pageCount() > 0;
-    const QString staging = usable ? SafeWrite::stagingPath(path) : QString();
+    const QString staging = usable && m_writeGate.recorded(m_journal.history(), documentState())
+                          ? SafeWrite::stagingPath(path) : QString();
     if (staging.isEmpty()) {
         done(false);
         return;
@@ -472,11 +497,11 @@ void DocumentView::writeRecoveryCopyInBackground(const QString &path,
                           [this, connection, path, staging, done](const QString &output, bool ok) {
         if (output != staging) return;
         disconnect(*connection);
-        ok = ok && finishStaging(staging);
+        ok = ok && finishStaging(staging, false);
         if (!ok) SafeWrite::discard(staging);
         done(ok && SafeWrite::commit(staging, path));
     });
-    m_src->worker()->writeCopy(staging, std::make_shared<EditSession>(*m_session));
+    m_src->worker()->writeCopy(WriteGrant(staging), std::make_shared<EditSession>(*m_session));
 #else
     Q_UNUSED(path)
     done(false);

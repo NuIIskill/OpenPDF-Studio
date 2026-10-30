@@ -286,8 +286,8 @@ bool takeKeptText(FPDF_PAGE page, const QList<FPDF_PAGEOBJECT> &counted,
     return true;
 }
 
-bool writeEdits(const QString &sourcePath, const QString &outputPath,
-                const EditSession &session, const std::function<bool()> &cancelled,
+bool writePages(const QString &sourcePath, const QString &outputPath,
+                const PdfiumWriter::PagePass &pass, const std::function<bool()> &cancelled,
                 bool &wasEncrypted, QHash<int, KeptText::Kept> &keptPages,
                 QHash<int, OriginalContent::Page> &originalPages,
                 QHash<QByteArray, QMap<quint32, uint>> &toUnicode)
@@ -306,37 +306,10 @@ bool writeEdits(const QString &sourcePath, const QString &outputPath,
 
     wasEncrypted = FPDF_GetSecurityHandlerRevision(doc) >= 0;
 
-    QHash<int, QList<EditSession::Edit>> fieldsByPage;
-    QList<int> touched;
-    const auto touch = [&touched](int page) {
-        if (!touched.contains(page)) touched.append(page);
-    };
-    for (const EditSession::Edit &e : session.snapshotEdits()) {
-        if (!e.formField.isEmpty()) {
-            if (!e.newText.isNull()) { fieldsByPage[e.page].append(e); touch(e.page); }
-        } else {
-            touch(e.page);
-        }
-    }
-    for (const EditSession::ImageEdit &e : session.imageEdits())
-        touch(e.page);
-    for (const EditSession::ImageChange &c : session.imageChanges())
-        touch(c.page);
-    for (const EditSession::DrawStroke &stroke : session.drawStrokes())
-        touch(stroke.page);
-    for (const EditSession::LinkEdit &e : session.linkEdits())
-        touch(e.page);
-    for (const EditSession::NoteEdit &e : session.noteEdits())
-        touch(e.page);
-
-    const QHash<int, OriginalContent::Scan> scans = OriginalContent::scan(sourcePath, touched);
-    // Pasted text takes its style from other pages, read before the loop changes them.
-    QHash<int, FPDF_PAGE> sourcePages;
-    for (const EditSession::Edit &e : session.edits())
-        for (const TextLayout::Source &s : TextLayout::distinctSources(e.sources))
-            if (s.page != e.page && !sourcePages.contains(s.page))
-                if (FPDF_PAGE p = FPDF_LoadPage(doc, s.page)) sourcePages.insert(s.page, p);
-    for (int pageIndex : touched) {
+    const QHash<int, OriginalContent::Scan> scans = OriginalContent::scan(sourcePath, pass.pages);
+    if (pass.begin) pass.begin(doc);
+    bool changed = true;
+    for (int pageIndex : pass.pages) {
         FPDF_PAGE page = FPDF_LoadPage(doc, pageIndex);
         if (!page) continue;
 
@@ -350,14 +323,12 @@ bool writeEdits(const QString &sourcePath, const QString &outputPath,
         const QList<FPDF_PAGEOBJECT> counted =
             keptCandidates(page, mapped ? scan.spacedText : QList<bool>(), kept);
         const QSet<FPDF_PAGEOBJECT> before(original.cbegin(), original.cend());
-        PdfiumEdits::applyToPage(doc, page, pageIndex, session, &sourcePages);
-        PdfiumEdits::applyNoteEdits(page, pageIndex, session);
-        for (const EditSession::Edit &edit : fieldsByPage.value(pageIndex))
-            setFieldValue(page, edit.formField, edit.newText);
-        // Link styling and image changes alter objects in place, so those pages are regenerated.
-        bool inPlace = session.hasLinkEditsOnPage(pageIndex);
-        for (const EditSession::ImageChange &c : session.imageChanges())
-            inPlace |= c.page == pageIndex;
+        bool inPlace = false;
+        if (!pass.change(doc, page, pageIndex, inPlace)) {
+            FPDF_ClosePage(page);
+            changed = false;
+            break;
+        }
         OriginalContent::Page content;
         if (mapped && !inPlace && keepsOriginal(original, types, matrices, page, content)) {
             // Text only added still goes through the original: its state must not reach the new text.
@@ -370,7 +341,12 @@ bool writeEdits(const QString &sourcePath, const QString &outputPath,
         FPDFPage_GenerateContent(page);
         FPDF_ClosePage(page);
     }
-    for (FPDF_PAGE p : std::as_const(sourcePages)) FPDF_ClosePage(p);
+    if (pass.end) pass.end();
+    if (!changed) {
+        PdfiumFonts::releaseFonts(doc);
+        FPDF_CloseDocument(doc);
+        return false;
+    }
 
     FileSink sink;
     sink.writer.version    = 1;
@@ -398,28 +374,84 @@ bool writeEdits(const QString &sourcePath, const QString &outputPath,
     return true;
 }
 
-}
-
-bool PdfiumWriter::save(const QString &sourcePath, const QString &outputPath,
-                        const EditSession &session, const std::function<bool()> &cancelled)
+bool writeAndRestore(const QString &sourcePath, const WriteGrant &output,
+                     const PdfiumWriter::PagePass &pass, const std::function<bool()> &cancelled,
+                     bool &wasEncrypted)
 {
-    if (sourcePath.isEmpty() || outputPath.isEmpty()) return false;
-
-    bool wasEncrypted = false;
+    const QString outputPath = output.path();
     QHash<int, KeptText::Kept> keptPages;
     QHash<int, OriginalContent::Page> originalPages;
     QHash<QByteArray, QMap<quint32, uint>> toUnicode;
-    if (!writeEdits(sourcePath, outputPath, session, cancelled, wasEncrypted, keptPages,
+    if (!writePages(sourcePath, outputPath, pass, cancelled, wasEncrypted, keptPages,
                     originalPages, toUnicode))
         return false;
 
-    if (!OriginalContent::restore(sourcePath, outputPath, originalPages, toUnicode))
+    if (!OriginalContent::restore(sourcePath, output, originalPages, toUnicode))
         qWarning() << "[PdfiumWriter] Originalinhalt auf" << originalPages.size()
                    << "Seite(n) konnte nicht erhalten werden";
 
-    if (!KeptText::restore(sourcePath, outputPath, keptPages))
+    if (!KeptText::restore(sourcePath, output, keptPages))
         qWarning() << "[PdfiumWriter] Text auf" << keptPages.size()
                    << "Seite(n) konnte nicht erhalten werden";
+    return true;
+}
+
+}
+
+bool PdfiumWriter::save(const QString &sourcePath, const WriteGrant &output,
+                        const EditSession &session, const std::function<bool()> &cancelled)
+{
+    const QString outputPath = output.path();
+    if (sourcePath.isEmpty() || outputPath.isEmpty()) return false;
+
+    QHash<int, QList<EditSession::Edit>> fieldsByPage;
+    PagePass pass;
+    const auto touch = [&pass](int page) {
+        if (!pass.pages.contains(page)) pass.pages.append(page);
+    };
+    for (const EditSession::Edit &e : session.snapshotEdits()) {
+        if (!e.formField.isEmpty()) {
+            if (!e.newText.isNull()) { fieldsByPage[e.page].append(e); touch(e.page); }
+        } else {
+            touch(e.page);
+        }
+    }
+    for (const EditSession::ImageEdit &e : session.imageEdits())
+        touch(e.page);
+    for (const EditSession::ImageChange &c : session.imageChanges())
+        touch(c.page);
+    for (const EditSession::DrawStroke &stroke : session.drawStrokes())
+        touch(stroke.page);
+    for (const EditSession::LinkEdit &e : session.linkEdits())
+        touch(e.page);
+    for (const EditSession::NoteEdit &e : session.noteEdits())
+        touch(e.page);
+
+    // Pasted text takes its style from other pages, read before the loop changes them.
+    QHash<int, FPDF_PAGE> sourcePages;
+    pass.begin = [&](FPDF_DOCUMENT doc) {
+        for (const EditSession::Edit &e : session.edits())
+            for (const TextLayout::Source &s : TextLayout::distinctSources(e.sources))
+                if (s.page != e.page && !sourcePages.contains(s.page))
+                    if (FPDF_PAGE p = FPDF_LoadPage(doc, s.page)) sourcePages.insert(s.page, p);
+    };
+    pass.change = [&](FPDF_DOCUMENT doc, FPDF_PAGE page, int pageIndex, bool &inPlace) {
+        PdfiumEdits::applyToPage(doc, page, pageIndex, session, &sourcePages);
+        PdfiumEdits::applyNoteEdits(page, pageIndex, session);
+        for (const EditSession::Edit &edit : fieldsByPage.value(pageIndex))
+            setFieldValue(page, edit.formField, edit.newText);
+        // Link styling and image changes alter objects in place, so those pages are regenerated.
+        inPlace = session.hasLinkEditsOnPage(pageIndex);
+        for (const EditSession::ImageChange &c : session.imageChanges())
+            inPlace |= c.page == pageIndex;
+        return true;
+    };
+    pass.end = [&]() {
+        for (FPDF_PAGE p : std::as_const(sourcePages)) FPDF_ClosePage(p);
+    };
+
+    bool wasEncrypted = false;
+    if (!writeAndRestore(sourcePath, output, pass, cancelled, wasEncrypted)) return false;
 
     const QString password = PdfPwStore::get(sourcePath);
     if (wasEncrypted && !isEncrypted(outputPath, password)) {
@@ -430,6 +462,14 @@ bool PdfiumWriter::save(const QString &sourcePath, const QString &outputPath,
         }
     }
     return true;
+}
+
+bool PdfiumWriter::rewrite(const QString &sourcePath, const WriteGrant &output,
+                           const PagePass &pass, const std::function<bool()> &cancelled)
+{
+    if (sourcePath.isEmpty() || output.path().isEmpty() || !pass.change) return false;
+    bool wasEncrypted = false;
+    return writeAndRestore(sourcePath, output, pass, cancelled, wasEncrypted);
 }
 
 #endif

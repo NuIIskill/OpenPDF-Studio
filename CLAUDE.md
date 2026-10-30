@@ -77,7 +77,7 @@ modules/
 .claude/testing/  unit tests and harnesses for the pure parts of engine/
 ```
 
-Five rules keep this from eroding. They are cheap to check and were each
+Six rules keep this from eroding. They are cheap to check and were each
 broken once already:
 
 1. **`engine/` never includes `ui/`, and never uses QWidget.** Anything that
@@ -143,6 +143,31 @@ Check 5 with:
 
 ```bash
 grep -rn '#include "rich-media/' src    # must be empty
+```
+
+6. **No PDF is written past the history manager.** Every change to a
+   document is journal state: an overlay's `state()` with `reportChange()`,
+   the edit session, or a working copy taken in with `openWorkingCopy()`.
+   Only the save pipeline writes it, also for exports and prints. "Kept out
+   of the history" is never an acceptable shortcut, not even for a feature
+   that only writes a copy.
+
+   Every PDF writer takes a `WriteGrant` (`engine/document/WriteGrant.hpp`),
+   which only the issuers named there can create; a scratch grant can never
+   be opened as a document. `WriteGate` (`ui/view/`) refuses to write when the
+   document's state differs from the history's current entry, and checks every
+   saved file (`PdfConformance`): header version for the features used, page
+   tree, media boxes, resources named by content streams, annotations,
+   decodable streams. Only what saving broke stops a save. Test and debug
+   builds, and `OPENPDF_STRICT=1`, abort instead.
+
+   Adding a writer to `cmake/CheckWritePaths.cmake` or an issuer to
+   `WriteGrant` needs the owner's explicit consent.
+
+Check 6 with (it also runs as the first step of every build and fails it):
+
+```bash
+cmake -DROOT=. -P cmake/CheckWritePaths.cmake
 ```
 
 ## Adding a file

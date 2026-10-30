@@ -107,6 +107,25 @@ without another lossy encode; other formats retain their pixels. TIFF and
 WebP depend on the available Qt image format plugins. All converted documents
 open as unnamed PDF working copies, leaving the source unchanged.
 
+## Redacting
+
+The **Redact** tool, below **Draw**, removes content for good. Drag a box over
+everything that has to go. Each box gets a number on the page and a card in
+the panel, where it can be selected or removed. Drag a box to move it, pull a
+corner to resize it, and press Delete to remove the selected one. Every box is
+a change like any other: it appears in **History**, can be undone and redone
+and comes back after a crash.
+
+The boxes are carried out when the document is saved, with `Ctrl+S` or Save
+As. Exporting and printing carry them out as well. Text, image pixels, drawn shapes, comments
+and links under each box are taken out of the file and the box becomes a black
+bar, while the rest of the page keeps its selectable text. A page whose
+content under a box cannot be cut out this way, such as text inside an
+embedded graphic, becomes an image of itself. The result is checked before it
+is written, and nothing is saved if anything under a bar is still readable.
+A redacted file keeps only its pages: bookmarks, form fields, attachments and
+document metadata are left out.
+
 ## Rich media
 
 The separately licensed Rich Media module plays embedded video in the page
@@ -137,6 +156,6 @@ to keep or drop media. See [Licensing](licensing.md) for the module's terms.
 
 ## Current limits
 
-A complete form editor and redaction are not implemented. Use the
+A complete form editor is not implemented. Use the
 [signature guide](signatures.md) for signing and the [export guide](export.md)
 for output formats. If a tool is missing, check [Troubleshooting](troubleshooting.md).

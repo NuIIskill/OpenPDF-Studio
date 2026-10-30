@@ -38,7 +38,7 @@ void DigitalSignatureLayer::addPreview(Pending &pending)
     pending.preview->show();
 }
 
-SignError DigitalSignatureLayer::signInto(const QString &stagingPath)
+SignError DigitalSignatureLayer::signInto(const WriteGrant &staging)
 {
     m_lastError = SignError::None;
     SignatureManager manager;
@@ -46,7 +46,7 @@ SignError DigitalSignatureLayer::signInto(const QString &stagingPath)
         SignRequest request = pending.request;
         if (!request.appearance.isNull())
             request.appearance = pending.appearance.render(QDateTime::currentDateTime());
-        m_lastError = manager.sign(stagingPath, stagingPath, request);
+        m_lastError = manager.sign(staging.path(), staging, request);
         if (m_lastError != SignError::None) break;
     }
     return m_lastError;

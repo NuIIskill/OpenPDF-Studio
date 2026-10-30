@@ -17,6 +17,8 @@ target_sources(OpenPDFStudio PRIVATE
     OriginalContent.cpp
     OriginalContent.hpp
     PdfBackend.cpp
+    PdfConformance.cpp
+    PdfConformance.hpp
     PdfBackend.hpp
     PdfBookmark.hpp
     PdfiumBackend.cpp
@@ -35,6 +37,8 @@ target_sources(OpenPDFStudio PRIVATE
     PdfiumLock.hpp
     PdfiumText.cpp
     PdfiumText_Styles.cpp
+    PdfiumTextCut.cpp
+    PdfiumTextCut.hpp
     PdfiumText.hpp
     PdfiumTextRules.hpp
     PdfiumWriter.cpp
@@ -45,4 +49,6 @@ target_sources(OpenPDFStudio PRIVATE
     RenderPool.hpp
     RenderServer.cpp
     RenderServer.hpp
+    WriteGrant.cpp
+    WriteGrant.hpp
 )

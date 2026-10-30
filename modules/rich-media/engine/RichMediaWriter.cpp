@@ -419,8 +419,9 @@ void removeOne(std::vector<QPDFPageObjectHelper> &pages, const MediaAsset &asset
 
 }
 
-bool RichMediaWriter::writeEmpty(const QString &pdfPath)
+bool RichMediaWriter::writeEmpty(const WriteGrant &pdf)
 {
+    const QString pdfPath = pdf.path();
     try {
         QPDF pdf;
         pdf.emptyPDF();
@@ -433,9 +434,10 @@ bool RichMediaWriter::writeEmpty(const QString &pdfPath)
     return true;
 }
 
-bool RichMediaWriter::apply(const QString &pdfPath, const MediaSession &session,
+bool RichMediaWriter::apply(const WriteGrant &pdf, const MediaSession &session,
                             const QString &password)
 {
+    const QString pdfPath = pdf.path();
     if (session.isEmpty()) return true;
     if (!QFileInfo::exists(pdfPath)) return false;
 
@@ -482,12 +484,12 @@ bool RichMediaWriter::apply(const QString &pdfPath, const MediaSession &session,
 
 #else
 
-bool RichMediaWriter::apply(const QString &, const MediaSession &, const QString &)
+bool RichMediaWriter::apply(const WriteGrant &, const MediaSession &, const QString &)
 {
     return false;
 }
 
-bool RichMediaWriter::writeEmpty(const QString &)
+bool RichMediaWriter::writeEmpty(const WriteGrant &)
 {
     return false;
 }

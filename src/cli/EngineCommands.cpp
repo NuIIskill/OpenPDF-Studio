@@ -1,4 +1,5 @@
 #include "cli/Commands.hpp"
+#include "cli/CliWrites.hpp"
 #include "app/PdfPwStore.hpp"
 #include "ui/organizer/PdfOrganizerDialog.hpp"
 #ifdef HAVE_PDF_RENDERING
@@ -87,7 +88,7 @@ int applyEditCommand(const QStringList &args)
         fieldEdit.formField = fieldName;
         fieldEdit.newText   = replacement;
         fieldSession.addEdit(fieldEdit);
-        return backend->saveWithEdits(args.at(3), fieldSession) ? 0 : 3;
+        return backend->saveWithEdits(CliWrites::to(args.at(3)), fieldSession) ? 0 : 3;
     }
 
     const TextBlock block = backend->textAt(page - 1, at);
@@ -127,7 +128,7 @@ int applyEditCommand(const QStringList &args)
         out << "vorschau=" << args.at(a).mid(8) << "\n";
         break;
     }
-    return backend->saveWithEdits(args.at(3), session) ? 0 : 3;
+    return backend->saveWithEdits(CliWrites::to(args.at(3)), session) ? 0 : 3;
 #else
     Q_UNUSED(args);
     return 3;
@@ -137,7 +138,7 @@ int applyEditCommand(const QStringList &args)
 int organizeSaveCommand(const QStringList &args)
 {
     PdfOrganizerDialog dlg(args.at(2));
-    return dlg.writeForTest(args.at(3)) ? 0 : 3;
+    return dlg.writeForTest(CliWrites::to(args.at(3))) ? 0 : 3;
 }
 
 }

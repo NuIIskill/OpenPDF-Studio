@@ -1,8 +1,11 @@
 #pragma once
 
+#include "engine/document/WriteGrant.hpp"
 #include "engine/historymanager/DocumentHistory.hpp"
 
 #include <QDialog>
+
+#include <optional>
 #include <QMap>
 #include <QList>
 
@@ -40,13 +43,15 @@ public:
     void setTargetPath(const QString &path) { m_targetPath = path; }
     QString targetPath() const { return m_targetPath; }
 
-    QString resultPath() const { return m_resultPath; }
+    void setWorkingCopy(const WriteGrant &grant) { m_workingCopy = grant; }
+    QString workingCopyPath() const { return m_workingCopy ? m_workingCopy->path() : QString(); }
 
-    bool resultIsWorkingCopy() const { return m_resultIsWorking; }
+    QString resultPath() const { return m_resultPath; }
+    QString saveAsPath() const { return m_saveAsPath; }
 
     DocumentHistory::Change appliedChange() const;
 
-    bool writeForTest(const QString &path);
+    bool writeForTest(const WriteGrant &output);
 
 protected:
     void changeEvent(QEvent *e) override;
@@ -90,7 +95,7 @@ private:
 
     void saveAs();
     void save();
-    bool writePdf(const QString &outPath);
+    bool writePdf(const WriteGrant &output);
     QList<const PageEntry *> pagesToSave() const;
 
 #ifdef HAVE_QPDF
@@ -106,7 +111,8 @@ private:
     QString           m_initialPath;
     int               m_initialCount { 0 };
     QString           m_resultPath;
-    bool              m_resultIsWorking { false };
+    QString           m_saveAsPath;
+    std::optional<WriteGrant> m_workingCopy;
 
 #ifdef HAVE_PDF_RENDERING
     QMap<QString, OrganizerDoc *> m_docs;

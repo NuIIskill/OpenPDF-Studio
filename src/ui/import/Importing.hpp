@@ -1,5 +1,7 @@
 #pragma once
 
+#include "engine/document/WriteGrant.hpp"
+
 #include <QCoreApplication>
 #include <QString>
 #include <QStringList>
@@ -26,7 +28,7 @@ public:
         QString     name;
         QStringList suffixes;
         std::function<Result(QWidget *window, const QString &path,
-                             const QString &working, QString *error)> toPdf;
+                             const WriteGrant &working, QString *error)> toPdf;
     };
 
     static void addFormat(Format format);

@@ -354,9 +354,10 @@ void restorePage(QPDF &src, QPDF &out, QPDFPageObjectHelper &source,
 }
 #endif
 
-bool KeptText::restore(const QString &source, const QString &output,
+bool KeptText::restore(const QString &source, const WriteGrant &target,
                        const QHash<int, Kept> &pages)
 {
+    const QString output = target.path();
     if (pages.isEmpty()) return true;
 #ifdef HAVE_QPDF
     const QString temp = output + QStringLiteral(".kept");

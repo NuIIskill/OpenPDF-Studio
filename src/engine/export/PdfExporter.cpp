@@ -161,9 +161,10 @@ void recompressImages(QPDF &pdf, int quality)
 }
 #endif
 
-bool exportPdf(const QString &sourcePath, const QString &outPath,
+bool exportPdf(const QString &sourcePath, const WriteGrant &outPathGrant,
                const PdfExportOptions &options)
 {
+    const QString outPath = outPathGrant.path();
 #ifndef HAVE_QPDF
     Q_UNUSED(sourcePath) Q_UNUSED(outPath) Q_UNUSED(options)
     return false;

@@ -44,9 +44,9 @@ bool PageAppend::append(DocumentView *view, const QString &otherPdf)
     const QMap<QString, OrganizerDoc *> docs {
         { content, current.get() }, { otherPdf, other.get() } };
 
-    const QString work = SessionStore::newWorkingFile(view->currentFile().isEmpty()
-                                                      ? content : view->currentFile());
-    if (work.isEmpty() || !OrganizerWriter(pages, docs).write(work).ok) {
+    const WriteGrant grant = view->newWorkingCopy();
+    const QString work = grant.path();
+    if (work.isEmpty() || !OrganizerWriter(pages, docs).write(grant).ok) {
         SessionStore::discard(work);
         return false;
     }

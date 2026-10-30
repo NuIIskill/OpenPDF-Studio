@@ -15,6 +15,7 @@ the configure output for the detected PDFium backend.
 | Missing feature | Check |
 | --- | --- |
 | PDF export controls, vector organizer save, bookmarks or protection | qpdf was found during configuration |
+| Saving, exporting or printing with redaction boxes | qpdf was found during configuration |
 | Digital signing | qpdf and the platform signing dependencies; GnuTLS and p11-kit on Linux |
 | Rich Media tool | Module enabled and present, qpdf available, plus Qt Multimedia on Linux |
 | Editing a scan | Tesseract compiled in and OCR language data available |
@@ -23,7 +24,7 @@ the configure output for the detected PDFium backend.
 | Printing | Qt PrintSupport included and an operating-system printer configured |
 
 If a tool was hidden, use **Customize Tools** to show it again.
-PDF/A export, redaction, a complete form editor, signing timestamps and locking
+PDF/A export, a complete form editor, signing timestamps and locking
 after signing are not implemented.
 
 ![Customize Tools menu with visibility checkboxes beside each tool and drag handles for reordering](../images/screenshots/customize-tools.png)

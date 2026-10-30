@@ -23,7 +23,7 @@ public:
 
     void add(const SignRequest &request, const SignatureAppearance &appearance);
     bool hasPending() const { return !m_pending.isEmpty(); }
-    SignError signInto(const QString &stagingPath);
+    SignError signInto(const WriteGrant &staging);
     SignError lastError() const { return m_lastError; }
     void clearError() { m_lastError = SignError::None; }
 

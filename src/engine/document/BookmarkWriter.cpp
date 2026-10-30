@@ -88,10 +88,11 @@ int totalCount(const QList<PdfBookmark> &bookmarks)
 }
 #endif
 
-bool BookmarkWriter::write(const QString &path,
+bool BookmarkWriter::write(const WriteGrant &pathGrant,
                            const QList<PdfBookmark> &bookmarks,
                            const QString &password)
 {
+    const QString path = pathGrant.path();
 #ifndef HAVE_QPDF
     Q_UNUSED(path)
     Q_UNUSED(bookmarks)

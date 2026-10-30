@@ -393,9 +393,10 @@ Removal plan(const QString &source, const QString &field, const std::string &pas
     return { true, cut->removed, cut->laterChanges, cut->inPlace };
 }
 
-bool remove(const QString &source, const QString &output, const QString &field,
+bool remove(const QString &source, const WriteGrant &outputGrant, const QString &field,
             const std::string &password)
 {
+    const QString output = outputGrant.path();
     const QByteArray data = readAll(source);
     const auto cut = data.isEmpty() ? std::nullopt : findCut(data, field, password);
     if (!cut) return false;

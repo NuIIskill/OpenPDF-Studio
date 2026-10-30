@@ -8,6 +8,8 @@
 #include <QString>
 #include <QTransform>
 
+#include "engine/document/WriteGrant.hpp"
+
 /// Corrects a saved file with qpdf: original page content and the ToUnicode maps of the fonts the editor embedded.
 namespace OriginalContent {
 
@@ -26,7 +28,7 @@ struct Page {
 
 QHash<int, Scan> scan(const QString &source, const QList<int> &pages);
 
-bool restore(const QString &source, const QString &output, const QHash<int, Page> &pages,
+bool restore(const QString &source, const WriteGrant &output, const QHash<int, Page> &pages,
              const QHash<QByteArray, QMap<quint32, uint>> &toUnicode);
 
 }

@@ -37,11 +37,11 @@ public:
     void setDocument(const QString &path) override;
     void setActiveTool(const QString &toolId) override;
     void relayout() override;
-    bool writeTo(const QString &stagingPath) override;
+    bool writeTo(const WriteGrant &staging) override;
     bool acceptsDroppedFile(const QString &path) const override;
     bool handleDroppedFile(const QString &path, int page,
                            const QPoint &canvasPosition,
-                           QString *newDocument) override;
+                           const WriteGrant &workingCopy, bool *wroteWorkingCopy) override;
     QString stateKey() const override;
     QByteArray state() const override;
     void restoreState(const QByteArray &state) override;

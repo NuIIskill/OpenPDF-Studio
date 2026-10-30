@@ -43,6 +43,8 @@ target_sources(OpenPDFStudio PRIVATE
     SignaturePlacement.hpp
     TextSelectionController.cpp
     TextSelectionController.hpp
+    WriteGate.cpp
+    WriteGate.hpp
     ZoomController.cpp
     ZoomController.hpp
 )

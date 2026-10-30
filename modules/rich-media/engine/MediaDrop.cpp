@@ -8,7 +8,6 @@
 #include "rich-media/engine/RichMediaWriter.hpp"
 
 #include "app/PdfPwStore.hpp"
-#include "app/SessionStore.hpp"
 
 #include <QDebug>
 #include <QFile>
@@ -125,38 +124,36 @@ MediaSpec ownPageSpec(const QString &source, int afterPage, const QString &displ
 
 }
 
-QString MediaDrop::addAsOwnPage(const QString &pdfPath, const QString &source,
-                                int afterPage, const QString &displayName)
+bool MediaDrop::addAsOwnPage(const QString &pdfPath, const QString &source, int afterPage,
+                             const WriteGrant &work, const QString &displayName)
 {
-    if (pdfPath.isEmpty() || source.isEmpty()) return {};
-    if (!RichMediaWriter::available()) return {};
-    if (!QFileInfo::exists(pdfPath) || !QFileInfo::exists(source)) return {};
+    if (pdfPath.isEmpty() || source.isEmpty() || work.path().isEmpty()) return false;
+    if (!RichMediaWriter::available()) return false;
+    if (!QFileInfo::exists(pdfPath) || !QFileInfo::exists(source)) return false;
 
     const MediaSpec spec = ownPageSpec(source, afterPage, displayName);
 
-    const QString work = SessionStore::newWorkingFile(pdfPath);
-    if (work.isEmpty()) return {};
-    QFile::remove(work);
-    if (!QFile::copy(pdfPath, work)) {
-        qWarning() << "[rich-media] cannot create working copy:" << work;
-        return {};
+    QFile::remove(work.path());
+    if (!QFile::copy(pdfPath, work.path())) {
+        qWarning() << "[rich-media] cannot create working copy:" << work.path();
+        return false;
     }
 
-    PdfPwStore::set(work, PdfPwStore::get(pdfPath));
+    PdfPwStore::set(work.path(), PdfPwStore::get(pdfPath));
 
     MediaSession once;
     once.addInsert(spec);
     if (!RichMediaWriter::apply(work, once, PdfPwStore::get(pdfPath))) {
-        QFile::remove(work);
-        return {};
+        QFile::remove(work.path());
+        return false;
     }
-    return work;
+    return true;
 }
 
-bool MediaDrop::newDocument(const QString &source, const QString &outPdf,
+bool MediaDrop::newDocument(const QString &source, const WriteGrant &outPdf,
                             const QString &displayName)
 {
-    if (source.isEmpty() || outPdf.isEmpty() || !QFileInfo::exists(source)) return false;
+    if (source.isEmpty() || outPdf.path().isEmpty() || !QFileInfo::exists(source)) return false;
     if (!RichMediaWriter::available() || !RichMediaWriter::writeEmpty(outPdf)) return false;
 
     MediaSession once;

@@ -16,6 +16,7 @@
 #  include <qpdf/Buffer.hh>
 #  include <cstring>
 
+#  include <regex>
 #  include <set>
 #  include <string>
 #  include <vector>
@@ -167,7 +168,10 @@ private:
         } else if (op == "q") {
             m_saved.push_back(m_state);
         } else if (op == "Q") {
-            if (!m_saved.empty()) { m_state = m_saved.back(); m_saved.pop_back(); }
+            // A Q without its q is ignored by readers; written, it would close the q around the original.
+            if (m_saved.empty()) return;
+            m_state = m_saved.back();
+            m_saved.pop_back();
         } else if (op == "Tc" || op == "Tw" || op == "Tz") {
             const std::vector<Token> v = values();
             if (!v.empty()) {
@@ -320,6 +324,19 @@ void fixOpenTypeFonts(QPDF &out, const QHash<QByteArray, QMap<quint32, uint>> &f
     }
 }
 
+// PDFium opens the stream it appends by undoing the matrix it found the
+// content before it leaving set. That content is wrapped in q and Q here, so
+// there is nothing left to undo.
+QPDFObjectHandle fromInitialState(QPDF &out, QPDFObjectHandle appended)
+{
+    const std::shared_ptr<Buffer> data = appended.getStreamData(qpdf_dl_generalized);
+    const std::string text(reinterpret_cast<const char *>(data->getBuffer()), data->getSize());
+    static const std::regex undo(R"(^\s*q\s+(?:[-+.0-9]+\s+){6}cm\s)");
+    std::smatch found;
+    if (!std::regex_search(text, found, undo)) return appended;
+    return QPDFObjectHandle::newStream(&out, "q\n" + text.substr(size_t(found.length(0))));
+}
+
 bool restorePage(QPDF &out, QPDFPageObjectHelper &source, QPDFPageObjectHelper &target,
                  const OriginalContent::Page &page)
 {
@@ -342,7 +359,7 @@ bool restorePage(QPDF &out, QPDFPageObjectHelper &source, QPDFPageObjectHelper &
     }
     QPDFObjectHandle contents = QPDFObjectHandle::newArray();
     contents.appendItem(QPDFObjectHandle::newStream(&out, original));
-    if (page.appended) contents.appendItem(written.back());
+    if (page.appended) contents.appendItem(fromInitialState(out, written.back()));
     target.getObjectHandle().replaceKey("/Contents", contents);
 
     QPDFObjectHandle targetResources = target.getAttribute("/Resources", true);
@@ -387,10 +404,11 @@ QHash<int, OriginalContent::Scan> OriginalContent::scan(const QString &source,
     return out;
 }
 
-bool OriginalContent::restore(const QString &source, const QString &output,
+bool OriginalContent::restore(const QString &source, const WriteGrant &target,
                               const QHash<int, Page> &pages,
                               const QHash<QByteArray, QMap<quint32, uint>> &toUnicode)
 {
+    const QString output = target.path();
     if (pages.isEmpty() && toUnicode.isEmpty()) return true;
 #ifdef HAVE_QPDF
     const QString temp = output + QStringLiteral(".original");
