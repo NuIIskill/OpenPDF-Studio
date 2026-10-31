@@ -1,11 +1,11 @@
 # OpenPDF Studio
 
 A native Qt 6 PDF viewer and editor for Linux and Windows. Read PDFs, edit
-existing text, organize pages, annotate, sign and export documents in one
+existing text, organize pages, annotate, redact, sign and export documents in one
 desktop application. Word, OpenDocument and image files open as PDF working
 copies, converted locally.
 
-Current version: **0.3.4, alpha**. Saving replaces the original file, so keep a
+Current version: **0.3.5, alpha**. Saving replaces the original file, so keep a
 backup of important PDFs and check the result in a second viewer.
 
 ![OpenPDF Studio displaying the NLBK test PDF, with editing tools on the left and document actions on the right](docs/images/screenshots/overview.png)
@@ -20,6 +20,7 @@ Sample document: [NLBK Niedersachsen test PDF](https://www.nlbk.niedersachsen.de
 - Edit text in place, with font, size, style and colour for a whole box or only
   the selected characters; add text and images, draw, highlight and leave notes.
 - Edit scanned pages through OCR in up to 12 languages.
+- Redact text, images and drawings for good, checked before the file is written.
 - Reorder, rotate, insert, delete and merge pages, or append another file's pages,
   with undo, history and crash recovery.
 - Place handwritten or digital signatures, see each signature's status on the page,
@@ -33,7 +34,7 @@ Sample document: [NLBK Niedersachsen test PDF](https://www.nlbk.niedersachsen.de
   or one of 11 translations.
 
 Feature availability depends on the components included in a build. PDF/A
-export, redaction and a complete form editor are not available yet. The
+export and a complete form editor are not available yet. The
 [user documentation](#user-documentation) explains workflows and limitations.
 
 ## Supported operating systems
@@ -51,15 +52,15 @@ or the [download page](https://openpdf-studio.nullskill.de/download.html).
 On Linux, install the RPM or DEB with your package manager, or run the AppImage:
 
 ```bash
-sudo dnf install ./openpdf-studio-0.3.4-1.x86_64.rpm
-sudo apt install ./openpdf-studio_0.3.4_amd64.deb
+sudo dnf install ./openpdf-studio-0.3.5-1.x86_64.rpm
+sudo apt install ./openpdf-studio_0.3.5_amd64.deb
 # Alternatively:
-chmod +x OpenPDF_Studio-0.3.4-x86_64.AppImage
-./OpenPDF_Studio-0.3.4-x86_64.AppImage
+chmod +x OpenPDF_Studio-0.3.5-x86_64.AppImage
+./OpenPDF_Studio-0.3.5-x86_64.AppImage
 ```
 
-On Windows, run `OpenPDF-Studio-0.3.4-Setup.exe`, or extract
-`OpenPDF-Studio-0.3.4-win64-portable.zip` and start `OpenPDFStudio.exe`.
+On Windows, run `OpenPDF-Studio-0.3.5-Setup.exe`, or extract
+`OpenPDF-Studio-0.3.5-win64-portable.zip` and start `OpenPDFStudio.exe`.
 The setup offers ffmpeg as an optional component. See
 [Installation](docs/user/installation.md) for details.
 
@@ -81,7 +82,7 @@ for the terms and component boundaries.
 | --- | --- |
 | [Getting started](docs/user/getting-started.md) | First document, navigation, settings and saving |
 | [Installation](docs/user/installation.md) | Linux packages, Windows setup and portable mode |
-| [Editing](docs/user/editing.md) | Text, scans, images, annotations, pages and media |
+| [Editing](docs/user/editing.md) | Text, scans, images, annotations, redaction, pages and media |
 | [Signatures](docs/user/signatures.md) | Handwritten and digital signatures, certificates and trust |
 | [Export](docs/user/export.md) | PDF, Word, images and printing |
 | [Licensing](docs/user/licensing.md) | Core, Rich Media, personal use and business licensing |

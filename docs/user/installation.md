@@ -5,20 +5,20 @@
 Packages are provided for Linux x86_64 and Windows x86_64. Download them from
 [GitHub Releases](https://github.com/NuIIskill/OpenPDF-Studio/releases) or the
 [download page](https://openpdf-studio.nullskill.de/download.html).
-The examples below use version 0.3.4; use the filename of the package you downloaded.
+The examples below use version 0.3.5; use the filename of the package you downloaded.
 
 ## Linux packages
 
 Install an RPM with your distribution's package manager. For Fedora:
 
 ```bash
-sudo dnf install ./openpdf-studio-0.3.4-1.x86_64.rpm
+sudo dnf install ./openpdf-studio-0.3.5-1.x86_64.rpm
 ```
 
 For Debian or Ubuntu:
 
 ```bash
-sudo apt install ./openpdf-studio_0.3.4_amd64.deb
+sudo apt install ./openpdf-studio_0.3.5_amd64.deb
 ```
 
 The package manager resolves the declared runtime dependencies. Installing a
@@ -31,8 +31,8 @@ OCR languages and ffmpeg come from the distribution as well; Settings →
 Make the file executable and run it:
 
 ```bash
-chmod +x OpenPDF_Studio-0.3.4-x86_64.AppImage
-./OpenPDF_Studio-0.3.4-x86_64.AppImage
+chmod +x OpenPDF_Studio-0.3.5-x86_64.AppImage
+./OpenPDF_Studio-0.3.5-x86_64.AppImage
 ```
 
 The AppImage bundles application libraries and Qt plugins. Its packaging removes
@@ -42,7 +42,7 @@ if it fails to start.
 
 ## Windows installer
 
-Run `OpenPDF-Studio-0.3.4-Setup.exe` and follow the installer. The packaged build
+Run `OpenPDF-Studio-0.3.5-Setup.exe` and follow the installer. The packaged build
 includes PDFium, qpdf and Tesseract with German, English and French OCR data.
 ffmpeg is an optional component, ticked by default; `Setup.exe /S /NOFFMPEG`
 leaves it out of a silent install. Settings → **Add-on Packages** downloads
@@ -53,7 +53,7 @@ components; Windows N installations may need the Media Feature Pack for playback
 
 ## Windows portable ZIP
 
-Extract `OpenPDF-Studio-0.3.4-win64-portable.zip` into a writable folder and
+Extract `OpenPDF-Studio-0.3.5-win64-portable.zip` into a writable folder and
 start `OpenPDFStudio.exe` inside it. Keep the DLLs and subfolders alongside the
 executable; copying only the executable leaves out its dependencies.
 

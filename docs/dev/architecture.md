@@ -26,8 +26,8 @@ with `--render-server`, the program is a render helper of a running window (see
 `MainWindow` owns the frame: `TopToolbar`, `FormatBar`, `DrawBar`,
 `LeftSidebar`, `BookmarkPanel`, the tool panels, `RightSidebar` and
 `StatusBar`. Every tab is one `DocumentView` in a `QStackedWidget`.
-Where Windows has no OLE drop target on the window, `ShellFileDrop` takes
-the shell's `WM_DROPFILES` instead.
+An elevated window gets no OLE drops from Explorer, so there `ShellFileDrop`
+takes the shell's `WM_DROPFILES` and hands them on as an ordinary Qt drop.
 
 The window only forwards. Bars and panels act on the current `DocumentView`,
 and the view's signals update bars and panels. Work that runs through a dialog

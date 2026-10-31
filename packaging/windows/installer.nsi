@@ -98,7 +98,10 @@ VIAddVersionKey "Comments"        "${APP_SPDX} - ${APP_SOURCE}"
 !insertmacro MUI_PAGE_COMPONENTS
 Page custom UsagePageCreate UsagePageLeave
 !insertmacro MUI_PAGE_INSTFILES
-!define MUI_FINISHPAGE_RUN "$INSTDIR\${APP_EXE}"
+; Started through Explorer, without the installer's elevation: an elevated
+; window refuses every file dragged in from Explorer.
+!define MUI_FINISHPAGE_RUN
+!define MUI_FINISHPAGE_RUN_FUNCTION RunAsUser
 !insertmacro MUI_PAGE_FINISH
 
 !insertmacro MUI_UNPAGE_CONFIRM
@@ -113,6 +116,10 @@ Page custom UsagePageCreate UsagePageLeave
 ; (LICENSES/OPENPDF-BUSINESS.txt, Abschnitt 6); wer "Privat" wählt, bekommt vom
 ; Thema Lizenzierung nie wieder etwas zu sehen. Bei /S wird die Seite nicht
 ; angezeigt. Dann gilt "business", falls /KEY= mitkam, sonst "personal".
+Function RunAsUser
+  Exec '"$WINDIR\explorer.exe" "$INSTDIR\${APP_EXE}"'
+FunctionEnd
+
 Function UsageSyncFields
   ${NSD_GetState} $RbBusiness $1
   ${If} $1 == ${BST_CHECKED}

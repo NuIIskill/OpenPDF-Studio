@@ -14,6 +14,7 @@ class QAction;
 class QFrame;
 class QLabel;
 class QLineEdit;
+class QProgressBar;
 class QTimer;
 class QWidget;
 QT_END_NAMESPACE
@@ -55,6 +56,7 @@ private:
     void positionPanel();
     void startSearch(const QString &needle);
     void addMatches(int search, int page, const QList<QRectF> &rects);
+    void placeProgress();
 
     PageCanvas    *m_canvas   { nullptr };
     QWidget       *m_viewport { nullptr };
@@ -67,8 +69,10 @@ private:
     IconButton    *m_previous { nullptr };
     IconButton    *m_next     { nullptr };
     IconButton    *m_close    { nullptr };
+    QProgressBar  *m_progress { nullptr };
     QTimer        *m_timer    { nullptr };
     QTimer        *m_overlayTimer { nullptr };
+    QTimer        *m_progressDelay { nullptr };
     int            m_search { 0 };
     bool           m_searching { false };
 

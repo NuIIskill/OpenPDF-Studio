@@ -13,6 +13,7 @@
 #include <QKeyEvent>
 #include <QLabel>
 #include <QLineEdit>
+#include <QProgressBar>
 #include <QTimer>
 #include <QVBoxLayout>
 #include <QWidget>
@@ -72,7 +73,23 @@ FindController::FindController(PageCanvas *canvas, QWidget *viewport,
     shadow->setOffset(0, 4);
     shadow->setColor(QColor(0, 0, 0, 45));
     m_bar->setGraphicsEffect(shadow);
+    m_bar->installEventFilter(this);
     outer->addWidget(m_bar);
+
+    m_progress = new QProgressBar(m_bar);
+    m_progress->setObjectName(QStringLiteral("DocumentFindProgress"));
+    m_progress->setTextVisible(false);
+    m_progress->hide();
+
+    // Only a search that takes a while shows how far it has got.
+    m_progressDelay = new QTimer(this);
+    m_progressDelay->setSingleShot(true);
+    m_progressDelay->setInterval(1500);
+    connect(m_progressDelay, &QTimer::timeout, this, [this]() {
+        if (!m_searching) return;
+        placeProgress();
+        m_progress->show();
+    });
 
     m_timer = new QTimer(this);
     m_timer->setSingleShot(true);
@@ -90,9 +107,14 @@ FindController::FindController(PageCanvas *canvas, QWidget *viewport,
                 [this](int search, int page, const QList<PdfBackend::TextMatch> &matches) {
             for (const PdfBackend::TextMatch &match : matches) addMatches(search, page, match.rects);
         });
+        connect(worker, &DocumentWorker::pageSearched, this, [this](int search, int page) {
+            if (search == m_search) m_progress->setValue(page + 1);
+        });
         connect(worker, &DocumentWorker::searchDone, this, [this](int search) {
             if (search != m_search) return;
             m_searching = false;
+            m_progressDelay->stop();
+            m_progress->hide();
             updateCounter();
         });
     }
@@ -174,6 +196,8 @@ void FindController::startSearch(const QString &needle)
 {
     ++m_search;
     m_searching = false;
+    m_progressDelay->stop();
+    m_progress->hide();
 #ifdef HAVE_PDF_RENDERING
     if (DocumentWorker *worker = m_source ? m_source->worker() : nullptr) {
         m_searching = !needle.isEmpty() && m_source->pageCount() > 0;
@@ -182,6 +206,10 @@ void FindController::startSearch(const QString &needle)
 #else
     Q_UNUSED(needle)
 #endif
+    if (!m_searching) return;
+    m_progress->setRange(0, m_source->pageCount());
+    m_progress->setValue(0);
+    m_progressDelay->start();
 }
 
 void FindController::addMatches(int search, int page, const QList<QRectF> &rects)
@@ -274,6 +302,14 @@ void FindController::positionPanel()
     m_panel->setGeometry(qMax(0, (m_viewport->width() - width) / 2), 10, width, 64);
 }
 
+void FindController::placeProgress()
+{
+    constexpr int kInset = 8;
+    constexpr int kHeight = 3;
+    m_progress->setGeometry(kInset, m_bar->height() - kHeight - 2,
+                            m_bar->width() - 2 * kInset, kHeight);
+}
+
 void FindController::relayout()
 {
     positionPanel();
@@ -300,6 +336,8 @@ void FindController::refreshTheme()
 
 bool FindController::eventFilter(QObject *watched, QEvent *event)
 {
+    if (watched == m_bar && event->type() == QEvent::Resize)
+        placeProgress();
     if (watched == m_edit && event->type() == QEvent::KeyPress) {
         auto *key = static_cast<QKeyEvent *>(event);
         if (key->key() == Qt::Key_Escape) {

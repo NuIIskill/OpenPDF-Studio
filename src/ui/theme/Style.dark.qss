@@ -430,6 +430,17 @@ QLineEdit#DocumentFindInput:focus {
     border-color: #60A5FA;
 }
 
+QProgressBar#DocumentFindProgress {
+    background: #484848;
+    border: none;
+    border-radius: 1px;
+}
+
+QProgressBar#DocumentFindProgress::chunk {
+    background: #60A5FA;
+    border-radius: 1px;
+}
+
 QLabel#DocumentFindCounter {
     color: #B8B8B8;
     font-size: 12px;

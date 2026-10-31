@@ -323,6 +323,7 @@ void DocumentWorker::runSearch(int search, const QString &needle, int page, bool
     const QList<PdfBackend::TextMatch> matches = m_backend->findTextOnPage(page, needle);
     post(generation, [this, search, page, matches, last] {
         if (!matches.isEmpty()) Q_EMIT textFound(search, page, matches);
+        Q_EMIT pageSearched(search, page);
         if (last) Q_EMIT searchDone(search);
     });
 }

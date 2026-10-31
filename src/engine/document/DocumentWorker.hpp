@@ -60,6 +60,7 @@ Q_SIGNALS:
                          const QList<PdfBackend::Note> &notes);
     void copyWritten(const QString &output, bool ok);
     void textFound(int search, int page, const QList<PdfBackend::TextMatch> &matches);
+    void pageSearched(int search, int page);
     void searchDone(int search);
     void stopped();
 
