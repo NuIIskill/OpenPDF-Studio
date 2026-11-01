@@ -413,8 +413,8 @@
     </message>
     <message>
         <location filename="../../src/ui/sign/DigitalSigning.cpp" line="42"/>
-        <source>Password-protected documents cannot be signed yet.</source>
-        <translation>Met een wachtwoord beveiligde documenten kunnen nog niet worden ondertekend.</translation>
+        <source>This document is encrypted in a way that cannot be signed.</source>
+        <translation>Dit document is versleuteld op een manier die niet kan worden ondertekend.</translation>
     </message>
     <message>
         <location filename="../../src/ui/sign/DigitalSigning.cpp" line="44"/>
@@ -628,7 +628,7 @@ Gebruik een build met ondersteuning voor Qt6::Pdf.
     </message>
     <message>
         <location filename="../../src/ui/DocumentView.cpp" line="319"/>
-        <location filename="../../src/ui/DocumentView_Edit.cpp" line="104"/>
+        <location filename="../../src/ui/DocumentView_Edit.cpp" line="105"/>
         <source>Drop a document here or click a tab to open</source>
         <translation>Sleep hier een document naartoe of klik op een tabblad</translation>
     </message>
@@ -646,12 +646,12 @@ Gebruik een build met ondersteuning voor Qt6::Pdf.
 <context>
     <name>DocxReader</name>
     <message>
-        <location filename="../../src/engine/import/DocxReader.cpp" line="441"/>
+        <location filename="../../src/engine/import/DocxReader.cpp" line="483"/>
         <source>The file has no readable document part.</source>
         <translation>Het bestand bevat geen leesbaar documentdeel.</translation>
     </message>
     <message>
-        <location filename="../../src/engine/import/DocxReader.cpp" line="470"/>
+        <location filename="../../src/engine/import/DocxReader.cpp" line="512"/>
         <source>The document is damaged: %1</source>
         <translation>Het document is beschadigd: %1</translation>
     </message>
@@ -753,7 +753,7 @@ Gebruik een build met ondersteuning voor Qt6::Pdf.
 <context>
     <name>EditController</name>
     <message>
-        <location filename="../../src/ui/edit/EditController.cpp" line="39"/>
+        <location filename="../../src/ui/edit/EditController.cpp" line="42"/>
         <source>Text bearbeiten</source>
         <translation>Tekst bewerken</translation>
     </message>
@@ -798,7 +798,7 @@ Gebruik een build met ondersteuning voor Qt6::Pdf.
         <translation type="vanished">Nog niet beschikbaar.</translation>
     </message>
     <message>
-        <location filename="../../src/ui/export/ExportDialog.cpp" line="130"/>
+        <location filename="../../src/ui/export/ExportDialog.cpp" line="137"/>
         <source>Export - OpenPDF Studio</source>
         <translation>Exporteren - OpenPDF Studio</translation>
     </message>
@@ -811,100 +811,105 @@ Gebruik een build met ondersteuning voor Qt6::Pdf.
         <translation type="vanished">Niet gebruikt bij exporteren naar PNG-afbeeldingen.</translation>
     </message>
     <message>
-        <location filename="../../src/ui/export/ExportDialog.cpp" line="183"/>
+        <location filename="../../src/ui/export/ExportDialog.cpp" line="191"/>
         <source>Not available in this build: rewriting a PDF&apos;s annotations, forms, fonts or encryption needs qpdf.</source>
         <translation>Niet beschikbaar in deze versie: voor het herschrijven van opmerkingen, formulieren, lettertypen of versleuteling van een PDF is qpdf nodig.</translation>
     </message>
     <message>
-        <location filename="../../src/ui/export/ExportDialog.cpp" line="197"/>
-        <location filename="../../src/ui/export/ExportDialog.cpp" line="649"/>
+        <location filename="../../src/ui/export/ExportDialog.cpp" line="205"/>
+        <location filename="../../src/ui/export/ExportDialog.cpp" line="727"/>
         <source>Estimated file size: unknown</source>
         <translation>Geschatte bestandsgrootte: onbekend</translation>
     </message>
     <message>
-        <location filename="../../src/ui/export/ExportDialog.cpp" line="204"/>
+        <location filename="../../src/ui/export/ExportDialog.cpp" line="212"/>
         <source>Estimated file size: unknown (check the page range)</source>
         <translation>Geschatte bestandsgrootte: onbekend (controleer het paginabereik)</translation>
     </message>
     <message>
-        <location filename="../../src/ui/export/ExportDialog.cpp" line="260"/>
+        <location filename="../../src/ui/export/ExportDialog.cpp" line="275"/>
         <source>Estimated file size: ~%1  (%2 of %3 pages)</source>
         <translation>Geschatte bestandsgrootte: ~%1  (%2 van %3 pagina&apos;s)</translation>
     </message>
     <message>
-        <location filename="../../src/ui/export/ExportDialog.cpp" line="311"/>
+        <location filename="../../src/ui/export/ExportDialog.cpp" line="329"/>
         <source>Select Save Location</source>
         <translation>Opslaglocatie kiezen</translation>
     </message>
     <message>
-        <location filename="../../src/ui/export/ExportDialog.cpp" line="322"/>
+        <location filename="../../src/ui/export/ExportDialog.cpp" line="340"/>
         <source>Missing filename</source>
         <translation>Bestandsnaam ontbreekt</translation>
     </message>
     <message>
-        <location filename="../../src/ui/export/ExportDialog.cpp" line="322"/>
+        <location filename="../../src/ui/export/ExportDialog.cpp" line="340"/>
         <source>Please enter a filename.</source>
         <translation>Voer een bestandsnaam in.</translation>
     </message>
     <message>
-        <location filename="../../src/ui/export/ExportDialog.cpp" line="326"/>
+        <location filename="../../src/ui/export/ExportDialog.cpp" line="344"/>
         <source>Missing location</source>
         <translation>Locatie ontbreekt</translation>
     </message>
     <message>
-        <location filename="../../src/ui/export/ExportDialog.cpp" line="326"/>
+        <location filename="../../src/ui/export/ExportDialog.cpp" line="344"/>
         <source>Please select a save location.</source>
         <translation>Kies een opslaglocatie.</translation>
     </message>
     <message>
-        <location filename="../../src/ui/export/ExportDialog.cpp" line="331"/>
+        <location filename="../../src/ui/export/ExportDialog.cpp" line="349"/>
         <source>No document</source>
         <translation>Geen document</translation>
     </message>
     <message>
-        <location filename="../../src/ui/export/ExportDialog.cpp" line="331"/>
+        <location filename="../../src/ui/export/ExportDialog.cpp" line="349"/>
         <source>Please open a PDF document first.</source>
         <translation>Open eerst een PDF-document.</translation>
     </message>
     <message>
-        <location filename="../../src/ui/export/ExportDialog.cpp" line="339"/>
+        <location filename="../../src/ui/export/ExportDialog.cpp" line="357"/>
         <source>Invalid page range</source>
         <translation>Ongeldig paginabereik</translation>
     </message>
     <message>
-        <location filename="../../src/ui/export/ExportDialog.cpp" line="340"/>
+        <location filename="../../src/ui/export/ExportDialog.cpp" line="358"/>
         <source>&quot;%1&quot; is not a valid range for a document with %2 pages.
 Use page numbers like 1-3, 5, 8-10.</source>
         <translation>&quot;%1&quot; is geen geldig bereik voor een document met %2 pagina&apos;s.
 Gebruik paginanummers zoals 1-3, 5, 8-10.</translation>
     </message>
     <message>
-        <location filename="../../src/ui/export/ExportDialog.cpp" line="364"/>
+        <location filename="../../src/ui/export/ExportDialog.cpp" line="382"/>
         <source>%1 image files</source>
         <translation>%1 afbeeldingsbestanden</translation>
     </message>
     <message>
-        <location filename="../../src/ui/export/ExportDialog.cpp" line="365"/>
+        <location filename="../../src/ui/export/ExportDialog.cpp" line="383"/>
         <source>Overwrite existing file?</source>
         <translation>Bestaand bestand overschrijven?</translation>
     </message>
     <message>
-        <location filename="../../src/ui/export/ExportDialog.cpp" line="366"/>
+        <location filename="../../src/ui/export/ExportDialog.cpp" line="384"/>
         <source>%1 already exists. Do you want to overwrite it?</source>
         <translation>%1 bestaat al. Wilt u het overschrijven?</translation>
     </message>
     <message>
-        <location filename="../../src/ui/export/ExportDialog.cpp" line="460"/>
+        <location filename="../../src/ui/export/ExportDialog.cpp" line="500"/>
+        <source>Documents</source>
+        <translation>Documenten</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/export/ExportDialog.cpp" line="503"/>
         <source>Best for sharing and printing</source>
         <translation>Ideaal om te delen en af te drukken</translation>
     </message>
     <message>
-        <location filename="../../src/ui/export/ExportDialog.cpp" line="463"/>
+        <location filename="../../src/ui/export/ExportDialog.cpp" line="506"/>
         <source>Long-term archiving</source>
         <translation>Langdurige archivering</translation>
     </message>
     <message>
-        <location filename="../../src/ui/export/ExportDialog.cpp" line="465"/>
+        <location filename="../../src/ui/export/ExportDialog.cpp" line="510"/>
         <source>Edit in Microsoft Word</source>
         <translation>Bewerken in Microsoft Word</translation>
     </message>
@@ -917,152 +922,192 @@ Gebruik paginanummers zoals 1-3, 5, 8-10.</translation>
         <translation type="vanished">PNG-afbeeldingen</translation>
     </message>
     <message>
-        <location filename="../../src/ui/export/ExportDialog.cpp" line="468"/>
+        <location filename="../../src/ui/export/ExportDialog.cpp" line="514"/>
+        <source>Edit in LibreOffice</source>
+        <translation>Bewerken in LibreOffice</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/export/ExportDialog.cpp" line="515"/>
+        <source>Images</source>
+        <translation>Afbeeldingen</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/export/ExportDialog.cpp" line="518"/>
         <source>Lossless page images</source>
         <translation>Verliesvrije paginabeelden</translation>
     </message>
     <message>
-        <location filename="../../src/ui/export/ExportDialog.cpp" line="470"/>
+        <location filename="../../src/ui/export/ExportDialog.cpp" line="520"/>
         <source>Smaller files for photos and scans</source>
         <translation>Kleinere bestanden voor foto&apos;s en scans</translation>
     </message>
     <message>
-        <location filename="../../src/ui/export/ExportDialog.cpp" line="497"/>
+        <location filename="../../src/ui/export/ExportDialog.cpp" line="523"/>
+        <source>For print and archiving</source>
+        <translation>Voor drukwerk en archief</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/export/ExportDialog.cpp" line="525"/>
+        <source>Small images for the web</source>
+        <translation>Kleine afbeeldingen voor het web</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/export/ExportDialog.cpp" line="526"/>
+        <source>Text &amp; Web</source>
+        <translation>Tekst &amp; web</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/export/ExportDialog.cpp" line="530"/>
+        <source>Plain text without layout</source>
+        <translation>Platte tekst zonder opmaak</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/export/ExportDialog.cpp" line="533"/>
+        <source>Text with headings and lists</source>
+        <translation>Tekst met koppen en lijsten</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/export/ExportDialog.cpp" line="536"/>
+        <source>Opens in any web browser</source>
+        <translation>Opent in elke browser</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/export/ExportDialog.cpp" line="575"/>
         <source>File</source>
         <translation>Bestand</translation>
     </message>
     <message>
-        <location filename="../../src/ui/export/ExportDialog.cpp" line="498"/>
+        <location filename="../../src/ui/export/ExportDialog.cpp" line="576"/>
         <source>Choose where to save your file.</source>
         <translation>Kies waar het bestand wordt opgeslagen.</translation>
     </message>
     <message>
-        <location filename="../../src/ui/export/ExportDialog.cpp" line="511"/>
+        <location filename="../../src/ui/export/ExportDialog.cpp" line="589"/>
         <source>Browse…</source>
         <translation>Bladeren…</translation>
     </message>
     <message>
-        <location filename="../../src/ui/export/ExportDialog.cpp" line="516"/>
+        <location filename="../../src/ui/export/ExportDialog.cpp" line="594"/>
         <source>Filename</source>
         <translation>Bestandsnaam</translation>
     </message>
     <message>
-        <location filename="../../src/ui/export/ExportDialog.cpp" line="518"/>
+        <location filename="../../src/ui/export/ExportDialog.cpp" line="596"/>
         <source>Save location</source>
         <translation>Opslaglocatie</translation>
     </message>
     <message>
-        <location filename="../../src/ui/export/ExportDialog.cpp" line="523"/>
+        <location filename="../../src/ui/export/ExportDialog.cpp" line="601"/>
         <source>Open file after export</source>
         <translation>Bestand openen na exporteren</translation>
     </message>
     <message>
-        <location filename="../../src/ui/export/ExportDialog.cpp" line="525"/>
+        <location filename="../../src/ui/export/ExportDialog.cpp" line="603"/>
         <source>Automatically open the exported file when the process completes.</source>
         <translation>Het geëxporteerde bestand automatisch openen als het klaar is.</translation>
     </message>
     <message>
-        <location filename="../../src/ui/export/ExportDialog.cpp" line="532"/>
+        <location filename="../../src/ui/export/ExportDialog.cpp" line="610"/>
         <source>Pages</source>
         <translation>Pagina&apos;s</translation>
     </message>
     <message>
-        <location filename="../../src/ui/export/ExportDialog.cpp" line="533"/>
+        <location filename="../../src/ui/export/ExportDialog.cpp" line="611"/>
         <source>Select which pages to export.</source>
         <translation>Kies welke pagina&apos;s worden geëxporteerd.</translation>
     </message>
     <message>
-        <location filename="../../src/ui/export/ExportDialog.cpp" line="536"/>
+        <location filename="../../src/ui/export/ExportDialog.cpp" line="614"/>
         <source>All pages (%1)</source>
         <translation>Alle pagina&apos;s (%1)</translation>
     </message>
     <message>
-        <location filename="../../src/ui/export/ExportDialog.cpp" line="537"/>
+        <location filename="../../src/ui/export/ExportDialog.cpp" line="615"/>
         <source>All pages</source>
         <translation>Alle pagina&apos;s</translation>
     </message>
     <message>
-        <location filename="../../src/ui/export/ExportDialog.cpp" line="538"/>
+        <location filename="../../src/ui/export/ExportDialog.cpp" line="616"/>
         <source>Current page (%1)</source>
         <translation>Huidige pagina (%1)</translation>
     </message>
     <message>
-        <location filename="../../src/ui/export/ExportDialog.cpp" line="539"/>
+        <location filename="../../src/ui/export/ExportDialog.cpp" line="617"/>
         <source>Current page</source>
         <translation>Huidige pagina</translation>
     </message>
     <message>
-        <location filename="../../src/ui/export/ExportDialog.cpp" line="540"/>
+        <location filename="../../src/ui/export/ExportDialog.cpp" line="618"/>
         <source>Range</source>
         <translation>Bereik</translation>
     </message>
     <message>
-        <location filename="../../src/ui/export/ExportDialog.cpp" line="544"/>
+        <location filename="../../src/ui/export/ExportDialog.cpp" line="622"/>
         <source>For example: 1-3, 5, 8-10</source>
         <translation>Bijvoorbeeld: 1-3, 5, 8-10</translation>
     </message>
     <message>
-        <location filename="../../src/ui/export/ExportDialog.cpp" line="570"/>
+        <location filename="../../src/ui/export/ExportDialog.cpp" line="648"/>
         <source>Settings</source>
         <translation>Instellingen</translation>
     </message>
     <message>
-        <location filename="../../src/ui/export/ExportDialog.cpp" line="571"/>
+        <location filename="../../src/ui/export/ExportDialog.cpp" line="649"/>
         <source>Adjust quality and include additional content.</source>
         <translation>Pas de kwaliteit aan en neem extra inhoud op.</translation>
     </message>
     <message>
-        <location filename="../../src/ui/export/ExportDialog.cpp" line="576"/>
+        <location filename="../../src/ui/export/ExportDialog.cpp" line="654"/>
         <source>Compress images</source>
         <translation>Afbeeldingen comprimeren</translation>
     </message>
     <message>
-        <location filename="../../src/ui/export/ExportDialog.cpp" line="580"/>
+        <location filename="../../src/ui/export/ExportDialog.cpp" line="658"/>
         <source>Quality</source>
         <translation>Kwaliteit</translation>
     </message>
     <message>
-        <location filename="../../src/ui/export/ExportDialog.cpp" line="591"/>
+        <location filename="../../src/ui/export/ExportDialog.cpp" line="669"/>
         <source>Maximum</source>
         <translation>Maximaal</translation>
     </message>
     <message>
-        <location filename="../../src/ui/export/ExportDialog.cpp" line="592"/>
+        <location filename="../../src/ui/export/ExportDialog.cpp" line="670"/>
         <source>High</source>
         <translation>Hoog</translation>
     </message>
     <message>
-        <location filename="../../src/ui/export/ExportDialog.cpp" line="593"/>
+        <location filename="../../src/ui/export/ExportDialog.cpp" line="671"/>
         <source>Medium</source>
         <translation>Gemiddeld</translation>
     </message>
     <message>
-        <location filename="../../src/ui/export/ExportDialog.cpp" line="594"/>
+        <location filename="../../src/ui/export/ExportDialog.cpp" line="672"/>
         <source>Low</source>
         <translation>Laag</translation>
     </message>
     <message>
-        <location filename="../../src/ui/export/ExportDialog.cpp" line="600"/>
+        <location filename="../../src/ui/export/ExportDialog.cpp" line="678"/>
         <source>Reduces file size without noticeable quality loss.</source>
         <translation>Verkleint het bestand zonder zichtbaar kwaliteitsverlies.</translation>
     </message>
     <message>
-        <location filename="../../src/ui/export/ExportDialog.cpp" line="615"/>
+        <location filename="../../src/ui/export/ExportDialog.cpp" line="693"/>
         <source>Keep forms</source>
         <translation>Formulieren behouden</translation>
     </message>
     <message>
-        <location filename="../../src/ui/export/ExportDialog.cpp" line="616"/>
+        <location filename="../../src/ui/export/ExportDialog.cpp" line="694"/>
         <source>Include comments</source>
         <translation>Opmerkingen opnemen</translation>
     </message>
     <message>
-        <location filename="../../src/ui/export/ExportDialog.cpp" line="619"/>
+        <location filename="../../src/ui/export/ExportDialog.cpp" line="697"/>
         <source>Preserve form fields and data.</source>
         <translation>Formuliervelden en hun gegevens behouden.</translation>
     </message>
     <message>
-        <location filename="../../src/ui/export/ExportDialog.cpp" line="620"/>
+        <location filename="../../src/ui/export/ExportDialog.cpp" line="698"/>
         <source>Export comments and annotations.</source>
         <translation>Opmerkingen en aantekeningen exporteren.</translation>
     </message>
@@ -1075,12 +1120,12 @@ Gebruik paginanummers zoals 1-3, 5, 8-10.</translation>
         <translation type="vanished">Bepaal wat in het geëxporteerde bestand behouden blijft.</translation>
     </message>
     <message>
-        <location filename="../../src/ui/export/ExportDialog.cpp" line="621"/>
+        <location filename="../../src/ui/export/ExportDialog.cpp" line="699"/>
         <source>Embed fonts</source>
         <translation>Lettertypen insluiten</translation>
     </message>
     <message>
-        <location filename="../../src/ui/export/ExportDialog.cpp" line="623"/>
+        <location filename="../../src/ui/export/ExportDialog.cpp" line="701"/>
         <source>Include all used fonts in the PDF file.</source>
         <translation>Alle gebruikte lettertypen in het PDF-bestand opnemen.</translation>
     </message>
@@ -1117,12 +1162,12 @@ Gebruik paginanummers zoals 1-3, 5, 8-10.</translation>
         <translation type="vanished">Alle JavaScript-acties uit het bestand verwijderen.</translation>
     </message>
     <message>
-        <location filename="../../src/ui/export/ExportDialog.cpp" line="651"/>
+        <location filename="../../src/ui/export/ExportDialog.cpp" line="729"/>
         <source>Cancel</source>
         <translation>Annuleren</translation>
     </message>
     <message>
-        <location filename="../../src/ui/export/ExportDialog.cpp" line="656"/>
+        <location filename="../../src/ui/export/ExportDialog.cpp" line="734"/>
         <source>Export</source>
         <translation>Exporteren</translation>
     </message>
@@ -1138,12 +1183,12 @@ Gebruik paginanummers zoals 1-3, 5, 8-10.</translation>
 <context>
     <name>ExportFormatList</name>
     <message>
-        <location filename="../../src/ui/export/ExportFormatList.cpp" line="19"/>
+        <location filename="../../src/ui/export/ExportFormatList.cpp" line="33"/>
         <source>Export to</source>
         <translation>Exporteren naar</translation>
     </message>
     <message>
-        <location filename="../../src/ui/export/ExportFormatList.cpp" line="36"/>
+        <location filename="../../src/ui/export/ExportFormatList.cpp" line="107"/>
         <source>Not available yet.</source>
         <translation>Nog niet beschikbaar.</translation>
     </message>
@@ -1155,38 +1200,37 @@ Gebruik paginanummers zoals 1-3, 5, 8-10.</translation>
         <translation type="vanished">&quot;%1&quot; wordt geëxporteerd…</translation>
     </message>
     <message>
-        <location filename="../../src/ui/export/Exporting.cpp" line="134"/>
+        <location filename="../../src/ui/export/Exporting.cpp" line="135"/>
         <source>Exporting page %1 of %2…</source>
         <translation>Pagina %1 van %2 exporteren…</translation>
     </message>
     <message>
-        <location filename="../../src/ui/export/Exporting.cpp" line="172"/>
+        <location filename="../../src/ui/export/Exporting.cpp" line="181"/>
         <source>Writing &quot;%1&quot;…</source>
         <translation>&quot;%1&quot; wordt geschreven…</translation>
     </message>
     <message>
-        <location filename="../../src/ui/export/Exporting.cpp" line="176"/>
+        <location filename="../../src/ui/export/Exporting.cpp" line="188"/>
+        <location filename="../../src/ui/export/Exporting.cpp" line="206"/>
         <source>Could not write to &quot;%1&quot;.</source>
         <translation>Kan niet schrijven naar &quot;%1&quot;.</translation>
     </message>
     <message>
-        <location filename="../../src/ui/export/Exporting.cpp" line="186"/>
         <source>Could not export JPEG images to &quot;%1&quot;.</source>
-        <translation>JPEG-afbeeldingen konden niet naar ‘%1’ worden geëxporteerd.</translation>
+        <translation type="vanished">JPEG-afbeeldingen konden niet naar ‘%1’ worden geëxporteerd.</translation>
     </message>
     <message>
-        <location filename="../../src/ui/export/Exporting.cpp" line="187"/>
         <source>Could not export PNG images to &quot;%1&quot;.</source>
-        <translation>Kan PNG-afbeeldingen niet exporteren naar &quot;%1&quot;.</translation>
+        <translation type="vanished">Kan PNG-afbeeldingen niet exporteren naar &quot;%1&quot;.</translation>
     </message>
     <message>
-        <location filename="../../src/ui/export/Exporting.cpp" line="98"/>
-        <location filename="../../src/ui/export/Exporting.cpp" line="155"/>
+        <location filename="../../src/ui/export/Exporting.cpp" line="99"/>
+        <location filename="../../src/ui/export/Exporting.cpp" line="164"/>
         <source>Could not write &quot;%1&quot;.</source>
         <translation>Kan &quot;%1&quot; niet schrijven.</translation>
     </message>
     <message>
-        <location filename="../../src/ui/export/Exporting.cpp" line="100"/>
+        <location filename="../../src/ui/export/Exporting.cpp" line="101"/>
         <source>Could not write &quot;%1&quot;.
 
 Selecting pages for a PDF needs qpdf, which this build does not include. Exporting as Word or PNG is unaffected.</source>
@@ -1195,22 +1239,30 @@ Selecting pages for a PDF needs qpdf, which this build does not include. Exporti
 Pagina&apos;s kiezen voor een PDF vereist qpdf, dat deze build niet bevat. Exporteren als Word of PNG werkt gewoon.</translation>
     </message>
     <message>
-        <location filename="../../src/ui/export/Exporting.cpp" line="206"/>
+        <location filename="../../src/ui/export/Exporting.cpp" line="197"/>
+        <source>Could not export %1 images to &quot;%2&quot;.</source>
+        <translation>Kan %1-afbeeldingen niet exporteren naar &quot;%2&quot;.</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/export/Exporting.cpp" line="225"/>
         <source>Export failed</source>
         <translation>Exporteren mislukt</translation>
     </message>
     <message>
-        <location filename="../../src/ui/export/Exporting.cpp" line="213"/>
+        <location filename="../../src/ui/export/Exporting.cpp" line="231"/>
+        <source>%1 pages exported as %2 images</source>
+        <translation>%1 pagina&apos;s geëxporteerd als %2-afbeeldingen</translation>
+    </message>
+    <message>
         <source>%1 pages exported as JPEG images</source>
-        <translation>%1 pagina&apos;s geëxporteerd als JPEG-afbeeldingen</translation>
+        <translation type="vanished">%1 pagina&apos;s geëxporteerd als JPEG-afbeeldingen</translation>
     </message>
     <message>
-        <location filename="../../src/ui/export/Exporting.cpp" line="214"/>
         <source>%1 pages exported as PNG images</source>
-        <translation>%1 pagina&apos;s geëxporteerd als PNG-afbeeldingen</translation>
+        <translation type="vanished">%1 pagina&apos;s geëxporteerd als PNG-afbeeldingen</translation>
     </message>
     <message>
-        <location filename="../../src/ui/export/Exporting.cpp" line="212"/>
+        <location filename="../../src/ui/export/Exporting.cpp" line="232"/>
         <source>Exported &quot;%1&quot;</source>
         <translation>&quot;%1&quot; geëxporteerd</translation>
     </message>
@@ -1226,22 +1278,22 @@ Pagina&apos;s kiezen voor een PDF vereist qpdf, dat deze build niet bevat. Expor
 <context>
     <name>FindController</name>
     <message>
-        <location filename="../../src/ui/view/FindController.cpp" line="286"/>
+        <location filename="../../src/ui/view/FindController.cpp" line="322"/>
         <source>Find in document</source>
         <translation>Zoeken in document</translation>
     </message>
     <message>
-        <location filename="../../src/ui/view/FindController.cpp" line="287"/>
+        <location filename="../../src/ui/view/FindController.cpp" line="323"/>
         <source>Previous match (Shift+Enter)</source>
         <translation>Vorige overeenkomst (Shift+Enter)</translation>
     </message>
     <message>
-        <location filename="../../src/ui/view/FindController.cpp" line="288"/>
+        <location filename="../../src/ui/view/FindController.cpp" line="324"/>
         <source>Next match (Enter)</source>
         <translation>Volgende overeenkomst (Enter)</translation>
     </message>
     <message>
-        <location filename="../../src/ui/view/FindController.cpp" line="289"/>
+        <location filename="../../src/ui/view/FindController.cpp" line="325"/>
         <source>Close (Esc)</source>
         <translation>Sluiten (Esc)</translation>
     </message>
@@ -2462,27 +2514,27 @@ The file may be write-protected or open in another program. The document is unch
 Het bestand is mogelijk schrijfbeveiligd of geopend in een ander programma. Het document is ongewijzigd. Sla het op onder een andere naam.</translation>
     </message>
     <message>
-        <location filename="../../src/ui/MainWindow.cpp" line="1014"/>
+        <location filename="../../src/ui/MainWindow.cpp" line="1017"/>
         <source>Edit Mode</source>
         <translation>Bewerkmodus</translation>
     </message>
     <message>
-        <location filename="../../src/ui/MainWindow.cpp" line="1015"/>
+        <location filename="../../src/ui/MainWindow.cpp" line="1018"/>
         <source>Do you want to enable Edit Mode?</source>
         <translation>Wilt u de bewerkmodus inschakelen?</translation>
     </message>
     <message>
-        <location filename="../../src/ui/MainWindow.cpp" line="1248"/>
+        <location filename="../../src/ui/MainWindow.cpp" line="1251"/>
         <source>Untitled</source>
         <translation>Naamloos</translation>
     </message>
     <message>
-        <location filename="../../src/ui/MainWindow.cpp" line="1252"/>
+        <location filename="../../src/ui/MainWindow.cpp" line="1255"/>
         <source>Unsaved Changes</source>
         <translation>Niet-opgeslagen wijzigingen</translation>
     </message>
     <message>
-        <location filename="../../src/ui/MainWindow.cpp" line="1253"/>
+        <location filename="../../src/ui/MainWindow.cpp" line="1256"/>
         <source>Save changes to &quot;%1&quot;?</source>
         <translation>Wijzigingen in &quot;%1&quot; opslaan?</translation>
     </message>
@@ -3040,7 +3092,7 @@ Voer het wachtwoord in om het te openen:</translation>
         <translation type="vanished">Geselecteerde verwijderen</translation>
     </message>
     <message>
-        <location filename="../../src/ui/organizer/PdfOrganizerDialog.cpp" line="265"/>
+        <location filename="../../src/ui/organizer/PdfOrganizerDialog.cpp" line="264"/>
         <source>Cancel</source>
         <translation>Annuleren</translation>
     </message>
@@ -3049,114 +3101,114 @@ Voer het wachtwoord in om het te openen:</translation>
         <translation type="vanished">Opslaan als…</translation>
     </message>
     <message>
-        <location filename="../../src/ui/organizer/PdfOrganizerDialog.cpp" line="62"/>
-        <location filename="../../src/ui/organizer/PdfOrganizerDialog.cpp" line="847"/>
+        <location filename="../../src/ui/organizer/PdfOrganizerDialog.cpp" line="61"/>
+        <location filename="../../src/ui/organizer/PdfOrganizerDialog.cpp" line="837"/>
         <source>PDF Organizer - OpenPDF Studio</source>
         <translation>PDF-organisator - OpenPDF Studio</translation>
     </message>
     <message>
-        <location filename="../../src/ui/organizer/PdfOrganizerDialog.cpp" line="139"/>
+        <location filename="../../src/ui/organizer/PdfOrganizerDialog.cpp" line="138"/>
         <source>Add PDF</source>
         <translation>PDF toevoegen</translation>
     </message>
     <message>
-        <location filename="../../src/ui/organizer/PdfOrganizerDialog.cpp" line="145"/>
+        <location filename="../../src/ui/organizer/PdfOrganizerDialog.cpp" line="144"/>
         <source>Open PDF file…</source>
         <translation>PDF-bestand openen…</translation>
     </message>
     <message>
-        <location filename="../../src/ui/organizer/PdfOrganizerDialog.cpp" line="147"/>
-        <location filename="../../src/ui/organizer/PdfOrganizerDialog.cpp" line="153"/>
-        <location filename="../../src/ui/organizer/PdfOrganizerDialog.cpp" line="299"/>
+        <location filename="../../src/ui/organizer/PdfOrganizerDialog.cpp" line="146"/>
+        <location filename="../../src/ui/organizer/PdfOrganizerDialog.cpp" line="152"/>
+        <location filename="../../src/ui/organizer/PdfOrganizerDialog.cpp" line="298"/>
         <source>Open PDF</source>
         <translation>PDF openen</translation>
     </message>
     <message>
-        <location filename="../../src/ui/organizer/PdfOrganizerDialog.cpp" line="147"/>
-        <location filename="../../src/ui/organizer/PdfOrganizerDialog.cpp" line="153"/>
-        <location filename="../../src/ui/organizer/PdfOrganizerDialog.cpp" line="766"/>
+        <location filename="../../src/ui/organizer/PdfOrganizerDialog.cpp" line="146"/>
+        <location filename="../../src/ui/organizer/PdfOrganizerDialog.cpp" line="152"/>
+        <location filename="../../src/ui/organizer/PdfOrganizerDialog.cpp" line="760"/>
         <source>PDF files (*.pdf)</source>
         <translation>PDF-bestanden (*.pdf)</translation>
     </message>
     <message>
-        <location filename="../../src/ui/organizer/PdfOrganizerDialog.cpp" line="158"/>
+        <location filename="../../src/ui/organizer/PdfOrganizerDialog.cpp" line="157"/>
         <source>Blank Page</source>
         <translation>Lege pagina</translation>
     </message>
     <message>
-        <location filename="../../src/ui/organizer/PdfOrganizerDialog.cpp" line="186"/>
+        <location filename="../../src/ui/organizer/PdfOrganizerDialog.cpp" line="185"/>
         <source>Move left</source>
         <translation>Naar links</translation>
     </message>
     <message>
-        <location filename="../../src/ui/organizer/PdfOrganizerDialog.cpp" line="186"/>
+        <location filename="../../src/ui/organizer/PdfOrganizerDialog.cpp" line="185"/>
         <source>Move page left</source>
         <translation>Pagina naar links</translation>
     </message>
     <message>
-        <location filename="../../src/ui/organizer/PdfOrganizerDialog.cpp" line="187"/>
+        <location filename="../../src/ui/organizer/PdfOrganizerDialog.cpp" line="186"/>
         <source>Move right</source>
         <translation>Naar rechts</translation>
     </message>
     <message>
-        <location filename="../../src/ui/organizer/PdfOrganizerDialog.cpp" line="187"/>
+        <location filename="../../src/ui/organizer/PdfOrganizerDialog.cpp" line="186"/>
         <source>Move page right</source>
         <translation>Pagina naar rechts</translation>
     </message>
     <message>
-        <location filename="../../src/ui/organizer/PdfOrganizerDialog.cpp" line="190"/>
+        <location filename="../../src/ui/organizer/PdfOrganizerDialog.cpp" line="189"/>
         <source>Rotate left</source>
         <translation>Linksom draaien</translation>
     </message>
     <message>
-        <location filename="../../src/ui/organizer/PdfOrganizerDialog.cpp" line="190"/>
+        <location filename="../../src/ui/organizer/PdfOrganizerDialog.cpp" line="189"/>
         <source>Rotate left 90°</source>
         <translation>90° linksom draaien</translation>
     </message>
     <message>
-        <location filename="../../src/ui/organizer/PdfOrganizerDialog.cpp" line="191"/>
+        <location filename="../../src/ui/organizer/PdfOrganizerDialog.cpp" line="190"/>
         <source>Rotate right</source>
         <translation>Rechtsom draaien</translation>
     </message>
     <message>
-        <location filename="../../src/ui/organizer/PdfOrganizerDialog.cpp" line="191"/>
+        <location filename="../../src/ui/organizer/PdfOrganizerDialog.cpp" line="190"/>
         <source>Rotate right 90°</source>
         <translation>90° rechtsom draaien</translation>
     </message>
     <message>
-        <location filename="../../src/ui/organizer/PdfOrganizerDialog.cpp" line="194"/>
+        <location filename="../../src/ui/organizer/PdfOrganizerDialog.cpp" line="193"/>
         <source>Delete page</source>
         <translation>Pagina verwijderen</translation>
     </message>
     <message>
-        <location filename="../../src/ui/organizer/PdfOrganizerDialog.cpp" line="237"/>
+        <location filename="../../src/ui/organizer/PdfOrganizerDialog.cpp" line="236"/>
         <source>Drag &amp; drop pages to reorder</source>
         <translation>Sleep pagina&apos;s om de volgorde te wijzigen</translation>
     </message>
     <message>
-        <location filename="../../src/ui/organizer/PdfOrganizerDialog.cpp" line="260"/>
-        <location filename="../../src/ui/organizer/PdfOrganizerDialog.cpp" line="480"/>
+        <location filename="../../src/ui/organizer/PdfOrganizerDialog.cpp" line="259"/>
+        <location filename="../../src/ui/organizer/PdfOrganizerDialog.cpp" line="479"/>
         <source>Pages</source>
         <translation>Pagina&apos;s</translation>
     </message>
     <message>
-        <location filename="../../src/ui/organizer/PdfOrganizerDialog.cpp" line="270"/>
+        <location filename="../../src/ui/organizer/PdfOrganizerDialog.cpp" line="269"/>
         <source>Save as</source>
         <translation>Opslaan als</translation>
     </message>
     <message>
-        <location filename="../../src/ui/organizer/PdfOrganizerDialog.cpp" line="275"/>
+        <location filename="../../src/ui/organizer/PdfOrganizerDialog.cpp" line="274"/>
         <source>Save</source>
         <translation>Opslaan</translation>
     </message>
     <message>
-        <location filename="../../src/ui/organizer/PdfOrganizerDialog.cpp" line="300"/>
+        <location filename="../../src/ui/organizer/PdfOrganizerDialog.cpp" line="299"/>
         <source>Could not open: </source>
         <translation>Kan niet openen: </translation>
     </message>
     <message>
-        <location filename="../../src/ui/organizer/PdfOrganizerDialog.cpp" line="429"/>
-        <location filename="../../src/ui/organizer/PdfOrganizerDialog.cpp" line="473"/>
+        <location filename="../../src/ui/organizer/PdfOrganizerDialog.cpp" line="428"/>
+        <location filename="../../src/ui/organizer/PdfOrganizerDialog.cpp" line="472"/>
         <source>Page %1</source>
         <translation>Pagina %1</translation>
     </message>
@@ -3182,19 +3234,19 @@ Voer het wachtwoord in om het te openen:</translation>
         <translation>Voor het schrijven van PDF is een PDF-backend nodig (Qt6Pdf of Poppler).</translation>
     </message>
     <message>
-        <location filename="../../src/ui/organizer/PdfOrganizerDialog.cpp" line="739"/>
-        <location filename="../../src/ui/organizer/PdfOrganizerDialog.cpp" line="760"/>
+        <location filename="../../src/ui/organizer/PdfOrganizerDialog.cpp" line="741"/>
+        <location filename="../../src/ui/organizer/PdfOrganizerDialog.cpp" line="754"/>
         <source>Empty</source>
         <translation>Leeg</translation>
     </message>
     <message>
-        <location filename="../../src/ui/organizer/PdfOrganizerDialog.cpp" line="740"/>
-        <location filename="../../src/ui/organizer/PdfOrganizerDialog.cpp" line="761"/>
+        <location filename="../../src/ui/organizer/PdfOrganizerDialog.cpp" line="742"/>
+        <location filename="../../src/ui/organizer/PdfOrganizerDialog.cpp" line="755"/>
         <source>Add at least one page before saving.</source>
         <translation>Voeg minimaal één pagina toe voor het opslaan.</translation>
     </message>
     <message>
-        <location filename="../../src/ui/organizer/PdfOrganizerDialog.cpp" line="766"/>
+        <location filename="../../src/ui/organizer/PdfOrganizerDialog.cpp" line="760"/>
         <source>Save PDF As</source>
         <translation>PDF opslaan als</translation>
     </message>
@@ -3208,13 +3260,13 @@ Voer het wachtwoord in om het te openen:</translation>
         <translation type="vanished">PDF schrijven vereist Qt6Pdf.</translation>
     </message>
     <message>
-        <location filename="../../src/ui/organizer/PdfOrganizerDialog.cpp" line="203"/>
-        <location filename="../../src/ui/organizer/PdfOrganizerDialog.cpp" line="498"/>
+        <location filename="../../src/ui/organizer/PdfOrganizerDialog.cpp" line="202"/>
+        <location filename="../../src/ui/organizer/PdfOrganizerDialog.cpp" line="497"/>
         <source>Select all</source>
         <translation>Alles selecteren</translation>
     </message>
     <message>
-        <location filename="../../src/ui/organizer/PdfOrganizerDialog.cpp" line="498"/>
+        <location filename="../../src/ui/organizer/PdfOrganizerDialog.cpp" line="497"/>
         <source>Deselect all</source>
         <translation>Alles deselecteren</translation>
     </message>
@@ -3901,22 +3953,22 @@ Voer het wachtwoord in om het te openen:</translation>
 <context>
     <name>RedactionLayer</name>
     <message>
-        <location filename="../../src/ui/redact/RedactionLayer.cpp" line="306"/>
+        <location filename="../../src/ui/redact/RedactionLayer.cpp" line="355"/>
         <source>Redaction area added</source>
         <translation>Zwartmaakgebied toegevoegd</translation>
     </message>
     <message>
-        <location filename="../../src/ui/redact/RedactionLayer.cpp" line="308"/>
+        <location filename="../../src/ui/redact/RedactionLayer.cpp" line="357"/>
         <source>Redaction area moved</source>
         <translation>Zwartmaakgebied verplaatst</translation>
     </message>
     <message>
-        <location filename="../../src/ui/redact/RedactionLayer.cpp" line="309"/>
+        <location filename="../../src/ui/redact/RedactionLayer.cpp" line="358"/>
         <source>Redaction area resized</source>
         <translation>Grootte van zwartmaakgebied gewijzigd</translation>
     </message>
     <message>
-        <location filename="../../src/ui/redact/RedactionLayer.cpp" line="424"/>
+        <location filename="../../src/ui/redact/RedactionLayer.cpp" line="493"/>
         <source>Redaction area removed</source>
         <translation>Zwartmaakgebied verwijderd</translation>
     </message>
@@ -5750,8 +5802,8 @@ Voer het wachtwoord in om het te openen:</translation>
 <context>
     <name>TextDocumentPdf</name>
     <message>
-        <location filename="../../src/engine/import/TextDocumentPdf.cpp" line="41"/>
-        <location filename="../../src/engine/import/TextDocumentPdf.cpp" line="129"/>
+        <location filename="../../src/engine/import/TextDocumentPdf.cpp" line="43"/>
+        <location filename="../../src/engine/import/TextDocumentPdf.cpp" line="160"/>
         <source>The PDF could not be written.</source>
         <translation>Kan de PDF niet schrijven.</translation>
     </message>

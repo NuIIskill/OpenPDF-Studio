@@ -97,6 +97,8 @@ struct Seg {
     QRectF  lastWord;
     QRectF  lastObject;
     QHash<QString, int> fonts;
+    QList<ContentRun> runs;
+    QString runFont;
 };
 
 struct RowSegs {
@@ -124,11 +126,26 @@ bool symbolMarker(const QString &marker)
                         [](QChar ch) { return ch.isLetterOrNumber(); });
 }
 
+void addRun(Seg &seg, const ContentCluster &c, int start, bool apart)
+{
+    if (!apart && !seg.runs.isEmpty() && seg.runFont == c.rawFontName
+            && qAbs(seg.runs.last().fontSizePt - c.fontSizePt) < 0.1
+            && seg.runs.last().textColor == c.textColor) {
+        seg.runs.last().length = start + int(c.text.size()) - seg.runs.last().start;
+        return;
+    }
+    const ResolvedFont rf = resolvePdfFont(c.rawFontName);
+    seg.runs.append({ start, int(c.text.size()), rf.family, rf.bold, rf.italic,
+                      c.fontSizePt, c.textColor, c.origin.x(), apart });
+    seg.runFont = c.rawFontName;
+}
+
 void addWord(Seg &seg, const ContentCluster &c, int index, double lineH)
 {
     if (seg.words == 0) {
         seg.firstIdx  = index;
         seg.text      = c.text;
+        addRun(seg, c, 0, false);
         seg.bounds    = c.bounds;
         seg.origin    = c.origin;
         seg.marker    = isListMarker(c.text.trimmed());
@@ -147,6 +164,8 @@ void addWord(Seg &seg, const ContentCluster &c, int index, double lineH)
         }
         if (gap > lineH * 0.18 && !seg.text.endsWith(u' ') && !c.text.startsWith(u' '))
             seg.text += u' ';
+        // A gap wider than a stretched space was set by position, not typed.
+        addRun(seg, c, int(seg.text.size()), gap > lineH * 0.9);
         seg.text  += c.text;
         seg.bounds = seg.bounds.united(c.bounds);
     }
@@ -267,6 +286,11 @@ QList<RowSegs> segmentRows(const QList<ContentCluster> &cl, bool editing)
         merged.words     = 2;
         merged.fonts.clear();
         for (int n = 1; n < row.segs.size(); ++n) {
+            const int offset = int(merged.text.size()) + 1;
+            for (ContentRun run : row.segs[n].runs) {
+                run.start += offset;
+                merged.runs.append(run);
+            }
             merged.text += u' ' + row.segs[n].text;
             merged.bounds = merged.bounds.united(row.segs[n].bounds);
             for (auto it = row.segs[n].fonts.cbegin(); it != row.segs[n].fonts.cend(); ++it)
@@ -529,6 +553,7 @@ QList<ContentItem> classifyContentClusters(QList<ContentCluster> clusters,
             it.fontFamily    = rf.family;
             it.bold          = rf.bold;
             it.italic        = rf.italic;
+            if (seg.runs.size() > 1) it.runs = seg.runs;
             QString font;
             for (auto f = seg.fonts.cbegin(); f != seg.fonts.cend(); ++f)
                 if (font.isNull() || f.value() > seg.fonts.value(font)) font = f.key();

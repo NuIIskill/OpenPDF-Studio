@@ -4,6 +4,8 @@ target_sources(OpenPDFStudio PRIVATE
     EditController_Format.cpp
     EditController_Frame.cpp
     EditController.hpp
+    EditCallout.cpp
+    EditCallout.hpp
     EditOpen.hpp
     EditNotice.cpp
     EditNotice.hpp

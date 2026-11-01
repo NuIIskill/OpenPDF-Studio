@@ -13,8 +13,10 @@
 
 #include <QDir>
 #include <QFileInfo>
+#include <QImageWriter>
 #include <QLineF>
 #include <QPainter>
+#include <QSaveFile>
 
 #include <algorithm>
 
@@ -98,6 +100,80 @@ const ContentItem *styleDonor(const QList<ContentItem> &detected,
     }
 
     return bestScore >= 0.5 ? best : nullptr;
+}
+
+// A list line leaves a gap between its marker and its text that a space would
+// close. Where the text starts is found on the page and kept as a hanging indent.
+void measureListMarkers(QList<DocxBlock> &blocks, const PdfBackend *backend, int page)
+{
+    if (!backend) return;
+    for (DocxBlock &block : blocks) {
+        if (block.kind != DocxBlock::Kind::Paragraph || block.lines.isEmpty()) continue;
+        const ContentItem &first = block.lines.first();
+        const QString text = DocxXml::withoutSymbolFont(first.text).trimmed();
+        const QString marker = text.section(u' ', 0, 0);
+        const QString word = text.section(u' ', 1, 1);
+        if (word.isEmpty() || !isListMarker(marker)) continue;
+
+        const double fontPt = DocxXml::fontSizeOf_(first);
+        for (const PdfBackend::TextMatch &match : backend->findTextOnPage(page, word)) {
+            if (match.rects.isEmpty()) continue;
+            const QRectF at = match.rects.first();
+            if (qAbs(at.center().y() - first.bounds.center().y()) > first.bounds.height() * 0.6
+                    || at.left() <= first.bounds.left()
+                    || at.left() > first.bounds.left() + fontPt * 6)
+                continue;
+            const double hanging = at.left() - first.bounds.left();
+            if (hanging > (marker.size() + 1) * fontPt * 0.6) block.hangingPt = hanging;
+            break;
+        }
+    }
+}
+
+// Whether a line was broken on purpose depends on whether the next line's first
+// word would still have fitted, so that word is measured in its own font.
+void measureLeadWords(QList<DocxBlock> &blocks, const PdfBackend *backend, int page)
+{
+    if (!backend) return;
+    for (DocxBlock &block : blocks) {
+        if (block.kind != DocxBlock::Kind::Paragraph || block.lines.size() < 2) continue;
+        block.leadWordPt.fill(-1.0, block.lines.size());
+        for (qsizetype i = 1; i < block.lines.size(); ++i) {
+            const ContentItem &line = block.lines[i];
+            const QString word = DocxXml::withoutSymbolFont(line.text).trimmed().section(u' ', 0, 0);
+            const QPointF inFirstWord(line.bounds.left() + 1.0, line.bounds.center().y());
+            block.leadWordPt[i] = backend->textWidthPt(page, inFirstWord, u' ' + word,
+                                                       DocxXml::fontSizeOf_(line));
+        }
+    }
+}
+
+bool sameLook(const ContentRun &a, const ContentRun &b)
+{
+    return a.fontFamily == b.fontFamily && a.bold == b.bold && a.italic == b.italic
+        && qAbs(a.fontSizePt - b.fontSizePt) < 0.1 && a.textColor == b.textColor;
+}
+
+// A line takes the look most of its text has, so one bold word at its start
+// sets neither the line nor the paragraph it opens in bold.
+void takeMainLook(QList<ContentItem> &items)
+{
+    for (ContentItem &item : items) {
+        if (item.runs.size() < 2) continue;
+        const ContentRun *main = nullptr;
+        int longest = 0;
+        for (const ContentRun &run : item.runs) {
+            int total = 0;
+            for (const ContentRun &other : item.runs)
+                if (sameLook(run, other)) total += other.length;
+            if (total > longest) { longest = total; main = &run; }
+        }
+        item.fontFamily = main->fontFamily;
+        item.bold       = main->bold;
+        item.italic     = main->italic;
+        item.fontSizePt = main->fontSizePt;
+        item.textColor  = main->textColor;
+    }
 }
 
 QList<QRectF> mergeGlyphBoxes(QList<QRectF> boxes)
@@ -208,17 +284,23 @@ QList<DocxPage> DocumentExporter::allPageContent(const QList<int> &pages,
         page.pageSizePt = m_src.renderer->pageSizePts(i);
         if (m_src.provider)
             page.items = m_src.provider->pageItemsForExport(i);
+        takeMainLook(page.items);
 
         constexpr qreal exportScale = 2.0;
         const QImage originalRaster = m_src.renderer->renderPage(i, exportScale);
         DocxLayoutInput layout;
         layout.items      = page.items;
+        if (m_src.backend)
+            for (const PdfBackend::PageImage &image : m_src.backend->pageImages(i))
+                layout.images.append({ image.bounds, m_src.backend->pageImage(i, image.key) });
         layout.original   = originalRaster;
         layout.erased     = eraseTextRuns(originalRaster, page.items, i, exportScale);
         layout.pageSizePt = page.pageSizePt;
         layout.scale      = exportScale;
         layout.options    = options;
         page.blocks = buildDocxBlocks(layout, &page.marginsPt);
+        measureListMarkers(page.blocks, m_src.backend, i);
+        measureLeadWords(page.blocks, m_src.backend, i);
         if (page.blocks.isEmpty())
             page.background = DocxXml::encodePicture(layout.erased, options);
 
@@ -245,6 +327,9 @@ bool DocumentExporter::exportPagesToImages(const QString &outputPath,
     const QFileInfo out(outputPath);
     const QString suffix = out.suffix().toLower();
     const bool jpeg = suffix == QLatin1String("jpg") || suffix == QLatin1String("jpeg");
+    const bool tiff = suffix == QLatin1String("tif") || suffix == QLatin1String("tiff");
+    const bool webp = suffix == QLatin1String("webp");
+    const QByteArray format = jpeg ? "JPEG" : tiff ? "TIFF" : webp ? "WEBP" : "PNG";
     const qreal scale = quality >= 95 ? 3.0 : quality >= 80 ? 2.0
                                       : quality >= 55 ? 1.5 : 1.0;
     for (int n = 0; n < wanted.size(); ++n) {
@@ -257,7 +342,7 @@ bool DocumentExporter::exportPagesToImages(const QString &outputPath,
             ? outputPath
             : out.dir().filePath(out.completeBaseName()
                                  + QStringLiteral("_page_%1.").arg(i + 1)
-                                 + (jpeg ? suffix : QStringLiteral("png")));
+                                 + (jpeg || tiff || webp ? suffix : QStringLiteral("png")));
         if (jpeg && image.hasAlphaChannel()) {
             QImage opaque(image.size(), QImage::Format_RGB32);
             opaque.fill(Qt::white);
@@ -266,10 +351,11 @@ bool DocumentExporter::exportPagesToImages(const QString &outputPath,
             painter.end();
             image = opaque;
         }
-        // PNG is lossless, so the quality only decides the resolution above.
-        const bool saved = jpeg ? image.save(path, "JPEG", qBound(0, quality, 100))
-                                : image.save(path, "PNG");
-        if (!saved) return false;
+        // PNG and TIFF are lossless, so the quality only decides the resolution above.
+        QImageWriter writer(path, format);
+        if (jpeg || webp) writer.setQuality(qBound(0, quality, 100));
+        if (tiff) writer.setCompression(1); // LZW
+        if (!writer.write(image)) return false;
     }
     return true;
 #else
@@ -277,6 +363,32 @@ bool DocumentExporter::exportPagesToImages(const QString &outputPath,
     Q_UNUSED(quality);
     Q_UNUSED(pages);
     Q_UNUSED(progress);
+    return false;
+#endif
+}
+
+bool DocumentExporter::exportPagesToText(const QString &outputPath, const QList<int> &pages,
+                                         const std::function<bool(int, int)> &progress) const
+{
+#ifdef HAVE_PDF_RENDERING
+    if (!m_src.backend || m_src.pageCount <= 0 || outputPath.isEmpty()) return false;
+    QList<int> wanted = pages;
+    if (wanted.isEmpty())
+        for (int p = 0; p < m_src.pageCount; ++p) wanted.append(p);
+
+    QStringList texts;
+    for (int n = 0; n < wanted.size(); ++n) {
+        if (progress && !progress(n, wanted.size())) return false;
+        const int i = wanted[n];
+        if (i < 0 || i >= m_src.pageCount) continue;
+        texts.append(m_src.backend->selectPage(i, std::nullopt, std::nullopt).text);
+    }
+    QSaveFile file(outputPath);
+    if (!file.open(QIODevice::WriteOnly)) return false;
+    file.write((texts.join(QStringLiteral("\n\n")) + u'\n').toUtf8());
+    return file.commit();
+#else
+    Q_UNUSED(outputPath) Q_UNUSED(pages) Q_UNUSED(progress)
     return false;
 #endif
 }

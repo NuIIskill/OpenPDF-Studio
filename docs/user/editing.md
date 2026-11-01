@@ -19,6 +19,11 @@ a fallback font. Use the format bar and text properties to adjust formatting.
 With part of the text selected, font, size, bold, italic, underline and colour
 change only that part.
 
+Text that runs up, down or upside down on the page is edited the same way. It
+stays where it is and changes as you type, while you type in a small upright
+window beside it that points to it. Drag the window aside if it is in the way;
+the text does not move with it.
+
 ![A paragraph selected in the inline editor, with its blue text frame and the font, size, colour and alignment controls above it](../images/screenshots/inline-text-editing.png)
 
 *The open text block has a blue frame. Its formatting controls appear above the page.*
@@ -98,9 +103,9 @@ headings, lists, tables with borders and shading, embedded pictures, page size,
 margins and fixed boxes are supported. Both formats require zlib in the build.
 
 Headers, footers, footnotes, fields such as page numbers and tables of contents,
-multi-column layout and tracked changes are omitted. Reflow and fixed box
-positions can differ from Word. Legacy `.doc`, `.rtf`, `.xlsx` and `.pptx`
-are not supported.
+multi-column layout and tracked changes are omitted. Every page takes the
+page size of the first section. Reflow and fixed box positions can differ from
+Word. Legacy `.doc`, `.rtf`, `.xlsx` and `.pptx` are not supported.
 
 JPEG, PNG, GIF, BMP, TIFF and WebP open as image pages. JPEG bytes are embedded
 without another lossy encode; other formats retain their pixels. TIFF and
@@ -111,10 +116,11 @@ open as unnamed PDF working copies, leaving the source unchanged.
 
 The **Redact** tool, below **Draw**, removes content for good. Drag a box over
 everything that has to go. Each box gets a number on the page and a card in
-the panel, where it can be selected or removed. Drag a box to move it, pull a
-corner to resize it, and press Delete to remove the selected one. Every box is
-a change like any other: it appears in **History**, can be undone and redone
-and comes back after a crash.
+the panel, where it can be selected or removed. Dragging always draws a new
+box, also over another one or from beside the page. Click a box to select it,
+then drag it to move it, pull a corner to resize it, or press Delete to remove
+it. Every box is a change like any other: it appears in **History**, can be
+undone and redone and comes back after a crash.
 
 The boxes are carried out when the document is saved, with `Ctrl+S` or Save
 As. Exporting and printing carry them out as well. Text, image pixels, drawn shapes, comments

@@ -16,6 +16,7 @@
 #include "engine/edit/TextLayout.hpp"
 
 class DocumentSource;
+class EditCallout;
 class QUndoStack;
 class HoverHighlight;
 class OcrEngine;
@@ -72,6 +73,9 @@ public:
     void notifyBoundsChanged();
 
     void syncBoundsFromFrame();
+    void takeBounds(const QRectF &bounds);
+    void keepWindowOnPage();
+    QRectF frameRoom(int page) const;
 
     void refreshAdvanceMeasure();
 
@@ -84,6 +88,7 @@ public:
     void setLineSpacing(double multiplier);
 
     void clampToPdfPage(int page, QRectF &r) const;
+    void placeFramePage(const QLabel *label, int page);
 
 #ifdef HAVE_PDF_RENDERING
 
@@ -148,6 +153,9 @@ public:
 
     QPointF activeEditPdfPt;
     bool    activeEditHasOrigin { false };
+    bool    activeEditTurned { false };
+    bool    activeEditWindowPlaced { false };
+    QPointF activeEditTurnPivot;
 
     double  activeEditLineSpacingPt { 0.0 };
 
@@ -226,6 +234,8 @@ private:
     void resizeText(double ptSize);
     QString documentKey() const;
     void presentEditor(const EditTarget &t);
+    QTransform turnToShown() const;
+    void pointCallout();
 
     EditSession::Edit makeSessionEdit(int page, const QRectF &bounds,
                                       const QRectF &sourceRect,
@@ -242,4 +252,5 @@ private:
     ZoomController *m_zoom   { nullptr };
     HoverHighlight *m_hover  { nullptr };
     OcrEngine      *m_ocr    { nullptr };
+    EditCallout    *m_callout { nullptr };
 };

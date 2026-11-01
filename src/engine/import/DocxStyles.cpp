@@ -75,7 +75,9 @@ TextStyle DocxStyles::readRunProperties(QXmlStreamReader &xml)
 BlockStyle DocxStyles::readParagraphProperties(QXmlStreamReader &xml,
                                                QString *styleId,
                                                DocxListRef *list,
-                                               bool *pageBreakBefore)
+                                               bool *pageBreakBefore,
+                                               const std::function<void(QXmlStreamReader &)>
+                                                   &section)
 {
     BlockStyle block;
     while (xml.readNextStartElement()) {
@@ -135,6 +137,10 @@ BlockStyle DocxStyles::readParagraphProperties(QXmlStreamReader &xml,
                 xml.skipCurrentElement();
             }
             if (list) *list = found;
+            continue;
+        }
+        else if (name == u"sectPr" && section) {
+            section(xml);
             continue;
         }
         xml.skipCurrentElement();

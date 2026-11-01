@@ -67,7 +67,8 @@ QImage PdfBackend::renderEditText(int, qreal, const QList<EditSession::Edit> &, 
 }
 
 QList<TextLayout::OriginalLine> PdfBackend::originalLines(int, const QRectF &,
-                                                          const QList<QRectF> &) const
+                                                          const QList<QRectF> &,
+                                                          const QTransform &) const
 {
     return {};
 }

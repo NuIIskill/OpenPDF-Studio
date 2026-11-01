@@ -252,13 +252,41 @@ bool EditSession::findEditAt(int page, const QPointF &pdfPt, Edit *out) const
     const Edit *best = nullptr;
     for (int i = m_edits.size() - 1; i >= 0; --i) {
         const auto &e = m_edits[i];
-        if (e.page != page || e.newText.isNull() || !e.pdfBounds.contains(pdfPt)) continue;
+        if (e.page != page || e.newText.isNull()
+                || !e.pdfBounds.contains(turnOf(e).inverted().map(pdfPt)))
+            continue;
         if (!best || e.pdfBounds.width() * e.pdfBounds.height()
                          < best->pdfBounds.width() * best->pdfBounds.height())
             best = &e;
     }
     if (best && out) *out = *best;
     return best != nullptr;
+}
+
+QTransform EditSession::turnOf(const Edit &e)
+{
+    const QPointF c = e.pdfBounds.center();
+    return QTransform().translate(c.x(), c.y()).rotate(e.box.rotationDeg).translate(-c.x(), -c.y());
+}
+
+QRectF EditSession::shownBounds(const Edit &e)
+{
+    return turnOf(e).mapRect(e.pdfBounds);
+}
+
+// A turned box set where turning it about the pivot put it: it turns about its own middle.
+void EditSession::turnAbout(Edit &e, const QPointF &pivot)
+{
+    const QPointF toPivot = pivot - e.pdfBounds.center();
+    const QPointF by = toPivot - QTransform().rotate(e.box.rotationDeg).map(toPivot);
+    e.pdfBounds.translate(by);
+    e.box.bounds.translate(by);
+    for (TextLayout::OriginalLine &line : e.originalLines) {
+        line.rect.translate(by);
+        line.baseline += by.y();
+        for (double &x : line.charX) x += by.x();
+        line.endX += by.x();
+    }
 }
 
 void EditSession::paintFormFields(int page, QImage &img, qreal scale) const

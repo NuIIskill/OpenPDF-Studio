@@ -14,6 +14,7 @@
 #include <QColor>
 #include <QRegularExpression>
 #include <QStringList>
+#include <QTransform>
 
 #include <vector>
 
@@ -62,6 +63,23 @@ double fontSizeFromDA(const QString &da)
     return 0.0;
 }
 
+QColor colorFromDA(const QString &da)
+{
+    const QStringList tokens = da.split(QRegularExpression(QStringLiteral("\\s+")),
+                                        Qt::SkipEmptyParts);
+    const auto value = [&tokens](qsizetype i) { return qBound(0.0, tokens.at(i).toDouble(), 1.0); };
+    for (qsizetype i = tokens.size() - 1; i >= 1; --i) {
+        const QString &op = tokens.at(i);
+        if (op == QLatin1String("g"))
+            return QColor::fromRgbF(value(i - 1), value(i - 1), value(i - 1));
+        if (op == QLatin1String("rg") && i >= 3)
+            return QColor::fromRgbF(value(i - 3), value(i - 2), value(i - 1));
+        if (op == QLatin1String("k") && i >= 4)
+            return QColor::fromCmykF(value(i - 4), value(i - 3), value(i - 2), value(i - 1));
+    }
+    return {};
+}
+
 QString fontNameAt(FPDF_TEXTPAGE tp, int index)
 {
     int flags = 0;
@@ -106,9 +124,19 @@ QList<ContentItem> PdfiumContentProvider::buildPageItems(int page,
     QList<ContentItem> media;
     collectAnnotations(pg, space, &fields, &media);
 
+    // Turned text is read in its own direction and turned back onto the page.
     QList<ContentItem> text;
     if (FPDF_TEXTPAGE tp = FPDFText_LoadPage(pg)) {
-        text = classifyContentClusters(collectWords(tp, space, mergeVertical), mergeVertical);
+        const QMap<int, QList<ContentCluster>> words = collectWords(tp, space, mergeVertical);
+        for (auto it = words.cbegin(); it != words.cend(); ++it) {
+            const QTransform turn = QTransform().rotate(it.key());
+            for (ContentItem item : classifyContentClusters(it.value(), mergeVertical)) {
+                item.bounds     = turn.mapRect(item.bounds);
+                item.textOrigin = turn.map(item.textOrigin);
+                item.turn       = it.key();
+                text.append(item);
+            }
+        }
         FPDFText_ClosePage(tp);
     }
     FPDF_ClosePage(pg);
@@ -121,21 +149,22 @@ QList<ContentItem> PdfiumContentProvider::buildPageItems(int page,
     return result;
 }
 
-QList<ContentCluster> PdfiumContentProvider::collectWords(FPDF_TEXTPAGE tp,
-                                                          const PdfiumPageSpace &space,
-                                                          bool uprightOnly) const
+QMap<int, QList<ContentCluster>> PdfiumContentProvider::collectWords(FPDF_TEXTPAGE tp,
+                                                                     const PdfiumPageSpace &space,
+                                                                     bool byTurn) const
 {
-    QList<ContentCluster> words;
+    QMap<int, QList<ContentCluster>> words;
     const int count = FPDFText_CountChars(tp);
 
     ContentCluster current;
     bool           open = false;
+    int            currentTurn = 0;
     QRectF         lastBox;
     double         lastBaseline = 0.0;
 
     const auto flush = [&]() {
         if (open && !current.text.trimmed().isEmpty() && current.bounds.isValid())
-            words.append(current);
+            words[currentTurn].append(current);
         open = false;
         current = ContentCluster{};
     };
@@ -146,14 +175,17 @@ QList<ContentCluster> PdfiumContentProvider::collectWords(FPDF_TEXTPAGE tp,
 
         const QChar ch(static_cast<char16_t>(FPDFText_GetUnicode(tp, i)));
         if (ch.isNull()) continue;
-        // Turned text cannot be edited; it is not offered to the editor.
-        if (uprightOnly && !space.upright(FPDFText_GetCharAngle(tp, i))) { flush(); continue; }
-        if (ch.isSpace()) { flush(); continue; }
+        // Text turned otherwise than by whole quarters cannot be edited.
+        const int turn = byTurn ? space.quarterTurn(FPDFText_GetCharAngle(tp, i)) : 0;
+        if (turn < 0) { flush(); continue; }
+        if (ch.isSpace() || (open && turn != currentTurn)) flush();
+        if (ch.isSpace()) continue;
 
+        const QTransform unturn = QTransform().rotate(-turn);
         double originX = 0, originY = 0;
         FPDFText_GetCharOrigin(tp, i, &originX, &originY);
-        const QRectF box = space.toView(left, bottom, right, top);
-        const QPointF origin = space.toView(originX, originY);
+        const QRectF box = unturn.mapRect(space.toView(left, bottom, right, top));
+        const QPointF origin = unturn.map(space.toView(originX, originY));
         originX = origin.x();
         const double baseline = origin.y();
         const double fontSize = PdfiumTextRules::effectiveFontSize(tp, i);
@@ -175,9 +207,10 @@ QList<ContentCluster> PdfiumContentProvider::collectWords(FPDF_TEXTPAGE tp,
             if (FPDF_PAGEOBJECT obj = FPDFText_GetTextObject(tp, i)) {
                 float l = 0, b = 0, r = 0, t = 0;
                 if (FPDFPageObj_GetBounds(obj, &l, &b, &r, &t))
-                    current.objectBounds = space.toView(l, b, r, t);
+                    current.objectBounds = unturn.mapRect(space.toView(l, b, r, t));
             }
             open = true;
+            currentTurn = turn;
         } else {
             current.bounds = current.bounds.united(box);
             current.text  += ch;
@@ -215,6 +248,7 @@ void PdfiumContentProvider::collectAnnotations(FPDF_PAGE pg, const PdfiumPageSpa
                     item.fontSizePt    = size;
                     item.fontSizeExact = true;
                 }
+                item.textColor = colorFromDA(annotString(annot, "DA"));
                 if (item.isValid()) fields->append(std::move(item));
             }
         } else if (haveRect && (subtype == FPDF_ANNOT_SCREEN

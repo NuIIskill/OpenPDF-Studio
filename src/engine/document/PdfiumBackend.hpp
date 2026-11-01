@@ -71,7 +71,8 @@ public:
                                               QList<QList<TextLayout::Source>> *sources,
                                               QList<QList<TextLayout::Mark>> *marks = nullptr) const override;
     QList<TextLayout::OriginalLine> originalLines(int page, const QRectF &area,
-                                                  const QList<QRectF> &exclude) const override;
+                                                  const QList<QRectF> &exclude,
+                                                  const QTransform &frame = {}) const override;
     bool    hasSelectableText(int page) const override;
     bool    hiddenText(int page, const QRectF &area) const override;
 

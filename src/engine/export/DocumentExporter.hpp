@@ -16,7 +16,7 @@ class PdfRenderer;
 class PdfBackend;
 #endif
 
-/// Pulls page content out of renderer + session for the DOCX and image exports.
+/// Pulls page content out of renderer + session for the DOCX, image and text exports.
 class DocumentExporter
 {
 public:
@@ -42,6 +42,9 @@ public:
     bool exportPagesToImages(const QString &outputPath, int quality = 85,
                              const QList<int> &pages = {},
                              const std::function<bool(int, int)> &progress = {}) const;
+
+    bool exportPagesToText(const QString &outputPath, const QList<int> &pages = {},
+                           const std::function<bool(int, int)> &progress = {}) const;
 
 private:
 

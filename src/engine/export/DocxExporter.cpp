@@ -13,6 +13,34 @@
 
 using namespace DocxXml;
 
+static QSizeF sizeOf(const DocxPage &page, const QSizeF &fallback)
+{
+    return page.pageSizePt.isEmpty() ? fallback : page.pageSizePt;
+}
+
+static QString sectionXml(const QSizeF &size, const QString &margins)
+{
+    QString x = QStringLiteral("<w:sectPr><w:pgSz w:w=\"") + twips(size.width())
+              + QStringLiteral("\" w:h=\"") + twips(size.height()) + u'"';
+    if (size.width() > size.height()) x += QStringLiteral(" w:orient=\"landscape\"");
+    return x + QStringLiteral("/>") + margins + QStringLiteral("</w:sectPr>");
+}
+
+/// Ends the previous page with a section of its own when the next page has
+/// another size; otherwise a plain page break is enough.
+static QString pageBoundary(const QList<DocxPage> &pages, int pg, const QSizeF &fallback,
+                            const QString &margins, const QString &pageBreak)
+{
+    const QSizeF before = sizeOf(pages[pg - 1], fallback);
+    const QSizeF after  = sizeOf(pages[pg], fallback);
+    if (twips(before.width()) == twips(after.width())
+            && twips(before.height()) == twips(after.height()))
+        return pageBreak;
+    return QStringLiteral("<w:p><w:pPr><w:spacing w:before=\"0\" w:after=\"0\" "
+                          "w:line=\"20\" w:lineRule=\"exact\"/>")
+         + sectionXml(before, margins) + QStringLiteral("</w:pPr></w:p>");
+}
+
 static QByteArray buildDocument(const QList<QString> &pageTexts, const QString &title)
 {
     QString x;
@@ -85,9 +113,14 @@ static QByteArray buildSemanticDocument(const QList<DocxPage> &pages)
 
     constexpr double horizontalMarginPt = 68.0;
     constexpr double verticalMarginPt = 36.0;
+    const QSizeF fallback(595.0, 842.0);
+    const QString margins = QStringLiteral(
+        "<w:pgMar w:top=\"720\" w:right=\"1360\" w:bottom=\"720\" "
+        "w:left=\"1360\" w:header=\"360\" w:footer=\"360\" w:gutter=\"0\"/>");
     for (int pg = 0; pg < pages.size(); ++pg) {
         if (pg > 0)
-            x += QStringLiteral("<w:p><w:r><w:br w:type=\"page\"/></w:r></w:p>");
+            x += pageBoundary(pages, pg, fallback, margins,
+                              QStringLiteral("<w:p><w:r><w:br w:type=\"page\"/></w:r></w:p>"));
 
         QList<ContentItem> items;
         for (const ContentItem &item : pages[pg].items)
@@ -158,14 +191,8 @@ static QByteArray buildSemanticDocument(const QList<DocxPage> &pages)
         }
     }
 
-    const QSizeF size = pages.isEmpty() || pages.first().pageSizePt.isEmpty()
-                            ? QSizeF(595.0, 842.0) : pages.first().pageSizePt;
-    x += QStringLiteral("<w:sectPr><w:pgSz w:w=\"")
-         + QString::number(qRound(size.width() * 20.0))
-         + QStringLiteral("\" w:h=\"") + QString::number(qRound(size.height() * 20.0))
-         + QStringLiteral("\"/><w:pgMar w:top=\"720\" w:right=\"1360\" w:bottom=\"720\" "
-                          "w:left=\"1360\" w:header=\"360\" w:footer=\"360\" w:gutter=\"0\"/>"
-                          "</w:sectPr></w:body></w:document>");
+    x += sectionXml(pages.isEmpty() ? fallback : sizeOf(pages.last(), fallback), margins)
+       + QStringLiteral("</w:body></w:document>");
     return x.toUtf8();
 }
 
@@ -192,6 +219,13 @@ static QByteArray buildStructuredDocument(const QList<DocxPage> &pages,
         section.setRight (qMin(section.right(),  page.marginsPt.right()));
         section.setBottom(qMin(section.bottom(), page.marginsPt.bottom()));
     }
+
+    const QSizeF fallback(595.28, 841.89);
+    const QString margins = QStringLiteral("<w:pgMar w:top=\"") + twips(section.top())
+        + QStringLiteral("\" w:right=\"") + twips(section.right())
+        + QStringLiteral("\" w:bottom=\"") + twips(section.bottom())
+        + QStringLiteral("\" w:left=\"") + twips(section.left())
+        + QStringLiteral("\" w:header=\"0\" w:footer=\"0\" w:gutter=\"0\"/>");
 
     int mediaId = 1;
     int drawingId = 1;
@@ -234,9 +268,11 @@ static QByteArray buildStructuredDocument(const QList<DocxPage> &pages,
 
         QString body;
         if (pg > 0)
-            body += QStringLiteral("<w:p><w:pPr><w:spacing w:before=\"0\" w:after=\"0\" "
-                                   "w:line=\"20\" w:lineRule=\"exact\"/></w:pPr>"
-                                   "<w:r><w:br w:type=\"page\"/></w:r></w:p>");
+            body += pageBoundary(pages, pg, fallback, margins,
+                                 QStringLiteral("<w:p><w:pPr><w:spacing w:before=\"0\" "
+                                                "w:after=\"0\" w:line=\"20\" "
+                                                "w:lineRule=\"exact\"/></w:pPr>"
+                                                "<w:r><w:br w:type=\"page\"/></w:r></w:p>"));
         if (!anchors.isEmpty())
             body += QStringLiteral("<w:p><w:pPr><w:spacing w:before=\"0\" w:after=\"0\" "
                                    "w:line=\"20\" w:lineRule=\"exact\"/>"
@@ -249,7 +285,8 @@ static QByteArray buildStructuredDocument(const QList<DocxPage> &pages,
                     || block.kind == DocxBlock::Kind::Shape
                     || block.kind == DocxBlock::Kind::TextBox)
                 continue;
-            const double gap = block.bounds.top() - cursor;
+            const double top = flowTop(block);
+            const double gap = top - cursor;
             double rendered = 0.0;
             if (block.kind == DocxBlock::Kind::Table) {
                 for (double h : block.table.rowHeightsPt) rendered += h;
@@ -270,24 +307,18 @@ static QByteArray buildStructuredDocument(const QList<DocxPage> &pages,
             } else {
                 DocxBlock shifted = block;
                 shifted.indentPt += indentShift;
+                if (shifted.rightIndentPt > 0.0)
+                    shifted.rightIndentPt += page.marginsPt.right() - section.right();
                 body += paragraphXml(shifted, qMax(0.0, gap), false);
             }
 
-            cursor = qMax(block.bounds.top(), cursor) + rendered;
+            cursor = qMax(top, cursor) + rendered;
         }
         x += body;
     }
 
-    const QSizeF size = pages.isEmpty() || pages.first().pageSizePt.isEmpty()
-                            ? QSizeF(595.28, 841.89) : pages.first().pageSizePt;
-    x += QStringLiteral("<w:sectPr><w:pgSz w:w=\"") + twips(size.width())
-       + QStringLiteral("\" w:h=\"") + twips(size.height())
-       + QStringLiteral("\"/><w:pgMar w:top=\"") + twips(section.top())
-       + QStringLiteral("\" w:right=\"") + twips(section.right())
-       + QStringLiteral("\" w:bottom=\"") + twips(section.bottom())
-       + QStringLiteral("\" w:left=\"") + twips(section.left())
-       + QStringLiteral("\" w:header=\"0\" w:footer=\"0\" w:gutter=\"0\"/>"
-                        "</w:sectPr></w:body></w:document>");
+    x += sectionXml(pages.isEmpty() ? fallback : sizeOf(pages.last(), fallback), margins)
+       + QStringLiteral("</w:body></w:document>");
     return x.toUtf8();
 }
 
@@ -306,10 +337,15 @@ static QByteArray buildPositionedDocument(const QList<DocxPage> &pages,
         "<v:path gradientshapeok=\"t\" o:connecttype=\"rect\"/></v:shapetype>"
         "</w:pict></w:r></w:p>");
 
+    const QSizeF fallback(595.0, 842.0);
+    const QString margins = QStringLiteral(
+        "<w:pgMar w:top=\"0\" w:right=\"0\" w:bottom=\"0\" "
+        "w:left=\"0\" w:header=\"0\" w:footer=\"0\" w:gutter=\"0\"/>");
     int shapeId = 1;
     for (int pg = 0; pg < pages.size(); ++pg) {
         if (pg > 0)
-            x += QStringLiteral("<w:p><w:r><w:br w:type=\"page\"/></w:r></w:p>");
+            x += pageBoundary(pages, pg, fallback, margins,
+                              QStringLiteral("<w:p><w:r><w:br w:type=\"page\"/></w:r></w:p>"));
 
         x += QStringLiteral("<w:p><w:pPr><w:spacing w:before=\"0\" w:after=\"0\"/>"
                             "</w:pPr>");
@@ -380,14 +416,8 @@ static QByteArray buildPositionedDocument(const QList<DocxPage> &pages,
         x += QStringLiteral("</w:p>");
     }
 
-    const QSizeF size = pages.isEmpty() || pages.first().pageSizePt.isEmpty()
-                            ? QSizeF(595.0, 842.0) : pages.first().pageSizePt;
-    x += QStringLiteral("<w:sectPr><w:pgSz w:w=\"")
-         + QString::number(qRound(size.width() * 20.0))
-         + QStringLiteral("\" w:h=\"") + QString::number(qRound(size.height() * 20.0))
-         + QStringLiteral("\"/><w:pgMar w:top=\"0\" w:right=\"0\" w:bottom=\"0\" "
-                          "w:left=\"0\" w:header=\"0\" w:footer=\"0\" w:gutter=\"0\"/>"
-                          "</w:sectPr></w:body></w:document>");
+    x += sectionXml(pages.isEmpty() ? fallback : sizeOf(pages.last(), fallback), margins)
+       + QStringLiteral("</w:body></w:document>");
     return x.toUtf8();
 }
 

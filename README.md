@@ -25,7 +25,7 @@ Sample document: [NLBK Niedersachsen test PDF](https://www.nlbk.niedersachsen.de
   with undo, history and crash recovery.
 - Place handwritten or digital signatures, see each signature's status on the page,
   and manage passwords and permissions; restricted PDFs follow their permissions.
-- Export to PDF, Word, PNG or JPEG, and print with a preview, several pages per
+- Export to PDF, Word, OpenDocument, PNG, JPEG, TIFF, WebP, plain text, Markdown or HTML, and print with a preview, several pages per
   sheet or as a poster over 2, 4 or 9 sheets.
 - Play, embed and open video and audio through the separately licensed Rich Media module.
 - Add or remove OCR languages and ffmpeg in Settings > Add-on Packages, through

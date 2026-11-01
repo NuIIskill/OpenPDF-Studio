@@ -6,6 +6,19 @@
 #include <QRectF>
 #include <QString>
 
+/// A stretch of an item's text in one font, size and colour.
+struct ContentRun {
+    int     start  { 0 };
+    int     length { 0 };
+    QString fontFamily;
+    bool    bold   { false };
+    bool    italic { false };
+    double  fontSizePt { 0.0 };
+    QColor  textColor;
+    double  x      { 0.0 };
+    bool    apart  { false };
+};
+
 /// One logical region detected on a PDF page.
 struct ContentItem {
     enum class Type {
@@ -34,6 +47,9 @@ struct ContentItem {
     QPointF textOrigin;
 
     double  lineSpacingPt { 0.0 };
+    int     turn { 0 };
+
+    QList<ContentRun> runs;
 
     bool isFormField() const { return type == Type::FormField; }
     bool isTextual()   const {

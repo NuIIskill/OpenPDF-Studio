@@ -7,8 +7,15 @@
 #include <QMarginsF>
 #include <QSizeF>
 
+/// An image object of the page: where it shows, and its own pixels.
+struct DocxSourceImage {
+    QRectF bounds;
+    QImage image;
+};
+
 struct DocxLayoutInput {
     QList<ContentItem> items;
+    QList<DocxSourceImage> images;
     QImage             original;
     QImage             erased;
     QSizeF             pageSizePt;

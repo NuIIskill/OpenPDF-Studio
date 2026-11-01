@@ -38,6 +38,8 @@ target_sources(OpenPDFStudio PRIVATE
     SignaturePlacement.cpp
     SignatureStatusLayer.cpp
     SignatureStatusLayer.hpp
+    ScrollBarReach.cpp
+    ScrollBarReach.hpp
     SmoothScroll.cpp
     SmoothScroll.hpp
     SignaturePlacement.hpp

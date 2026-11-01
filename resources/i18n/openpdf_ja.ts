@@ -413,8 +413,8 @@
     </message>
     <message>
         <location filename="../../src/ui/sign/DigitalSigning.cpp" line="42"/>
-        <source>Password-protected documents cannot be signed yet.</source>
-        <translation>パスワードで保護された文書にはまだ署名できません。</translation>
+        <source>This document is encrypted in a way that cannot be signed.</source>
+        <translation>この文書は署名できない方式で暗号化されています。</translation>
     </message>
     <message>
         <location filename="../../src/ui/sign/DigitalSigning.cpp" line="44"/>
@@ -628,7 +628,7 @@ Qt6::Pdf に対応したビルドを使用してください。
     </message>
     <message>
         <location filename="../../src/ui/DocumentView.cpp" line="319"/>
-        <location filename="../../src/ui/DocumentView_Edit.cpp" line="104"/>
+        <location filename="../../src/ui/DocumentView_Edit.cpp" line="105"/>
         <source>Drop a document here or click a tab to open</source>
         <translation>ここにドキュメントをドロップするか、タブをクリックして開きます</translation>
     </message>
@@ -646,12 +646,12 @@ Qt6::Pdf に対応したビルドを使用してください。
 <context>
     <name>DocxReader</name>
     <message>
-        <location filename="../../src/engine/import/DocxReader.cpp" line="441"/>
+        <location filename="../../src/engine/import/DocxReader.cpp" line="483"/>
         <source>The file has no readable document part.</source>
         <translation>このファイルには読み取れる文書部分がありません。</translation>
     </message>
     <message>
-        <location filename="../../src/engine/import/DocxReader.cpp" line="470"/>
+        <location filename="../../src/engine/import/DocxReader.cpp" line="512"/>
         <source>The document is damaged: %1</source>
         <translation>文書が破損しています: %1</translation>
     </message>
@@ -753,7 +753,7 @@ Qt6::Pdf に対応したビルドを使用してください。
 <context>
     <name>EditController</name>
     <message>
-        <location filename="../../src/ui/edit/EditController.cpp" line="39"/>
+        <location filename="../../src/ui/edit/EditController.cpp" line="42"/>
         <source>Text bearbeiten</source>
         <translation>テキストを編集</translation>
     </message>
@@ -798,7 +798,7 @@ Qt6::Pdf に対応したビルドを使用してください。
         <translation type="vanished">まだ使用できません。</translation>
     </message>
     <message>
-        <location filename="../../src/ui/export/ExportDialog.cpp" line="130"/>
+        <location filename="../../src/ui/export/ExportDialog.cpp" line="137"/>
         <source>Export - OpenPDF Studio</source>
         <translation>エクスポート - OpenPDF Studio</translation>
     </message>
@@ -811,100 +811,105 @@ Qt6::Pdf に対応したビルドを使用してください。
         <translation type="vanished">PNG 画像のエクスポートでは使用されません。</translation>
     </message>
     <message>
-        <location filename="../../src/ui/export/ExportDialog.cpp" line="183"/>
+        <location filename="../../src/ui/export/ExportDialog.cpp" line="191"/>
         <source>Not available in this build: rewriting a PDF&apos;s annotations, forms, fonts or encryption needs qpdf.</source>
         <translation>このビルドでは使用できません：PDF の注釈、フォーム、フォント、暗号化を書き換えるには qpdf が必要です。</translation>
     </message>
     <message>
-        <location filename="../../src/ui/export/ExportDialog.cpp" line="197"/>
-        <location filename="../../src/ui/export/ExportDialog.cpp" line="649"/>
+        <location filename="../../src/ui/export/ExportDialog.cpp" line="205"/>
+        <location filename="../../src/ui/export/ExportDialog.cpp" line="727"/>
         <source>Estimated file size: unknown</source>
         <translation>推定ファイルサイズ：不明</translation>
     </message>
     <message>
-        <location filename="../../src/ui/export/ExportDialog.cpp" line="204"/>
+        <location filename="../../src/ui/export/ExportDialog.cpp" line="212"/>
         <source>Estimated file size: unknown (check the page range)</source>
         <translation>推定ファイルサイズ：不明（ページ範囲を確認してください）</translation>
     </message>
     <message>
-        <location filename="../../src/ui/export/ExportDialog.cpp" line="260"/>
+        <location filename="../../src/ui/export/ExportDialog.cpp" line="275"/>
         <source>Estimated file size: ~%1  (%2 of %3 pages)</source>
         <translation>推定ファイルサイズ：約 %1（%3 ページ中 %2 ページ）</translation>
     </message>
     <message>
-        <location filename="../../src/ui/export/ExportDialog.cpp" line="311"/>
+        <location filename="../../src/ui/export/ExportDialog.cpp" line="329"/>
         <source>Select Save Location</source>
         <translation>保存場所を選択</translation>
     </message>
     <message>
-        <location filename="../../src/ui/export/ExportDialog.cpp" line="322"/>
+        <location filename="../../src/ui/export/ExportDialog.cpp" line="340"/>
         <source>Missing filename</source>
         <translation>ファイル名がありません</translation>
     </message>
     <message>
-        <location filename="../../src/ui/export/ExportDialog.cpp" line="322"/>
+        <location filename="../../src/ui/export/ExportDialog.cpp" line="340"/>
         <source>Please enter a filename.</source>
         <translation>ファイル名を入力してください。</translation>
     </message>
     <message>
-        <location filename="../../src/ui/export/ExportDialog.cpp" line="326"/>
+        <location filename="../../src/ui/export/ExportDialog.cpp" line="344"/>
         <source>Missing location</source>
         <translation>保存場所がありません</translation>
     </message>
     <message>
-        <location filename="../../src/ui/export/ExportDialog.cpp" line="326"/>
+        <location filename="../../src/ui/export/ExportDialog.cpp" line="344"/>
         <source>Please select a save location.</source>
         <translation>保存場所を選択してください。</translation>
     </message>
     <message>
-        <location filename="../../src/ui/export/ExportDialog.cpp" line="331"/>
+        <location filename="../../src/ui/export/ExportDialog.cpp" line="349"/>
         <source>No document</source>
         <translation>ドキュメントがありません</translation>
     </message>
     <message>
-        <location filename="../../src/ui/export/ExportDialog.cpp" line="331"/>
+        <location filename="../../src/ui/export/ExportDialog.cpp" line="349"/>
         <source>Please open a PDF document first.</source>
         <translation>先に PDF ドキュメントを開いてください。</translation>
     </message>
     <message>
-        <location filename="../../src/ui/export/ExportDialog.cpp" line="339"/>
+        <location filename="../../src/ui/export/ExportDialog.cpp" line="357"/>
         <source>Invalid page range</source>
         <translation>無効なページ範囲</translation>
     </message>
     <message>
-        <location filename="../../src/ui/export/ExportDialog.cpp" line="340"/>
+        <location filename="../../src/ui/export/ExportDialog.cpp" line="358"/>
         <source>&quot;%1&quot; is not a valid range for a document with %2 pages.
 Use page numbers like 1-3, 5, 8-10.</source>
         <translation>「%1」は %2 ページのドキュメントに対して有効な範囲ではありません。
 1-3, 5, 8-10 のようなページ番号を使用してください。</translation>
     </message>
     <message>
-        <location filename="../../src/ui/export/ExportDialog.cpp" line="364"/>
+        <location filename="../../src/ui/export/ExportDialog.cpp" line="382"/>
         <source>%1 image files</source>
         <translation>%1 個の画像ファイル</translation>
     </message>
     <message>
-        <location filename="../../src/ui/export/ExportDialog.cpp" line="365"/>
+        <location filename="../../src/ui/export/ExportDialog.cpp" line="383"/>
         <source>Overwrite existing file?</source>
         <translation>既存のファイルを上書きしますか？</translation>
     </message>
     <message>
-        <location filename="../../src/ui/export/ExportDialog.cpp" line="366"/>
+        <location filename="../../src/ui/export/ExportDialog.cpp" line="384"/>
         <source>%1 already exists. Do you want to overwrite it?</source>
         <translation>%1 は既に存在します。上書きしますか？</translation>
     </message>
     <message>
-        <location filename="../../src/ui/export/ExportDialog.cpp" line="460"/>
+        <location filename="../../src/ui/export/ExportDialog.cpp" line="500"/>
+        <source>Documents</source>
+        <translation>ドキュメント</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/export/ExportDialog.cpp" line="503"/>
         <source>Best for sharing and printing</source>
         <translation>共有と印刷に最適</translation>
     </message>
     <message>
-        <location filename="../../src/ui/export/ExportDialog.cpp" line="463"/>
+        <location filename="../../src/ui/export/ExportDialog.cpp" line="506"/>
         <source>Long-term archiving</source>
         <translation>長期保存</translation>
     </message>
     <message>
-        <location filename="../../src/ui/export/ExportDialog.cpp" line="465"/>
+        <location filename="../../src/ui/export/ExportDialog.cpp" line="510"/>
         <source>Edit in Microsoft Word</source>
         <translation>Microsoft Word で編集</translation>
     </message>
@@ -917,152 +922,192 @@ Use page numbers like 1-3, 5, 8-10.</source>
         <translation type="vanished">PNG 画像</translation>
     </message>
     <message>
-        <location filename="../../src/ui/export/ExportDialog.cpp" line="468"/>
+        <location filename="../../src/ui/export/ExportDialog.cpp" line="514"/>
+        <source>Edit in LibreOffice</source>
+        <translation>LibreOffice で編集</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/export/ExportDialog.cpp" line="515"/>
+        <source>Images</source>
+        <translation>画像</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/export/ExportDialog.cpp" line="518"/>
         <source>Lossless page images</source>
         <translation>劣化のないページ画像</translation>
     </message>
     <message>
-        <location filename="../../src/ui/export/ExportDialog.cpp" line="470"/>
+        <location filename="../../src/ui/export/ExportDialog.cpp" line="520"/>
         <source>Smaller files for photos and scans</source>
         <translation>写真やスキャンでファイルが小さくなります</translation>
     </message>
     <message>
-        <location filename="../../src/ui/export/ExportDialog.cpp" line="497"/>
+        <location filename="../../src/ui/export/ExportDialog.cpp" line="523"/>
+        <source>For print and archiving</source>
+        <translation>印刷とアーカイブ向け</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/export/ExportDialog.cpp" line="525"/>
+        <source>Small images for the web</source>
+        <translation>Web 向けの軽量な画像</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/export/ExportDialog.cpp" line="526"/>
+        <source>Text &amp; Web</source>
+        <translation>テキストと Web</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/export/ExportDialog.cpp" line="530"/>
+        <source>Plain text without layout</source>
+        <translation>レイアウトなしのプレーンテキスト</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/export/ExportDialog.cpp" line="533"/>
+        <source>Text with headings and lists</source>
+        <translation>見出しとリスト付きのテキスト</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/export/ExportDialog.cpp" line="536"/>
+        <source>Opens in any web browser</source>
+        <translation>どのブラウザーでも開けます</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/export/ExportDialog.cpp" line="575"/>
         <source>File</source>
         <translation>ファイル</translation>
     </message>
     <message>
-        <location filename="../../src/ui/export/ExportDialog.cpp" line="498"/>
+        <location filename="../../src/ui/export/ExportDialog.cpp" line="576"/>
         <source>Choose where to save your file.</source>
         <translation>ファイルの保存先を選択します。</translation>
     </message>
     <message>
-        <location filename="../../src/ui/export/ExportDialog.cpp" line="511"/>
+        <location filename="../../src/ui/export/ExportDialog.cpp" line="589"/>
         <source>Browse…</source>
         <translation>参照…</translation>
     </message>
     <message>
-        <location filename="../../src/ui/export/ExportDialog.cpp" line="516"/>
+        <location filename="../../src/ui/export/ExportDialog.cpp" line="594"/>
         <source>Filename</source>
         <translation>ファイル名</translation>
     </message>
     <message>
-        <location filename="../../src/ui/export/ExportDialog.cpp" line="518"/>
+        <location filename="../../src/ui/export/ExportDialog.cpp" line="596"/>
         <source>Save location</source>
         <translation>保存場所</translation>
     </message>
     <message>
-        <location filename="../../src/ui/export/ExportDialog.cpp" line="523"/>
+        <location filename="../../src/ui/export/ExportDialog.cpp" line="601"/>
         <source>Open file after export</source>
         <translation>エクスポート後にファイルを開く</translation>
     </message>
     <message>
-        <location filename="../../src/ui/export/ExportDialog.cpp" line="525"/>
+        <location filename="../../src/ui/export/ExportDialog.cpp" line="603"/>
         <source>Automatically open the exported file when the process completes.</source>
         <translation>完了後にエクスポートしたファイルを自動的に開きます。</translation>
     </message>
     <message>
-        <location filename="../../src/ui/export/ExportDialog.cpp" line="532"/>
+        <location filename="../../src/ui/export/ExportDialog.cpp" line="610"/>
         <source>Pages</source>
         <translation>ページ</translation>
     </message>
     <message>
-        <location filename="../../src/ui/export/ExportDialog.cpp" line="533"/>
+        <location filename="../../src/ui/export/ExportDialog.cpp" line="611"/>
         <source>Select which pages to export.</source>
         <translation>エクスポートするページを選択します。</translation>
     </message>
     <message>
-        <location filename="../../src/ui/export/ExportDialog.cpp" line="536"/>
+        <location filename="../../src/ui/export/ExportDialog.cpp" line="614"/>
         <source>All pages (%1)</source>
         <translation>すべてのページ（%1）</translation>
     </message>
     <message>
-        <location filename="../../src/ui/export/ExportDialog.cpp" line="537"/>
+        <location filename="../../src/ui/export/ExportDialog.cpp" line="615"/>
         <source>All pages</source>
         <translation>すべてのページ</translation>
     </message>
     <message>
-        <location filename="../../src/ui/export/ExportDialog.cpp" line="538"/>
+        <location filename="../../src/ui/export/ExportDialog.cpp" line="616"/>
         <source>Current page (%1)</source>
         <translation>現在のページ（%1）</translation>
     </message>
     <message>
-        <location filename="../../src/ui/export/ExportDialog.cpp" line="539"/>
+        <location filename="../../src/ui/export/ExportDialog.cpp" line="617"/>
         <source>Current page</source>
         <translation>現在のページ</translation>
     </message>
     <message>
-        <location filename="../../src/ui/export/ExportDialog.cpp" line="540"/>
+        <location filename="../../src/ui/export/ExportDialog.cpp" line="618"/>
         <source>Range</source>
         <translation>範囲</translation>
     </message>
     <message>
-        <location filename="../../src/ui/export/ExportDialog.cpp" line="544"/>
+        <location filename="../../src/ui/export/ExportDialog.cpp" line="622"/>
         <source>For example: 1-3, 5, 8-10</source>
         <translation>例：1-3, 5, 8-10</translation>
     </message>
     <message>
-        <location filename="../../src/ui/export/ExportDialog.cpp" line="570"/>
+        <location filename="../../src/ui/export/ExportDialog.cpp" line="648"/>
         <source>Settings</source>
         <translation>設定</translation>
     </message>
     <message>
-        <location filename="../../src/ui/export/ExportDialog.cpp" line="571"/>
+        <location filename="../../src/ui/export/ExportDialog.cpp" line="649"/>
         <source>Adjust quality and include additional content.</source>
         <translation>品質を調整し、追加のコンテンツを含めます。</translation>
     </message>
     <message>
-        <location filename="../../src/ui/export/ExportDialog.cpp" line="576"/>
+        <location filename="../../src/ui/export/ExportDialog.cpp" line="654"/>
         <source>Compress images</source>
         <translation>画像を圧縮</translation>
     </message>
     <message>
-        <location filename="../../src/ui/export/ExportDialog.cpp" line="580"/>
+        <location filename="../../src/ui/export/ExportDialog.cpp" line="658"/>
         <source>Quality</source>
         <translation>品質</translation>
     </message>
     <message>
-        <location filename="../../src/ui/export/ExportDialog.cpp" line="591"/>
+        <location filename="../../src/ui/export/ExportDialog.cpp" line="669"/>
         <source>Maximum</source>
         <translation>最高</translation>
     </message>
     <message>
-        <location filename="../../src/ui/export/ExportDialog.cpp" line="592"/>
+        <location filename="../../src/ui/export/ExportDialog.cpp" line="670"/>
         <source>High</source>
         <translation>高</translation>
     </message>
     <message>
-        <location filename="../../src/ui/export/ExportDialog.cpp" line="593"/>
+        <location filename="../../src/ui/export/ExportDialog.cpp" line="671"/>
         <source>Medium</source>
         <translation>中</translation>
     </message>
     <message>
-        <location filename="../../src/ui/export/ExportDialog.cpp" line="594"/>
+        <location filename="../../src/ui/export/ExportDialog.cpp" line="672"/>
         <source>Low</source>
         <translation>低</translation>
     </message>
     <message>
-        <location filename="../../src/ui/export/ExportDialog.cpp" line="600"/>
+        <location filename="../../src/ui/export/ExportDialog.cpp" line="678"/>
         <source>Reduces file size without noticeable quality loss.</source>
         <translation>目立った画質の低下なしにファイルサイズを小さくします。</translation>
     </message>
     <message>
-        <location filename="../../src/ui/export/ExportDialog.cpp" line="615"/>
+        <location filename="../../src/ui/export/ExportDialog.cpp" line="693"/>
         <source>Keep forms</source>
         <translation>フォームを保持</translation>
     </message>
     <message>
-        <location filename="../../src/ui/export/ExportDialog.cpp" line="616"/>
+        <location filename="../../src/ui/export/ExportDialog.cpp" line="694"/>
         <source>Include comments</source>
         <translation>注釈を含める</translation>
     </message>
     <message>
-        <location filename="../../src/ui/export/ExportDialog.cpp" line="619"/>
+        <location filename="../../src/ui/export/ExportDialog.cpp" line="697"/>
         <source>Preserve form fields and data.</source>
         <translation>フォームフィールドとそのデータを保持します。</translation>
     </message>
     <message>
-        <location filename="../../src/ui/export/ExportDialog.cpp" line="620"/>
+        <location filename="../../src/ui/export/ExportDialog.cpp" line="698"/>
         <source>Export comments and annotations.</source>
         <translation>コメントと注釈をエクスポートします。</translation>
     </message>
@@ -1075,12 +1120,12 @@ Use page numbers like 1-3, 5, 8-10.</source>
         <translation type="vanished">エクスポートしたファイルに残す内容を指定します。</translation>
     </message>
     <message>
-        <location filename="../../src/ui/export/ExportDialog.cpp" line="621"/>
+        <location filename="../../src/ui/export/ExportDialog.cpp" line="699"/>
         <source>Embed fonts</source>
         <translation>フォントを埋め込む</translation>
     </message>
     <message>
-        <location filename="../../src/ui/export/ExportDialog.cpp" line="623"/>
+        <location filename="../../src/ui/export/ExportDialog.cpp" line="701"/>
         <source>Include all used fonts in the PDF file.</source>
         <translation>使用しているすべてのフォントを PDF ファイルに含めます。</translation>
     </message>
@@ -1117,12 +1162,12 @@ Use page numbers like 1-3, 5, 8-10.</source>
         <translation type="vanished">ファイルからすべての JavaScript アクションを削除します。</translation>
     </message>
     <message>
-        <location filename="../../src/ui/export/ExportDialog.cpp" line="651"/>
+        <location filename="../../src/ui/export/ExportDialog.cpp" line="729"/>
         <source>Cancel</source>
         <translation>キャンセル</translation>
     </message>
     <message>
-        <location filename="../../src/ui/export/ExportDialog.cpp" line="656"/>
+        <location filename="../../src/ui/export/ExportDialog.cpp" line="734"/>
         <source>Export</source>
         <translation>エクスポート</translation>
     </message>
@@ -1138,12 +1183,12 @@ Use page numbers like 1-3, 5, 8-10.</source>
 <context>
     <name>ExportFormatList</name>
     <message>
-        <location filename="../../src/ui/export/ExportFormatList.cpp" line="19"/>
+        <location filename="../../src/ui/export/ExportFormatList.cpp" line="33"/>
         <source>Export to</source>
         <translation>エクスポート形式</translation>
     </message>
     <message>
-        <location filename="../../src/ui/export/ExportFormatList.cpp" line="36"/>
+        <location filename="../../src/ui/export/ExportFormatList.cpp" line="107"/>
         <source>Not available yet.</source>
         <translation>まだ使用できません。</translation>
     </message>
@@ -1155,38 +1200,37 @@ Use page numbers like 1-3, 5, 8-10.</source>
         <translation type="vanished">「%1」をエクスポートしています…</translation>
     </message>
     <message>
-        <location filename="../../src/ui/export/Exporting.cpp" line="134"/>
+        <location filename="../../src/ui/export/Exporting.cpp" line="135"/>
         <source>Exporting page %1 of %2…</source>
         <translation>ページ %1 / %2 をエクスポート中…</translation>
     </message>
     <message>
-        <location filename="../../src/ui/export/Exporting.cpp" line="172"/>
+        <location filename="../../src/ui/export/Exporting.cpp" line="181"/>
         <source>Writing &quot;%1&quot;…</source>
         <translation>「%1」を書き込み中…</translation>
     </message>
     <message>
-        <location filename="../../src/ui/export/Exporting.cpp" line="176"/>
+        <location filename="../../src/ui/export/Exporting.cpp" line="188"/>
+        <location filename="../../src/ui/export/Exporting.cpp" line="206"/>
         <source>Could not write to &quot;%1&quot;.</source>
         <translation>「%1」に書き込めませんでした。</translation>
     </message>
     <message>
-        <location filename="../../src/ui/export/Exporting.cpp" line="186"/>
         <source>Could not export JPEG images to &quot;%1&quot;.</source>
-        <translation>JPEG 画像を「%1」に書き出せませんでした。</translation>
+        <translation type="vanished">JPEG 画像を「%1」に書き出せませんでした。</translation>
     </message>
     <message>
-        <location filename="../../src/ui/export/Exporting.cpp" line="187"/>
         <source>Could not export PNG images to &quot;%1&quot;.</source>
-        <translation>PNG 画像を「%1」に書き出せませんでした。</translation>
+        <translation type="vanished">PNG 画像を「%1」に書き出せませんでした。</translation>
     </message>
     <message>
-        <location filename="../../src/ui/export/Exporting.cpp" line="98"/>
-        <location filename="../../src/ui/export/Exporting.cpp" line="155"/>
+        <location filename="../../src/ui/export/Exporting.cpp" line="99"/>
+        <location filename="../../src/ui/export/Exporting.cpp" line="164"/>
         <source>Could not write &quot;%1&quot;.</source>
         <translation>「%1」を書き込めませんでした。</translation>
     </message>
     <message>
-        <location filename="../../src/ui/export/Exporting.cpp" line="100"/>
+        <location filename="../../src/ui/export/Exporting.cpp" line="101"/>
         <source>Could not write &quot;%1&quot;.
 
 Selecting pages for a PDF needs qpdf, which this build does not include. Exporting as Word or PNG is unaffected.</source>
@@ -1195,22 +1239,30 @@ Selecting pages for a PDF needs qpdf, which this build does not include. Exporti
 PDF のページ選択には qpdf が必要ですが、このビルドには含まれていません。Word や PNG への書き出しには影響しません。</translation>
     </message>
     <message>
-        <location filename="../../src/ui/export/Exporting.cpp" line="206"/>
+        <location filename="../../src/ui/export/Exporting.cpp" line="197"/>
+        <source>Could not export %1 images to &quot;%2&quot;.</source>
+        <translation>%1 画像を「%2」に書き出せませんでした。</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/export/Exporting.cpp" line="225"/>
         <source>Export failed</source>
         <translation>書き出しに失敗しました</translation>
     </message>
     <message>
-        <location filename="../../src/ui/export/Exporting.cpp" line="213"/>
+        <location filename="../../src/ui/export/Exporting.cpp" line="231"/>
+        <source>%1 pages exported as %2 images</source>
+        <translation>%1 ページを %2 画像としてエクスポートしました</translation>
+    </message>
+    <message>
         <source>%1 pages exported as JPEG images</source>
-        <translation>%1 ページを JPEG 画像として書き出しました</translation>
+        <translation type="vanished">%1 ページを JPEG 画像として書き出しました</translation>
     </message>
     <message>
-        <location filename="../../src/ui/export/Exporting.cpp" line="214"/>
         <source>%1 pages exported as PNG images</source>
-        <translation>%1 ページを PNG 画像としてエクスポートしました</translation>
+        <translation type="vanished">%1 ページを PNG 画像としてエクスポートしました</translation>
     </message>
     <message>
-        <location filename="../../src/ui/export/Exporting.cpp" line="212"/>
+        <location filename="../../src/ui/export/Exporting.cpp" line="232"/>
         <source>Exported &quot;%1&quot;</source>
         <translation>「%1」をエクスポートしました</translation>
     </message>
@@ -1226,22 +1278,22 @@ PDF のページ選択には qpdf が必要ですが、このビルドには含�
 <context>
     <name>FindController</name>
     <message>
-        <location filename="../../src/ui/view/FindController.cpp" line="286"/>
+        <location filename="../../src/ui/view/FindController.cpp" line="322"/>
         <source>Find in document</source>
         <translation>文書内を検索</translation>
     </message>
     <message>
-        <location filename="../../src/ui/view/FindController.cpp" line="287"/>
+        <location filename="../../src/ui/view/FindController.cpp" line="323"/>
         <source>Previous match (Shift+Enter)</source>
         <translation>前の一致（Shift+Enter）</translation>
     </message>
     <message>
-        <location filename="../../src/ui/view/FindController.cpp" line="288"/>
+        <location filename="../../src/ui/view/FindController.cpp" line="324"/>
         <source>Next match (Enter)</source>
         <translation>次の一致（Enter）</translation>
     </message>
     <message>
-        <location filename="../../src/ui/view/FindController.cpp" line="289"/>
+        <location filename="../../src/ui/view/FindController.cpp" line="325"/>
         <source>Close (Esc)</source>
         <translation>閉じる（Esc）</translation>
     </message>
@@ -2462,27 +2514,27 @@ The file may be write-protected or open in another program. The document is unch
 ファイルが書き込み禁止か、別のプログラムで開かれている可能性があります。文書は変更されていません。別の名前で保存してください。</translation>
     </message>
     <message>
-        <location filename="../../src/ui/MainWindow.cpp" line="1014"/>
+        <location filename="../../src/ui/MainWindow.cpp" line="1017"/>
         <source>Edit Mode</source>
         <translation>編集モード</translation>
     </message>
     <message>
-        <location filename="../../src/ui/MainWindow.cpp" line="1015"/>
+        <location filename="../../src/ui/MainWindow.cpp" line="1018"/>
         <source>Do you want to enable Edit Mode?</source>
         <translation>編集モードを有効にしますか?</translation>
     </message>
     <message>
-        <location filename="../../src/ui/MainWindow.cpp" line="1248"/>
+        <location filename="../../src/ui/MainWindow.cpp" line="1251"/>
         <source>Untitled</source>
         <translation>無題</translation>
     </message>
     <message>
-        <location filename="../../src/ui/MainWindow.cpp" line="1252"/>
+        <location filename="../../src/ui/MainWindow.cpp" line="1255"/>
         <source>Unsaved Changes</source>
         <translation>未保存の変更</translation>
     </message>
     <message>
-        <location filename="../../src/ui/MainWindow.cpp" line="1253"/>
+        <location filename="../../src/ui/MainWindow.cpp" line="1256"/>
         <source>Save changes to &quot;%1&quot;?</source>
         <translation>「%1」への変更を保存しますか?</translation>
     </message>
@@ -3040,7 +3092,7 @@ Enter the password to open it:</source>
         <translation type="vanished">選択を削除</translation>
     </message>
     <message>
-        <location filename="../../src/ui/organizer/PdfOrganizerDialog.cpp" line="265"/>
+        <location filename="../../src/ui/organizer/PdfOrganizerDialog.cpp" line="264"/>
         <source>Cancel</source>
         <translation>キャンセル</translation>
     </message>
@@ -3049,114 +3101,114 @@ Enter the password to open it:</source>
         <translation type="vanished">名前を付けて保存…</translation>
     </message>
     <message>
-        <location filename="../../src/ui/organizer/PdfOrganizerDialog.cpp" line="62"/>
-        <location filename="../../src/ui/organizer/PdfOrganizerDialog.cpp" line="847"/>
+        <location filename="../../src/ui/organizer/PdfOrganizerDialog.cpp" line="61"/>
+        <location filename="../../src/ui/organizer/PdfOrganizerDialog.cpp" line="837"/>
         <source>PDF Organizer - OpenPDF Studio</source>
         <translation>PDF オーガナイザー - OpenPDF Studio</translation>
     </message>
     <message>
-        <location filename="../../src/ui/organizer/PdfOrganizerDialog.cpp" line="139"/>
+        <location filename="../../src/ui/organizer/PdfOrganizerDialog.cpp" line="138"/>
         <source>Add PDF</source>
         <translation>PDF を追加</translation>
     </message>
     <message>
-        <location filename="../../src/ui/organizer/PdfOrganizerDialog.cpp" line="145"/>
+        <location filename="../../src/ui/organizer/PdfOrganizerDialog.cpp" line="144"/>
         <source>Open PDF file…</source>
         <translation>PDF ファイルを開く…</translation>
     </message>
     <message>
-        <location filename="../../src/ui/organizer/PdfOrganizerDialog.cpp" line="147"/>
-        <location filename="../../src/ui/organizer/PdfOrganizerDialog.cpp" line="153"/>
-        <location filename="../../src/ui/organizer/PdfOrganizerDialog.cpp" line="299"/>
+        <location filename="../../src/ui/organizer/PdfOrganizerDialog.cpp" line="146"/>
+        <location filename="../../src/ui/organizer/PdfOrganizerDialog.cpp" line="152"/>
+        <location filename="../../src/ui/organizer/PdfOrganizerDialog.cpp" line="298"/>
         <source>Open PDF</source>
         <translation>PDFを開く</translation>
     </message>
     <message>
-        <location filename="../../src/ui/organizer/PdfOrganizerDialog.cpp" line="147"/>
-        <location filename="../../src/ui/organizer/PdfOrganizerDialog.cpp" line="153"/>
-        <location filename="../../src/ui/organizer/PdfOrganizerDialog.cpp" line="766"/>
+        <location filename="../../src/ui/organizer/PdfOrganizerDialog.cpp" line="146"/>
+        <location filename="../../src/ui/organizer/PdfOrganizerDialog.cpp" line="152"/>
+        <location filename="../../src/ui/organizer/PdfOrganizerDialog.cpp" line="760"/>
         <source>PDF files (*.pdf)</source>
         <translation>PDFファイル (*.pdf)</translation>
     </message>
     <message>
-        <location filename="../../src/ui/organizer/PdfOrganizerDialog.cpp" line="158"/>
+        <location filename="../../src/ui/organizer/PdfOrganizerDialog.cpp" line="157"/>
         <source>Blank Page</source>
         <translation>空白ページ</translation>
     </message>
     <message>
-        <location filename="../../src/ui/organizer/PdfOrganizerDialog.cpp" line="186"/>
+        <location filename="../../src/ui/organizer/PdfOrganizerDialog.cpp" line="185"/>
         <source>Move left</source>
         <translation>左へ移動</translation>
     </message>
     <message>
-        <location filename="../../src/ui/organizer/PdfOrganizerDialog.cpp" line="186"/>
+        <location filename="../../src/ui/organizer/PdfOrganizerDialog.cpp" line="185"/>
         <source>Move page left</source>
         <translation>ページを左へ移動</translation>
     </message>
     <message>
-        <location filename="../../src/ui/organizer/PdfOrganizerDialog.cpp" line="187"/>
+        <location filename="../../src/ui/organizer/PdfOrganizerDialog.cpp" line="186"/>
         <source>Move right</source>
         <translation>右へ移動</translation>
     </message>
     <message>
-        <location filename="../../src/ui/organizer/PdfOrganizerDialog.cpp" line="187"/>
+        <location filename="../../src/ui/organizer/PdfOrganizerDialog.cpp" line="186"/>
         <source>Move page right</source>
         <translation>ページを右へ移動</translation>
     </message>
     <message>
-        <location filename="../../src/ui/organizer/PdfOrganizerDialog.cpp" line="190"/>
+        <location filename="../../src/ui/organizer/PdfOrganizerDialog.cpp" line="189"/>
         <source>Rotate left</source>
         <translation>左に回転</translation>
     </message>
     <message>
-        <location filename="../../src/ui/organizer/PdfOrganizerDialog.cpp" line="190"/>
+        <location filename="../../src/ui/organizer/PdfOrganizerDialog.cpp" line="189"/>
         <source>Rotate left 90°</source>
         <translation>左に 90° 回転</translation>
     </message>
     <message>
-        <location filename="../../src/ui/organizer/PdfOrganizerDialog.cpp" line="191"/>
+        <location filename="../../src/ui/organizer/PdfOrganizerDialog.cpp" line="190"/>
         <source>Rotate right</source>
         <translation>右に回転</translation>
     </message>
     <message>
-        <location filename="../../src/ui/organizer/PdfOrganizerDialog.cpp" line="191"/>
+        <location filename="../../src/ui/organizer/PdfOrganizerDialog.cpp" line="190"/>
         <source>Rotate right 90°</source>
         <translation>右に 90° 回転</translation>
     </message>
     <message>
-        <location filename="../../src/ui/organizer/PdfOrganizerDialog.cpp" line="194"/>
+        <location filename="../../src/ui/organizer/PdfOrganizerDialog.cpp" line="193"/>
         <source>Delete page</source>
         <translation>ページを削除</translation>
     </message>
     <message>
-        <location filename="../../src/ui/organizer/PdfOrganizerDialog.cpp" line="237"/>
+        <location filename="../../src/ui/organizer/PdfOrganizerDialog.cpp" line="236"/>
         <source>Drag &amp; drop pages to reorder</source>
         <translation>ページをドラッグ＆ドロップして並べ替え</translation>
     </message>
     <message>
-        <location filename="../../src/ui/organizer/PdfOrganizerDialog.cpp" line="260"/>
-        <location filename="../../src/ui/organizer/PdfOrganizerDialog.cpp" line="480"/>
+        <location filename="../../src/ui/organizer/PdfOrganizerDialog.cpp" line="259"/>
+        <location filename="../../src/ui/organizer/PdfOrganizerDialog.cpp" line="479"/>
         <source>Pages</source>
         <translation>ページ</translation>
     </message>
     <message>
-        <location filename="../../src/ui/organizer/PdfOrganizerDialog.cpp" line="270"/>
+        <location filename="../../src/ui/organizer/PdfOrganizerDialog.cpp" line="269"/>
         <source>Save as</source>
         <translation>名前を付けて保存</translation>
     </message>
     <message>
-        <location filename="../../src/ui/organizer/PdfOrganizerDialog.cpp" line="275"/>
+        <location filename="../../src/ui/organizer/PdfOrganizerDialog.cpp" line="274"/>
         <source>Save</source>
         <translation>保存</translation>
     </message>
     <message>
-        <location filename="../../src/ui/organizer/PdfOrganizerDialog.cpp" line="300"/>
+        <location filename="../../src/ui/organizer/PdfOrganizerDialog.cpp" line="299"/>
         <source>Could not open: </source>
         <translation>開けませんでした: </translation>
     </message>
     <message>
-        <location filename="../../src/ui/organizer/PdfOrganizerDialog.cpp" line="429"/>
-        <location filename="../../src/ui/organizer/PdfOrganizerDialog.cpp" line="473"/>
+        <location filename="../../src/ui/organizer/PdfOrganizerDialog.cpp" line="428"/>
+        <location filename="../../src/ui/organizer/PdfOrganizerDialog.cpp" line="472"/>
         <source>Page %1</source>
         <translation>%1 ページ</translation>
     </message>
@@ -3182,19 +3234,19 @@ Enter the password to open it:</source>
         <translation>PDF の書き込みには PDF バックエンド（Qt6Pdf または Poppler）が必要です。</translation>
     </message>
     <message>
-        <location filename="../../src/ui/organizer/PdfOrganizerDialog.cpp" line="739"/>
-        <location filename="../../src/ui/organizer/PdfOrganizerDialog.cpp" line="760"/>
+        <location filename="../../src/ui/organizer/PdfOrganizerDialog.cpp" line="741"/>
+        <location filename="../../src/ui/organizer/PdfOrganizerDialog.cpp" line="754"/>
         <source>Empty</source>
         <translation>空</translation>
     </message>
     <message>
-        <location filename="../../src/ui/organizer/PdfOrganizerDialog.cpp" line="740"/>
-        <location filename="../../src/ui/organizer/PdfOrganizerDialog.cpp" line="761"/>
+        <location filename="../../src/ui/organizer/PdfOrganizerDialog.cpp" line="742"/>
+        <location filename="../../src/ui/organizer/PdfOrganizerDialog.cpp" line="755"/>
         <source>Add at least one page before saving.</source>
         <translation>保存する前に少なくとも1ページ追加してください。</translation>
     </message>
     <message>
-        <location filename="../../src/ui/organizer/PdfOrganizerDialog.cpp" line="766"/>
+        <location filename="../../src/ui/organizer/PdfOrganizerDialog.cpp" line="760"/>
         <source>Save PDF As</source>
         <translation>PDFに名前を付けて保存</translation>
     </message>
@@ -3208,13 +3260,13 @@ Enter the password to open it:</source>
         <translation type="vanished">PDF書き込みにはQt6Pdfが必要です。</translation>
     </message>
     <message>
-        <location filename="../../src/ui/organizer/PdfOrganizerDialog.cpp" line="203"/>
-        <location filename="../../src/ui/organizer/PdfOrganizerDialog.cpp" line="498"/>
+        <location filename="../../src/ui/organizer/PdfOrganizerDialog.cpp" line="202"/>
+        <location filename="../../src/ui/organizer/PdfOrganizerDialog.cpp" line="497"/>
         <source>Select all</source>
         <translation>すべて選択</translation>
     </message>
     <message>
-        <location filename="../../src/ui/organizer/PdfOrganizerDialog.cpp" line="498"/>
+        <location filename="../../src/ui/organizer/PdfOrganizerDialog.cpp" line="497"/>
         <source>Deselect all</source>
         <translation>すべて選択解除</translation>
     </message>
@@ -3898,22 +3950,22 @@ Enter the password to open it:</source>
 <context>
     <name>RedactionLayer</name>
     <message>
-        <location filename="../../src/ui/redact/RedactionLayer.cpp" line="306"/>
+        <location filename="../../src/ui/redact/RedactionLayer.cpp" line="355"/>
         <source>Redaction area added</source>
         <translation>墨消し領域を追加</translation>
     </message>
     <message>
-        <location filename="../../src/ui/redact/RedactionLayer.cpp" line="308"/>
+        <location filename="../../src/ui/redact/RedactionLayer.cpp" line="357"/>
         <source>Redaction area moved</source>
         <translation>墨消し領域を移動</translation>
     </message>
     <message>
-        <location filename="../../src/ui/redact/RedactionLayer.cpp" line="309"/>
+        <location filename="../../src/ui/redact/RedactionLayer.cpp" line="358"/>
         <source>Redaction area resized</source>
         <translation>墨消し領域のサイズを変更</translation>
     </message>
     <message>
-        <location filename="../../src/ui/redact/RedactionLayer.cpp" line="424"/>
+        <location filename="../../src/ui/redact/RedactionLayer.cpp" line="493"/>
         <source>Redaction area removed</source>
         <translation>墨消し領域を削除</translation>
     </message>
@@ -5746,8 +5798,8 @@ Enter the password to open it:</source>
 <context>
     <name>TextDocumentPdf</name>
     <message>
-        <location filename="../../src/engine/import/TextDocumentPdf.cpp" line="41"/>
-        <location filename="../../src/engine/import/TextDocumentPdf.cpp" line="129"/>
+        <location filename="../../src/engine/import/TextDocumentPdf.cpp" line="43"/>
+        <location filename="../../src/engine/import/TextDocumentPdf.cpp" line="160"/>
         <source>The PDF could not be written.</source>
         <translation>PDF を書き込めませんでした。</translation>
     </message>

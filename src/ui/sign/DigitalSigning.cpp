@@ -39,7 +39,7 @@ QString DigitalSigning::message(SignError error, const QString &target)
     case SignError::PinLocked:
         return tr("The PIN is locked. The card or token has to be unlocked first.");
     case SignError::Encrypted:
-        return tr("Password-protected documents cannot be signed yet.");
+        return tr("This document is encrypted in a way that cannot be signed.");
     case SignError::ReadFailed:
         return tr("The document could not be prepared for signing.");
     case SignError::WriteFailed:

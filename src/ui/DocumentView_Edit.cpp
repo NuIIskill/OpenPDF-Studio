@@ -25,6 +25,7 @@
 #include "ui/view/PageOverlay.hpp"
 #include "ui/view/DigitalSignatureLayer.hpp"
 #include "ui/view/SignaturePlacement.hpp"
+#include "ui/view/ScrollBarReach.hpp"
 #include "ui/view/SignatureStatusLayer.hpp"
 #include "ui/view/SmoothScroll.hpp"
 #include "ui/view/ZoomController.hpp"
@@ -221,6 +222,8 @@ DocumentView::DocumentView(QWidget *parent)
             this, &DocumentView::repositionForZoom);
 
     m_smoothScroll = new SmoothScroll(this, this);
+    new ScrollBarReach(verticalScrollBar(), this);
+    new ScrollBarReach(horizontalScrollBar(), this);
     m_hover = new HoverHighlight(this, this);
     m_textInput = new TextToolInput(&m_edit, m_hover, m_rubberBand, m_canvas, this);
 
@@ -280,8 +283,10 @@ DocumentView::DocumentView(QWidget *parent)
     connect(m_editorFrame, &TextBoxFrame::boundsChanged, this, [this](const QRectF &inner) {
         if (m_edit.activeEditPage < 0) return;
 
-        // Only a drag carries the box to another page; growing text stays on its own.
-        auto [pg, lbl] = m_editorFrame->dragging() ? pageAtCanvasPos(inner.center().toPoint())
+        // Only a drag carries the box to another page; growing text stays on its own,
+        // and the window of turned text on the text's page.
+        auto [pg, lbl] = m_editorFrame->dragging() && !m_edit.activeEditTurned
+                             ? pageAtCanvasPos(inner.center().toPoint())
                                                    : std::pair<int, QLabel *>(-1, nullptr);
         if (pg < 0 || !lbl) {
             pg  = m_edit.activeEditPage;
@@ -291,17 +296,19 @@ DocumentView::DocumentView(QWidget *parent)
         if (pg != m_edit.activeEditPage) {
             m_edit.activeEditPage = pg;
 
-            m_editorFrame->setPageRect(lbl->geometry(), m_src->renderer()->pageSizePts(pg));
+            m_edit.placeFramePage(lbl, pg);
         }
         const qreal scale = PdfRenderer::screenScale(m_zoomCtl->zoom());
         QRectF newBounds(
             (inner.topLeft() - QPointF(lbl->pos())) / scale,
             inner.size() / scale);
         m_edit.clampToPdfPage(pg, newBounds);
-        m_edit.activeEditBounds = newBounds;
-        m_edit.currentBox.bounds = newBounds;
+        m_edit.takeBounds(newBounds);
+        if (m_editorFrame->movingBox()) m_edit.activeEditWindowPlaced = true;
         m_edit.notifyBoundsChanged();
-        m_layoutEngine->setDraggingText(m_editorFrame->movingBox());
+        if (m_edit.activeEditTurned) QTimer::singleShot(0, this, [this] { m_edit.keepWindowOnPage(); });
+        // Turned text stays put while its window is dragged.
+        m_layoutEngine->setDraggingText(m_editorFrame->movingBox() && !m_edit.activeEditTurned);
         m_edit.refreshLivePreview();
     });
     m_hover->setEditorFrame(m_editorFrame);

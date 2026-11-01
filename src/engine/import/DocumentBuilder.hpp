@@ -65,6 +65,7 @@ public:
         TextStyle     textStyle;
         Qt::Alignment textAlign { Qt::AlignLeft | Qt::AlignTop };
         int           anchorPosition { 0 };
+        bool          afterPageBreak { false };
     };
 
     void addDecoration(Decoration decoration);

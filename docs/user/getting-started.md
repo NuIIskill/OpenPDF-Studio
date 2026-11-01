@@ -86,7 +86,8 @@ Settings → **Add-on Packages** adds and removes OCR languages and ffmpeg: on
 Linux through the distribution's package manager, on Windows as a download.
 
 **Save preferences** under Settings → **Advanced** keeps the window and panel
-layout, the tool rail and the chosen signature profile and certificate. With it
+layout, the tool rail, the chosen signature profile and certificate, and in the
+export dialog the open format groups and **Compress images**. With it
 off, the application starts with its defaults each time.
 
 On first use, the installer or application asks whether usage is personal or

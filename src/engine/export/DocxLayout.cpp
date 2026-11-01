@@ -358,6 +358,67 @@ void refineTableExtent(const Raster &erased, QRgb paper, RawTable &table,
     table.measured = true;
 }
 
+/// A drawn rule: where it runs, how thick and in which colour.
+struct Rule {
+    double x       { 0.0 };
+    double widthPt { 0.0 };
+    QColor color;
+};
+
+/// Thin rules drawn through at least half of an area, across it (vertical) or
+/// along it (horizontal), in order. Shading wider than a rule does not count.
+/// A thin rule is spread over partly covered pixels, so a grey one is taken
+/// for a narrower black one, which looks the same.
+QList<Rule> findRules(const Raster &erased, QRgb paper, const QRectF &area, bool vertical)
+{
+    QList<Rule> found;
+    const QRect box = erased.toPx(area);
+    if (erased.isNull() || box.width() < 4 || box.height() < 4) return found;
+    const int widest = qMax(2, qRound(3.0 * erased.scale()));
+    const int from = vertical ? box.left() : box.top();
+    const int to   = vertical ? box.right() : box.bottom();
+    const int span = vertical ? box.height() : box.width();
+    const auto at = [&](int along, int across) {
+        return vertical ? erased.at(along, across) : erased.at(across, along);
+    };
+    const int acrossFrom = vertical ? box.top() : box.left();
+    int start = -1;
+    for (int k = from; k <= to + 1; ++k) {
+        bool inked = false;
+        if (k <= to) {
+            int hits = 0;
+            for (int a = acrossFrom; a < acrossFrom + span; ++a)
+                if (colorDist(at(k, a), paper) > 24) ++hits;
+            inked = hits * 2 >= span;
+        }
+        if (inked && start < 0) start = k;
+        if (!inked && start >= 0) {
+            if (k - start <= widest) {
+                QRgb darkest = paper;
+                const int middle = acrossFrom + span / 2;
+                for (int a = middle - 2; a <= middle + 2; ++a)
+                    for (int px = start; px < k; ++px)
+                        if (colorDist(at(px, a), paper) > colorDist(darkest, paper))
+                            darkest = at(px, a);
+                const QColor dark = QColor::fromRgb(darkest);
+                const bool neutral = qAbs(dark.red() - dark.green()) < 16
+                                  && qAbs(dark.green() - dark.blue()) < 16;
+                const QRgb ink = neutral ? qRgb(0, 0, 0) : darkest;
+                double cover = 0.0;
+                for (int a = middle - 2; a <= middle + 2; ++a)
+                    for (int px = start; px < k; ++px)
+                        cover += qMin(1.0, double(colorDist(at(px, a), paper))
+                                               / qMax(1, colorDist(ink, paper)));
+                found.append({ (start + k) / 2.0 / erased.scale(),
+                               qMax(0.25, qRound(cover / 5.0 / erased.scale() * 4.0) / 4.0),
+                               QColor::fromRgb(ink) });
+            }
+            start = -1;
+        }
+    }
+    return found;
+}
+
 DocxBlock buildTableBlock(const RawTable &raw, const Raster &erased, QRgb paper)
 {
     QList<QList<ContentItem>> rows = clusterRows(raw.items);
@@ -426,6 +487,30 @@ DocxBlock buildTableBlock(const RawTable &raw, const Raster &erased, QRgb paper)
     }
     edges.append(qMax(raw.measured ? raw.bounds.right() : x1 - fs * 0.5,
                       edges.last() + fs));
+
+    // A table that draws its grid says where its columns are; the gaps between
+    // the words only guess, and split a column whose heading and numbers are
+    // aligned to opposite sides.
+    QRectF textSpan;
+    for (const QList<ContentItem> &row : rows)
+        for (const ContentItem &c : row) textSpan = textSpan.united(c.bounds);
+    const QList<Rule> rules = findRules(
+        erased, paper, QRectF(x0 - fs, textSpan.top(), x1 - x0 + 2.0 * fs, textSpan.height()), true);
+    QList<double> inner, innerWidths;
+    for (const Rule &rule : rules)
+        if (rule.x > textSpan.left() + 1.0 && rule.x < textSpan.right() - 1.0) {
+            inner.append(rule.x);
+            innerWidths.append(rule.widthPt);
+        }
+    const bool outerLeft  = !rules.isEmpty() && rules.first().x <= textSpan.left() + 1.0;
+    const bool outerRight = !rules.isEmpty() && rules.last().x >= textSpan.right() - 1.0;
+    if (!inner.isEmpty()) {
+        const double left  = outerLeft  ? rules.first().x : edges.first();
+        const double right = outerRight ? rules.last().x  : edges.last();
+        edges = { left };
+        edges += inner;
+        edges.append(right);
+    }
     const int cols = edges.size() - 1;
     if (cols < 1) return {};
 
@@ -449,12 +534,48 @@ DocxBlock buildTableBlock(const RawTable &raw, const Raster &erased, QRgb paper)
     rowEdges.append(qMax(raw.bounds.bottom(),
                          rowBounds.last().bottom() + fs * 0.4));
 
+    // Drawn rules between the rows are where the rows really end.
+    const QList<Rule> across = findRules(
+        erased, paper, QRectF(edges.first(), rowEdges.first() - fs * 2.5,
+                              edges.last() - edges.first(),
+                              rowEdges.last() - rowEdges.first() + fs * 5.0), false);
+    const auto ruleNear = [&across](double from, double to, double aim) {
+        double best = -1.0;
+        for (const Rule &rule : across)
+            if (rule.x >= from && rule.x <= to
+                    && (best < 0.0 || qAbs(rule.x - aim) < qAbs(best - aim)))
+                best = rule.x;
+        return best;
+    };
+    if (!across.isEmpty()) {
+        if (const double top = ruleNear(rowBounds.first().top() - fs * 2.5,
+                                        rowBounds.first().top(), rowBounds.first().top());
+                top >= 0.0)
+            rowEdges.first() = top;
+        for (int r = 1; r < rows.size(); ++r)
+            if (const double y = ruleNear(rowBounds[r - 1].bottom() - 1.0, rowBounds[r].top() + 1.0,
+                                          rowEdges[r]);
+                    y >= 0.0)
+                rowEdges[r] = y;
+        if (const double bottom = ruleNear(rowBounds.last().bottom(),
+                                           rowBounds.last().bottom() + fs * 2.5,
+                                           rowBounds.last().bottom());
+                bottom >= 0.0)
+            rowEdges.last() = bottom;
+    }
+
     DocxBlock block;
     block.kind   = DocxBlock::Kind::Table;
     block.bounds = QRectF(edges.first(), rowEdges.first(),
                           edges.last() - edges.first(),
                           rowEdges.last() - rowEdges.first());
     block.table.rowCount = rows.size();
+    // A drawn grid keeps its colour and the weight of its frame and its inside.
+    if (!inner.isEmpty()) {
+        block.table.ruleColor   = rules[rules.size() / 2].color;
+        block.table.ruleInnerPt = median(innerWidths);
+        block.table.ruleOuterPt = outerLeft ? rules.first().widthPt : block.table.ruleInnerPt;
+    }
     for (int c = 0; c < cols; ++c)
         block.table.colWidthsPt.append(qMax(8.0, edges[c + 1] - edges[c]));
     for (int r = 0; r < rows.size(); ++r)
@@ -510,28 +631,124 @@ DocxBlock buildTableBlock(const RawTable &raw, const Raster &erased, QRgb paper)
             if (cell.col != c || cell.colSpan != 1) continue;
             (cell.row == 0 ? header : body).append(&cell);
         }
-        const auto spread = [](const QList<DocxCell *> &group, bool centre) {
+        enum class Edge { Left, Centre, Right };
+        const auto spread = [](const QList<DocxCell *> &group, Edge edge) {
             double lo = 1e18, hi = -1e18;
             for (const DocxCell *cell : group) {
-                const double v = centre ? cell->item.bounds.center().x()
-                                        : cell->item.bounds.left();
+                const QRectF &r = cell->item.bounds;
+                const double v = edge == Edge::Left   ? r.left()
+                               : edge == Edge::Centre ? r.center().x() : r.right();
                 lo = qMin(lo, v);
                 hi = qMax(hi, v);
             }
             return hi - lo;
         };
-        if (body.size() >= 2 && spread(body, true) + fs * 0.5 < spread(body, false))
-            for (DocxCell *cell : body) cell->align = Qt::AlignHCenter;
+        bool rightAligned = false;
+        if (body.size() >= 2) {
+            const double left   = spread(body, Edge::Left);
+            const double centre = spread(body, Edge::Centre);
+            const double right  = spread(body, Edge::Right);
+            rightAligned = left >= fs * 0.3 && right < left * 0.5 && right <= centre;
+            const Qt::Alignment align = rightAligned ? Qt::AlignRight
+                : centre + fs * 0.5 < left ? Qt::AlignHCenter : Qt::AlignLeft;
+            for (DocxCell *cell : body) cell->align = align;
+        }
 
         if (body.isEmpty()) continue;
-        double bodyLeft = 1e18;
-        for (const DocxCell *b : body) bodyLeft = qMin(bodyLeft, b->item.bounds.left());
+        double bodyLeft = 1e18, bodyRight = -1e18;
+        for (const DocxCell *b : body) {
+            bodyLeft  = qMin(bodyLeft,  b->item.bounds.left());
+            bodyRight = qMax(bodyRight, b->item.bounds.right());
+        }
 
-        for (DocxCell *cell : header)
-            if (cell->item.bounds.left() - bodyLeft >= fs * 1.2)
+        for (DocxCell *cell : header) {
+            if (rightAligned && qAbs(cell->item.bounds.right() - bodyRight) <= fs * 0.5)
+                cell->align = Qt::AlignRight;
+            else if (cell->item.bounds.left() - bodyLeft >= fs * 1.2)
                 cell->align = Qt::AlignHCenter;
+        }
     }
+
+    // The room a cell keeps to its rules, measured where text is set against them.
+    QList<double> lefts, rights;
+    for (const DocxCell &cell : std::as_const(block.table.cells)) {
+        const int end = qMin(cols, cell.col + cell.colSpan);
+        if (cell.align & Qt::AlignRight)
+            rights.append(edges[end] - cell.item.bounds.right());
+        else if (!(cell.align & Qt::AlignHCenter))
+            lefts.append(cell.item.bounds.left() - edges[cell.col]);
+    }
+    if (!lefts.isEmpty())  block.table.padLeftPt  = qBound(0.0, median(lefts), 12.0);
+    if (!rights.isEmpty()) block.table.padRightPt = qBound(0.0, median(rights), 12.0);
     return block;
+}
+
+/// Whether the rendered page shows more at an image's place than the image
+/// itself: text that was erased there counts little, a panel drawn over it a lot.
+bool overdrawn(const QImage &own, const QImage &seen, QRgb paper)
+{
+    if (own.isNull() || seen.isNull()) return true;
+    QImage flat(seen.size(), QImage::Format_RGB32);
+    flat.fill(paper);
+    QPainter painter(&flat);
+    painter.drawImage(flat.rect(), own);
+    painter.end();
+    const QImage page = seen.convertToFormat(QImage::Format_RGB32);
+    qint64 differing = 0, total = 0;
+    for (int y = 0; y < flat.height(); y += 2)
+        for (int x = 0; x < flat.width(); x += 2) {
+            ++total;
+            if (colorDist(flat.pixel(x, y), page.pixel(x, y)) > 60) ++differing;
+        }
+    return total == 0 || differing * 20 > total;
+}
+
+/// The item's text as runs, so that more can be appended in another look.
+QList<ContentRun> runsOf(const ContentItem &item)
+{
+    if (!item.runs.isEmpty()) return item.runs;
+    return { { 0, int(item.text.size()), item.fontFamily, item.bold, item.italic,
+               item.fontSizePt, item.textColor, item.textOrigin.x(), false } };
+}
+
+/// Lines that stand side by side on one baseline, a label and its value or a
+/// heading and its date, share one line: the later ones are reached with a tab
+/// at the place they started. Apart they would be stacked below each other.
+void joinSideBySide(QList<DocxBlock> &paragraphs)
+{
+    std::sort(paragraphs.begin(), paragraphs.end(), [](const DocxBlock &a, const DocxBlock &b) {
+        return a.bounds.left() < b.bounds.left();
+    });
+    for (int i = 0; i < paragraphs.size(); ++i) {
+        DocxBlock &left = paragraphs[i];
+        if (left.lines.size() != 1 || left.lines.first().textOrigin.y() <= 0.0) continue;
+        for (int j = i + 1; j < paragraphs.size();) {
+            const DocxBlock &right = paragraphs[j];
+            ContentItem &line = left.lines.first();
+            const ContentItem &next = right.lines.first();
+            if (right.lines.size() != 1 || next.textOrigin.y() <= 0.0
+                    || qAbs(next.textOrigin.y() - line.textOrigin.y()) > 1.0
+                    || next.bounds.left() <= line.bounds.right()) {
+                ++j;
+                continue;
+            }
+            QList<ContentRun> runs = runsOf(line);
+            const int offset = int(line.text.size()) + 1;
+            QList<ContentRun> added = runsOf(next);
+            added.first().x     = next.textOrigin.x() > 0.0 ? next.textOrigin.x()
+                                                            : next.bounds.left();
+            added.first().apart = true;
+            for (ContentRun &run : added) {
+                run.start += offset;
+                runs.append(run);
+            }
+            line.text  += u' ' + next.text;
+            line.runs   = runs;
+            line.bounds = line.bounds.united(next.bounds);
+            left.bounds = left.bounds.united(right.bounds);
+            paragraphs.removeAt(j);
+        }
+    }
 }
 
 QList<DocxBlock> buildParagraphs(const QList<ContentItem> &lines)
@@ -711,12 +928,26 @@ bool isFlatFill(const Raster &erased, QRgb paper, const QRect &box,
 QList<DocxBlock> buildDocxBlocks(const DocxLayoutInput &in, QMarginsF *marginsOut)
 {
     QList<ContentItem> text, cells;
+    QList<DocxBlock> fields;
     for (const ContentItem &item : in.items) {
         if (!item.isTextual() || item.text.trimmed().isEmpty()) continue;
-        if (item.type == ContentItem::Type::TableCell) cells.append(item);
-        else                                           text.append(item);
+        if (item.type == ContentItem::Type::FormField) {
+            // A field's value sits at the field, beside its label, not in the
+            // flow below it; the field shows it centred on its height.
+            const double fs = fontSizeOf(item);
+            DocxBlock value;
+            value.kind   = DocxBlock::Kind::TextBox;
+            value.bounds = QRectF(item.bounds.left() + 2.0, item.bounds.center().y() - fs * 0.6,
+                                  qMax(1.0, item.bounds.width() - 4.0), fs * 1.2);
+            value.lines  = { item };
+            fields.append(value);
+        } else if (item.type == ContentItem::Type::TableCell) {
+            cells.append(item);
+        } else {
+            text.append(item);
+        }
     }
-    if (text.isEmpty() && cells.isEmpty()) return {};
+    if (text.isEmpty() && cells.isEmpty() && fields.isEmpty()) return {};
 
     if (layoutDebug()) {
         std::fprintf(stderr, "── items\n");
@@ -778,6 +1009,46 @@ QList<DocxBlock> buildDocxBlocks(const DocxLayoutInput &in, QMarginsF *marginsOu
     QSet<int>  droppedTables;
     QSet<int>  overlaidTables;
     QList<DocxBlock> pictures;
+    // Text over a picture goes into a box of its own on top of it.
+    const auto addLabels = [&](const QRectF &area) {
+        for (int i = 0; i < text.size(); ++i) {
+            if (bakedText.contains(i) || !area.contains(text[i].bounds.center())) continue;
+            DocxBlock label;
+            label.kind   = DocxBlock::Kind::TextBox;
+            label.bounds = text[i].bounds;
+            label.lines  = { text[i] };
+            pictures.append(label);
+            bakedText.insert(i);
+        }
+    };
+    const auto area = [](const QRectF &r) { return r.width() * r.height(); };
+
+    // Every image object stays a picture of its own at its own place, also one
+    // too pale to stand out from the paper, in its own pixels where it shows
+    // uncut and as the rendered page where it is cropped or turned. They go on
+    // top of what the rendered page gives around them.
+    QList<DocxBlock> imagePictures;
+    QList<QRectF> keptImages;
+    for (const DocxSourceImage &source : in.images) {
+        const QRectF box = source.bounds.intersected(QRectF(QPointF(0.0, 0.0), in.pageSizePt));
+        if (area(box) < 4.0) continue;
+        const bool uncut = !source.image.isNull()
+            && qAbs(double(source.image.width()) / source.image.height()
+                    - box.width() / box.height()) < box.width() / box.height() * 0.03;
+        // Something drawn over the image, a panel or a frame, is only on the
+        // rendered page; there the region takes the image with all on top of it.
+        if (uncut && overdrawn(source.image, erased.crop(erased.toPx(box)), paper)) continue;
+        keptImages.append(box);
+        DocxBlock pic;
+        pic.kind    = DocxBlock::Kind::Picture;
+        pic.bounds  = box;
+        pic.picture = DocxXml::encodePicture(uncut ? source.image : erased.crop(erased.toPx(box)),
+                                             in.options);
+        if (pic.picture.isNull()) continue;
+        imagePictures.append(pic);
+        addLabels(box);
+    }
+
     for (const Region &region : findGraphicRegions(erased, paper, claimed)) {
         QRgb fill = paper;
         const QRectF boundsPt = erased.toPt(region.px);
@@ -818,6 +1089,31 @@ QList<DocxBlock> buildDocxBlocks(const DocxLayoutInput &in, QMarginsF *marginsOu
             }
         }
         if (isTableDecoration) continue;
+
+        // Image objects are pictures of their own already; of a region they
+        // cover only what lies outside them comes from the rendered page.
+        double covered = 0.0;
+        for (const QRectF &kept : std::as_const(keptImages))
+            covered += area(kept.intersected(boundsPt));
+        if (covered >= regionArea * 0.85) continue;
+        if (covered > 0.0) {
+            QImage rest = erased.crop(region.px).convertToFormat(QImage::Format_ARGB32);
+            QPainter blank(&rest);
+            blank.setCompositionMode(QPainter::CompositionMode_Source);
+            for (const QRectF &kept : std::as_const(keptImages)) {
+                const QRect px = erased.toPx(kept).intersected(region.px);
+                if (!px.isEmpty()) blank.fillRect(px.translated(-region.px.topLeft()), Qt::transparent);
+            }
+            blank.end();
+            DocxBlock pic;
+            pic.kind    = DocxBlock::Kind::Picture;
+            pic.bounds  = boundsPt;
+            pic.picture = DocxXml::encodePicture(rest, in.options);
+            if (!pic.picture.isNull()) pictures.append(pic);
+            addLabels(boundsPt);
+            continue;
+        }
+
         const bool thinRule = boundsPt.height() <= 3.5 || boundsPt.width() <= 3.5;
         const QColor ruleFill = thinRule ? dominantInkColor(erased, paper, boundsPt)
                                          : QColor{};
@@ -838,19 +1134,9 @@ QList<DocxBlock> buildDocxBlocks(const DocxLayoutInput &in, QMarginsF *marginsOu
         pic.picture = DocxXml::encodePicture(erased.crop(region.px), in.options);
         if (pic.picture.isNull()) continue;
         pictures.append(pic);
-
-        for (int i = 0; i < text.size(); ++i) {
-            if (bakedText.contains(i)
-                    || !boundsPt.contains(text[i].bounds.center()))
-                continue;
-            DocxBlock label;
-            label.kind   = DocxBlock::Kind::TextBox;
-            label.bounds = text[i].bounds;
-            label.lines  = { text[i] };
-            pictures.append(label);
-            bakedText.insert(i);
-        }
+        addLabels(boundsPt);
     }
+    pictures += imagePictures;
 
     for (int t = tableAreas.size() - 1; t >= 0; --t)
         if (droppedTables.contains(t) && t < blocks.size()) blocks.removeAt(t);
@@ -860,7 +1146,10 @@ QList<DocxBlock> buildDocxBlocks(const DocxLayoutInput &in, QMarginsF *marginsOu
     for (int i = 0; i < text.size(); ++i)
         if (!bakedText.contains(i)) flowing.append(text[i]);
 
-    blocks.append(buildParagraphs(flowing));
+    QList<DocxBlock> paragraphs = buildParagraphs(flowing);
+    joinSideBySide(paragraphs);
+    blocks.append(paragraphs);
+    blocks.append(fields);
 
     std::sort(blocks.begin(), blocks.end(),
               [](const DocxBlock &a, const DocxBlock &b) {
@@ -874,7 +1163,8 @@ QList<DocxBlock> buildDocxBlocks(const DocxLayoutInput &in, QMarginsF *marginsOu
         if (b.kind != DocxBlock::Kind::Picture
                 && b.kind != DocxBlock::Kind::Shape
                 && b.kind != DocxBlock::Kind::TextBox)
-            content = content.united(b.bounds);
+            content = content.united(b.bounds.adjusted(
+                0.0, qMin(0.0, DocxXml::flowTop(b) - b.bounds.top()), 0.0, 0.0));
     if (content.isNull())
         for (const DocxBlock &b : blocks) content = content.united(b.bounds);
 
@@ -883,7 +1173,27 @@ QList<DocxBlock> buildDocxBlocks(const DocxLayoutInput &in, QMarginsF *marginsOu
                       qBound(12.0, in.pageSizePt.width() - content.right(),
                              in.pageSizePt.width() / 3.0),
                       12.0);
-    if (marginsOut) *marginsOut = margins;
+    // Line extents are measured on the ink, which is a little narrower than the
+    // advance widths a word processor wraps by. Flowing text gets that much more
+    // room on the right, or its last word drops to the next line.
+    double largestFont = 0.0;
+    for (const DocxBlock &b : blocks)
+        if (b.kind == DocxBlock::Kind::Paragraph)
+            for (const ContentItem &line : b.lines)
+                largestFont = qMax(largestFont, line.fontSizePt);
+    double wrapSlack = qBound(2.0, largestFont * 0.3, 5.0);
+    // Full-width characters keep their ink to one side of their box, so a line
+    // ending in one, like "。", runs up to a whole size past its ink.
+    for (const DocxBlock &b : blocks)
+        if (b.kind == DocxBlock::Kind::Paragraph)
+            for (const ContentItem &line : b.lines) {
+                const QString t = line.text.trimmed();
+                if (!t.isEmpty() && t.back().unicode() >= 0x2E80)
+                    wrapSlack = qMax(wrapSlack, qMin(line.fontSizePt, 24.0));
+            }
+    if (marginsOut)
+        *marginsOut = QMarginsF(margins.left(), margins.top(),
+                                qMax(0.0, margins.right() - wrapSlack), margins.bottom());
 
     if (layoutDebug()) {
         std::fprintf(stderr, "── page blocks (margins l=%.0f t=%.0f r=%.0f b=%.0f)\n",
@@ -931,14 +1241,23 @@ QList<DocxBlock> buildDocxBlocks(const DocxLayoutInput &in, QMarginsF *marginsOu
         const double leftGap  = b.bounds.left() - textLeft;
         const double rightGap = textRight - b.bounds.right();
 
+        // Centred and right-aligned text is given indents that put its middle or
+        // its end exactly where it was, whatever was left over from the guess.
         if (leftGap > 6.0 && rightGap > 6.0
-                && qAbs(leftGap - rightGap) < qMax(6.0, (leftGap + rightGap) * 0.22)) {
+                && qAbs(leftGap - rightGap) < qMax(4.0, (leftGap + rightGap) * 0.06)) {
             b.align = Qt::AlignHCenter;
+            b.indentPt      = qMax(0.0, leftGap - rightGap);
+            b.rightIndentPt = wrapSlack + qMax(0.0, rightGap - leftGap);
         } else if (leftGap > 6.0 && rightGap < 3.0 && b.lines.size() == 1) {
             b.align = Qt::AlignRight;
+            b.rightIndentPt = wrapSlack + qMax(0.0, rightGap);
         } else {
             b.align    = Qt::AlignLeft;
             b.indentPt = qMax(0.0, leftGap);
+            b.slackPt  = wrapSlack;
+            // A wrapped paragraph keeps the width it was wrapped to, so text set
+            // beside a picture stays beside it.
+            if (b.lines.size() > 1) b.rightIndentPt = qMax(0.0, rightGap);
         }
     }
     return blocks;

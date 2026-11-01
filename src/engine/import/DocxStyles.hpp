@@ -5,6 +5,8 @@
 #include <QHash>
 #include <QString>
 
+#include <functional>
+
 QT_BEGIN_NAMESPACE
 class QXmlStreamReader;
 QT_END_NAMESPACE
@@ -41,7 +43,9 @@ public:
     static BlockStyle readParagraphProperties(QXmlStreamReader &xml,
                                               QString *styleId = nullptr,
                                               DocxListRef *list = nullptr,
-                                              bool *pageBreakBefore = nullptr);
+                                              bool *pageBreakBefore = nullptr,
+                                              const std::function<void(QXmlStreamReader &)>
+                                                  &section = {});
 
 private:
     struct Style {

@@ -17,6 +17,7 @@
 #include <QSize>
 #include <QSizeF>
 #include <QString>
+#include <QTransform>
 
 #include <functional>
 #include <memory>
@@ -166,7 +167,8 @@ public:
                                                       QList<QList<TextLayout::Mark>> *marks = nullptr) const;
 
     virtual QList<TextLayout::OriginalLine> originalLines(int page, const QRectF &area,
-                                                          const QList<QRectF> &exclude) const;
+                                                          const QList<QRectF> &exclude,
+                                                          const QTransform &frame = {}) const;
 
     virtual QList<QRectF> glyphRects(int page, const QRectF &area,
                                      const QList<QRectF> &exclude = {}) const = 0;

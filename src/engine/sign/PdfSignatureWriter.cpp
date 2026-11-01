@@ -5,15 +5,20 @@
 #include <QSet>
 
 #ifdef HAVE_QPDF
+#  include <qpdf/BufferInputSource.hh>
 #  include <qpdf/QPDF.hh>
+#  include <qpdf/QPDFCryptoProvider.hh>
 #  include <qpdf/QPDFObjectHandle.hh>
 #  include <qpdf/QPDFPageDocumentHelper.hh>
 #  include <qpdf/QPDFPageObjectHelper.hh>
+#  include <qpdf/QPDFTokenizer.hh>
 #endif
 
 #include <algorithm>
 #include <cctype>
 #include <map>
+#include <optional>
+#include <stdexcept>
 #include <utility>
 #include <vector>
 
@@ -25,9 +30,103 @@ constexpr int kLockedPrintFlags = 132;
 constexpr int kSigFlags         = 3;
 
 struct Object {
-    int        id;
-    int        gen;
-    QByteArray body;
+    int                       id;
+    int                       gen;
+    QByteArray                body;
+    std::optional<QByteArray> stream;
+};
+
+// The document's security handler, applied to the strings and streams the update adds.
+class Encryption
+{
+public:
+    bool load(QPDF &pdf)
+    {
+        int permissions = 0;
+        QPDF::encryption_method_e files = QPDF::e_none;
+        if (!pdf.isEncrypted(m_R, permissions, m_V, m_streams, m_strings, files)) return true;
+        // Before crypt filters qpdf names no method, but everything is RC4.
+        if (m_V < 4) m_streams = m_strings = QPDF::e_rc4;
+        m_key = pdf.getEncryptionKey();
+        const auto writable = [](QPDF::encryption_method_e m) {
+            return m == QPDF::e_none || m == QPDF::e_rc4 || m == QPDF::e_aes || m == QPDF::e_aesv3;
+        };
+        return !m_key.empty() && writable(m_streams) && writable(m_strings);
+    }
+
+    QByteArray strings(const QByteArray &body, int id, int gen, bool keepContents) const
+    {
+        if (m_strings == QPDF::e_none) return body;
+        const std::string text = body.toStdString();
+        BufferInputSource input("object", text);
+        QPDFTokenizer tokenizer;
+        QByteArray out;
+        qsizetype copied = 0;
+        bool afterContents = false;
+        for (;;) {
+            const QPDFTokenizer::Token token = tokenizer.readToken(input, "object", true);
+            const QPDFTokenizer::token_type_e type = token.getType();
+            if (type == QPDFTokenizer::tt_eof || type == QPDFTokenizer::tt_bad) {
+                if (input.tell() < qpdf_offset_t(text.size()))
+                    throw std::runtime_error("unreadable object");
+                break;
+            }
+            // A signature's /Contents is never encrypted.
+            if (type == QPDFTokenizer::tt_string && !(keepContents && afterContents)) {
+                out += body.mid(copied, qsizetype(input.getLastOffset()) - copied);
+                out += '<' + apply(m_strings, QByteArray::fromStdString(token.getValue()), id, gen)
+                                 .toHex().toUpper() + '>';
+                copied = qsizetype(input.tell());
+            }
+            afterContents = type == QPDFTokenizer::tt_name && token.getValue() == "/Contents";
+        }
+        return out + body.mid(copied);
+    }
+
+    QByteArray stream(const QByteArray &data, int id, int gen) const
+    {
+        return apply(m_streams, data, id, gen);
+    }
+
+private:
+    QByteArray apply(QPDF::encryption_method_e method, const QByteArray &plain, int id, int gen) const
+    {
+        if (method == QPDF::e_none) return plain;
+        const bool aes = method != QPDF::e_rc4;
+        const std::string key = QPDF::compute_data_key(m_key, id, gen, aes, m_V, m_R);
+        const auto *keyData = reinterpret_cast<const unsigned char *>(key.data());
+        const std::shared_ptr<QPDFCryptoImpl> crypto = QPDFCryptoProvider::getImpl();
+
+        if (!aes) {
+            QByteArray out(plain.size(), Qt::Uninitialized);
+            crypto->RC4_init(keyData, int(key.size()));
+            crypto->RC4_process(reinterpret_cast<const unsigned char *>(plain.constData()),
+                                size_t(plain.size()), reinterpret_cast<unsigned char *>(out.data()));
+            crypto->RC4_finalize();
+            return out;
+        }
+
+        constexpr qsizetype block = QPDFCryptoImpl::rijndael_buf_size;
+        const qsizetype pad = block - plain.size() % block;
+        QByteArray padded = plain + QByteArray(pad, char(pad));
+        QByteArray out(block + padded.size(), Qt::Uninitialized);
+        auto *outData = reinterpret_cast<unsigned char *>(out.data());
+        crypto->provideRandomData(outData, size_t(block));
+        QByteArray chain = out.first(block);
+        crypto->rijndael_init(true, keyData, key.size(), true,
+                              reinterpret_cast<unsigned char *>(chain.data()));
+        for (qsizetype at = 0; at < padded.size(); at += block)
+            crypto->rijndael_process(reinterpret_cast<unsigned char *>(padded.data() + at),
+                                     outData + block + at);
+        crypto->rijndael_finalize();
+        return out;
+    }
+
+    std::string               m_key;
+    int                       m_V { 0 };
+    int                       m_R { 0 };
+    QPDF::encryption_method_e m_strings { QPDF::e_none };
+    QPDF::encryption_method_e m_streams { QPDF::e_none };
 };
 
 QByteArray num(qreal v)
@@ -187,10 +286,19 @@ std::pair<QByteArray, QByteArray> stampWrapper(QPDFPageObjectHelper page)
              QByteArray("Q ").repeated(saves + states.depth) };
 }
 
-QByteArray streamObject(const QByteArray &dictEntries, const QByteArray &content)
+Object streamObject(int id, const QByteArray &dictEntries, const QByteArray &content)
 {
-    return "<< " + dictEntries + " /Length " + QByteArray::number(content.size())
-         + " >>\nstream\n" + content + "\nendstream";
+    return { id, 0, "<< " + dictEntries + " >>", content };
+}
+
+QByteArray serialized(const Object &obj, const Encryption &encryption, bool keepContents)
+{
+    QByteArray body = encryption.strings(obj.body, obj.id, obj.gen, keepContents);
+    if (!obj.stream) return body;
+    const QByteArray data = encryption.stream(*obj.stream, obj.id, obj.gen);
+    body.chop(2);
+    return body + "/Length " + QByteArray::number(data.size()) + " >>\nstream\n" + data
+         + "\nendstream";
 }
 
 QByteArray deflated(const QByteArray &raw)
@@ -215,12 +323,12 @@ void imageObjects(const QImage &image, int imageId, int maskId, int sigId, QList
     const QByteArray size = "/Width " + QByteArray::number(img.width())
                           + " /Height " + QByteArray::number(img.height())
                           + " /BitsPerComponent 8 /Filter /FlateDecode";
-    objects << Object { imageId, 0, streamObject(
+    objects << streamObject(imageId,
         "/Type /XObject /Subtype /Image " + size + " /ColorSpace /DeviceRGB /SMask " + ref(maskId)
             + " /OPDFSignature " + ref(sigId),
-        deflated(rgb)) };
-    objects << Object { maskId, 0, streamObject(
-        "/Type /XObject /Subtype /Image " + size + " /ColorSpace /DeviceGray", deflated(alpha)) };
+        deflated(rgb));
+    objects << streamObject(maskId,
+        "/Type /XObject /Subtype /Image " + size + " /ColorSpace /DeviceGray", deflated(alpha));
 }
 
 QString freeFieldName(const QPDFObjectHandle &fields)
@@ -275,7 +383,8 @@ QByteArray xrefStreamEntries(const std::map<int, std::pair<qsizetype, int>> &off
 }
 #endif
 
-SignError PdfSignatureWriter::prepare(const QString &source, const Field &field, int contentsBytes)
+SignError PdfSignatureWriter::prepare(const QString &source, const Field &field, int contentsBytes,
+                                      const std::string &password)
 {
     m_data.clear();
     m_contentsAt = -1;
@@ -284,6 +393,7 @@ SignError PdfSignatureWriter::prepare(const QString &source, const Field &field,
     Q_UNUSED(source)
     Q_UNUSED(field)
     Q_UNUSED(contentsBytes)
+    Q_UNUSED(password)
     return SignError::NotAvailable;
 #else
     QFile file(source);
@@ -293,6 +403,7 @@ SignError PdfSignatureWriter::prepare(const QString &source, const Field &field,
     if (prevXref < 0 || data.size() > 0xFFFFFFFFLL) return SignError::ReadFailed;
 
     QList<Object> objects;
+    Encryption encryption;
     QByteArray trailerEntries;
     int size = 0;
     int sigId = 0;
@@ -301,8 +412,9 @@ SignError PdfSignatureWriter::prepare(const QString &source, const Field &field,
     try {
         QPDF pdf;
         pdf.setSuppressWarnings(true);
-        pdf.processMemoryFile("source", data.constData(), size_t(data.size()));
-        if (pdf.isEncrypted()) return SignError::Encrypted;
+        pdf.processMemoryFile("source", data.constData(), size_t(data.size()),
+                              password.empty() ? nullptr : password.c_str());
+        if (!encryption.load(pdf)) return SignError::Encrypted;
 
         const std::vector<QPDFPageObjectHelper> pages = QPDFPageDocumentHelper(pdf).getAllPages();
         if (pages.empty()) return SignError::ReadFailed;
@@ -335,7 +447,7 @@ SignError PdfSignatureWriter::prepare(const QString &source, const Field &field,
         if (!field.name.isEmpty())     sig += " /Name " + textString(field.name);
         if (!field.reason.isEmpty())   sig += " /Reason " + textString(field.reason);
         if (!field.location.isEmpty()) sig += " /Location " + textString(field.location);
-        objects << Object { sigId, 0, sig + " >>" };
+        objects << Object { sigId, 0, sig + " >>", std::nullopt };
 
         QRectF rect;
         QByteArray pageEntries;
@@ -350,20 +462,20 @@ SignError PdfSignatureWriter::prepare(const QString &source, const Field &field,
             // them, do not draw widget appearances. The widget itself stays
             // empty so viewers that do draw them do not show it twice.
             const QByteArray w = num(field.bounds.width()), h = num(field.bounds.height());
-            objects << Object { apId, 0, streamObject(
-                "/Type /XObject /Subtype /Form /BBox [0 0 " + w + ' ' + h + "] /Resources << >>", {}) };
-            objects << Object { stampId, 0, streamObject(
+            objects << streamObject(apId,
+                "/Type /XObject /Subtype /Form /BBox [0 0 " + w + ' ' + h + "] /Resources << >>", {});
+            objects << streamObject(stampId,
                 "/Type /XObject /Subtype /Form /BBox [0 0 " + w + ' ' + h + "] /Matrix "
                     + rotationMatrix(rotate) + " /Resources << /XObject << /Img " + ref(imageId) + " >> >>",
-                "q " + w + " 0 0 " + h + " 0 0 cm /Img Do Q") };
+                "q " + w + " 0 0 " + h + " 0 0 cm /Img Do Q");
             imageObjects(field.appearance, imageId, maskId, sigId, objects);
 
             const QByteArray name = "/OPDFSig" + QByteArray::number(sigId);
             const QPointF at = stampOffset(rect, field.bounds.size(), rotate);
             const auto [open, close] = stampWrapper(page);
-            objects << Object { openId, 0, streamObject({}, open) };
-            objects << Object { drawId, 0, streamObject({},
-                close + "q 1 0 0 1 " + num(at.x()) + ' ' + num(at.y()) + " cm " + name + " Do Q") };
+            objects << streamObject(openId, {}, open);
+            objects << streamObject(drawId, {},
+                close + "q 1 0 0 1 " + num(at.x()) + ' ' + num(at.y()) + " cm " + name + " Do Q");
 
             const QPDFObjectHandle resources = page.getAttribute("/Resources", false);
             const QPDFObjectHandle resourceCopy = resources.isDictionary()
@@ -386,7 +498,7 @@ SignError PdfSignatureWriter::prepare(const QString &source, const Field &field,
                         + " /Contents [" + ref(openId) + contents + ' ' + ref(drawId) + " ]";
             pageReplaced = { "/Resources", "/Contents" };
         } else {
-            objects << Object { apId, 0, streamObject("/Type /XObject /Subtype /Form /BBox [0 0 0 0] /Resources << >>", {}) };
+            objects << streamObject(apId, "/Type /XObject /Subtype /Form /BBox [0 0 0 0] /Resources << >>", {});
         }
 
         const QByteArray widgetRef = ref(widgetId);
@@ -399,10 +511,10 @@ SignError PdfSignatureWriter::prepare(const QString &source, const Field &field,
             + " /P " + unparsed(pageObj)
             + " /Rect [" + num(rect.left()) + ' ' + num(rect.top()) + ' '
             + num(rect.right()) + ' ' + num(rect.bottom()) + ']'
-            + " /AP << /N " + ref(apId) + " >> >>" };
+            + " /AP << /N " + ref(apId) + " >> >>", std::nullopt };
 
         auto rewrite = [&objects](const QPDFObjectHandle &obj, const QByteArray &body) {
-            objects << Object { obj.getObjectID(), obj.getGeneration(), body };
+            objects << Object { obj.getObjectID(), obj.getGeneration(), body, std::nullopt };
         };
 
         QPDFObjectHandle annots = pageObj.getKey("/Annots");
@@ -436,6 +548,8 @@ SignError PdfSignatureWriter::prepare(const QString &source, const Field &field,
         trailerEntries = "/Root " + unparsed(root);
         if (trailer.getKey("/Info").isIndirect())
             trailerEntries += " /Info " + unparsed(trailer.getKey("/Info"));
+        if (trailer.hasKey("/Encrypt"))
+            trailerEntries += " /Encrypt " + unparsed(trailer.getKey("/Encrypt"));
         trailerEntries += " /ID " + fileId(trailer, data)
                         + " /Prev " + QByteArray::number(prevXref);
         size = next;
@@ -448,11 +562,15 @@ SignError PdfSignatureWriter::prepare(const QString &source, const Field &field,
 
     std::map<int, std::pair<qsizetype, int>> offsets;
     qsizetype sigAt = -1;
-    for (const Object &obj : std::as_const(objects)) {
-        const QByteArray header = QByteArray::number(obj.id) + ' ' + QByteArray::number(obj.gen) + " obj\n";
-        offsets[obj.id] = { out.size(), obj.gen };
-        if (obj.id == sigId) sigAt = out.size() + header.size();
-        out += header + obj.body + "\nendobj\n";
+    try {
+        for (const Object &obj : std::as_const(objects)) {
+            const QByteArray header = QByteArray::number(obj.id) + ' ' + QByteArray::number(obj.gen) + " obj\n";
+            offsets[obj.id] = { out.size(), obj.gen };
+            if (obj.id == sigId) sigAt = out.size() + header.size();
+            out += header + serialized(obj, encryption, obj.id == sigId) + "\nendobj\n";
+        }
+    } catch (const std::exception &) {
+        return SignError::ReadFailed;
     }
 
     qsizetype xrefAt = out.size();
@@ -474,8 +592,10 @@ SignError PdfSignatureWriter::prepare(const QString &source, const Field &field,
         QByteArray index;
         const QByteArray entries = xrefStreamEntries(offsets, &index);
         out += QByteArray::number(xrefId) + " 0 obj\n"
-             + streamObject("/Type /XRef /Size " + QByteArray::number(size) + " /W [1 4 2] /Index ["
-                                + index + "] " + trailerEntries, entries)
+             + serialized(streamObject(xrefId, "/Type /XRef /Size " + QByteArray::number(size)
+                                           + " /W [1 4 2] /Index [" + index + "] " + trailerEntries,
+                                       entries),
+                          Encryption(), false)
              + "\nendobj\n";
     }
     out += "startxref\n" + QByteArray::number(xrefAt) + "\n%%EOF\n";

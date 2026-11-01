@@ -102,6 +102,15 @@ stay the original PDF objects and changed lines keep their text up to the
 first change in place. Whether an original object stays is decided by its
 characters, the same way the layout keeps them. A justified box spreads each
 line's room over its spaces in the same layout, so editor and file agree.
+Text turned by whole quarter turns, by its matrix or by /Rotate, is read in its
+own direction and opened as a box turned by `TextBoxProperties::rotationDeg`.
+It is typed in an upright window beside it (`EditOpener::windowSpot()`): the
+window is the box in a frame turned back about a pivot, and the preview draws
+the box twice, upright on white in the window and turned in place
+(`EditSession::turnAbout()`), which is also what closing writes.
+`EditController::takeBounds()` moves the pivot with the window, so moving or
+zooming it never moves the text; `EditCallout` draws the arrow to it. Its
+original objects are always set anew, never kept.
 PDFium's page writer is lossy: it drops Type3 text, character and word
 spacing, soft masks and every colour that is not DeviceRGB. So the page's own
 content is not taken from PDFium. `OriginalContent` (qpdf) counts the page's
@@ -283,7 +292,9 @@ journal: undo stack, change log, and snapshots in the session folder.
 4. Pending digital signatures are signed into the staging file. A save with
    no edits on top of the content file (only signing, a removed signature,
    nothing at all) copies its bytes unchanged, and so does a history snapshot,
-   so signatures already in the file stay valid.
+   so signatures already in the file stay valid. In an encrypted file the
+   update is encrypted with the file's own key, under the password it has
+   after step 3.
 5. `SafeWrite::commit()` replaces the target. If that fails, the target is
    untouched.
 6. The view reopens the saved file.
@@ -355,7 +366,11 @@ on startup.
   copy before opening, on a worker thread (`Importing`). The copy has no save
   target, so saving asks for a name.
 - **Export** (`engine/export/`): PDF with page selection through qpdf, DOCX
-  with layout detection, PNG or JPEG per page, and printing. `Exporting` and
+  and ODT with layout detection, PNG, JPEG, TIFF or WebP per page, plain
+  text from each page's text layer, Markdown and HTML (`MarkupExporter`, from
+  the same `DocxPage` content as DOCX, as flowing text), and printing. ODT takes
+  the same page content as DOCX (`DocxPage`) and writes it with `OdtExporter`.
+  A line's changes of font, size and colour travel as `ContentItem::runs`. `Exporting` and
   `Printing` read an `ExportCopy`, written by `writeRecoveryCopy()`, so unsaved
   changes are exported and printed like a save would write them; the formats
   run on a worker thread.
@@ -436,8 +451,8 @@ journal (`reportChange()`).
 ## Command line
 
 `cli/` runs modes without a window on the same engine and views as the
-application: `--export-pdf`, `--export-docx`, `--export-images`,
-`--import-pdf`, `--organize-save`, `--select-text`, `--apply-edit` and the
+application: `--export-pdf`, `--export-docx`, `--export-odt`, `--export-images`,
+`--export-txt`, `--export-md`, `--export-html`, `--import-pdf`, `--organize-save`, `--select-text`, `--apply-edit` and the
 `--shot-*` screenshots. They are the way to check a change without a display.
 
 ## Theme and language

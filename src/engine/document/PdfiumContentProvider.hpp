@@ -7,6 +7,8 @@
 
 #include "fpdfview.h"
 
+#include <QMap>
+
 class PdfiumPageSpace;
 
 class PdfiumContentProvider : public ContentProvider
@@ -24,8 +26,8 @@ protected:
 private:
     QList<ContentItem> buildPageItems(int page, bool mergeVertical);
 
-    QList<ContentCluster> collectWords(FPDF_TEXTPAGE tp, const PdfiumPageSpace &space,
-                                       bool uprightOnly) const;
+    QMap<int, QList<ContentCluster>> collectWords(FPDF_TEXTPAGE tp, const PdfiumPageSpace &space,
+                                                  bool byTurn) const;
 
     void collectAnnotations(FPDF_PAGE pg, const PdfiumPageSpace &space,
                             QList<ContentItem> *fields,

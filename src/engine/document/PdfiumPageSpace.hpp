@@ -59,14 +59,31 @@ public:
 
     int quarterTurns() const { return m_turns; }
 
-    bool upright(double charAngle) const
+    double shownAngle(double charAngle) const
     {
-        if (charAngle < 0.0) return true;
+        if (charAngle < 0.0) return 0.0;
         constexpr double kTurn = 6.283185307179586;
         // PDFium measures the angle clockwise, the way the page turns.
         double shown = std::fmod(charAngle + m_turns * kTurn / 4.0, kTurn);
         if (shown < 0.0) shown += kTurn;
+        return shown;
+    }
+
+    bool upright(double charAngle) const
+    {
+        constexpr double kTurn = 6.283185307179586;
+        const double shown = shownAngle(charAngle);
         return shown < 0.01 || shown > kTurn - 0.01;
+    }
+
+    // Degrees clockwise on the shown page, or -1 for text not turned by whole quarters.
+    int quarterTurn(double charAngle) const
+    {
+        constexpr double kQuarter = 1.5707963267948966;
+        const double quarters = shownAngle(charAngle) / kQuarter;
+        const double nearest = std::round(quarters);
+        if (std::abs(quarters - nearest) * kQuarter > 0.01) return -1;
+        return 90 * (int(nearest) % 4);
     }
 
 private:

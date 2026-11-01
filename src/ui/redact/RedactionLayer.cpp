@@ -6,6 +6,7 @@
 #include "app/PdfPwStore.hpp"
 #include "engine/redact/RedactionWriter.hpp"
 
+#include <QApplication>
 #include <QDataStream>
 #include <QDebug>
 #include <QFile>
@@ -23,6 +24,7 @@ namespace {
 constexpr int    kPad      = 5;
 constexpr int    kBadge    = 22;
 constexpr int    kGrip     = 6;
+constexpr int    kReach    = 40;
 constexpr qreal  kSmallest = 3.0;
 
 const QString kToolId = QStringLiteral("redact");
@@ -85,9 +87,26 @@ private:
     bool m_selected { false };
 };
 
+/// Hands mouse events of frames lying over the pages to the layer.
+class RedactionFramePointer : public QObject
+{
+public:
+    explicit RedactionFramePointer(RedactionLayer *layer) : QObject(layer), m_layer(layer) {}
+
+protected:
+    bool eventFilter(QObject *watched, QEvent *event) override
+    {
+        return m_layer->handleFrameMouse(watched, event);
+    }
+
+private:
+    RedactionLayer *m_layer;
+};
+
 RedactionLayer::RedactionLayer(DocumentView *view, QObject *parent)
     : QObject(parent)
     , m_view(view)
+    , m_framePointer(new RedactionFramePointer(this))
 {
     if (QWidget *canvas = m_view ? m_view->canvasWidget() : nullptr) canvas->installEventFilter(this);
     if (m_view) m_view->installEventFilter(this);
@@ -112,6 +131,9 @@ void RedactionLayer::setActiveTool(const QString &toolId)
 {
     m_active = (toolId == kToolId);
     QWidget *canvas = m_view ? m_view->canvasWidget() : nullptr;
+    // Links and other frames on the page take the pointer first; while redacting, the drawing does.
+    if (m_active) qApp->installEventFilter(m_framePointer);
+    else          qApp->removeEventFilter(m_framePointer);
     if (m_active) {
         if (canvas) {
             canvas->setMouseTracking(true);
@@ -214,6 +236,27 @@ bool RedactionLayer::eventFilter(QObject *watched, QEvent *event)
     return false;
 }
 
+bool RedactionLayer::handleFrameMouse(QObject *watched, QEvent *event)
+{
+    if (!m_active || !shown()) return false;
+    QWidget *canvas = m_view ? m_view->canvasWidget() : nullptr;
+    auto *child = qobject_cast<QWidget *>(watched);
+    if (!canvas || !child || child == canvas || !canvas->isAncestorOf(child)) return false;
+    switch (event->type()) {
+    case QEvent::MouseButtonPress:
+    case QEvent::MouseMove:
+    case QEvent::MouseButtonRelease:
+    case QEvent::MouseButtonDblClick: {
+        auto *mouse = static_cast<QMouseEvent *>(event);
+        QMouseEvent onCanvas(mouse->type(), child->mapTo(canvas, mouse->position()), mouse->globalPosition(),
+                             mouse->button(), mouse->buttons(), mouse->modifiers());
+        return handleMouse(&onCanvas);
+    }
+    default:
+        return false;
+    }
+}
+
 bool RedactionLayer::handleKey(QEvent *event)
 {
     if (event->type() != QEvent::KeyPress && event->type() != QEvent::ShortcutOverride) return false;
@@ -244,19 +287,23 @@ bool RedactionLayer::handleMouse(QEvent *event)
             m_pressRect = m_regions.at(m_selected).rect;
             return true;
         }
-        if (const int index = regionAt(pos); index >= 0) {
-            select(index);
+        m_clicked = regionAt(pos);
+        if (m_clicked >= 0 && m_clicked == m_selected) {
             m_drag       = Drag::Move;
-            m_pressRect  = m_regions.at(index).rect;
-            m_pressPoint = toPage(m_regions.at(index).page, QRectF(pos, QSizeF())).topLeft();
+            m_pressRect  = m_regions.at(m_selected).rect;
+            m_pressPoint = toPage(m_regions.at(m_selected).page, QRectF(pos, QSizeF())).topLeft();
             return true;
         }
-        const int page = m_view->pageAtCanvasPos(pos).first;
+        // Dragging always draws a new area, also over another one; a click selects that one.
+        const int page = pageNear(pos);
         if (page < 0) {
             select(-1);
             return true;
         }
-        m_pressPoint = toPage(page, QRectF(pos, QSizeF())).topLeft();
+        const QRectF bounds = pageRect(page);
+        const QPointF point = toPage(page, QRectF(pos, QSizeF())).topLeft();
+        m_pressPoint = QPointF(qBound(bounds.left(), point.x(), bounds.right()),
+                               qBound(bounds.top(), point.y(), bounds.bottom()));
         m_regions.append({ page, QRectF(m_pressPoint, QSizeF()) });
         m_selected = int(m_regions.size()) - 1;
         m_drag     = Drag::Create;
@@ -300,9 +347,11 @@ bool RedactionLayer::handleMouse(QEvent *event)
             const Region region = m_regions.at(m_selected);
             if (drag == Drag::Create && (region.rect.width() < kSmallest || region.rect.height() < kSmallest)) {
                 m_regions.removeAt(m_selected);
-                m_selected = -1;
+                m_selected = m_clicked;
                 rebuildMarks();
             } else if (drag == Drag::Create) {
+                m_selected = -1;
+                relayout();
                 reportChange(tr("Redaction area added"), region.page);
             } else if (region.rect != m_pressRect) {
                 reportChange(drag == Drag::Move ? tr("Redaction area moved")
@@ -326,7 +375,8 @@ void RedactionLayer::updateCursor(const QPoint &pos)
     const int corner = handleAt(pos);
     if (corner == 0 || corner == 3)  canvas->setCursor(Qt::SizeFDiagCursor);
     else if (corner >= 0)            canvas->setCursor(Qt::SizeBDiagCursor);
-    else if (regionAt(pos) >= 0)     canvas->setCursor(Qt::SizeAllCursor);
+    else if (m_selected >= 0 && regionAt(pos) == m_selected)
+                                     canvas->setCursor(Qt::SizeAllCursor);
     else                             canvas->setCursor(Qt::CrossCursor);
 }
 
@@ -347,6 +397,25 @@ int RedactionLayer::handleAt(const QPoint &pos) const
         if (std::abs(pos.x() - corners[i].x()) <= kGrip && std::abs(pos.y() - corners[i].y()) <= kGrip)
             return i;
     return -1;
+}
+
+int RedactionLayer::pageNear(const QPoint &pos) const
+{
+    if (const int page = m_view->pageAtCanvasPos(pos).first; page >= 0) return page;
+    int nearest = -1;
+    int distance = kReach + 1;
+    for (int i = 0; i < m_view->pageCount(); ++i) {
+        const QLabel *label = m_view->pageLabel(i);
+        if (!label) continue;
+        const QRect r = label->geometry();
+        const int dx = std::max({ r.left() - pos.x(), pos.x() - r.right(), 0 });
+        const int dy = std::max({ r.top() - pos.y(), pos.y() - r.bottom(), 0 });
+        if (std::max(dx, dy) < distance) {
+            distance = std::max(dx, dy);
+            nearest  = i;
+        }
+    }
+    return nearest;
 }
 
 QRect RedactionLayer::toCanvas(const Region &region) const

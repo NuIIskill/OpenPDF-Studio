@@ -8,6 +8,7 @@
 #include <QRectF>
 
 class DocumentView;
+class RedactionFramePointer;
 class RedactionMark;
 
 /// The areas marked for redaction: a change of the document like any other, carried out when it is saved.
@@ -38,13 +39,16 @@ protected:
     bool eventFilter(QObject *watched, QEvent *event) override;
 
 private:
+    friend class RedactionFramePointer;
     enum class Drag { None, Create, Move, Resize };
 
     bool handleMouse(QEvent *event);
     bool handleKey(QEvent *event);
+    bool handleFrameMouse(QObject *watched, QEvent *event);
     void updateCursor(const QPoint &pos);
     int  regionAt(const QPoint &pos) const;
     int  handleAt(const QPoint &pos) const;
+    int  pageNear(const QPoint &pos) const;
     QRect  toCanvas(const Region &region) const;
     QRectF toPage(int page, const QRectF &canvasRect) const;
     QRectF pageRect(int page) const;
@@ -58,6 +62,7 @@ private:
     void activate(int index);
 
     DocumentView                 *m_view { nullptr };
+    RedactionFramePointer        *m_framePointer { nullptr };
     QString                       m_documentPath;
     QList<Region>                 m_regions;
     QList<QPointer<RedactionMark>> m_marks;
@@ -66,6 +71,7 @@ private:
 
     Drag    m_drag { Drag::None };
     int     m_corner { -1 };
+    int     m_clicked { -1 };
     QPointF m_pressPoint;
     QRectF  m_pressRect;
 };

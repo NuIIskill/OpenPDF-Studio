@@ -12,6 +12,7 @@ namespace Cli {
 int exportPdfCommand(const QStringList &args);
 int exportDocxCommand(const QStringList &args);
 int exportImagesCommand(const QStringList &args);
+int exportTextCommand(const QStringList &args);
 int importPdfCommand(const QStringList &args);
 
 int selectTextCommand(const QStringList &args);

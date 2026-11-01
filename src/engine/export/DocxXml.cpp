@@ -27,18 +27,34 @@ bool encodePng(const QImage &image, QByteArray *out)
     return !image.isNull() && image.save(&buffer, "PNG");
 }
 
+bool hasTransparency(const QImage &image)
+{
+    if (!image.hasAlphaChannel()) return false;
+    const QImage argb = image.convertToFormat(QImage::Format_ARGB32);
+    for (int y = 0; y < argb.height(); ++y) {
+        const QRgb *row = reinterpret_cast<const QRgb *>(argb.constScanLine(y));
+        for (int x = 0; x < argb.width(); ++x)
+            if (qAlpha(row[x]) < 255) return true;
+    }
+    return false;
+}
+
 DocxImage encodePicture(const QImage &image, const DocxExportOptions &opt)
 {
     if (image.isNull()) return {};
+    // An alpha channel nothing shows through only adds a mask to the file.
+    const bool seeThrough = hasTransparency(image);
+    const QImage source = seeThrough || !image.hasAlphaChannel()
+                              ? image : image.convertToFormat(QImage::Format_RGB32);
 
-    const double factor = opt.imageQuality >= 95 ? 1.25
+    const double factor = !opt.compressImages    ? 1.0
                         : opt.imageQuality >= 80 ? 1.0
                         : opt.imageQuality >= 55 ? 0.75 : 0.5;
-    QImage scaled = image;
+    QImage scaled = source;
     if (!qFuzzyCompare(factor, 1.0)) {
-        const QSize target(qMax(1, qRound(image.width()  * factor)),
-                           qMax(1, qRound(image.height() * factor)));
-        scaled = image.scaled(target, Qt::IgnoreAspectRatio,
+        const QSize target(qMax(1, qRound(source.width()  * factor)),
+                           qMax(1, qRound(source.height() * factor)));
+        scaled = source.scaled(target, Qt::IgnoreAspectRatio,
                               Qt::SmoothTransformation);
     }
 
@@ -47,7 +63,8 @@ DocxImage encodePicture(const QImage &image, const DocxExportOptions &opt)
     pngBuffer.open(QIODevice::WriteOnly);
     if (!scaled.save(&pngBuffer, "PNG")) return {};
 
-    if (opt.compressImages) {
+    // A picture with see-through parts keeps them, which JPEG cannot.
+    if (opt.compressImages && !seeThrough) {
 
         QImage opaque(scaled.size(), QImage::Format_RGB32);
         opaque.fill(Qt::white);
@@ -150,6 +167,7 @@ QString textRuns(const ContentItem &item)
         x += QStringLiteral("<w:r><w:rPr><w:rFonts w:ascii=\"")
              + xmlEsc(family)
              + QStringLiteral("\" w:hAnsi=\"") + xmlEsc(family)
+             + QStringLiteral("\" w:eastAsia=\"") + xmlEsc(family)
              + QStringLiteral("\"/>");
         if (item.bold)   x += QStringLiteral("<w:b/>");
         if (item.italic) x += QStringLiteral("<w:i/>");
@@ -186,21 +204,126 @@ QString semanticParagraph(const ContentItem &item, int beforeTwips,
          + semanticTextRuns(item) + QStringLiteral("</w:p>");
 }
 
-QString paragraphText(const QList<ContentItem> &lines)
+bool sameLook(const ContentItem &a, const ContentItem &b)
 {
-    QString out;
-    for (const ContentItem &line : lines) {
+    return a.fontFamily == b.fontFamily && a.bold == b.bold && a.italic == b.italic
+        && qAbs(a.fontSizePt - b.fontSizePt) < 0.1 && a.textColor == b.textColor;
+}
+
+/// The line's text cut where its look changes; a space between two words goes
+/// with the word before it.
+QList<Span> lineSpans(const ContentItem &line)
+{
+    const auto look = [&line](const ContentRun *run) {
+        ContentItem style = line;
+        style.runs.clear();
+        if (run) {
+            style.fontFamily = run->fontFamily;
+            style.bold       = run->bold;
+            style.italic     = run->italic;
+            style.fontSizePt = run->fontSizePt;
+            style.textColor  = run->textColor;
+        }
+        return style;
+    };
+    if (line.runs.isEmpty()) return { { line.text, look(nullptr) } };
+
+    QList<Span> spans;
+    const int size = int(line.text.size());
+    for (int r = 0; r < line.runs.size(); ++r) {
+        const int start = r == 0 ? 0 : qBound(0, line.runs[r].start, size);
+        const int end   = r + 1 < line.runs.size()
+                              ? qBound(start, line.runs[r + 1].start, size) : size;
+        QString text = line.text.mid(start, end - start);
+        // Text set apart by its position is reached with a tab, not a space.
+        if (r > 0 && line.runs[r].apart) {
+            while (!spans.isEmpty() && spans.last().text.endsWith(u' ')) spans.last().text.chop(1);
+            text.prepend(u'\t');
+        }
+        spans.append({ text, look(&line.runs[r]) });
+    }
+    return spans;
+}
+
+QList<Span> paragraphSpans(const DocxBlock &block)
+{
+    double right = 0.0;
+    for (const ContentItem &line : block.lines) right = qMax(right, line.bounds.right());
+
+    QList<Span> out;
+    const auto add = [&out](const QString &text, const ContentItem &style) {
+        if (text.isEmpty()) return;
+        if (!out.isEmpty() && sameLook(out.last().style, style)) out.last().text += text;
+        else out.append({ text, style });
+    };
+
+    // A line that ends although the next line's first word would still have
+    // fitted was broken on purpose, and keeps its break.
+    const ContentItem *before = nullptr;
+    for (qsizetype i = 0; i < block.lines.size(); ++i) {
+        const ContentItem &line = block.lines[i];
         const QString t = withoutSymbolFont(line.text).trimmed();
         if (t.isEmpty()) continue;
-        if (out.isEmpty()) { out = t; continue; }
-        if (out.endsWith(u'-') && t.at(0).isLower()) {
-            out.chop(1);
-            out += t;
-        } else {
-            out += u' ' + t;
+        if (before) {
+            // Where the word would still fit in the width the paragraph is given,
+            // a word processor would pull it up, so the break has to be kept.
+            // Estimated rather than measured, the word is given a tenth more.
+            const double measured = block.leadWordPt.value(i, -1.0);
+            const double perChar = line.bounds.width() / qMax<qsizetype>(1, t.size());
+            const double nextWord = measured > 0.0
+                ? measured : (t.section(u' ', 0, 0).size() + 1) * perChar * 1.1 + 1.0;
+            if (before->bounds.right() + nextWord <= right + block.slackPt) {
+                add(QStringLiteral("\n"), out.last().style);
+            } else if (out.last().text.endsWith(u'-') && t.at(0).isLower()) {
+                out.last().text.chop(1);
+                if (out.last().text.isEmpty()) out.removeLast();
+            } else {
+                add(QStringLiteral(" "), out.last().style);
+            }
         }
+        QList<Span> spans = lineSpans(line);
+        for (Span &span : spans) span.text = withoutSymbolFont(span.text);
+        while (!spans.isEmpty() && spans.first().text.trimmed().isEmpty()) spans.removeFirst();
+        while (!spans.isEmpty() && spans.last().text.trimmed().isEmpty()) spans.removeLast();
+        if (spans.isEmpty()) continue;
+        while (spans.first().text.front().isSpace()) spans.first().text.remove(0, 1);
+        while (spans.last().text.back().isSpace()) spans.last().text.chop(1);
+        for (const Span &span : spans) add(span.text, span.style);
+        before = &line;
     }
+
+    // A list marker and its text are set apart by a tab, unless the marker's
+    // gap was already one.
+    const bool tabbed = std::any_of(out.cbegin(), out.cend(), [](const Span &span) {
+        return span.text.contains(u'\t');
+    });
+    if (block.hangingPt > 0.0 && !tabbed)
+        for (Span &span : out)
+            if (const qsizetype space = span.text.indexOf(u' '); space >= 0) {
+                span.text[space] = u'\t';
+                break;
+            }
     return out;
+}
+
+/// Where the tabs of text set apart by position stop, from the paragraph's start.
+QList<double> tabStops(const DocxBlock &block)
+{
+    QList<double> stops;
+    for (const ContentItem &line : block.lines)
+        for (const ContentRun &run : line.runs)
+            if (run.apart) stops.append(qMax(0.0, run.x - block.bounds.left()));
+    std::sort(stops.begin(), stops.end());
+    return stops;
+}
+
+QString paragraphText(const QList<ContentItem> &lines)
+{
+    DocxBlock block;
+    block.lines = lines;
+    QString text;
+    for (const Span &span : paragraphSpans(block)) text += span.text;
+    return text;
 }
 
 QString runProperties(const ContentItem &style)
@@ -211,6 +334,7 @@ QString runProperties(const ContentItem &style)
                                                             : 10.0) * 2.0));
     QString x = QStringLiteral("<w:rPr><w:rFonts w:ascii=\"") + xmlEsc(family)
               + QStringLiteral("\" w:hAnsi=\"") + xmlEsc(family)
+              + QStringLiteral("\" w:eastAsia=\"") + xmlEsc(family)
               + QStringLiteral("\" w:cs=\"") + xmlEsc(family) + QStringLiteral("\"/>");
     if (style.bold)   x += QStringLiteral("<w:b/>");
     if (style.italic) x += QStringLiteral("<w:i/>");
@@ -243,6 +367,17 @@ int linePitchTwips(const DocxBlock &block)
     return qRound(qMax(pitch, fontSizeOf_(first) * 1.05) * 20.0);
 }
 
+/// Where a block starts in the flow. Word and LibreOffice seat the baseline of
+/// a line with a fixed height at four fifths of it, so a paragraph starts that
+/// far above its first baseline, wherever its ink begins.
+double flowTop(const DocxBlock &block)
+{
+    if (block.kind != DocxBlock::Kind::Paragraph || block.lines.isEmpty()
+            || block.lines.first().textOrigin.y() <= 0.0)
+        return block.bounds.top();
+    return block.lines.first().textOrigin.y() - linePitchTwips(block) / 20.0 * 0.8;
+}
+
 QString paragraphXml(const DocxBlock &block, double spaceBeforePt,
                             bool insideCell)
 {
@@ -263,20 +398,57 @@ QString paragraphXml(const DocxBlock &block, double spaceBeforePt,
               + QStringLiteral("\" w:after=\"0\" w:line=\"")
               + QString::number(linePitchTwips(block))
               + QStringLiteral("\" w:lineRule=\"exact\"/>");
-    if (!insideCell && block.indentPt > 1.0)
-        x += QStringLiteral("<w:ind w:left=\"") + twips(block.indentPt)
-           + QStringLiteral("\"/>");
+    const double left = (insideCell ? 0.0 : block.indentPt) + block.hangingPt;
+    QList<double> stops;
+    if (block.hangingPt > 0.0) stops.append(left);
+    for (double stop : tabStops(block))
+        stops.append((insideCell ? 0.0 : block.indentPt) + stop);
+    if (!stops.isEmpty()) {
+        x += QStringLiteral("<w:tabs>");
+        for (double stop : std::as_const(stops))
+            x += QStringLiteral("<w:tab w:val=\"left\" w:pos=\"") + twips(stop)
+               + QStringLiteral("\"/>");
+        x += QStringLiteral("</w:tabs>");
+    }
+    if (left > 1.0 || (!insideCell && block.rightIndentPt > 0.0)) {
+        x += QStringLiteral("<w:ind");
+        if (left > 1.0)
+            x += QStringLiteral(" w:left=\"") + twips(left) + u'"';
+        if (block.hangingPt > 0.0)
+            x += QStringLiteral(" w:hanging=\"") + twips(block.hangingPt) + u'"';
+        if (!insideCell && block.rightIndentPt > 0.0)
+            x += QStringLiteral(" w:right=\"") + twips(block.rightIndentPt) + u'"';
+        x += QStringLiteral("/>");
+    }
     x += QStringLiteral("<w:jc w:val=\"") + alignValue(block.align)
        + QStringLiteral("\"/>");
 
     if (style.bgColor.isValid() && style.bgColor != QColor(Qt::white))
         x += QStringLiteral("<w:shd w:val=\"clear\" w:color=\"auto\" w:fill=\"")
            + colorHex(style.bgColor) + QStringLiteral("\"/>");
-    x += QStringLiteral("</w:pPr><w:r>") + runProperties(style)
-       + QStringLiteral("<w:t xml:space=\"preserve\">")
-       + xmlEsc(paragraphText(block.lines))
-       + QStringLiteral("</w:t></w:r></w:p>");
+    x += QStringLiteral("</w:pPr>");
+    for (const Span &span : paragraphSpans(block))
+        x += QStringLiteral("<w:r>") + runProperties(span.style)
+           + QStringLiteral("<w:t xml:space=\"preserve\">")
+           + xmlEsc(span.text)
+                 .replace(u'\t', QStringLiteral("</w:t><w:tab/><w:t xml:space=\"preserve\">"))
+                 .replace(u'\n', QStringLiteral("</w:t><w:br/><w:t xml:space=\"preserve\">"))
+           + QStringLiteral("</w:t></w:r>");
+    x += QStringLiteral("</w:p>");
     return x;
+}
+
+/// The space above a cell's text that seats its baseline where it was, or a
+/// negative value for a cell without a known baseline, which is centred.
+double cellLead(const DocxBlock &table, int row, const ContentItem &item)
+{
+    if (item.textOrigin.y() <= 0.0) return -1.0;
+    double top = table.bounds.top();
+    for (int r = 0; r < row && r < table.table.rowHeightsPt.size(); ++r)
+        top += table.table.rowHeightsPt[r];
+    DocxBlock line;
+    line.lines = { item };
+    return qMax(0.0, item.textOrigin.y() - top - linePitchTwips(line) / 20.0 * 0.8);
 }
 
 QString tableXml(const DocxBlock &block)
@@ -290,26 +462,34 @@ QString tableXml(const DocxBlock &block)
 
     QString x = QStringLiteral("<w:tbl><w:tblPr><w:tblW w:w=\"") + twips(total)
               + QStringLiteral("\" w:type=\"dxa\"/>");
-    if (t.indentPt > 1.0)
-        x += QStringLiteral("<w:tblInd w:w=\"") + twips(t.indentPt)
-           + QStringLiteral("\" w:type=\"dxa\"/>");
+    // The rules between rows count into their height, and half a rule lies
+    // between a cell's edge and its margin; the layout measured to rule centres.
+    const double rule  = t.hasBorders ? t.ruleInnerPt : 0.0;
+    const double frame = t.hasBorders ? t.ruleOuterPt : 0.0;
+    x += QStringLiteral("<w:tblInd w:w=\"") + twips(t.indentPt)
+       + QStringLiteral("\" w:type=\"dxa\"/>");
 
     x += QStringLiteral("<w:tblLayout w:type=\"fixed\"/>"
                         "<w:tblCellMar>"
                         "<w:top w:w=\"0\" w:type=\"dxa\"/>"
-                        "<w:left w:w=\"58\" w:type=\"dxa\"/>"
+                        "<w:left w:w=\"%1\" w:type=\"dxa\"/>"
                         "<w:bottom w:w=\"0\" w:type=\"dxa\"/>"
-                        "<w:right w:w=\"58\" w:type=\"dxa\"/>"
-                        "</w:tblCellMar>");
-    if (t.hasBorders)
-        x += QStringLiteral("<w:tblBorders>"
-                            "<w:top w:val=\"single\" w:sz=\"4\" w:color=\"BFBFBF\"/>"
-                            "<w:left w:val=\"single\" w:sz=\"4\" w:color=\"BFBFBF\"/>"
-                            "<w:bottom w:val=\"single\" w:sz=\"4\" w:color=\"BFBFBF\"/>"
-                            "<w:right w:val=\"single\" w:sz=\"4\" w:color=\"BFBFBF\"/>"
-                            "<w:insideH w:val=\"single\" w:sz=\"4\" w:color=\"BFBFBF\"/>"
-                            "<w:insideV w:val=\"single\" w:sz=\"4\" w:color=\"BFBFBF\"/>"
-                            "</w:tblBorders>");
+                        "<w:right w:w=\"%2\" w:type=\"dxa\"/>"
+                        "</w:tblCellMar>")
+             .arg(twips(qMax(0.0, t.padLeftPt - frame / 2.0)),
+                  twips(qMax(0.0, t.padRightPt - frame / 2.0)));
+    if (t.hasBorders) {
+        // Word gives a rule's weight in eighths of a point.
+        const auto side = [&t](const char *name, double widthPt) {
+            return QStringLiteral("<w:%1 w:val=\"single\" w:sz=\"%2\" w:color=\"%3\"/>")
+                .arg(QLatin1String(name)).arg(qBound(2, qRound(widthPt * 8.0), 96))
+                .arg(colorHex(t.ruleColor));
+        };
+        x += QStringLiteral("<w:tblBorders>") + side("top", t.ruleOuterPt)
+           + side("left", t.ruleOuterPt) + side("bottom", t.ruleOuterPt)
+           + side("right", t.ruleOuterPt) + side("insideH", t.ruleInnerPt)
+           + side("insideV", t.ruleInnerPt) + QStringLiteral("</w:tblBorders>");
+    }
     x += QStringLiteral("</w:tblPr><w:tblGrid>");
     for (double w : t.colWidthsPt)
         x += QStringLiteral("<w:gridCol w:w=\"") + twips(w) + QStringLiteral("\"/>");
@@ -319,7 +499,7 @@ QString tableXml(const DocxBlock &block)
         x += QStringLiteral("<w:tr>");
         if (r < t.rowHeightsPt.size())
             x += QStringLiteral("<w:trPr><w:trHeight w:val=\"")
-               + twips(t.rowHeightsPt[r])
+               + twips(qMax(1.0, t.rowHeightsPt[r] - rule))
                + QStringLiteral("\" w:hRule=\"atLeast\"/></w:trPr>");
         int col = 0;
         while (col < cols) {
@@ -340,14 +520,16 @@ QString tableXml(const DocxBlock &block)
                     && cell->shading != QColor(Qt::white))
                 x += QStringLiteral("<w:shd w:val=\"clear\" w:color=\"auto\" w:fill=\"")
                    + colorHex(cell->shading) + QStringLiteral("\"/>");
-            x += QStringLiteral("<w:vAlign w:val=\"center\"/></w:tcPr>");
+            const double lead = cell ? cellLead(block, r, cell->item) : -1.0;
+            x += lead >= 0.0 ? QStringLiteral("<w:vAlign w:val=\"top\"/></w:tcPr>")
+                             : QStringLiteral("<w:vAlign w:val=\"center\"/></w:tcPr>");
 
             if (cell && !cell->item.text.trimmed().isEmpty()) {
                 DocxBlock cellPara;
                 cellPara.kind  = DocxBlock::Kind::Paragraph;
                 cellPara.lines = { cell->item };
                 cellPara.align = cell->align;
-                x += paragraphXml(cellPara, 0.0, true);
+                x += paragraphXml(cellPara, qMax(0.0, lead), true);
             } else {
                 x += QStringLiteral("<w:p><w:pPr><w:spacing w:before=\"0\" "
                                     "w:after=\"0\"/></w:pPr></w:p>");
@@ -422,14 +604,27 @@ QString shapeXml(const DocxBlock &block, int id)
     return x;
 }
 
+/// A text box sets its lines at a fixed height and is placed so that the first
+/// baseline and the text's start land where they were; without a known origin
+/// it takes the fallback's corner.
+QRectF textBoxRect(const ContentItem &item, const QRectF &fallback, double *lineHeightPt)
+{
+    const double fontPt = item.fontSizePt > 0.0 ? item.fontSizePt : 10.0;
+    const double line   = qRound(fontPt * 1.2 * 20.0) / 20.0;
+    if (lineHeightPt) *lineHeightPt = line;
+    const bool origin = item.textOrigin.x() > 0.0 && item.textOrigin.y() > 0.0;
+    const double left = origin ? item.textOrigin.x() : fallback.left();
+    const double top  = origin ? item.textOrigin.y() - line * 0.8 : fallback.top();
+    const double width = qMax(2.0, fallback.right() - left + qMax(2.0, fontPt * 0.35));
+    return QRectF(left, top, width, line * (item.text.count(u'\n') + 1));
+}
+
 QString textBoxXml(const DocxBlock &block, int id)
 {
     if (block.lines.isEmpty()) return {};
     const ContentItem &item = block.lines.first();
-    const double fontPt = item.fontSizePt > 0.0 ? item.fontSizePt : 10.0;
-    const double width  = qMax(2.0, block.bounds.width() + qMax(2.0, fontPt * 0.35));
-    const double height = qMax(block.bounds.height() + qMax(2.0, fontPt * 0.25),
-                               fontPt * 1.22);
+    double line = 0.0;
+    const QRectF box = textBoxRect(item, block.bounds, &line);
     return QStringLiteral(
         "<w:r><w:pict><v:rect id=\"pdfGraphicText%1\" "
         "style=\"position:absolute;left:0;top:0;width:%2pt;height:%3pt;"
@@ -438,15 +633,15 @@ QString textBoxXml(const DocxBlock &block, int id)
         "mso-position-vertical-relative:page;mso-wrap-style:none;z-index:2\" "
         "filled=\"f\" stroked=\"f\"><v:stroke on=\"f\"/>"
         "<v:textbox inset=\"0,0,0,0\"><w:txbxContent>"
-        "<w:p><w:pPr><w:spacing w:before=\"0\" w:after=\"0\"/>"
-        "<w:jc w:val=\"%6\"/></w:pPr>%7</w:p>"
+        "<w:p><w:pPr><w:spacing w:before=\"0\" w:after=\"0\" w:line=\"%8\" "
+        "w:lineRule=\"exact\"/><w:jc w:val=\"%6\"/></w:pPr>%7</w:p>"
         "</w:txbxContent></v:textbox></v:rect></w:pict></w:r>")
         .arg(id)
-        .arg(width, 0, 'f', 2)
-        .arg(height, 0, 'f', 2)
-        .arg(block.bounds.left(), 0, 'f', 2)
-        .arg(block.bounds.top(), 0, 'f', 2)
-        .arg(alignValue(block.align), textRuns(item));
+        .arg(box.width(), 0, 'f', 2)
+        .arg(box.height(), 0, 'f', 2)
+        .arg(box.left(), 0, 'f', 2)
+        .arg(box.top(), 0, 'f', 2)
+        .arg(alignValue(block.align), textRuns(item), twips(line));
 }
 
 }

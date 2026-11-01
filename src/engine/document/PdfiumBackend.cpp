@@ -22,6 +22,7 @@
 
 #include <QDebug>
 #include <QHash>
+#include <QtMath>
 
 #include <algorithm>
 #include <cmath>
@@ -418,6 +419,7 @@ struct PdfiumChar {
     double trackGap { 0.0 };
     bool   generated { false };
     bool   turned { false };
+    int    turn { 0 };
     int    row { 0 };
     double written { 0.0 };
     bool   ligated { false };
@@ -433,7 +435,8 @@ struct PdfiumLine {
     QList<bool>   objectStart;
     double  endX { 0.0 };
     const void *lastObject { nullptr };
-    bool    turned { false };
+    int     turn { 0 };
+    QRectF  shown;
 
     void append(const PdfiumChar &c)
     {
@@ -504,7 +507,7 @@ void joinRaisedCharacters(std::vector<PdfiumChar> &chars)
         for (const size_t j : { i - 1, i + 1 }) {
             if (j >= chars.size()) continue;
             const PdfiumChar &n = chars[j];
-            if (n.ch.at(0).isSpace() || n.turned != c.turned) continue;
+            if (n.ch.at(0).isSpace() || n.turned != c.turned || n.turn != c.turn) continue;
             const double gap = qMax(c.box.left() - n.box.right(), n.box.left() - c.box.right());
             const bool sameRun = std::abs(written[j] - written[i]) < 0.5
                               && n.baseline != written[j];
@@ -540,19 +543,23 @@ void sortIntoRows(std::vector<PdfiumChar> &chars)
     std::vector<size_t> order(chars.size());
     for (size_t i = 0; i < order.size(); ++i) order[i] = i;
     std::sort(order.begin(), order.end(), [&](size_t a, size_t b) {
+        if (chars[a].turn != chars[b].turn) return chars[a].turn < chars[b].turn;
         if (chars[a].baseline != chars[b].baseline) return chars[a].baseline < chars[b].baseline;
         return chars[a].index < chars[b].index;
     });
     int row = -1;
     double start = 0.0;
     bool turned = false;
+    int turn = 0;
     for (const size_t k : order) {
         PdfiumChar &c = chars[k];
         const double size = c.fontSize > 0.0 ? c.fontSize : c.box.height();
-        if (row < 0 || c.turned != turned || c.baseline - start > qMax(2.0, size * 0.3)) {
+        if (row < 0 || c.turned != turned || c.turn != turn
+                || c.baseline - start > qMax(2.0, size * 0.3)) {
             ++row;
             start = c.baseline;
             turned = c.turned;
+            turn = c.turn;
         }
         c.row = row;
     }
@@ -563,13 +570,14 @@ void sortIntoRows(std::vector<PdfiumChar> &chars)
     });
 }
 
-int anchorIndex(const std::vector<PdfiumChar> &chars, const QPointF &pt)
+int anchorIndex(const std::vector<PdfiumChar> &chars, const QPointF &at)
 {
     if (chars.empty()) return -1;
     int    best     = -1;
     double bestDist = std::numeric_limits<double>::max();
     for (size_t i = 0; i < chars.size(); ++i) {
         const QRectF &b = chars[i].box;
+        const QPointF pt = chars[i].turn ? QTransform().rotate(-chars[i].turn).map(at) : at;
         const double dy = qMax(0.0, qMax(b.top()  - pt.y(), pt.y() - b.bottom()));
         const double dx = qMax(0.0, qMax(b.left() - pt.x(), pt.x() - b.right()));
         const double d  = dy * 8.0 + dx;
@@ -654,8 +662,16 @@ std::vector<PdfiumLine> PdfiumBackend::linesOfPage(int page,
         double originX = 0, originY = 0;
         FPDFText_GetCharOrigin(tp, i, &originX, &originY);
 
-        QRectF box = space.toView(left, bottom, right, top);
-        const QPointF origin = space.toView(originX, originY);
+        // Text turned by quarter turns is read in its own direction: it is set
+        // into lines turned upright and turned back onto the page afterwards.
+        // A slant, as of sheared italics, keeps the page's direction.
+        const double angle = FPDFText_GetCharAngle(tp, i);
+        const bool turned = !space.upright(angle);
+        const int turn = turned ? 90 * (int(std::lround(space.shownAngle(angle) / (M_PI / 2))) % 4)
+                                : 0;
+        const QTransform unturn = QTransform().rotate(-turn);
+        QRectF box = unturn.mapRect(space.toView(left, bottom, right, top));
+        const QPointF origin = unturn.map(space.toView(originX, originY));
         originX = origin.x();
         double baseline = origin.y();
 
@@ -672,12 +688,10 @@ std::vector<PdfiumLine> PdfiumBackend::linesOfPage(int page,
         }
         if (box.width() <= 0.0 && box.height() <= 0.0) continue;
 
-        if (centerInAny(box, exclude)) continue;
+        if (centerInAny(QTransform().rotate(turn).mapRect(box), exclude)) continue;
 
-        // Turned text runs across the lines; it is never part of one, and an
-        // edit cannot take it.
-        const bool turned = !space.upright(FPDFText_GetCharAngle(tp, i));
-        if (turned && split == LineSplit::Blocks) continue;
+        // An edit takes turned text only where it is turned by whole quarters.
+        if (turned && split == LineSplit::Blocks && space.quarterTurn(angle) < 0) continue;
 
         FPDF_PAGEOBJECT object = FPDFText_GetTextObject(tp, i);
         const double fontSize = PdfiumTextRules::effectiveFontSize(tp, i);
@@ -699,6 +713,7 @@ std::vector<PdfiumLine> PdfiumBackend::linesOfPage(int page,
         chars.back().ligated = ligated;
         chars.back().generated = generated;
         chars.back().turned    = turned;
+        chars.back().turn      = turn;
         chars.back().written   = baseline;
     }
     dropLetterSpacing(chars);
@@ -709,6 +724,9 @@ std::vector<PdfiumLine> PdfiumBackend::linesOfPage(int page,
     int last  = static_cast<int>(chars.size()) - 1;
     if (from) first = anchorIndex(chars, *from);
     if (to)   last  = anchorIndex(chars, *to);
+    // Turned text can read against the drag.
+    if (last >= 0 && first > last && (chars[size_t(first)].turn != 0 || chars[size_t(last)].turn != 0))
+        std::swap(first, last);
 
     QList<QRectF> textObjects;
     if (split == LineSplit::Blocks) {
@@ -725,6 +743,11 @@ std::vector<PdfiumLine> PdfiumBackend::linesOfPage(int page,
     if (!chars.empty() && first >= 0 && last >= first)
         lines = buildLines(chars, first, last, split, textObjects);
 
+    for (PdfiumLine &line : lines) {
+        const QTransform turn = QTransform().rotate(line.turn);
+        line.shown = turn.mapRect(line.rect);
+        for (QPointF &at : line.charIn) at = turn.map(at);
+    }
     return lines;
 }
 
@@ -732,9 +755,11 @@ std::vector<PdfiumLine> PdfiumBackend::buildLines(const std::vector<PdfiumChar> 
                                                   int first, int last, LineSplit split,
                                                   const QList<QRectF> &textObjects)
 {
-    const auto sameObject = [&textObjects](const QRectF &a, const QRectF &b) {
+    const auto sameObject = [&textObjects](const PdfiumChar &a, const PdfiumChar &b) {
+        const QTransform turn = QTransform().rotate(a.turn);
         for (const QRectF &o : textObjects)
-            if (o.contains(a.center()) && o.contains(b.center())) return true;
+            if (o.contains(turn.map(a.box.center())) && o.contains(turn.map(b.box.center())))
+                return true;
         return false;
     };
 
@@ -770,7 +795,7 @@ std::vector<PdfiumLine> PdfiumBackend::buildLines(const std::vector<PdfiumChar> 
             PdfiumLine line;
             line.rect = c.box;
             line.baseline = c.baseline;
-            line.turned = c.turned;
+            line.turn = c.turn;
             line.append(c);
             line.endX = c.endX;
             lines.push_back(line);
@@ -787,7 +812,7 @@ std::vector<PdfiumLine> PdfiumBackend::buildLines(const std::vector<PdfiumChar> 
         const double fontSize = prev >= 0
             ? qMax(chars[prev].fontSize, c.fontSize) : c.fontSize;
 
-        if (ink && split == LineSplit::Blocks && prev >= 0 && !sameObject(chars[prev].box, c.box)
+        if (ink && split == LineSplit::Blocks && prev >= 0 && !sameObject(chars[prev], c)
                 && (PdfiumTextRules::separatesBlocks(chars[prev].box, c.box, fontSize)
                     || PdfiumTextRules::separatesSizes(chars[prev].box, c.box,
                                                        chars[prev].fontSize, c.fontSize)
@@ -841,24 +866,27 @@ TextBlock PdfiumBackend::textAt(int page, const QPointF &pdfPt,
     const std::vector<PdfiumLine> lines =
         linesOfPage(page, exclude, {}, {}, LineSplit::Blocks);
 
+    // Each line is measured in its own direction.
+    const auto offsets = [&pdfPt](const PdfiumLine &line) {
+        const QRectF &r = line.rect;
+        const QPointF p = QTransform().rotate(-line.turn).map(pdfPt);
+        return QPointF(qMax(0.0, qMax(r.left() - p.x(), p.x() - r.right())),
+                       qMax(0.0, qMax(r.top()  - p.y(), p.y() - r.bottom())));
+    };
     const PdfiumLine *best = nullptr;
     double bestDist = std::numeric_limits<double>::max();
     for (const PdfiumLine &line : lines) {
-        const QRectF &r = line.rect;
-        const double dy = qMax(0.0, qMax(r.top()  - pdfPt.y(), pdfPt.y() - r.bottom()));
-        const double dx = qMax(0.0, qMax(r.left() - pdfPt.x(), pdfPt.x() - r.right()));
-        const double d  = dy * 8.0 + dx;
+        const QPointF off = offsets(line);
+        const double d  = off.y() * 8.0 + off.x();
         if (d < bestDist) { bestDist = d; best = &line; }
     }
     if (!best) return {};
 
-    const QRectF &r = best->rect;
-    const double dy = qMax(0.0, qMax(r.top()  - pdfPt.y(), pdfPt.y() - r.bottom()));
-    const double dx = qMax(0.0, qMax(r.left() - pdfPt.x(), pdfPt.x() - r.right()));
-    const bool onLine = dy <= qMax(2.0, r.height() * 0.25);
-    if (onLine ? dx > 100.0 : std::hypot(dx, dy) > 40.0) return {};
+    const QPointF off = offsets(*best);
+    const bool onLine = off.y() <= qMax(2.0, best->rect.height() * 0.25);
+    if (onLine ? off.x() > 100.0 : std::hypot(off.x(), off.y()) > 40.0) return {};
 
-    return TextBlock{ page, best->rect, best->text };
+    return TextBlock{ page, best->shown, best->text, best->turn };
 }
 
 TextBlock PdfiumBackend::blockInRect(int page, const QRectF &rect,
@@ -867,15 +895,17 @@ TextBlock PdfiumBackend::blockInRect(int page, const QRectF &rect,
     PdfiumLock lock;
     QRectF  bounds;
     QString text;
+    int     turn = -1;
     for (const PdfiumLine &line :
              linesOfPage(page, exclude, {}, {}, LineSplit::Blocks)) {
-        if (!rect.contains(line.rect.center())) continue;
+        if (!rect.contains(line.shown.center()) || (turn >= 0 && line.turn != turn)) continue;
+        turn = line.turn;
         if (!text.isEmpty()) text += QLatin1Char('\n');
         text  += line.text;
-        bounds = bounds.isNull() ? line.rect : bounds.united(line.rect);
+        bounds = bounds.isNull() ? line.shown : bounds.united(line.shown);
     }
     if (bounds.isNull()) return {};
-    return TextBlock{ page, bounds, text };
+    return TextBlock{ page, bounds, text, turn };
 }
 
 QList<QRectF> PdfiumBackend::glyphRects(int page, const QRectF &area,
@@ -885,25 +915,32 @@ QList<QRectF> PdfiumBackend::glyphRects(int page, const QRectF &area,
     QList<QRectF> out;
     for (const PdfiumLine &line :
              linesOfPage(page, exclude, {}, {}, LineSplit::Blocks))
-        if (area.contains(line.rect.center())) out.append(line.rect);
+        if (area.contains(line.shown.center())) out.append(line.shown);
     return out;
 }
 
 QList<TextLayout::OriginalLine> PdfiumBackend::originalLines(
-    int page, const QRectF &area, const QList<QRectF> &exclude) const
+    int page, const QRectF &area, const QList<QRectF> &exclude, const QTransform &frame) const
 {
     PdfiumLock lock;
     QList<TextLayout::OriginalLine> out;
     for (const PdfiumLine &line :
              linesOfPage(page, exclude, {}, {}, LineSplit::Blocks)) {
-        if (!area.contains(line.rect.center())) continue;
+        // Only lines that stand upright in the frame, moved into it.
+        const QTransform into = QTransform().rotate(line.turn) * frame;
+        if (std::abs(into.m11() - 1.0) > 1e-6 || std::abs(into.m22() - 1.0) > 1e-6
+                || std::abs(into.m12()) > 1e-6 || std::abs(into.m21()) > 1e-6)
+            continue;
+        if (!area.contains(frame.map(line.shown.center()))) continue;
+        const QPointF by(into.dx(), into.dy());
         TextLayout::OriginalLine o;
-        o.rect        = line.rect;
+        o.rect        = line.rect.translated(by);
         o.text        = line.text;
-        o.baseline    = line.baseline;
+        o.baseline    = line.baseline + by.y();
         o.charX       = line.charX;
+        for (double &x : o.charX) x += by.x();
         o.objectStart = line.objectStart;
-        o.endX        = line.endX;
+        o.endX        = line.endX + by.x();
         out.append(o);
     }
     return out;
@@ -1108,7 +1145,7 @@ PdfBackend::Selection PdfiumBackend::selectPage(int page,
     Selection out;
     for (const PdfiumLine &line :
              linesOfPage(page, {}, from, to, LineSplit::Baseline)) {
-        out.rects.append(line.rect);
+        out.rects.append(line.shown);
         if (!out.text.isEmpty()) {
             out.text += QLatin1Char('\n');
             out.sources.append(TextLayout::Source{});

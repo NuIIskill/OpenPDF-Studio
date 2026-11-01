@@ -203,7 +203,7 @@ void EditController::resizeText(double ptSize)
     refreshAdvanceMeasure();
     const QLabel *lbl = m_canvas->pageLabel(activeEditPage);
     if (lbl) {
-        m_frame->setPageRect(lbl->geometry(), m_src->renderer()->pageSizePts(activeEditPage));
+        placeFramePage(lbl, activeEditPage);
         const QRectF cb(
             activeEditBounds.topLeft() * scale + QPointF(lbl->pos()),
             activeEditBounds.size() * scale);

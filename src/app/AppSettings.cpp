@@ -46,6 +46,27 @@ void AppSettings::setOrganizerGeometry(const QByteArray &geometry)
     settings().setValue(QStringLiteral("window/organizerGeometry"), geometry);
 }
 
+QStringList AppSettings::exportOpenGroups() const
+{
+    return settings().value(QStringLiteral("export/openGroups"),
+                            QStringList{ QStringLiteral("documents") }).toStringList();
+}
+
+void AppSettings::setExportOpenGroups(const QStringList &groups)
+{
+    settings().setValue(QStringLiteral("export/openGroups"), groups);
+}
+
+bool AppSettings::exportCompressImages() const
+{
+    return settings().value(QStringLiteral("export/compressImages"), true).toBool();
+}
+
+void AppSettings::setExportCompressImages(bool compress)
+{
+    settings().setValue(QStringLiteral("export/compressImages"), compress);
+}
+
 QString AppSettings::lastOpenedFile() const
 {
     return settings().value(QLatin1String(kLastOpenedFile)).toString();

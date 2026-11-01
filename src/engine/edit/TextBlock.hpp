@@ -8,6 +8,7 @@ struct TextBlock {
     int     page     { -1 };
     QRectF  pdfBounds;
     QString text;
+    int     turn { 0 };
 
     bool isValid() const { return page >= 0 && !pdfBounds.isEmpty(); }
 };

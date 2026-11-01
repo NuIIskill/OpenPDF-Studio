@@ -19,7 +19,8 @@ public:
         QDateTime time;
     };
 
-    SignError prepare(const QString &source, const Field &field, int contentsBytes);
+    SignError prepare(const QString &source, const Field &field, int contentsBytes,
+                      const std::string &password);
     QList<QByteArrayView> signedRanges() const;
     bool embed(const QByteArray &cms);
     const QByteArray &data() const { return m_data; }

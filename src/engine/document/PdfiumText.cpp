@@ -89,7 +89,8 @@ FPDF_PAGEOBJECT roundedRectPath(const QRectF &qtRect, double radius, const Pdfiu
     const QRectF pdf = space.toPdf(qtRect);
     const double l = pdf.left(), r = pdf.right(), b = pdf.top(), t = pdf.bottom();
     const double rad = qBound(0.0, radius, qMin(qtRect.width(), qtRect.height()) / 2.0);
-    if (rad <= 0.0) return FPDFPageObj_CreateNewRect(l, b, qtRect.width(), qtRect.height());
+    // In user space, where a page turned by /Rotate has width and height swapped.
+    if (rad <= 0.0) return FPDFPageObj_CreateNewRect(l, b, pdf.width(), pdf.height());
     constexpr double k = .5522847498;
     FPDF_PAGEOBJECT p = FPDFPageObj_CreateNewPath(l + rad, b);
     FPDFPath_LineTo(p, r - rad, b);
@@ -176,7 +177,9 @@ Sources sourceObjects(FPDF_TEXTPAGE textPage, const PdfiumPageSpace &space,
     for (int i = 0, n = FPDFText_CountChars(textPage); i < n; ++i) {
         FPDF_PAGEOBJECT object = FPDFText_GetTextObject(textPage, i);
         double x = 0, y = 0;
+        // Turned glyphs lie in another direction than the lines they are matched with.
         if (!object || FPDFText_IsGenerated(textPage, i) == 1
+                || !space.upright(FPDFText_GetCharAngle(textPage, i))
                 || !FPDFText_GetCharOrigin(textPage, i, &x, &y))
             continue;
         const QPointF shown = space.toView(x, y);
@@ -225,6 +228,24 @@ Sources sourceObjects(FPDF_TEXTPAGE textPage, const PdfiumPageSpace &space,
         else                out.objects[i] = next;
     }
     return out;
+}
+
+// Whether text the edit replaces is turned: kept, it would stay turned.
+bool turnedIn(FPDF_TEXTPAGE textPage, const PdfiumPageSpace &space, const EditSession::Edit &edit)
+{
+    const QList<QRectF> areas = !edit.eraseRects.isEmpty() ? edit.eraseRects
+                              : edit.sourceRect.isNull()   ? QList<QRectF>()
+                                                           : QList<QRectF>{ edit.sourceRect };
+    for (int i = 0, n = areas.isEmpty() ? 0 : FPDFText_CountChars(textPage); i < n; ++i) {
+        double l = 0, r = 0, b = 0, t = 0;
+        if (space.upright(FPDFText_GetCharAngle(textPage, i))
+                || !FPDFText_GetCharBox(textPage, i, &l, &r, &b, &t))
+            continue;
+        const QPointF at = space.toView(l, b, r, t).center();
+        for (const QRectF &area : areas)
+            if (area.contains(at)) return true;
+    }
+    return false;
 }
 
 QByteArray baseFontName(FPDF_FONT font)
@@ -387,7 +408,8 @@ Typeset::Typeset(FPDF_DOCUMENT doc, FPDF_PAGE page, FPDF_TEXTPAGE textPage,
     m_keep = keepObjects && m_anchor && !edit.scanned && !edit.colorChanged && !edit.underline
           && m_charMarks.isEmpty()
           && box.opacity >= 0.999 && qFuzzyIsNull(box.rotationDeg)
-          && !box.backgroundEnabled && !box.borderEnabled;
+          && !box.backgroundEnabled && !box.borderEnabled
+          && !(textPage && turnedIn(textPage, PdfiumPageSpace(page), edit));
     if (!laidOut) return;
 
     TextLayout::Params params;

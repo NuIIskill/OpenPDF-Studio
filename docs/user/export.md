@@ -8,7 +8,7 @@ another format and output options.
 
 ## Export a document
 
-1. Open **Export** and choose PDF, Word, PNG or JPEG.
+1. Open **Export** and choose a format.
 2. Enter a filename and save location.
 3. Choose all pages, the current page or a range such as `1-3, 5, 8-10`.
 4. Adjust the format's options and review the estimated output size.
@@ -28,23 +28,37 @@ appearance before sharing it.
 | --- | --- |
 | PDF | Page selection; include comments, keep form fields, embed fonts and compress images, with image quality control |
 | Word (`.docx`) | Text, reconstructed layout and images, with image compression and quality control |
+| OpenDocument (`.odt`) | The same as Word, for LibreOffice; each page keeps its own size |
 | PNG | One lossless page image per selected page |
 | JPEG | One page image per selected page, with quality control |
+| TIFF | One lossless page image per selected page, for print and archiving |
+| WebP | One page image per selected page, with quality control; **Maximum** is lossless |
+| TXT | The text of the selected pages as UTF-8, without layout; a blank line separates pages |
+| Markdown (`.md`) | Flowing text with headings, lists, tables, bold and italic; no pictures |
+| HTML (`.html`) | The same as Markdown plus the pictures, embedded in one file; with image compression and quality control |
 | PDF/A | Listed in the dialog but not implemented; the option is disabled |
 
 PDF page selection and rewriting comments, forms, fonts or image compression
 require qpdf. Without it, those PDF controls are disabled. Keeping existing
 form fields during export does not provide a form editor.
 
-Word output reconstructs a document from positioned PDF content, so it may
-need adjustment in a word processor. Image exports turn the page into pixels,
-including any visible signature appearance; they do not carry PDF digital
-signature verification. Export has no dedicated option to keep or remove
-embedded media.
+Without **Compress images**, Word and OpenDocument keep pictures at their
+original resolution as PNG and the quality setting is unavailable.
+
+Word and OpenDocument output reconstruct a document from positioned PDF
+content, so it may need adjustment in a word processor. Image exports turn the
+page into pixels, including any visible signature appearance; they do not
+carry PDF digital signature verification. Export has no dedicated option to
+keep or remove embedded media.
 
 For a single selected page, image export uses the chosen filename. Multiple
 pages use names such as `document_page_1.png`. The quality setting also selects
-the render resolution; PNG remains lossless at the chosen resolution.
+the render resolution; PNG and TIFF remain lossless at the chosen resolution.
+
+Markdown and HTML recognise headings by their size and lists by their
+markers, and drop the page layout. TXT, Markdown and HTML take the text layer
+of each page. Scanned pages without one have no text, since export does not
+run OCR; HTML shows them as pictures.
 
 ## Print
 

@@ -295,7 +295,7 @@ PdfBackend::AreaRender PdfiumBackend::renderChanges(int page, qreal scale,
         for (const EditSession::Edit &edit : session->snapshotEdits()) {
             if (edit.page != page) continue;
             for (const QRectF &rect : edit.eraseRects) changedPts = changedPts.united(rect);
-            changedPts = changedPts.united(edit.pdfBounds);
+            changedPts = changedPts.united(EditSession::shownBounds(edit));
         }
         if (!changedPts.isEmpty() && !pts.isEmpty()) {
             const qreal sx = px.width() / pts.width(), sy = px.height() / pts.height();

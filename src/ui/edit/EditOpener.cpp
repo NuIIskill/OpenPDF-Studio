@@ -76,7 +76,7 @@ bool EditOpener::resolveEditTarget(const QPoint &canvasPos, EditOpen &o, int &la
             if (e.page != pageIdx || e.newText.isEmpty() || !e.formField.isEmpty()
                     || e.sourceRect.isNull())
                 continue;
-            const double d = distanceTo(e.pdfBounds, o.pdfPt);
+            const double d = distanceTo(EditSession::shownBounds(e), o.pdfPt);
             if (d <= nearest) { nearest = d; near = &e; }
         }
         if (near && (!o.block.isValid() || nearest < distanceTo(o.block.pdfBounds, o.pdfPt))) {
@@ -137,6 +137,22 @@ bool EditOpener::resolveEditTarget(const QPoint &canvasPos, EditOpen &o, int &la
         }
     }
 
+    // Turned text is edited upright, in a frame turned back about its middle.
+    if (o.isSessionEdit && !qFuzzyIsNull(o.sessionEdit.box.rotationDeg)) {
+        o.turn      = o.sessionEdit.box.rotationDeg;
+        o.turnPivot = o.sessionEdit.pdfBounds.center();
+    } else if (!o.isSessionEdit && o.block.turn != 0 && !o.contentItem.isFormField()) {
+        o.turn      = o.block.turn;
+        o.turnPivot = o.block.pdfBounds.center();
+        const QTransform toLocal = o.toShown().inverted();
+        o.block.pdfBounds = toLocal.mapRect(o.block.pdfBounds);
+        if (o.contentItem.turn != o.block.turn) o.contentItem = ContentItem{};
+        if (o.contentItem.isValid()) {
+            o.contentItem.bounds = toLocal.mapRect(o.contentItem.bounds);
+            if (!o.contentItem.textOrigin.isNull())
+                o.contentItem.textOrigin = toLocal.map(o.contentItem.textOrigin);
+        }
+    }
     if (o.contentItem.isValid() && !o.contentItem.isFormField()
             && !o.contentItem.bounds.intersects(o.block.pdfBounds))
         o.contentItem = ContentItem{};
@@ -150,10 +166,10 @@ void EditOpener::applyEditTargetBounds(EditOpen &o)
     o.editPage           = o.block.page;
     o.sourcePage     = o.block.page;
     o.bounds         = o.block.pdfBounds;
-    clampToPage(m_src, o.block.page, o.bounds);
+    clampToPage(o, o.bounds);
     o.originalBounds = o.bounds;
     o.needsBlank     = true;
-    o.eraseBounds    = o.bounds;
+    o.eraseBounds    = o.toShown().mapRect(o.bounds);
     if (o.isSessionEdit) {
         o.needsBlank  = !o.sessionEdit.eraseRects.isEmpty();
         o.eraseBounds = o.sessionEdit.sourceRect.isNull()
@@ -168,6 +184,7 @@ void EditOpener::applyEditTargetBounds(EditOpen &o)
         if (o.blankPage >= 0) o.sourcePage = o.blankPage;
     }
     o.box = o.isSessionEdit ? o.sessionEdit.box : TextBoxProperties{};
+    if (!o.isSessionEdit) o.box.rotationDeg = o.turn;
     o.fieldName.clear();
 
     if (!o.isSessionEdit && o.contentItem.isValid()) {
@@ -179,7 +196,7 @@ void EditOpener::applyEditTargetBounds(EditOpen &o)
             if (!extractorUsable || o.contentItem.isFormField()) {
                 o.bounds         = o.contentItem.bounds;
                 o.originalBounds = o.contentItem.bounds;
-                clampToPage(m_src, o.block.page, o.bounds);
+                clampToPage(o, o.bounds);
             }
         }
         if (o.contentItem.type == ContentItem::Type::Paragraph
@@ -189,16 +206,17 @@ void EditOpener::applyEditTargetBounds(EditOpen &o)
             o.paragraphBounds = true;
             TextBlock para;
             if (auto *backend = m_src->backend())
-                para = backend->blockInRect(o.block.page, o.contentItem.bounds,
+                para = backend->blockInRect(o.block.page, o.toShown().mapRect(o.contentItem.bounds),
                                             o.erasedZones);
+            para.pdfBounds = o.toShown().inverted().mapRect(para.pdfBounds);
 
-            const bool paraSane = para.isValid()
+            const bool paraSane = para.isValid() && para.turn == o.block.turn
                                && para.pdfBounds.height() < o.pageSize.height() * 0.5;
             if (paraSane && !para.text.isEmpty()) {
                 o.displayText    = para.text;
                 o.bounds         = para.pdfBounds;
                 o.originalBounds = para.pdfBounds;
-                clampToPage(m_src, o.block.page, o.bounds);
+                clampToPage(o, o.bounds);
             } else {
                 o.paragraphBounds = false;
             }
@@ -219,7 +237,7 @@ void EditOpener::applyEditTargetBounds(EditOpen &o)
     if (o.isSessionEdit)
         o.scanned = o.sessionEdit.scanned;
     else if (!o.scanned && o.fieldName.isEmpty() && m_src->backend())
-        o.scanned = m_src->backend()->hiddenText(o.block.page, o.originalBounds);
+        o.scanned = m_src->backend()->hiddenText(o.block.page, o.toShown().mapRect(o.originalBounds));
 }
 
 void EditOpener::chooseEditorFont(EditOpen &o)
@@ -294,7 +312,7 @@ void EditOpener::chooseEditorFont(EditOpen &o)
 
     o.colorChangedByUser = o.isSessionEdit && o.sessionEdit.colorChanged;
     o.measurable = !sizeIsExact && !o.isSessionEdit && !o.contentItem.isFormField()
-                && !o.displayText.isEmpty() && o.canSample();
+                && !o.displayText.isEmpty() && o.canSample() && qFuzzyIsNull(o.turn);
     if (!o.measurable) return;
 
     // A scan is set in the face its pixels match, at the size its words are wide.
@@ -343,8 +361,7 @@ void EditOpener::anchorEditOrigin(EditOpen &o)
         if (!steps.isEmpty()) o.lineSpacingPt = steps.at(steps.size() / 2);
     } else if (o.isSessionEdit) {
         o.hasOrigin = o.sessionEdit.hasTextOrigin;
-        o.textOrigin = o.sessionEdit.pdfBounds.topLeft()
-                     + o.sessionEdit.textOriginOffset;
+        o.textOrigin = o.block.pdfBounds.topLeft() + o.sessionEdit.textOriginOffset;
     } else if (!o.scanned && !o.contentItem.textOrigin.isNull()
                && o.contentItem.textOrigin.y() >= o.bounds.top() - 1.0
                && o.contentItem.textOrigin.y()
@@ -386,17 +403,17 @@ void EditOpener::fitEditHeight(EditOpen &o)
                                      baseline - fm.ascent() / scale));
         o.bounds.setBottom(qMax(o.bounds.bottom(),
                                         baseline + fm.descent() / scale));
-        clampToPage(m_src, o.editPage, o.bounds);
+        clampToPage(o, o.bounds);
     } else if (o.bounds.height() < fm.height() / scale) {
         o.bounds.setHeight(fm.height() / scale);
-        clampToPage(m_src, o.editPage, o.bounds);
+        clampToPage(o, o.bounds);
     }
 
     if (!o.paragraphBounds) {
         const double capH = o.fontSizePt * 5.0;
         if (o.bounds.height() > capH) {
             o.bounds.setHeight(capH);
-            clampToPage(m_src, o.editPage, o.bounds);
+            clampToPage(o, o.bounds);
         }
     }
     o.originalBounds = o.bounds;
@@ -411,7 +428,7 @@ void EditOpener::sampleEditColors(EditOpen &o)
                && o.contentItem.textColor.isValid()) {
         o.color = o.contentItem.textColor;
     } else if (o.canSample()) {
-        o.color = o.sampleTextColor(o.block.pdfBounds);
+        o.color = o.sampleTextColor(o.toShown().mapRect(o.block.pdfBounds));
     }
 
     o.bgColor = Qt::white;
@@ -427,7 +444,7 @@ void EditOpener::sampleEditColors(EditOpen &o)
         if (lum >= 0.70) bg = c;
     }
     if (!bg.isValid() && o.canSample())
-        bg = o.sampleBackgroundColor(o.bounds);
+        bg = o.sampleBackgroundColor(o.toShown().mapRect(o.bounds));
     if (bg.isValid()) o.bgColor = bg;
 }
 
@@ -452,7 +469,7 @@ void EditOpener::fitEditWidth(EditOpen &o)
     needW += 1.5;
     if (needW > o.bounds.width())
         o.bounds.setWidth(
-            qMin(needW, o.pageSize.width() - o.bounds.left() - 2.0));
+            qFuzzyIsNull(o.turn) ? qMin(needW, o.pageSize.width() - o.bounds.left() - 2.0) : needW);
 }
 
 
@@ -563,7 +580,9 @@ QList<TextLayout::OriginalLine> EditOpener::linesInFrame(const QPoint &from, con
     const EditSession::Edit *edited = nullptr;
     double most = -1.0, smallest = -1.0;
     for (const EditSession::Edit &e : m_session->edits()) {
-        if (e.page != page || e.newText.isEmpty() || !e.formField.isEmpty()) continue;
+        if (e.page != page || e.newText.isEmpty() || !e.formField.isEmpty()
+                || !qFuzzyIsNull(e.box.rotationDeg))
+            continue;
         const QRectF hit = e.pdfBounds.intersected(frame);
         const double area = hit.width() * hit.height();
         const double size = e.pdfBounds.width() * e.pdfBounds.height();
@@ -721,7 +740,7 @@ void EditOpener::scopeToCut(EditOpen &o, const QList<TextLayout::OriginalLine> &
     o.displayText   = o.originalText = o.pdfText = o.selectionIn = text;
     o.selStart = o.selEnd = int(text.size());
     o.bounds = o.originalBounds = bounds;
-    clampToPage(m_src, o.editPage, o.bounds);
+    clampToPage(o, o.bounds);
     o.textOrigin = QPointF(lines.first().charX.first(), lines.first().baseline);
     o.hasOrigin  = true;
     o.laid       = true;
@@ -780,6 +799,7 @@ bool EditOpener::open(const QPoint &from, const QPoint &to, bool framed, int &la
     if (!o.isSessionEdit) fitEditHeight(o);
     sampleEditColors(o);
     if (!o.isSessionEdit) fitEditWidth(o);
+    placeTurnedWindow(o);
     measureScan(o);
     if (cut.valid) scopeToCut(o, lines, cut);
     if (scoped) findUnit(whole, o, cut.gapLines, cut.wholeLines);
@@ -794,6 +814,40 @@ bool EditOpener::open(const QPoint &from, const QPoint &to, bool framed, int &la
 
     target = o;
     return true;
+}
+
+void EditOpener::placeTurnedWindow(EditOpen &o)
+{
+    if (qFuzzyIsNull(o.turn)) return;
+    const QPointF by = windowSpot(o.toShown().mapRect(o.bounds), o.bounds.size(), o.pageSize)
+                     - o.bounds.topLeft();
+    o.turnPivot += turnedPivotShift(o.turn, by);
+    o.bounds.translate(by);
+    o.originalBounds.translate(by);
+    o.block.pdfBounds.translate(by);
+    o.textOrigin += by;
+}
+
+// Where the upright window of turned text goes: beside the text, centred on
+// it, never over it, on the page.
+QPointF EditOpener::windowSpot(const QRectF &shown, const QSizeF &size, const QSizeF &pageSize)
+{
+    constexpr double kGap = 30.0;
+    const QPointF right(shown.right() + kGap, shown.center().y() - size.height() / 2.0);
+    const QPointF left(shown.left() - kGap - size.width(), right.y());
+    const QPointF below(shown.center().x() - size.width() / 2.0, shown.bottom() + kGap);
+    const QPointF above(below.x(), shown.top() - kGap - size.height());
+    // The window grows to the right: left of the text comes last.
+    const QList<QPointF> spots = shown.height() > shown.width()
+        ? QList<QPointF>{ right, below, above, left } : QList<QPointF>{ below, above, right, left };
+    const auto onPage = [&](const QPointF &spot) {
+        return QPointF(qBound(0.0, spot.x(), qMax(0.0, pageSize.width() - size.width())),
+                       qBound(0.0, spot.y(), qMax(0.0, pageSize.height() - size.height())));
+    };
+    const QRectF keepClear = shown.adjusted(-kGap / 3.0, -kGap / 3.0, kGap / 3.0, kGap / 3.0);
+    for (const QPointF &spot : spots)
+        if (!QRectF(onPage(spot), size).intersects(keepClear)) return onPage(spot);
+    return onPage(spots.first());
 }
 
 void EditOpener::findUnit(EditOpen &whole, EditOpen &o, const QList<TextLayout::OriginalLine> &gapLines,
@@ -908,16 +962,35 @@ void EditOpener::findUnit(EditOpen &whole, EditOpen &o, const QList<TextLayout::
 void EditOpener::clampToPage(const DocumentSource *src, int page, QRectF &r)
 {
     if (!src->renderer() || page < 0) return;
-    const QSizeF ps = src->renderer()->pageSizePts(page);
+    clampTo(QRectF(QPointF(), src->renderer()->pageSizePts(page)), r);
+}
 
+void EditOpener::clampToPage(const EditOpen &o, QRectF &r) const
+{
+    // The window of turned text is put on the page once it is laid out.
+    if (!m_src->renderer() || o.editPage < 0 || !qFuzzyIsNull(o.turn)) return;
+    clampTo(QRectF(QPointF(), m_src->renderer()->pageSizePts(o.editPage)), r);
+}
+
+void EditOpener::clampTo(const QRectF &area, QRectF &r)
+{
     r = r.normalized();
-    if (r.width()  > ps.width())  r.setWidth(ps.width());
-    if (r.height() > ps.height()) r.setHeight(ps.height());
+    if (r.width()  > area.width())  r.setWidth(area.width());
+    if (r.height() > area.height()) r.setHeight(area.height());
 
-    if (r.left()   < 0)           r.moveLeft(0);
-    if (r.top()    < 0)           r.moveTop(0);
-    if (r.right()  > ps.width())  r.moveRight(ps.width());
-    if (r.bottom() > ps.height()) r.moveBottom(ps.height());
+    if (r.left()   < area.left())   r.moveLeft(area.left());
+    if (r.top()    < area.top())    r.moveTop(area.top());
+    if (r.right()  > area.right())  r.moveRight(area.right());
+    if (r.bottom() > area.bottom()) r.moveBottom(area.bottom());
+}
+
+// How far the pivot of a frame turned by the angle moves for the upright box
+// in it to move by the distance while the turned text stays where it is.
+QPointF EditOpener::turnedPivotShift(double turn, const QPointF &by)
+{
+    const QTransform back = QTransform().rotate(-turn);
+    const QTransform shift(1.0 - back.m11(), -back.m12(), -back.m21(), 1.0 - back.m22(), 0.0, 0.0);
+    return shift.inverted().map(by);
 }
 
 #endif

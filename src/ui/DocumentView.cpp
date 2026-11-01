@@ -124,7 +124,7 @@ void DocumentView::repositionEditorFrame()
         if (!lbl) return;
 
         const qreal scale = PdfRenderer::screenScale(m_zoomCtl->zoom());
-        m_editorFrame->setPageRect(lbl->geometry(), m_src->renderer()->pageSizePts(activePage));
+        m_edit.placeFramePage(lbl, activePage);
         const QRectF cb(m_edit.activeEditBounds.topLeft() * scale + QPointF(lbl->pos()),
                         m_edit.activeEditBounds.size() * scale);
         m_editorFrame->repositionForZoom(

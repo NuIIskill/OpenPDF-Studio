@@ -332,11 +332,11 @@ bool DocumentView::saveToFile(const QString &path)
         SafeWrite::discard(staging);
         return false;
     }
-    if (signing && m_signatureLayer->signInto(WriteGrant(staging)) != SignError::None) {
+    const std::string finalPassword = protecting ? newPassword.toStdString() : password;
+    if (signing && m_signatureLayer->signInto(WriteGrant(staging), finalPassword) != SignError::None) {
         SafeWrite::discard(staging);
         return false;
     }
-    const std::string finalPassword = protecting ? newPassword.toStdString() : password;
     if (!keepBytes && !m_writeGate.sound(staging, finalPassword, m_src->contentPath(), password)) {
         SafeWrite::discard(staging);
         return false;

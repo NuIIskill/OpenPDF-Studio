@@ -82,7 +82,8 @@ DocumentWorker::Render PageLayoutEngine::askTextLayer(int page)
     double size = 12.0;
     auto session = std::make_shared<EditSession>();
     for (const EditSession::Edit &e : m_preview.edits) {
-        text = text.isNull() ? e.pdfBounds : text.united(e.pdfBounds);
+        const QRectF shown = EditSession::shownBounds(e);
+        text = text.isNull() ? shown : text.united(shown);
         size = qMax(size, e.fontSizePt);
         session->addEdit(e);
     }

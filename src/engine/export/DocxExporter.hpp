@@ -33,6 +33,11 @@ struct DocxTable {
     int  rowCount   { 0 };
     bool hasBorders { true };
     double indentPt { 0.0 };
+    double padLeftPt  { 2.9 };
+    double padRightPt { 2.9 };
+    QColor ruleColor  { 0xBF, 0xBF, 0xBF };
+    double ruleInnerPt { 0.5 };
+    double ruleOuterPt { 0.5 };
 };
 
 struct DocxBlock {
@@ -44,6 +49,10 @@ struct DocxBlock {
     QList<ContentItem> lines;
     Qt::Alignment      align { Qt::AlignLeft };
     double             indentPt { 0.0 };
+    double             rightIndentPt { 0.0 };
+    double             hangingPt { 0.0 };
+    QList<double>      leadWordPt;
+    double             slackPt { 0.0 };
 
     DocxTable table;
 

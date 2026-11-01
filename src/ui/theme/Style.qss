@@ -1170,16 +1170,16 @@ QPushButton#OrgSaveBtn {
 QPushButton#OrgSaveBtn:hover { background: #1D4ED8; }
 QPushButton#OrgSaveBtn:pressed { background: #1E40AF; }
 QScrollArea#OrganizerScroll QScrollBar:vertical {
-    background: transparent; width: 10px; margin: 0;
+    background: #F8FAFC; border: none; width: 20px; margin: 0;
 }
 QScrollArea#OrganizerScroll QScrollBar::handle:vertical {
-    background: #CBD5E1; border-radius: 5px; min-height: 32px;
+    background: #D1D5DB; border-radius: 4px; min-height: 32px; margin: 0 6px;
 }
-QScrollArea#OrganizerScroll QScrollBar::handle:vertical:hover { background: #94A3B8; }
+QScrollArea#OrganizerScroll QScrollBar::handle:vertical:hover { background: #9CA3AF; }
 QScrollArea#OrganizerScroll QScrollBar::add-line:vertical,
 QScrollArea#OrganizerScroll QScrollBar::sub-line:vertical { height: 0; }
 QScrollArea#OrganizerScroll QScrollBar::add-page:vertical,
-QScrollArea#OrganizerScroll QScrollBar::sub-page:vertical { background: transparent; }
+QScrollArea#OrganizerScroll QScrollBar::sub-page:vertical { background: none; }
 QWidget#OrgSeparator { background:#E5E7EB; }
 QLabel#OrgInfoIcon { color:#2563EB; font-size:16px; }
 QLabel#OrgInfoText { color:#1D4ED8; font-size:13px; }

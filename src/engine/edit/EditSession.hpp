@@ -10,6 +10,7 @@
 #include <QSet>
 #include <QImage>
 #include <QString>
+#include <QTransform>
 #include <QVector>
 
 /// Stores pending content and annotation edits for one document session.
@@ -202,6 +203,10 @@ public:
     QColor  editColorAt(int page, const QRectF &pdfBounds) const;
 
     bool findEditAt(int page, const QPointF &pdfPt, Edit *out = nullptr) const;
+
+    static QTransform turnOf(const Edit &e);
+    static QRectF shownBounds(const Edit &e);
+    static void turnAbout(Edit &e, const QPointF &pivot);
 
     void paintFormFields(int page, QImage &img, qreal scale) const;
 

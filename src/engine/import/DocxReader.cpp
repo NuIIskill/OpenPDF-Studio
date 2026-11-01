@@ -8,6 +8,7 @@
 #include <QCoreApplication>
 #include <QImage>
 #include <QHash>
+#include <QList>
 #include <QMarginsF>
 #include <optional>
 #include <QXmlStreamReader>
@@ -25,9 +26,12 @@ struct Context {
     const DocxStyles &styles;
     DocumentBuilder  &builder;
     int tableDepth { 0 };
+    QList<bool> breaksAfterSections;
+    int sectionsRead { 0 };
 };
 
 void readParagraph(QXmlStreamReader &xml, Context &context);
+bool readSectionProperties(QXmlStreamReader &xml, Context &context);
 void readTable(QXmlStreamReader &xml, Context &context);
 
 /// w:tblCellMar and w:tcMar, the inset between a cell's border and its text.
@@ -246,6 +250,7 @@ void readParagraph(QXmlStreamReader &xml, Context &context)
     TextStyle   textStyle = context.styles.defaultText();
     DocxListRef list;
     bool        started   = false;
+    bool        sectionEnds = false;
 
     auto start = [&] {
         if (started) return;
@@ -263,7 +268,9 @@ void readParagraph(QXmlStreamReader &xml, Context &context)
             QString styleId;
             bool    pageBreakBefore = false;
             const BlockStyle direct = DocxStyles::readParagraphProperties(
-                xml, &styleId, &list, &pageBreakBefore);
+                xml, &styleId, &list, &pageBreakBefore, [&](QXmlStreamReader &section) {
+                    sectionEnds = readSectionProperties(section, context);
+                });
 
             // A style can put the paragraph in a list all by itself; ListBullet
             // and ListParagraph do exactly that and carry no w:numPr of their own.
@@ -295,6 +302,7 @@ void readParagraph(QXmlStreamReader &xml, Context &context)
         }
     }
     start();
+    if (sectionEnds) context.builder.appendPageBreak();
 }
 
 void readCell(QXmlStreamReader &xml, Context &context, const CellStyle &tableDefault)
@@ -412,24 +420,58 @@ void readTable(QXmlStreamReader &xml, Context &context)
     }
 }
 
-void readSectionProperties(QXmlStreamReader &xml, DocumentBuilder &builder)
+/// Whether each section but the last ends in a page break. The section after
+/// it decides: it starts on a new page unless it is continuous and keeps the
+/// page size.
+QList<bool> breaksAfterSections(const QByteArray &data)
 {
+    struct Section { bool continuous { false }; QString size; };
+    QList<Section> sections;
+    QXmlStreamReader xml(data);
+    int depth = 0;   // a w:sectPrChange carries an older w:sectPr inside
+    while (!xml.atEnd()) {
+        const auto token = xml.readNext();
+        if (token == QXmlStreamReader::EndElement && xml.name() == u"sectPr") --depth;
+        if (token != QXmlStreamReader::StartElement) continue;
+        if (xml.name() == u"sectPr") {
+            if (++depth == 1) sections.append(Section {});
+        } else if (depth == 1 && xml.name() == u"type") {
+            sections.last().continuous = attribute(xml, u"val") == QStringView(u"continuous");
+        } else if (depth == 1 && xml.name() == u"pgSz") {
+            sections.last().size = attribute(xml, u"w").toString() + u'x'
+                                  + attribute(xml, u"h");
+        }
+    }
+    QList<bool> breaks;
+    for (qsizetype i = 0; i + 1 < sections.size(); ++i)
+        breaks.append(!sections[i + 1].continuous || sections[i + 1].size != sections[i].size);
+    return breaks;
+}
+
+/// The whole document is laid out on the first section's page. The result says
+/// whether a page break follows the section.
+bool readSectionProperties(QXmlStreamReader &xml, Context &context)
+{
+    const int index = context.sectionsRead++;
     while (xml.readNextStartElement()) {
-        if (xml.name() == u"pgSz") {
+        const QStringView name = xml.name();
+        if (index == 0 && name == u"pgSz") {
             QSizeF size(XmlRead::twipsToPt(attribute(xml, u"w")),
                         XmlRead::twipsToPt(attribute(xml, u"h")));
             if (attribute(xml, u"orient") == QStringView(u"landscape")
                     && size.width() < size.height())
                 size.transpose();
-            builder.setPageSizePt(size);
-        } else if (xml.name() == u"pgMar") {
-            builder.setMarginsPt(QMarginsF(XmlRead::twipsToPt(attribute(xml, u"left")),
-                                           XmlRead::twipsToPt(attribute(xml, u"top")),
-                                           XmlRead::twipsToPt(attribute(xml, u"right")),
-                                           XmlRead::twipsToPt(attribute(xml, u"bottom"))));
+            context.builder.setPageSizePt(size);
+        } else if (index == 0 && name == u"pgMar") {
+            context.builder.setMarginsPt(
+                QMarginsF(XmlRead::twipsToPt(attribute(xml, u"left")),
+                          XmlRead::twipsToPt(attribute(xml, u"top")),
+                          XmlRead::twipsToPt(attribute(xml, u"right")),
+                          XmlRead::twipsToPt(attribute(xml, u"bottom"))));
         }
         xml.skipCurrentElement();
     }
+    return context.breaksAfterSections.value(index, true);
 }
 
 }
@@ -447,7 +489,7 @@ bool DocxReader::read(const ZipArchive &zip, DocumentBuilder &builder, QString *
     builder.setDefaultFont(styles.defaultText().family.value_or(QString()),
                            styles.defaultText().sizePt.value_or(0.0));
 
-    Context context { zip, styles, builder, 0 };
+    Context context { zip, styles, builder, 0, breaksAfterSections(data) };
     QXmlStreamReader xml(data);
 
     while (xml.readNextStartElement()) {
@@ -460,7 +502,7 @@ bool DocxReader::read(const ZipArchive &zip, DocumentBuilder &builder, QString *
                 const QStringView name = xml.name();
                 if      (name == u"p")      readParagraph(xml, context);
                 else if (name == u"tbl")    readTable(xml, context);
-                else if (name == u"sectPr") readSectionProperties(xml, builder);
+                else if (name == u"sectPr") readSectionProperties(xml, context);
                 else                        xml.skipCurrentElement();
             }
         }

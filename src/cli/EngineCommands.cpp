@@ -112,6 +112,9 @@ int applyEditCommand(const QStringList &args)
     edit.sourceRect   = block.pdfBounds;
     edit.originalText = block.text;
     edit.newText      = replacement;
+    // Turned text is set upright in its box and the box turned onto it.
+    edit.box.rotationDeg = block.turn;
+    edit.pdfBounds = EditSession::turnOf(edit).inverted().mapRect(block.pdfBounds);
     session.addEdit(edit);
 
     out << QStringLiteral("block=%1,%2,%3,%4\n")

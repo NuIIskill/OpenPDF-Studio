@@ -1,4 +1,7 @@
 #include "ui/edit/EditController.hpp"
+#include "ui/edit/EditCallout.hpp"
+
+#include <QTimer>
 
 #include "ui/view/PageCanvas.hpp"
 
@@ -132,8 +135,9 @@ void EditController::refreshAdvanceMeasure()
                                                               : activeEditEraseBounds;
         m_metricsPage   = activeEditPage;
         m_metricsBounds = activeEditBounds;
-        return backend->editMetrics(makeSessionEdit(activeEditPage, activeEditBounds,
-                                                    eraseAt, text));
+        EditSession::Edit e = makeSessionEdit(activeEditPage, activeEditBounds, eraseAt, text);
+        if (activeEditTurned) e.box.rotationDeg = 0.0;
+        return backend->editMetrics(e);
     });
 #endif
 }
@@ -149,8 +153,61 @@ void EditController::syncBoundsFromFrame()
     QRectF b((inner.topLeft() - QPointF(lbl->pos())) / scale,
              inner.size() / scale);
     clampToPdfPage(activeEditPage, b);
-    activeEditBounds  = b;
-    currentBox.bounds = b;
+    takeBounds(b);
+#endif
+}
+
+void EditController::takeBounds(const QRectF &bounds)
+{
+#ifdef HAVE_PDF_RENDERING
+    // The window of turned text moves alone: the text starts where it did.
+    if (activeEditTurned)
+        activeEditTurnPivot += EditOpener::turnedPivotShift(currentBox.rotationDeg,
+                                                            bounds.topLeft() - activeEditBounds.topLeft());
+#endif
+    activeEditBounds  = bounds;
+    currentBox.bounds = bounds;
+}
+
+QRectF EditController::frameRoom(int page) const
+{
+#ifdef HAVE_PDF_RENDERING
+    const QRectF sheet(QPointF(), m_src->renderer()->pageSizePts(page));
+    if (!activeEditTurned) return sheet;
+    // The window may grow as far as its turned text has room on the page.
+    const QRectF turned = turnToShown().inverted().mapRect(sheet);
+    return sheet.united(QRectF(sheet.topLeft(), QPointF(turned.right(), turned.bottom())));
+#else
+    Q_UNUSED(page)
+    return {};
+#endif
+}
+
+void EditController::keepWindowOnPage()
+{
+#ifdef HAVE_PDF_RENDERING
+    // Grown past the page, the window of turned text slides back onto it.
+    if (!activeEditTurned || activeEditPage < 0 || !m_frame->isVisible()) return;
+    if (m_frame->dragging()) {
+        QTimer::singleShot(150, this, [this] { keepWindowOnPage(); });
+        return;
+    }
+    const QLabel *lbl = m_canvas->pageLabel(activeEditPage);
+    if (!lbl) return;
+    const QSizeF pageSize = m_src->renderer()->pageSizePts(activeEditPage);
+    QRectF on = activeEditBounds;
+    EditOpener::clampTo(QRectF(QPointF(), pageSize.expandedTo(on.size())), on);
+    // Grown over its text, a window the user did not place finds room beside it again.
+    const QRectF shown = turnToShown().mapRect(activeEditBounds);
+    if (!activeEditWindowPlaced && on.intersects(shown.adjusted(-10.0, -10.0, 10.0, 10.0)))
+        on.moveTopLeft(EditOpener::windowSpot(shown, on.size(), pageSize));
+    if ((on.topLeft() - activeEditBounds.topLeft()).manhattanLength() < 0.01) return;
+    takeBounds(on);
+    const qreal scale = PdfRenderer::screenScale(m_zoom->zoom());
+    placeFramePage(lbl, activeEditPage);
+    m_frame->repositionForZoom(QRectF(on.topLeft() * scale + QPointF(lbl->pos()), on.size() * scale),
+                               qMax(1.0, currentEditorFontSizePt * scale), currentBox, scale);
+    refreshLivePreview();
 #endif
 }
 
@@ -197,8 +254,19 @@ void EditController::refreshLivePreview()
         const QRectF eraseAt = activeEditEraseBounds.isNull()
                                    ? activeEditOriginalBounds : activeEditEraseBounds;
         edits.append(makeSessionEdit(activeEditPage, activeEditBounds, eraseAt, text));
+        // Turned text is typed in an upright window beside it and shown turned where it is.
+        if (activeEditTurned) {
+            EditSession::Edit turned = edits.last();
+            EditSession::turnAbout(turned, activeEditTurnPivot);
+            EditSession::Edit &window = edits.last();
+            window.box.rotationDeg     = 0.0;
+            window.box.backgroundEnabled = true;
+            window.box.backgroundColor = Qt::white;
+            edits.append(turned);
+        }
     }
     edits += m_rest;
+    pointCallout();
     Q_EMIT livePreviewChanged(activeEditPage, edits);
 #endif
 }
@@ -215,16 +283,16 @@ void EditController::setTextBoxProperties(const TextBoxProperties &properties)
     }
     currentBox = properties;
     refreshAdvanceMeasure();
-    activeEditBounds = properties.bounds.normalized();
-    if (activeEditBounds.width() < 1.0) activeEditBounds.setWidth(1.0);
-    if (activeEditBounds.height() < 1.0) activeEditBounds.setHeight(1.0);
-    clampToPdfPage(activeEditPage, activeEditBounds);
-    currentBox.bounds = activeEditBounds;
+    QRectF bounds = properties.bounds.normalized();
+    if (bounds.width() < 1.0) bounds.setWidth(1.0);
+    if (bounds.height() < 1.0) bounds.setHeight(1.0);
+    clampToPdfPage(activeEditPage, bounds);
+    takeBounds(bounds);
 
     const QLabel *lbl = m_canvas->pageLabel(activeEditPage);
     if (!lbl) return;
     const qreal scale = PdfRenderer::screenScale(m_zoom->zoom());
-    m_frame->setPageRect(lbl->geometry(), m_src->renderer()->pageSizePts(activeEditPage));
+    placeFramePage(lbl, activeEditPage);
     const QRectF cb(activeEditBounds.topLeft() * scale + QPointF(lbl->pos()),
                     activeEditBounds.size() * scale);
     m_frame->repositionForZoom(
@@ -274,13 +342,39 @@ void EditController::setLineSpacing(double multiplier)
 void EditController::clampToPdfPage(int page, QRectF &r) const
 {
 #ifdef HAVE_PDF_RENDERING
-    EditOpener::clampToPage(m_src, page, r);
+    if (!m_src->renderer() || page < 0) return;
+    const QRectF room = frameRoom(page);
+    EditOpener::clampTo(QRectF(room.topLeft(), room.size().expandedTo(r.size())), r);
 #else
     Q_UNUSED(page) Q_UNUSED(r)
 #endif
 }
 
+void EditController::placeFramePage(const QLabel *label, int page)
+{
 #ifdef HAVE_PDF_RENDERING
+    if (!activeEditTurned) {
+        m_frame->setPageRect(label->geometry(), m_src->renderer()->pageSizePts(page));
+        return;
+    }
+    const qreal scale = PdfRenderer::screenScale(m_zoom->zoom());
+    const QRectF area = frameRoom(page);
+    m_frame->setPageRect(QRectF(area.topLeft() * scale + QPointF(label->pos()),
+                                area.size() * scale).toAlignedRect(),
+                         area.size());
+#else
+    Q_UNUSED(label) Q_UNUSED(page)
+#endif
+}
+
+#ifdef HAVE_PDF_RENDERING
+
+QTransform EditController::turnToShown() const
+{
+    if (!activeEditTurned) return {};
+    const QPointF &p = activeEditTurnPivot;
+    return QTransform().translate(p.x(), p.y()).rotate(currentBox.rotationDeg).translate(-p.x(), -p.y());
+}
 
 void EditController::presentEditor(const EditTarget &t)
 {
@@ -304,15 +398,25 @@ void EditController::presentEditor(const EditTarget &t)
         } else if (activeEditNeedsBlank) {
             if (auto *backend = m_src->backend())
                 activeEditEraseRects = backend->glyphRects(
-                    t.block.page, activeEditOriginalBounds, t.erasedZones);
+                    t.block.page, turnToShown().mapRect(activeEditOriginalBounds), t.erasedZones);
         }
-        activeEditEraseBounds = activeEditOriginalBounds;
+        activeEditEraseBounds = turnToShown().mapRect(activeEditOriginalBounds);
     }
     activeEditOriginalLines.clear();
     if (t.laid) {
         activeEditOriginalLines = t.framedLines;
     } else if (t.isSessionEdit) {
         activeEditOriginalLines = t.sessionEdit.originalLines;
+        // Lines of a turned box move with its upright frame.
+        const QPointF toPivot = activeEditTurnPivot - t.sessionEdit.pdfBounds.center();
+        const QPointF by = activeEditTurned
+            ? toPivot - QTransform().rotate(-currentBox.rotationDeg).map(toPivot) : QPointF();
+        for (TextLayout::OriginalLine &line : activeEditOriginalLines) {
+            line.rect.translate(by);
+            line.baseline += by.y();
+            for (double &x : line.charX) x += by.x();
+            line.endX += by.x();
+        }
     } else if (t.scanned && !t.framedLines.isEmpty()) {
         // A frame on a scan goes back into its paragraph; nothing of the
         // invisible text layer is kept, all of it is set anew.
@@ -323,7 +427,8 @@ void EditController::presentEditor(const EditTarget &t)
         if (auto *backend = m_src->backend()) {
             const QList<TextLayout::OriginalLine> lines = !t.framedLines.isEmpty()
                 ? t.framedLines
-                : backend->originalLines(t.block.page, activeEditOriginalBounds, t.erasedZones);
+                : backend->originalLines(t.block.page, activeEditOriginalBounds, t.erasedZones,
+                                         turnToShown().inverted());
             if (!lines.isEmpty() && TextLayout::originalText(lines) == t.displayText)
                 activeEditOriginalLines = lines;
         }
@@ -349,7 +454,7 @@ void EditController::presentEditor(const EditTarget &t)
     refreshAdvanceMeasure();
     m_frame->setTextAnchor(activeEditHasOrigin, activeEditOriginOffset);
     m_frame->setForbiddenZones({});
-    m_frame->setPageRect(t.label->geometry(), m_src->renderer()->pageSizePts(t.editPage));
+    placeFramePage(t.label, t.editPage);
     m_frame->setGrowHorizontal(!t.isSessionEdit
                                || (!t.sessionEdit.originalLines.isEmpty()
                                    && !t.sessionEdit.newText.contains(QChar(TextLayout::kSoftBreak))));
@@ -357,7 +462,7 @@ void EditController::presentEditor(const EditTarget &t)
     m_frame->setBoxProperties(currentBox, t.scale);
     m_frame->resetCommitGuard();
     undoSnapBefore = m_session->snapshotEdits();
-    m_session->suspendEditsAt(t.block.page, t.block.pdfBounds,
+    m_session->suspendEditsAt(t.block.page, t.isSessionEdit ? t.sessionEdit.pdfBounds : t.block.pdfBounds,
                               t.blankPage, activeEditEraseBounds);
     if (activeEditNeedsBlank)
         Q_EMIT pageNeedsBlank(activeEditPage, activeEditEraseBounds);
@@ -473,6 +578,9 @@ void EditController::openTarget(const EditTarget &t)
     editorBoldChangedByUser   = t.boldChangedByUser;
     editorItalicChangedByUser = t.italicChangedByUser;
     activeEditBaseSizePt      = t.baseSizePt;
+    activeEditTurned          = !qFuzzyIsNull(t.turn);
+    activeEditWindowPlaced    = false;
+    activeEditTurnPivot       = t.turnPivot;
     currentEditorColor        = t.color;
     currentBgColor            = t.bgColor;
     activeEditLaid            = t.laid || (t.isSessionEdit && t.sessionEdit.laid);
@@ -634,6 +742,7 @@ void EditController::commit(const QString &newText)
 
     if (!merged && !trimNew.isEmpty()) {
         EditSession::Edit text = makeSessionEdit(page, bounds, eraseAt, newText);
+        if (activeEditTurned) EditSession::turnAbout(text, activeEditTurnPivot);
         // The original lines describe glyphs of the source page; on another
         // page the same spot holds other text.
         text.sourcePage = srcPage;
@@ -656,7 +765,7 @@ void EditController::commit(const QString &newText)
     }
 
     lastCommittedPage       = srcPage;
-    lastCommittedOrigBounds = origBounds;
+    lastCommittedOrigBounds = activeEditTurned ? eraseAt : origBounds;
 
     Q_EMIT pageNeedsRerender(srcPage);
     if (page != srcPage)
@@ -696,6 +805,24 @@ void EditController::hideFrame()
     if (m_frame->isAncestorOf(QApplication::focusWidget()))
         m_canvas->canvasWidget()->parentWidget()->setFocus(Qt::OtherFocusReason);
     m_frame->hide();
+    if (m_callout) m_callout->hide();
+}
+
+void EditController::pointCallout()
+{
+    const QLabel *lbl = activeEditPage >= 0 ? m_canvas->pageLabel(activeEditPage) : nullptr;
+    if (!activeEditTurned || !lbl || !m_frame->isVisible()) {
+        if (m_callout) m_callout->hide();
+        return;
+    }
+    if (!m_callout) m_callout = new EditCallout(m_frame->parentWidget());
+    const qreal scale = PdfRenderer::screenScale(m_zoom->zoom());
+    const QTransform toCanvas = turnToShown() * QTransform::fromScale(scale, scale)
+                              * QTransform::fromTranslate(lbl->x(), lbl->y());
+    m_callout->point(QRectF(activeEditBounds.topLeft() * scale + QPointF(lbl->pos()),
+                            activeEditBounds.size() * scale),
+                     toCanvas.map(QPolygonF(activeEditBounds)), currentBox.rotationDeg);
+    m_callout->stackUnder(m_frame);
 }
 #endif
 
@@ -712,6 +839,7 @@ void EditController::createTextFrame(const QRect &viewportDragRect)
     const qreal scale = PdfRenderer::screenScale(m_zoom->zoom());
     activeEditPage       = pageIdx;
     activeEditSourcePage = pageIdx;
+    activeEditTurned     = false;
     activeEditBounds = QRectF(
         (QPointF(canvasRect.topLeft()) - QPointF(pageLbl->pos())) / scale,
         QSizeF(canvasRect.size()) / scale);

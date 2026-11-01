@@ -51,7 +51,7 @@ bool SignatureManager::removeCertificate(const QString &certificateId)
 }
 
 SignError SignatureManager::sign(const QString &source, const WriteGrant &targetGrant,
-                                 const SignRequest &request)
+                                 const SignRequest &request, const std::string &password)
 {
     const QString target = targetGrant.path();
     if (!available() || !m_provider) return SignError::NotAvailable;
@@ -68,7 +68,7 @@ SignError SignatureManager::sign(const QString &source, const WriteGrant &target
     PdfSignatureWriter writer;
     int capacity = kContentsBytes;
     for (int attempt = 0;; ++attempt) {
-        const SignError prepared = writer.prepare(source, field, capacity);
+        const SignError prepared = writer.prepare(source, field, capacity, password);
         if (prepared != SignError::None) return prepared;
 
         SignError error = SignError::SigningFailed;
@@ -91,7 +91,7 @@ SignError SignatureManager::sign(const QString &source, const WriteGrant &target
     }
     out.close();
 
-    const QList<SignatureStatus> signatures = verify(staging);
+    const QList<SignatureStatus> signatures = verify(staging, password);
     if (signatures.isEmpty() || signatures.last().state == SignatureStatus::State::Invalid
             || !signatures.last().coversWholeFile) {
         SafeWrite::discard(staging);

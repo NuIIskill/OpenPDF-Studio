@@ -3,6 +3,7 @@
 #include "ui/export/PageRange.hpp"
 #include "ui/theme/Theme.hpp"
 #include "ui/widgets/CheckBoxStyle.hpp"
+#include "app/AppSettings.hpp"
 #include "engine/export/PdfExporter.hpp"
 
 #include <QButtonGroup>
@@ -14,6 +15,7 @@
 #include <QFrame>
 #include <QGridLayout>
 #include <QHBoxLayout>
+#include <QImageWriter>
 #include <QLabel>
 #include <QLineEdit>
 #include <QMessageBox>
@@ -72,7 +74,7 @@ QWidget *option(QCheckBox *box, const QString &description)
     return w;
 }
 
-QPixmap wordIcon(qreal dpr)
+QPixmap letterIcon(const QColor &color, const QString &letter, qreal dpr)
 {
     const int side = 32;
     QPixmap pm(QSize(side, side) * dpr);
@@ -81,27 +83,34 @@ QPixmap wordIcon(qreal dpr)
     QPainter p(&pm);
     p.setRenderHint(QPainter::Antialiasing);
     p.setPen(Qt::NoPen);
-    p.setBrush(QColor(0x2B, 0x57, 0x9A));
+    p.setBrush(color);
     p.drawRoundedRect(QRectF(2, 2, side - 4, side - 4), 5, 5);
     QFont f;
     f.setPixelSize(18);
     f.setBold(true);
     p.setFont(f);
     p.setPen(Qt::white);
-    p.drawText(QRect(0, 0, side, side), Qt::AlignCenter, QStringLiteral("W"));
+    p.drawText(QRect(0, 0, side, side), Qt::AlignCenter, letter);
     return pm;
 }
 
 bool isImageFormat(const QString &id)
 {
-    return id == QLatin1String("image") || id == QLatin1String("jpeg");
+    return id == QLatin1String("image") || id == QLatin1String("jpeg")
+        || id == QLatin1String("tiff") || id == QLatin1String("webp");
 }
 
 QString extensionFor(const QString &id)
 {
     if (id == QLatin1String("word"))  return QStringLiteral(".docx");
+    if (id == QLatin1String("odt"))   return QStringLiteral(".odt");
     if (id == QLatin1String("image")) return QStringLiteral(".png");
     if (id == QLatin1String("jpeg"))  return QStringLiteral(".jpg");
+    if (id == QLatin1String("tiff"))  return QStringLiteral(".tiff");
+    if (id == QLatin1String("webp"))  return QStringLiteral(".webp");
+    if (id == QLatin1String("txt"))   return QStringLiteral(".txt");
+    if (id == QLatin1String("markdown")) return QStringLiteral(".md");
+    if (id == QLatin1String("html"))  return QStringLiteral(".html");
     return QStringLiteral(".pdf");
 }
 
@@ -174,9 +183,11 @@ void ExportDialog::updateOptionAvailability()
     const bool pdf   = m_selectedFormat == QLatin1String("pdf");
     const bool image = isImageFormat(m_selectedFormat);
 
+    m_settingsCard->setVisible(m_selectedFormat != QLatin1String("txt")
+                               && m_selectedFormat != QLatin1String("markdown"));
     m_contentColumn->setVisible(pdf);
     m_compressRow->setVisible(!image);
-    m_qualityCombo->setEnabled(!pdf || m_compressChk->isChecked());
+    m_qualityCombo->setEnabled(image || m_compressChk->isChecked());
 
     const bool qpdf = pdfExportAvailable();
     const QString missing = qpdf ? QString{}
@@ -218,22 +229,33 @@ void ExportDialog::updateEstimate()
         const double pixels = 595.0 * 842.0 * scale * scale;
 
         const double rich = qMin(1.0, perPage / 2.0e6);
-        const double perPixel = m_selectedFormat != QLatin1String("jpeg")
-            ? 0.10 + qMin(0.15, perPage / 4.0e6)
-            : quality >= 95 ? 0.04 + 1.1 * rich
-            : quality >= 80 ? 0.027 + 0.29 * rich
-                            : 0.025 + 0.19 * rich;
+        const double lossless = 0.10 + qMin(0.15, perPage / 4.0e6);
+        const double lossy = quality >= 95 ? 0.04 + 1.1 * rich
+                           : quality >= 80 ? 0.027 + 0.29 * rich
+                                           : 0.025 + 0.19 * rich;
+        const double perPixel = m_selectedFormat == QLatin1String("jpeg") ? lossy
+                              : m_selectedFormat == QLatin1String("webp")
+                                  ? (quality >= 100 ? lossless : lossy) * 0.5
+                              : m_selectedFormat == QLatin1String("tiff") ? lossless * 1.4
+                                                                         : lossless;
         bytes = pixels * perPixel * pages;
-    } else if (m_selectedFormat == QLatin1String("word")) {
+    } else if (m_selectedFormat == QLatin1String("txt")
+               || m_selectedFormat == QLatin1String("markdown")) {
+        bytes = pages * 2000.0;
+    } else if (m_selectedFormat == QLatin1String("word")
+               || m_selectedFormat == QLatin1String("odt")
+               || m_selectedFormat == QLatin1String("html")) {
 
         const double base = 20000.0 + perPage * 0.35;
-        double factor = 1.0;
+        // A compressed picture is only kept where it is smaller, so compressing never adds.
+        const double uncompressed = 1.2 + 1.9 * imageShare;
+        double factor = uncompressed;
         if (m_compressChk && m_compressChk->isChecked())
-            factor = quality >= 95 ? 3.7 : quality >= 80 ? 1.0
-                   : quality >= 55 ? 0.47 : 0.28;
-        else
-            factor = 1.2 + 1.9 * imageShare;
+            factor = qMin(uncompressed, quality >= 95 ? 3.7 : quality >= 80 ? 1.0
+                                      : quality >= 55 ? 0.47 : 0.28);
         bytes = pages * base * factor;
+        // HTML carries its pictures as base64 text.
+        if (m_selectedFormat == QLatin1String("html")) bytes *= 1.33;
     } else {
 
         double factor = 0.85;
@@ -274,9 +296,11 @@ QString ExportDialog::selectedPath() const
     if (dir.isEmpty() || name.isEmpty()) return {};
 
     const QString ext = extensionFor(m_selectedFormat);
-    const bool jpegName = m_selectedFormat == QLatin1String("jpeg")
-                       && name.endsWith(QLatin1String(".jpeg"), Qt::CaseInsensitive);
-    if (m_selectedFormat != QLatin1String("pdf") && !jpegName
+    const bool otherName = (m_selectedFormat == QLatin1String("jpeg")
+                            && name.endsWith(QLatin1String(".jpeg"), Qt::CaseInsensitive))
+                        || (m_selectedFormat == QLatin1String("tiff")
+                            && name.endsWith(QLatin1String(".tif"), Qt::CaseInsensitive));
+    if (m_selectedFormat != QLatin1String("pdf") && !otherName
         && !name.endsWith(ext, Qt::CaseInsensitive))
         name += ext;
     return QDir(dir).filePath(name);
@@ -295,7 +319,8 @@ void ExportDialog::onFormatSelected(const QString &id)
 
     QString name = m_filenameEdit->text();
 
-    for (const QString &ext : {".pdf", ".docx", ".png", ".jpg", ".jpeg"}) {
+    for (const QString &ext : {".pdf", ".docx", ".odt", ".png", ".jpg", ".jpeg", ".tiff", ".tif",
+                               ".webp", ".txt", ".md", ".html", ".htm"}) {
         if (name.endsWith(ext, Qt::CaseInsensitive)) { name.chop(ext.length()); break; }
     }
     if (!name.isEmpty())
@@ -384,6 +409,21 @@ void ExportDialog::applyDialogStyle()
             text-align: left;
         }
         QPushButton#XFormat:hover:!checked:enabled { background: palette(alternate-base); }
+        QScrollArea#XSideScroll, QWidget#XSideList { background: transparent; }
+        QScrollBar:vertical { border: none; width: 20px; margin: 0px; }
+        QScrollArea#XSideScroll QScrollBar:vertical { background: palette(window); }
+        QScrollArea#XScroll QScrollBar:vertical { background: palette(base); }
+        QScrollBar::handle:vertical { border-radius: 4px; min-height: 32px; margin: 0px 6px; }
+        QScrollBar::add-line:vertical, QScrollBar::sub-line:vertical { height: 0px; }
+        QScrollBar::add-page:vertical, QScrollBar::sub-page:vertical { background: none; }
+        QPushButton#XGroup {
+            border: none;
+            border-radius: 8px;
+            background: transparent;
+            text-align: left;
+        }
+        QPushButton#XGroup:hover { background: palette(alternate-base); }
+        QLabel#XGroupTitle { font-size: 15px; font-weight: 600; }
         QLabel#XFormatTitle { font-size: 15px; font-weight: 600; }
         QLabel#XFormatNote, QLabel#XMuted { color: palette(placeholder-text); }
         QLabel#XFormatTitle:disabled, QLabel#XFormatNote:disabled,
@@ -442,40 +482,86 @@ void ExportDialog::applyDialogStyle()
             border-color: rgba(96, 165, 250, 0.60);
         }
         QLabel#XFormatTitle[current="true"] { color: #93C5FD; }
+        QScrollBar::handle:vertical { background: #555555; }
+        QScrollBar::handle:vertical:hover { background: #666666; }
     )css") : QStringLiteral(R"css(
         QPushButton#XFormat:checked {
             background: rgba(37, 99, 235, 0.12);
             border-color: rgba(37, 99, 235, 0.50);
         }
         QLabel#XFormatTitle[current="true"] { color: #1D4ED8; }
+        QScrollBar::handle:vertical { background: #D1D5DB; }
+        QScrollBar::handle:vertical:hover { background: #9CA3AF; }
     )css")));
 }
 
 QWidget *ExportDialog::buildFormatList()
 {
     const qreal dpr = devicePixelRatioF();
+    const QPixmap documentIcon = Theme::renderSvg(QStringLiteral("export-pdf"), Qt::transparent, 32, dpr);
+    const QPixmap imageIcon = Theme::renderSvg(QStringLiteral("image"), Theme::Primary, 32, dpr);
+    AppSettings settings;
+    const QStringList open = settings.preservePanelLayout()
+        ? settings.exportOpenGroups() : QStringList{ QStringLiteral("documents") };
     m_formats = new ExportFormatList;
-    m_formats->addFormat(QStringLiteral("pdf"),
-                         Theme::renderSvg(QStringLiteral("export-pdf"), Qt::transparent, 32, dpr),
+    m_formats->addGroup(QStringLiteral("documents"), tr("Documents"),
+                        open.contains(QLatin1String("documents")));
+    m_formats->addFormat(QStringLiteral("pdf"), documentIcon,
                          QStringLiteral("PDF"), tr("Best for sharing and printing"), true);
     m_formats->addFormat(QStringLiteral("pdfa"),
                          Theme::renderSvg(QStringLiteral("export-pdfa"), Qt::transparent, 32, dpr),
                          QStringLiteral("PDF/A"), tr("Long-term archiving"), false);
-    m_formats->addFormat(QStringLiteral("word"), wordIcon(dpr), QStringLiteral("Word"),
+    m_formats->addFormat(QStringLiteral("word"),
+                         letterIcon(QColor(0x2B, 0x57, 0x9A), QStringLiteral("W"), dpr),
+                         QStringLiteral("Word"),
                          tr("Edit in Microsoft Word"), true);
-    const QPixmap imageIcon = Theme::renderSvg(QStringLiteral("image"), Theme::Primary, 32, dpr);
+    m_formats->addFormat(QStringLiteral("odt"),
+                         letterIcon(QColor(0x1F, 0x7A, 0x5C), QStringLiteral("O"), dpr),
+                         QStringLiteral("OpenDocument"),
+                         tr("Edit in LibreOffice"), true);
+    m_formats->addGroup(QStringLiteral("images"), tr("Images"),
+                        open.contains(QLatin1String("images")));
     m_formats->addFormat(QStringLiteral("image"), imageIcon, QStringLiteral("PNG"),
                          tr("Lossless page images"), true);
     m_formats->addFormat(QStringLiteral("jpeg"), imageIcon, QStringLiteral("JPEG"),
                          tr("Smaller files for photos and scans"), true);
+    const QList<QByteArray> writable = QImageWriter::supportedImageFormats();
+    m_formats->addFormat(QStringLiteral("tiff"), imageIcon, QStringLiteral("TIFF"),
+                         tr("For print and archiving"), writable.contains("tiff"));
+    m_formats->addFormat(QStringLiteral("webp"), imageIcon, QStringLiteral("WebP"),
+                         tr("Small images for the web"), writable.contains("webp"));
+    m_formats->addGroup(QStringLiteral("text"), tr("Text & Web"),
+                        open.contains(QLatin1String("text")));
+    m_formats->addFormat(QStringLiteral("txt"),
+                         Theme::renderSvg(QStringLiteral("align-left"), Theme::Primary, 32, dpr),
+                         QStringLiteral("TXT"), tr("Plain text without layout"), true);
+    m_formats->addFormat(QStringLiteral("markdown"),
+                         Theme::renderSvg(QStringLiteral("type"), Theme::Primary, 32, dpr),
+                         QStringLiteral("Markdown"), tr("Text with headings and lists"), true);
+    m_formats->addFormat(QStringLiteral("html"),
+                         Theme::renderSvg(QStringLiteral("globe"), Theme::Primary, 32, dpr),
+                         QStringLiteral("HTML"), tr("Opens in any web browser"), true);
     connect(m_formats, &ExportFormatList::formatChanged, this, &ExportDialog::onFormatSelected);
+    connect(this, &QDialog::finished, this, [this] {
+        if (AppSettings settings; settings.preservePanelLayout()) {
+            settings.setExportOpenGroups(m_formats->expandedGroups());
+            settings.setExportCompressImages(m_compressChk->isChecked());
+        }
+    });
 
     auto *side = new QWidget;
-    side->setFixedWidth(260);
+    side->setObjectName(QStringLiteral("XSideList"));
     auto *vl = new QVBoxLayout(side);
-    vl->setContentsMargins(16, 22, 0, 12);
+    vl->setContentsMargins(12, 22, 8, 12);
     vl->addWidget(m_formats);
-    return side;
+    auto *scroll = new QScrollArea;
+    scroll->setObjectName(QStringLiteral("XSideScroll"));
+    scroll->setFrameShape(QFrame::NoFrame);
+    scroll->setWidgetResizable(true);
+    scroll->setHorizontalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
+    scroll->setWidget(side);
+    scroll->setFixedWidth(260);
+    return scroll;
 }
 
 QWidget *ExportDialog::buildPage()
@@ -486,7 +572,8 @@ QWidget *ExportDialog::buildPage()
     vl->setSpacing(12);
     vl->addWidget(buildFileSection());
     vl->addWidget(buildPagesSection());
-    vl->addWidget(buildSettingsSection());
+    m_settingsCard = buildSettingsSection();
+    vl->addWidget(m_settingsCard);
     vl->addStretch(1);
     return scrolling(page);
 }
@@ -574,7 +661,8 @@ QFrame *ExportDialog::buildSettingsSection()
     auto *left = new QVBoxLayout;
     left->setSpacing(12);
     m_compressChk = new QCheckBox(tr("Compress images"));
-    m_compressChk->setChecked(true);
+    AppSettings settings;
+    m_compressChk->setChecked(!settings.preservePanelLayout() || settings.exportCompressImages());
     auto *qRow = new QHBoxLayout;
     qRow->setSpacing(12);
     qRow->addWidget(label(tr("Quality"), "XField"));

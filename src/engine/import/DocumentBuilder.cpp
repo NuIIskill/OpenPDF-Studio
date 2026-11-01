@@ -248,6 +248,7 @@ void DocumentBuilder::addDecoration(Decoration decoration)
             && decoration.text.isEmpty() && !decoration.stroke.isValid())
         return;
     decoration.anchorPosition = d->cursor->position();
+    decoration.afterPageBreak = d->breakBeforeNext;
     d->decorations.append(std::move(decoration));
 }
 

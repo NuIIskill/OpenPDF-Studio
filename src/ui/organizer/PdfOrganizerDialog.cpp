@@ -106,11 +106,11 @@ void PdfOrganizerDialog::buildUi()
     root->addWidget(buildToolbar());
     root->addWidget(buildInfoBar());
 
-    m_scroll = new QScrollArea(this);
+    m_scroll = new QScrollArea;
+    m_scroll->setObjectName(QStringLiteral("OrganizerScroll"));
     m_scroll->setFrameShape(QFrame::NoFrame);
     m_scroll->setHorizontalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
     m_scroll->setWidgetResizable(true);
-    m_scroll->setObjectName(QStringLiteral("OrganizerScroll"));
 
     m_gridContainer = new QWidget;
     m_gridContainer->setObjectName(QStringLiteral("OrganizerGrid"));

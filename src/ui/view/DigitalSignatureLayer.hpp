@@ -23,7 +23,7 @@ public:
 
     void add(const SignRequest &request, const SignatureAppearance &appearance);
     bool hasPending() const { return !m_pending.isEmpty(); }
-    SignError signInto(const WriteGrant &staging);
+    SignError signInto(const WriteGrant &staging, const std::string &password);
     SignError lastError() const { return m_lastError; }
     void clearError() { m_lastError = SignError::None; }
 

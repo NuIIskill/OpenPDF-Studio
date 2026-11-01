@@ -23,6 +23,12 @@ public:
     [[nodiscard]] QByteArray organizerGeometry() const;
     void setOrganizerGeometry(const QByteArray &geometry);
 
+    [[nodiscard]] QStringList exportOpenGroups() const;
+    void setExportOpenGroups(const QStringList &groups);
+
+    [[nodiscard]] bool exportCompressImages() const;
+    void setExportCompressImages(bool compress);
+
     [[nodiscard]] QString lastOpenedFile() const;
     void setLastOpenedFile(const QString &path);
 

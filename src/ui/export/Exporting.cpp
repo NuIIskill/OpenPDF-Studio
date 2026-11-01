@@ -5,6 +5,8 @@
 #include "ui/export/ExportCopy.hpp"
 #include "app/SafeWrite.hpp"
 #include "engine/export/DocxExporter.hpp"
+#include "engine/export/MarkupExporter.hpp"
+#include "engine/export/OdtExporter.hpp"
 #include "engine/document/WriteGrant.hpp"
 #include "engine/export/PdfExporter.hpp"
 
@@ -138,23 +140,33 @@ void Exporting::run(QWidget *parent, DocumentView *view, const ExportRequest &re
         return !guard.requested();
     };
 
-    const bool word  = request.format == QLatin1String("word");
-    const bool jpeg  = request.format == QLatin1String("jpeg");
-    const bool image = jpeg || request.format == QLatin1String("image");
+    const bool odt      = request.format == QLatin1String("odt");
+    const bool markdown = request.format == QLatin1String("markdown");
+    const bool html     = request.format == QLatin1String("html");
+    const bool flowing  = odt || markdown || html || request.format == QLatin1String("word");
+    const bool text     = request.format == QLatin1String("txt");
+    const bool jpeg     = request.format == QLatin1String("jpeg");
+    const bool image    = jpeg || request.format == QLatin1String("image")
+                       || request.format == QLatin1String("tiff")
+                       || request.format == QLatin1String("webp");
+    const QString imageName = jpeg ? QStringLiteral("JPEG")
+                            : request.format == QLatin1String("tiff") ? QStringLiteral("TIFF")
+                            : request.format == QLatin1String("webp") ? QStringLiteral("WebP")
+                                                                      : QStringLiteral("PNG");
 
     ExportCopy copy(view);
     // Writing the copy hands the spinner back to the view's own state.
     view->setBusy(true);
     bool readable = !copy.path().isEmpty();
 #ifdef HAVE_PDF_RENDERING
-    if (readable && (word || image)) readable = copy.open();
+    if (readable && (flowing || image || text)) readable = copy.open();
     const DocumentExporter exporter(copy.sources());
 #endif
 
     if (!readable) {
         failure = tr("Could not write \"%1\".").arg(shownName);
 
-    } else if (word) {
+    } else if (flowing) {
 #ifdef HAVE_PDF_RENDERING
         DocxExportOptions docxOpt;
         docxOpt.compressImages = request.compressImages;
@@ -171,7 +183,12 @@ void Exporting::run(QWidget *parent, DocumentView *view, const ExportRequest &re
 
         indicator->showProgress(tr("Writing \"%1\"…").arg(shownName));
         const QString title = QFileInfo(view->currentFile()).completeBaseName();
-        runInBackground([&] { ok = DocxExporter::exportToDocx(request.path, content, title); });
+        runInBackground([&] {
+            ok = odt      ? OdtExporter::exportToOdt(request.path, content)
+               : markdown ? MarkupExporter::exportToMarkdown(request.path, content)
+               : html     ? MarkupExporter::exportToHtml(request.path, content, title)
+                          : DocxExporter::exportToDocx(request.path, content, title);
+        });
 #endif
         failure = tr("Could not write to \"%1\".").arg(request.path);
 
@@ -182,9 +199,16 @@ void Exporting::run(QWidget *parent, DocumentView *view, const ExportRequest &re
                                               reportPage);
         });
 #endif
-        const QString folder = QFileInfo(request.path).absolutePath();
-        failure = jpeg ? tr("Could not export JPEG images to \"%1\".").arg(folder)
-                       : tr("Could not export PNG images to \"%1\".").arg(folder);
+        failure = tr("Could not export %1 images to \"%2\".")
+                      .arg(imageName, QFileInfo(request.path).absolutePath());
+
+    } else if (text) {
+#ifdef HAVE_PDF_RENDERING
+        runInBackground([&] {
+            ok = exporter.exportPagesToText(request.path, request.pages, reportPage);
+        });
+#endif
+        failure = tr("Could not write to \"%1\".").arg(request.path);
 
     } else {
         ok = writePdf(copy.path(), view->pageCount(), request, WriteGrant(request.path), &failure);
@@ -209,9 +233,8 @@ void Exporting::run(QWidget *parent, DocumentView *view, const ExportRequest &re
 
     const int pages = request.pages.size();
     const bool many = image && pages > 1;
-    indicator->showDone(!many ? tr("Exported \"%1\"").arg(shownName)
-                        : jpeg ? tr("%1 pages exported as JPEG images").arg(pages)
-                               : tr("%1 pages exported as PNG images").arg(pages));
+    indicator->showDone(many ? tr("%1 pages exported as %2 images").arg(pages).arg(imageName)
+                             : tr("Exported \"%1\"").arg(shownName));
 
     if (request.openAfterExport) {
         const QString target = many ? QFileInfo(request.path).absolutePath() : request.path;

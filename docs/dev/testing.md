@@ -29,13 +29,18 @@ exports apply to the current shell. Document and screenshot modes still use
 build/OpenPDFStudio --export-pdf    in.pdf out.pdf [pages=1,3-4] [nocomments] [noforms]
                                     [nofonts] [nocompress] [q=60] [pw=…] [srcpw=…]
 build/OpenPDFStudio --export-docx   in.pdf out.docx [pages=1,3-4] [q=60] [nocompress] [srcpw=…]
+build/OpenPDFStudio --export-odt    in.pdf out.odt [pages=1,3-4] [q=60] [nocompress] [srcpw=…]
 build/OpenPDFStudio --export-images in.pdf out.png [pages=1,3-4] [q=85] [srcpw=…]
+build/OpenPDFStudio --export-txt    in.pdf out.txt [pages=1,3-4] [srcpw=…]
+build/OpenPDFStudio --export-md     in.pdf out.md [pages=1,3-4] [srcpw=…]
+build/OpenPDFStudio --export-html   in.pdf out.html [pages=1,3-4] [q=60] [nocompress] [srcpw=…]
 build/OpenPDFStudio --import-pdf    in.docx out.pdf [dump=text.txt]
 ```
 
-Brackets denote optional arguments. `pages=` uses page numbers starting at 1.
-`srcpw=` provides the input PDF password; PDF export's `pw=` sets an output
-opening password. Use synthetic passwords in tests, since command arguments
+Brackets denote optional arguments. `--export-images` takes its format from
+the suffix: `.png`, `.jpg`, `.tiff` or `.webp`. `pages=` uses page numbers starting at 1.
+`srcpw=` provides the input PDF password; without the right one an encrypted
+input ends with code 2. PDF export's `pw=` sets an output opening password. Use synthetic passwords in tests, since command arguments
 can appear in process listings and shell history.
 
 `--import-pdf` accepts `.docx`, `.odt` or an image. `dump=` writes parsed plain

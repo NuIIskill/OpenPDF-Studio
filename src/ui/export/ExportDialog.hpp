@@ -78,6 +78,7 @@ private:
     QRadioButton *m_rangeRadio    { nullptr };
     QLineEdit    *m_rangeEdit     { nullptr };
     QComboBox    *m_qualityCombo  { nullptr };
+    QFrame       *m_settingsCard  { nullptr };
     QWidget      *m_compressRow   { nullptr };
     QWidget      *m_contentColumn { nullptr };
     QCheckBox    *m_compressChk   { nullptr };

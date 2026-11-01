@@ -7,6 +7,10 @@ target_sources(OpenPDFStudio PRIVATE
     DocxLayout.hpp
     DocxXml.cpp
     DocxXml.hpp
+    MarkupExporter.cpp
+    MarkupExporter.hpp
+    OdtExporter.cpp
+    OdtExporter.hpp
     PdfExporter.cpp
     PdfExporter.hpp
     PrintSheets.cpp

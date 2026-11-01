@@ -119,7 +119,8 @@ void PageLayoutEngine::beginDrag(int page, const QPointF &delta)
     double size = 12.0;
     for (const EditSession::Edit &e : std::as_const(m_preview.edits)) {
         if (e.newText.isNull()) continue;
-        text = text.isNull() ? e.pdfBounds : text.united(e.pdfBounds);
+        const QRectF shown = EditSession::shownBounds(e);
+        text = text.isNull() ? shown : text.united(shown);
         size = qMax(size, e.fontSizePt);
     }
     const qreal scale = deviceScale();

@@ -16,6 +16,7 @@
 #include <QPointF>
 #include <QRectF>
 #include <QString>
+#include <QTransform>
 
 QT_BEGIN_NAMESPACE
 class QLabel;
@@ -39,6 +40,14 @@ struct EditTarget
     TextBlock         block;
     QString           displayText;
     QPointF           textOrigin;
+    double            turn { 0.0 };
+    QPointF           turnPivot;
+
+    QTransform toShown() const
+    {
+        return QTransform().translate(turnPivot.x(), turnPivot.y()).rotate(turn)
+                           .translate(-turnPivot.x(), -turnPivot.y());
+    }
 
     int               editPage   { -1 };
     int               sourcePage { -1 };
@@ -97,6 +106,9 @@ public:
               const QRectF &lastCommittedOrigBounds, EditTarget &target);
 
     static void clampToPage(const DocumentSource *src, int page, QRectF &r);
+    static void clampTo(const QRectF &area, QRectF &r);
+    static QPointF turnedPivotShift(double turn, const QPointF &by);
+    static QPointF windowSpot(const QRectF &shown, const QSizeF &size, const QSizeF &pageSize);
 
     /// The part of a box edited before that a frame takes, and what stays of it.
     struct Cut {
@@ -126,12 +138,14 @@ private:
     void scopeToCut(EditOpen &o, const QList<TextLayout::OriginalLine> &lines, const Cut &cut);
     void findUnit(EditOpen &whole, EditOpen &o, const QList<TextLayout::OriginalLine> &gapLines,
                   const QList<TextLayout::OriginalLine> &wholeLines);
+    void clampToPage(const EditOpen &o, QRectF &r) const;
     void applyEditTargetBounds(EditOpen &o);
     void chooseEditorFont(EditOpen &o);
     void anchorEditOrigin(EditOpen &o);
     void fitEditHeight(EditOpen &o);
     void sampleEditColors(EditOpen &o);
     void fitEditWidth(EditOpen &o);
+    void placeTurnedWindow(EditOpen &o);
     void measureScan(EditOpen &o);
     QList<QRectF> scanLines(const EditOpen &o) const;
     QList<TextLayout::OriginalLine> scanTextLines(const EditOpen &o) const;
