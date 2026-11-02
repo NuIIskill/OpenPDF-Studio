@@ -4,8 +4,10 @@
 #include "ui/view/PageCanvas.hpp"
 
 #include <QByteArray>
+#include <QHash>
 #include <QList>
 #include <QObject>
+#include <QSet>
 #include <QString>
 
 #include <functional>
@@ -18,13 +20,16 @@ QT_BEGIN_NAMESPACE
 class QFrame;
 class QPushButton;
 class QUndoStack;
+class QWidget;
 QT_END_NAMESPACE
 
 class EditSession;
+class NoteDrag;
 class PdfBackend;
 class NoteUndoCommand;
+class TextSelectionController;
 
-/// Page markers and document state for PDF text notes.
+/// Page markers, text highlights and document state for PDF notes.
 class NoteLayer : public QObject
 {
     Q_OBJECT
@@ -40,19 +45,31 @@ public:
     void addPage(int page, const QList<PdfBackend::Note> &notes);
 #endif
     void setBeforeChange(std::function<void()> hook) { m_beforeChange = std::move(hook); }
+    void setSelection(TextSelectionController *selection) { m_selection = selection; }
 
     QByteArray encodedState() const;
     void       restoreEncoded(const QByteArray &data);
     void clear();
     void relayout();
     void setToolActive(bool active);
-    void addAt(const QPoint &canvasPos);
-    void addAtPageCenter(int page);
+    void press(const QPoint &canvasPos);
+    void release();
+    bool addAt(const QPoint &canvasPos);
+    bool dropAt(const QString &id, const QString &title, const QString &text,
+                const QPoint &globalTopLeft, const QColor &color = {});
+    void previewAt(const QPoint &globalTopLeft);
+    void unlink(const QString &id);
+    QWidget *marker(const QString &id) const;
     void activate(const QString &id);
     void update(const QString &id, const QString &title, const QString &text);
     void remove(const QString &id);
     void setPinned(const QString &id, bool pinned);
+    void setColor(const QString &id, const QColor &color);
+    bool colorAt(const QPoint &globalPos, const QColor &color);
     QList<NoteData> notes() const;
+
+protected:
+    bool eventFilter(QObject *watched, QEvent *event) override;
 
 Q_SIGNALS:
     void notesChanged(const QList<NoteData> &notes);
@@ -60,14 +77,39 @@ Q_SIGNALS:
     void noteAdded(int page);
     void noteEdited(int page);
     void noteRemoved(int page);
+    void pageNeedsRerender(int page);
+    void undoRequested();
 
 private:
     struct Entry {
         NoteData    data;
         QPushButton *marker { nullptr };
+        NoteDrag    *drag { nullptr };
+    };
+
+    struct Target {
+        int           page { -1 };
+        QPointF       topLeft;
+        QList<QRectF> textRects;
+        QString       quote;
+
+        bool operator==(const Target &) const = default;
     };
 
     void addEntry(NoteData note, bool position = true);
+    Target targetAt(const QPoint &canvasPos, bool linkText) const;
+    QPointF onPage(int page, const QPointF &topLeft) const;
+    bool addNote(const Target &target, const QString &title, const QString &text,
+                 const QColor &color);
+    bool placeAt(const QString &id, const Target &target, const QString &undoText);
+    QList<QWidget *> paint(int page, const QList<QRectF> &rects, const QString &name,
+                           const QColor &color = {}) const;
+    void showHighlights();
+    void clearPreview();
+    void deactivate();
+    void carry();
+    void watchCanvas();
+    bool pristine(const QString &id) const;
     void showPopup(const QString &id);
     void hidePopup();
     void syncSession();
@@ -83,6 +125,21 @@ private:
     QList<Entry> m_entries;
     QString      m_activeId;
     QFrame      *m_popup { nullptr };
+    QString      m_popupId;
+    QString      m_clickedId;
+    QPoint       m_popupGrab { -1, -1 };
+    QPoint       m_popupOffset;
+    QPoint       m_markerOffset;
+    QPoint       m_lastGlobal;
+    QPoint       m_previewGlobal;
+    bool         m_previewWatch { false };
+    bool         m_popupDragging { false };
+    QList<QWidget *> m_highlights;
+    QList<QWidget *> m_preview;
+    Target       m_previewTarget;
+    QHash<QString, int> m_hiddenHighlights;
+    TextSelectionController *m_selection { nullptr };
+    QPoint       m_pressAt { -1, -1 };
     bool         m_toolActive { false };
     std::function<void()> m_beforeChange;
 

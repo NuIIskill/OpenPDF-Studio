@@ -4,77 +4,77 @@
 <context>
     <name>BookmarkPanel</name>
     <message>
-        <location filename="../../src/ui/bookmarks/BookmarkPanel.cpp" line="175"/>
+        <location filename="../../src/ui/bookmarks/BookmarkPanel.cpp" line="256"/>
         <source>Bookmarks</source>
         <translation>Lesezeichen</translation>
     </message>
     <message>
-        <location filename="../../src/ui/bookmarks/BookmarkPanel.cpp" line="176"/>
+        <location filename="../../src/ui/bookmarks/BookmarkPanel.cpp" line="257"/>
         <source>Search bookmarks</source>
         <translation>Lesezeichen durchsuchen</translation>
     </message>
     <message>
-        <location filename="../../src/ui/bookmarks/BookmarkPanel.cpp" line="178"/>
-        <location filename="../../src/ui/bookmarks/BookmarkPanel.cpp" line="202"/>
+        <location filename="../../src/ui/bookmarks/BookmarkPanel.cpp" line="259"/>
+        <location filename="../../src/ui/bookmarks/BookmarkPanel.cpp" line="283"/>
         <source>This document has no bookmarks.</source>
         <translation>Dieses Dokument enthält keine Lesezeichen.</translation>
     </message>
     <message>
-        <location filename="../../src/ui/bookmarks/BookmarkPanel.cpp" line="179"/>
-        <location filename="../../src/ui/bookmarks/BookmarkPanel.cpp" line="203"/>
+        <location filename="../../src/ui/bookmarks/BookmarkPanel.cpp" line="260"/>
+        <location filename="../../src/ui/bookmarks/BookmarkPanel.cpp" line="284"/>
         <source>Open a PDF to view its bookmarks.</source>
         <translation>Öffnen Sie eine PDF, um ihre Lesezeichen anzuzeigen.</translation>
     </message>
     <message>
-        <location filename="../../src/ui/bookmarks/BookmarkPanel.cpp" line="180"/>
+        <location filename="../../src/ui/bookmarks/BookmarkPanel.cpp" line="261"/>
         <source>Close bookmarks</source>
         <translation>Lesezeichen schließen</translation>
     </message>
     <message>
-        <location filename="../../src/ui/bookmarks/BookmarkPanel.cpp" line="181"/>
+        <location filename="../../src/ui/bookmarks/BookmarkPanel.cpp" line="262"/>
         <source>Add bookmark for current page</source>
         <translation>Lesezeichen für die aktuelle Seite hinzufügen</translation>
     </message>
     <message>
-        <location filename="../../src/ui/bookmarks/BookmarkPanel.cpp" line="182"/>
-        <location filename="../../src/ui/bookmarks/BookmarkPanel.cpp" line="330"/>
+        <location filename="../../src/ui/bookmarks/BookmarkPanel.cpp" line="263"/>
+        <location filename="../../src/ui/bookmarks/BookmarkPanel.cpp" line="413"/>
         <source>Rename bookmark</source>
         <translation>Lesezeichen umbenennen</translation>
     </message>
     <message>
-        <location filename="../../src/ui/bookmarks/BookmarkPanel.cpp" line="183"/>
-        <location filename="../../src/ui/bookmarks/BookmarkPanel.cpp" line="348"/>
+        <location filename="../../src/ui/bookmarks/BookmarkPanel.cpp" line="264"/>
+        <location filename="../../src/ui/bookmarks/BookmarkPanel.cpp" line="431"/>
         <source>Delete bookmark</source>
         <translation>Lesezeichen löschen</translation>
     </message>
     <message>
-        <location filename="../../src/ui/bookmarks/BookmarkPanel.cpp" line="184"/>
+        <location filename="../../src/ui/bookmarks/BookmarkPanel.cpp" line="265"/>
         <source>Move bookmark up</source>
         <translation>Lesezeichen nach oben verschieben</translation>
     </message>
     <message>
-        <location filename="../../src/ui/bookmarks/BookmarkPanel.cpp" line="185"/>
+        <location filename="../../src/ui/bookmarks/BookmarkPanel.cpp" line="266"/>
         <source>Move bookmark down</source>
         <translation>Lesezeichen nach unten verschieben</translation>
     </message>
     <message>
-        <location filename="../../src/ui/bookmarks/BookmarkPanel.cpp" line="307"/>
+        <location filename="../../src/ui/bookmarks/BookmarkPanel.cpp" line="390"/>
         <source>Add bookmark</source>
         <translation>Lesezeichen hinzufügen</translation>
     </message>
     <message>
-        <location filename="../../src/ui/bookmarks/BookmarkPanel.cpp" line="307"/>
-        <location filename="../../src/ui/bookmarks/BookmarkPanel.cpp" line="330"/>
+        <location filename="../../src/ui/bookmarks/BookmarkPanel.cpp" line="390"/>
+        <location filename="../../src/ui/bookmarks/BookmarkPanel.cpp" line="413"/>
         <source>Title:</source>
         <translation>Titel:</translation>
     </message>
     <message>
-        <location filename="../../src/ui/bookmarks/BookmarkPanel.cpp" line="308"/>
+        <location filename="../../src/ui/bookmarks/BookmarkPanel.cpp" line="391"/>
         <source>Page %1</source>
         <translation>Seite %1</translation>
     </message>
     <message>
-        <location filename="../../src/ui/bookmarks/BookmarkPanel.cpp" line="349"/>
+        <location filename="../../src/ui/bookmarks/BookmarkPanel.cpp" line="432"/>
         <source>Delete &quot;%1&quot; and its child bookmarks?</source>
         <translation>„%1“ und alle untergeordneten Lesezeichen löschen?</translation>
     </message>
@@ -551,7 +551,7 @@
         <translation type="vanished">Medien</translation>
     </message>
     <message>
-        <location filename="../../src/ui/DocumentView.cpp" line="321"/>
+        <location filename="../../src/ui/DocumentView.cpp" line="315"/>
         <source>PDF rendering is not available in this build.
 Please use a build that includes Qt6::Pdf support.
 (See build-win.sh for instructions.)</source>
@@ -565,7 +565,7 @@ Bitte einen Build mit Qt6::Pdf-Unterstützung verwenden.
         <translation>Seite %1</translation>
     </message>
     <message>
-        <location filename="../../src/ui/DocumentView.cpp" line="545"/>
+        <location filename="../../src/ui/DocumentView.cpp" line="539"/>
         <location filename="../../src/ui/view/ImageAnnotationLayer.cpp" line="304"/>
         <source>Copy</source>
         <translation>Kopieren</translation>
@@ -595,33 +595,33 @@ Bitte einen Build mit Qt6::Pdf-Unterstützung verwenden.
         <translation type="vanished">Bilder (*.png *.jpg *.jpeg *.bmp *.gif *.tiff *.webp);;Alle Dateien (*)</translation>
     </message>
     <message>
-        <location filename="../../src/ui/DocumentView.cpp" line="379"/>
+        <location filename="../../src/ui/DocumentView.cpp" line="373"/>
         <source>Shift+click extends the selection</source>
         <translation>Shift+Klick erweitert die Auswahl</translation>
     </message>
     <message>
-        <location filename="../../src/ui/DocumentView.cpp" line="382"/>
+        <location filename="../../src/ui/DocumentView.cpp" line="376"/>
         <source>Shift: straight line in 45° steps</source>
         <translation>Shift: gerade Linie in 45°-Schritten</translation>
     </message>
     <message>
-        <location filename="../../src/ui/DocumentView.cpp" line="384"/>
+        <location filename="../../src/ui/DocumentView.cpp" line="378"/>
         <source>Shift: draw over detected images, keep the aspect ratio, move along one axis</source>
         <translation>Shift: über erkannte Bilder ziehen, Seitenverhältnis halten, entlang einer Achse verschieben</translation>
     </message>
     <message>
-        <location filename="../../src/ui/DocumentView.cpp" line="387"/>
+        <location filename="../../src/ui/DocumentView.cpp" line="381"/>
         <source>Shift+drag edits the text inside the box</source>
         <translation>Shift+Ziehen bearbeitet den Text im Rahmen</translation>
     </message>
     <message>
-        <location filename="../../src/ui/DocumentView.cpp" line="551"/>
+        <location filename="../../src/ui/DocumentView.cpp" line="545"/>
         <location filename="../../src/ui/view/ImageAnnotationLayer.cpp" line="308"/>
         <source>Paste</source>
         <translation>Einfügen</translation>
     </message>
     <message>
-        <location filename="../../src/ui/DocumentView.cpp" line="556"/>
+        <location filename="../../src/ui/DocumentView.cpp" line="550"/>
         <location filename="../../src/ui/view/ImageAnnotationLayer.cpp" line="319"/>
         <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="258"/>
         <source>Delete</source>
@@ -636,7 +636,7 @@ Bitte einen Build mit Qt6::Pdf-Unterstützung verwenden.
         <translation type="vanished">Alle Dateien (*)</translation>
     </message>
     <message>
-        <location filename="../../src/ui/DocumentView.cpp" line="319"/>
+        <location filename="../../src/ui/DocumentView.cpp" line="313"/>
         <location filename="../../src/ui/DocumentView_Edit.cpp" line="105"/>
         <source>Drop a document here or click a tab to open</source>
         <translation>Dokument hier ablegen oder Tab anklicken</translation>
@@ -798,12 +798,12 @@ Bitte einen Build mit Qt6::Pdf-Unterstützung verwenden.
 <context>
     <name>ExportDialog</name>
     <message>
-        <location filename="../../src/ui/export/ExportDialog.cpp" line="734"/>
+        <location filename="../../src/ui/export/ExportDialog.cpp" line="744"/>
         <source>Export</source>
         <translation>Exportieren</translation>
     </message>
     <message>
-        <location filename="../../src/ui/export/ExportDialog.cpp" line="191"/>
+        <location filename="../../src/ui/export/ExportDialog.cpp" line="194"/>
         <source>Not available in this build: rewriting a PDF&apos;s annotations, forms, fonts or encryption needs qpdf.</source>
         <translation>In diesem Build nicht verfügbar: Um Anmerkungen, Formulare, Schriften oder die Verschlüsselung einer PDF neu zu schreiben, wird qpdf benötigt.</translation>
     </message>
@@ -816,162 +816,162 @@ Bitte einen Build mit Qt6::Pdf-Unterstützung verwenden.
         <translation type="vanished">Wird beim Export als PNG-Bilder nicht verwendet.</translation>
     </message>
     <message>
-        <location filename="../../src/ui/export/ExportDialog.cpp" line="212"/>
+        <location filename="../../src/ui/export/ExportDialog.cpp" line="215"/>
         <source>Estimated file size: unknown (check the page range)</source>
         <translation>Geschätzte Dateigröße: unbekannt (Seitenbereich prüfen)</translation>
     </message>
     <message>
-        <location filename="../../src/ui/export/ExportDialog.cpp" line="275"/>
+        <location filename="../../src/ui/export/ExportDialog.cpp" line="282"/>
         <source>Estimated file size: ~%1  (%2 of %3 pages)</source>
         <translation>Geschätzte Dateigröße: ~%1  (%2 von %3 Seiten)</translation>
     </message>
     <message>
-        <location filename="../../src/ui/export/ExportDialog.cpp" line="329"/>
+        <location filename="../../src/ui/export/ExportDialog.cpp" line="336"/>
         <source>Select Save Location</source>
         <translation>Speicherort auswählen</translation>
     </message>
     <message>
-        <location filename="../../src/ui/export/ExportDialog.cpp" line="340"/>
+        <location filename="../../src/ui/export/ExportDialog.cpp" line="347"/>
         <source>Missing filename</source>
         <translation>Dateiname fehlt</translation>
     </message>
     <message>
-        <location filename="../../src/ui/export/ExportDialog.cpp" line="340"/>
+        <location filename="../../src/ui/export/ExportDialog.cpp" line="347"/>
         <source>Please enter a filename.</source>
         <translation>Bitte geben Sie einen Dateinamen ein.</translation>
     </message>
     <message>
-        <location filename="../../src/ui/export/ExportDialog.cpp" line="344"/>
+        <location filename="../../src/ui/export/ExportDialog.cpp" line="351"/>
         <source>Missing location</source>
         <translation>Speicherort fehlt</translation>
     </message>
     <message>
-        <location filename="../../src/ui/export/ExportDialog.cpp" line="344"/>
+        <location filename="../../src/ui/export/ExportDialog.cpp" line="351"/>
         <source>Please select a save location.</source>
         <translation>Bitte wählen Sie einen Speicherort aus.</translation>
     </message>
     <message>
-        <location filename="../../src/ui/export/ExportDialog.cpp" line="349"/>
+        <location filename="../../src/ui/export/ExportDialog.cpp" line="356"/>
         <source>No document</source>
         <translation>Kein Dokument</translation>
     </message>
     <message>
-        <location filename="../../src/ui/export/ExportDialog.cpp" line="349"/>
+        <location filename="../../src/ui/export/ExportDialog.cpp" line="356"/>
         <source>Please open a PDF document first.</source>
         <translation>Bitte öffnen Sie zuerst ein PDF-Dokument.</translation>
     </message>
     <message>
-        <location filename="../../src/ui/export/ExportDialog.cpp" line="500"/>
+        <location filename="../../src/ui/export/ExportDialog.cpp" line="507"/>
         <source>Documents</source>
         <translation>Dokumente</translation>
     </message>
     <message>
-        <location filename="../../src/ui/export/ExportDialog.cpp" line="514"/>
+        <location filename="../../src/ui/export/ExportDialog.cpp" line="521"/>
         <source>Edit in LibreOffice</source>
         <translation>In LibreOffice bearbeiten</translation>
     </message>
     <message>
-        <location filename="../../src/ui/export/ExportDialog.cpp" line="515"/>
+        <location filename="../../src/ui/export/ExportDialog.cpp" line="522"/>
         <source>Images</source>
         <translation>Bilder</translation>
     </message>
     <message>
-        <location filename="../../src/ui/export/ExportDialog.cpp" line="518"/>
+        <location filename="../../src/ui/export/ExportDialog.cpp" line="525"/>
         <source>Lossless page images</source>
         <translation>Verlustfreie Seitenbilder</translation>
     </message>
     <message>
-        <location filename="../../src/ui/export/ExportDialog.cpp" line="520"/>
+        <location filename="../../src/ui/export/ExportDialog.cpp" line="527"/>
         <source>Smaller files for photos and scans</source>
         <translation>Kleinere Dateien bei Fotos und Scans</translation>
     </message>
     <message>
-        <location filename="../../src/ui/export/ExportDialog.cpp" line="523"/>
+        <location filename="../../src/ui/export/ExportDialog.cpp" line="530"/>
         <source>For print and archiving</source>
         <translation>Für Druck und Archiv</translation>
     </message>
     <message>
-        <location filename="../../src/ui/export/ExportDialog.cpp" line="525"/>
+        <location filename="../../src/ui/export/ExportDialog.cpp" line="532"/>
         <source>Small images for the web</source>
         <translation>Kleine Bilder fürs Web</translation>
     </message>
     <message>
-        <location filename="../../src/ui/export/ExportDialog.cpp" line="526"/>
+        <location filename="../../src/ui/export/ExportDialog.cpp" line="533"/>
         <source>Text &amp; Web</source>
         <translation>Text &amp; Web</translation>
     </message>
     <message>
-        <location filename="../../src/ui/export/ExportDialog.cpp" line="530"/>
+        <location filename="../../src/ui/export/ExportDialog.cpp" line="537"/>
         <source>Plain text without layout</source>
         <translation>Reiner Text ohne Layout</translation>
     </message>
     <message>
-        <location filename="../../src/ui/export/ExportDialog.cpp" line="533"/>
+        <location filename="../../src/ui/export/ExportDialog.cpp" line="540"/>
         <source>Text with headings and lists</source>
         <translation>Text mit Überschriften und Listen</translation>
     </message>
     <message>
-        <location filename="../../src/ui/export/ExportDialog.cpp" line="536"/>
+        <location filename="../../src/ui/export/ExportDialog.cpp" line="543"/>
         <source>Opens in any web browser</source>
         <translation>Öffnet sich in jedem Browser</translation>
     </message>
     <message>
-        <location filename="../../src/ui/export/ExportDialog.cpp" line="594"/>
+        <location filename="../../src/ui/export/ExportDialog.cpp" line="603"/>
         <source>Filename</source>
         <translation>Dateiname</translation>
     </message>
     <message>
-        <location filename="../../src/ui/export/ExportDialog.cpp" line="589"/>
+        <location filename="../../src/ui/export/ExportDialog.cpp" line="598"/>
         <source>Browse…</source>
         <translation>Durchsuchen…</translation>
     </message>
     <message>
-        <location filename="../../src/ui/export/ExportDialog.cpp" line="618"/>
+        <location filename="../../src/ui/export/ExportDialog.cpp" line="627"/>
         <source>Range</source>
         <translation>Bereich</translation>
     </message>
     <message>
-        <location filename="../../src/ui/export/ExportDialog.cpp" line="622"/>
+        <location filename="../../src/ui/export/ExportDialog.cpp" line="631"/>
         <source>For example: 1-3, 5, 8-10</source>
         <translation>Zum Beispiel: 1-3, 5, 8-10</translation>
     </message>
     <message>
-        <location filename="../../src/ui/export/ExportDialog.cpp" line="658"/>
+        <location filename="../../src/ui/export/ExportDialog.cpp" line="668"/>
         <source>Quality</source>
         <translation>Qualität</translation>
     </message>
     <message>
-        <location filename="../../src/ui/export/ExportDialog.cpp" line="669"/>
+        <location filename="../../src/ui/export/ExportDialog.cpp" line="679"/>
         <source>Maximum</source>
         <translation>Maximal</translation>
     </message>
     <message>
-        <location filename="../../src/ui/export/ExportDialog.cpp" line="670"/>
+        <location filename="../../src/ui/export/ExportDialog.cpp" line="680"/>
         <source>High</source>
         <translation>Hoch</translation>
     </message>
     <message>
-        <location filename="../../src/ui/export/ExportDialog.cpp" line="671"/>
+        <location filename="../../src/ui/export/ExportDialog.cpp" line="681"/>
         <source>Medium</source>
         <translation>Mittel</translation>
     </message>
     <message>
-        <location filename="../../src/ui/export/ExportDialog.cpp" line="672"/>
+        <location filename="../../src/ui/export/ExportDialog.cpp" line="682"/>
         <source>Low</source>
         <translation>Niedrig</translation>
     </message>
     <message>
-        <location filename="../../src/ui/export/ExportDialog.cpp" line="654"/>
+        <location filename="../../src/ui/export/ExportDialog.cpp" line="663"/>
         <source>Compress images</source>
         <translation>Bilder komprimieren</translation>
     </message>
     <message>
-        <location filename="../../src/ui/export/ExportDialog.cpp" line="694"/>
+        <location filename="../../src/ui/export/ExportDialog.cpp" line="704"/>
         <source>Include comments</source>
         <translation>Kommentare einschließen</translation>
     </message>
     <message>
-        <location filename="../../src/ui/export/ExportDialog.cpp" line="693"/>
+        <location filename="../../src/ui/export/ExportDialog.cpp" line="703"/>
         <source>Keep forms</source>
         <translation>Formulare beibehalten</translation>
     </message>
@@ -980,17 +980,17 @@ Bitte einen Build mit Qt6::Pdf-Unterstützung verwenden.
         <translation type="vanished">Noch nicht verfügbar.</translation>
     </message>
     <message>
-        <location filename="../../src/ui/export/ExportDialog.cpp" line="503"/>
+        <location filename="../../src/ui/export/ExportDialog.cpp" line="510"/>
         <source>Best for sharing and printing</source>
         <translation>Ideal zum Teilen und Drucken</translation>
     </message>
     <message>
-        <location filename="../../src/ui/export/ExportDialog.cpp" line="506"/>
+        <location filename="../../src/ui/export/ExportDialog.cpp" line="513"/>
         <source>Long-term archiving</source>
         <translation>Langzeitarchivierung</translation>
     </message>
     <message>
-        <location filename="../../src/ui/export/ExportDialog.cpp" line="510"/>
+        <location filename="../../src/ui/export/ExportDialog.cpp" line="517"/>
         <source>Edit in Microsoft Word</source>
         <translation>In Microsoft Word bearbeiten</translation>
     </message>
@@ -1003,77 +1003,77 @@ Bitte einen Build mit Qt6::Pdf-Unterstützung verwenden.
         <translation type="vanished">PNG-Bilder</translation>
     </message>
     <message>
-        <location filename="../../src/ui/export/ExportDialog.cpp" line="575"/>
+        <location filename="../../src/ui/export/ExportDialog.cpp" line="584"/>
         <source>File</source>
         <translation>Datei</translation>
     </message>
     <message>
-        <location filename="../../src/ui/export/ExportDialog.cpp" line="576"/>
+        <location filename="../../src/ui/export/ExportDialog.cpp" line="585"/>
         <source>Choose where to save your file.</source>
         <translation>Wählen Sie, wo die Datei gespeichert wird.</translation>
     </message>
     <message>
-        <location filename="../../src/ui/export/ExportDialog.cpp" line="596"/>
+        <location filename="../../src/ui/export/ExportDialog.cpp" line="605"/>
         <source>Save location</source>
         <translation>Speicherort</translation>
     </message>
     <message>
-        <location filename="../../src/ui/export/ExportDialog.cpp" line="603"/>
+        <location filename="../../src/ui/export/ExportDialog.cpp" line="612"/>
         <source>Automatically open the exported file when the process completes.</source>
         <translation>Die exportierte Datei nach Abschluss automatisch öffnen.</translation>
     </message>
     <message>
-        <location filename="../../src/ui/export/ExportDialog.cpp" line="610"/>
+        <location filename="../../src/ui/export/ExportDialog.cpp" line="619"/>
         <source>Pages</source>
         <translation>Seiten</translation>
     </message>
     <message>
-        <location filename="../../src/ui/export/ExportDialog.cpp" line="611"/>
+        <location filename="../../src/ui/export/ExportDialog.cpp" line="620"/>
         <source>Select which pages to export.</source>
         <translation>Wählen Sie die zu exportierenden Seiten aus.</translation>
     </message>
     <message>
-        <location filename="../../src/ui/export/ExportDialog.cpp" line="614"/>
+        <location filename="../../src/ui/export/ExportDialog.cpp" line="623"/>
         <source>All pages (%1)</source>
         <translation>Alle Seiten (%1)</translation>
     </message>
     <message>
-        <location filename="../../src/ui/export/ExportDialog.cpp" line="615"/>
+        <location filename="../../src/ui/export/ExportDialog.cpp" line="624"/>
         <source>All pages</source>
         <translation>Alle Seiten</translation>
     </message>
     <message>
-        <location filename="../../src/ui/export/ExportDialog.cpp" line="616"/>
+        <location filename="../../src/ui/export/ExportDialog.cpp" line="625"/>
         <source>Current page (%1)</source>
         <translation>Aktuelle Seite (%1)</translation>
     </message>
     <message>
-        <location filename="../../src/ui/export/ExportDialog.cpp" line="617"/>
+        <location filename="../../src/ui/export/ExportDialog.cpp" line="626"/>
         <source>Current page</source>
         <translation>Aktuelle Seite</translation>
     </message>
     <message>
-        <location filename="../../src/ui/export/ExportDialog.cpp" line="648"/>
+        <location filename="../../src/ui/export/ExportDialog.cpp" line="657"/>
         <source>Settings</source>
         <translation>Einstellungen</translation>
     </message>
     <message>
-        <location filename="../../src/ui/export/ExportDialog.cpp" line="649"/>
+        <location filename="../../src/ui/export/ExportDialog.cpp" line="658"/>
         <source>Adjust quality and include additional content.</source>
         <translation>Qualität anpassen und zusätzliche Inhalte einschließen.</translation>
     </message>
     <message>
-        <location filename="../../src/ui/export/ExportDialog.cpp" line="678"/>
+        <location filename="../../src/ui/export/ExportDialog.cpp" line="688"/>
         <source>Reduces file size without noticeable quality loss.</source>
         <translation>Verringert die Dateigröße ohne sichtbaren Qualitätsverlust.</translation>
     </message>
     <message>
-        <location filename="../../src/ui/export/ExportDialog.cpp" line="697"/>
+        <location filename="../../src/ui/export/ExportDialog.cpp" line="707"/>
         <source>Preserve form fields and data.</source>
         <translation>Formularfelder samt Daten behalten.</translation>
     </message>
     <message>
-        <location filename="../../src/ui/export/ExportDialog.cpp" line="698"/>
+        <location filename="../../src/ui/export/ExportDialog.cpp" line="708"/>
         <source>Export comments and annotations.</source>
         <translation>Kommentare und Anmerkungen exportieren.</translation>
     </message>
@@ -1086,12 +1086,12 @@ Bitte einen Build mit Qt6::Pdf-Unterstützung verwenden.
         <translation type="vanished">Legen Sie fest, was in der exportierten Datei erhalten bleibt.</translation>
     </message>
     <message>
-        <location filename="../../src/ui/export/ExportDialog.cpp" line="699"/>
+        <location filename="../../src/ui/export/ExportDialog.cpp" line="709"/>
         <source>Embed fonts</source>
         <translation>Schriften einbetten</translation>
     </message>
     <message>
-        <location filename="../../src/ui/export/ExportDialog.cpp" line="701"/>
+        <location filename="../../src/ui/export/ExportDialog.cpp" line="711"/>
         <source>Include all used fonts in the PDF file.</source>
         <translation>Alle verwendeten Schriften einbetten.</translation>
     </message>
@@ -1136,50 +1136,50 @@ Bitte einen Build mit Qt6::Pdf-Unterstützung verwenden.
         <translation type="vanished">Erweitert</translation>
     </message>
     <message>
-        <location filename="../../src/ui/export/ExportDialog.cpp" line="601"/>
+        <location filename="../../src/ui/export/ExportDialog.cpp" line="610"/>
         <source>Open file after export</source>
         <translation>Datei nach dem Export öffnen</translation>
     </message>
     <message>
-        <location filename="../../src/ui/export/ExportDialog.cpp" line="205"/>
-        <location filename="../../src/ui/export/ExportDialog.cpp" line="727"/>
+        <location filename="../../src/ui/export/ExportDialog.cpp" line="208"/>
+        <location filename="../../src/ui/export/ExportDialog.cpp" line="737"/>
         <source>Estimated file size: unknown</source>
         <translation>Geschätzte Dateigröße: unbekannt</translation>
     </message>
     <message>
-        <location filename="../../src/ui/export/ExportDialog.cpp" line="357"/>
+        <location filename="../../src/ui/export/ExportDialog.cpp" line="364"/>
         <source>Invalid page range</source>
         <translation>Ungültiger Seitenbereich</translation>
     </message>
     <message>
-        <location filename="../../src/ui/export/ExportDialog.cpp" line="358"/>
+        <location filename="../../src/ui/export/ExportDialog.cpp" line="365"/>
         <source>&quot;%1&quot; is not a valid range for a document with %2 pages.
 Use page numbers like 1-3, 5, 8-10.</source>
         <translation>„%1“ ist kein gültiger Bereich für ein Dokument mit %2 Seiten.
 Verwenden Sie Seitenzahlen wie 1-3, 5, 8-10.</translation>
     </message>
     <message>
-        <location filename="../../src/ui/export/ExportDialog.cpp" line="382"/>
+        <location filename="../../src/ui/export/ExportDialog.cpp" line="389"/>
         <source>%1 image files</source>
         <translation>%1 Bilddateien</translation>
     </message>
     <message>
-        <location filename="../../src/ui/export/ExportDialog.cpp" line="383"/>
+        <location filename="../../src/ui/export/ExportDialog.cpp" line="390"/>
         <source>Overwrite existing file?</source>
         <translation>Vorhandene Datei überschreiben?</translation>
     </message>
     <message>
-        <location filename="../../src/ui/export/ExportDialog.cpp" line="384"/>
+        <location filename="../../src/ui/export/ExportDialog.cpp" line="391"/>
         <source>%1 already exists. Do you want to overwrite it?</source>
         <translation>%1 ist bereits vorhanden. Möchten Sie die Datei überschreiben?</translation>
     </message>
     <message>
-        <location filename="../../src/ui/export/ExportDialog.cpp" line="729"/>
+        <location filename="../../src/ui/export/ExportDialog.cpp" line="739"/>
         <source>Cancel</source>
         <translation>Abbrechen</translation>
     </message>
     <message>
-        <location filename="../../src/ui/export/ExportDialog.cpp" line="137"/>
+        <location filename="../../src/ui/export/ExportDialog.cpp" line="139"/>
         <source>Export - OpenPDF Studio</source>
         <translation>Exportieren - OpenPDF Studio</translation>
     </message>
@@ -1204,18 +1204,18 @@ Verwenden Sie Seitenzahlen wie 1-3, 5, 8-10.</translation>
         <translation type="vanished">„%1“ wird exportiert…</translation>
     </message>
     <message>
-        <location filename="../../src/ui/export/Exporting.cpp" line="135"/>
+        <location filename="../../src/ui/export/Exporting.cpp" line="136"/>
         <source>Exporting page %1 of %2…</source>
         <translation>Seite %1 von %2 wird exportiert…</translation>
     </message>
     <message>
-        <location filename="../../src/ui/export/Exporting.cpp" line="181"/>
+        <location filename="../../src/ui/export/Exporting.cpp" line="184"/>
         <source>Writing &quot;%1&quot;…</source>
         <translation>„%1“ wird geschrieben…</translation>
     </message>
     <message>
-        <location filename="../../src/ui/export/Exporting.cpp" line="188"/>
-        <location filename="../../src/ui/export/Exporting.cpp" line="206"/>
+        <location filename="../../src/ui/export/Exporting.cpp" line="193"/>
+        <location filename="../../src/ui/export/Exporting.cpp" line="211"/>
         <source>Could not write to &quot;%1&quot;.</source>
         <translation>„%1“ konnte nicht beschrieben werden.</translation>
     </message>
@@ -1228,13 +1228,13 @@ Verwenden Sie Seitenzahlen wie 1-3, 5, 8-10.</translation>
         <translation type="vanished">PNG-Bilder konnten nicht nach „%1“ exportiert werden.</translation>
     </message>
     <message>
-        <location filename="../../src/ui/export/Exporting.cpp" line="99"/>
-        <location filename="../../src/ui/export/Exporting.cpp" line="164"/>
+        <location filename="../../src/ui/export/Exporting.cpp" line="100"/>
+        <location filename="../../src/ui/export/Exporting.cpp" line="167"/>
         <source>Could not write &quot;%1&quot;.</source>
         <translation>„%1“ konnte nicht geschrieben werden.</translation>
     </message>
     <message>
-        <location filename="../../src/ui/export/Exporting.cpp" line="101"/>
+        <location filename="../../src/ui/export/Exporting.cpp" line="102"/>
         <source>Could not write &quot;%1&quot;.
 
 Selecting pages for a PDF needs qpdf, which this build does not include. Exporting as Word or PNG is unaffected.</source>
@@ -1243,17 +1243,17 @@ Selecting pages for a PDF needs qpdf, which this build does not include. Exporti
 Für die Seitenauswahl bei PDF wird qpdf benötigt, das in diesem Build fehlt. Der Export als Word oder PNG ist davon nicht betroffen.</translation>
     </message>
     <message>
-        <location filename="../../src/ui/export/Exporting.cpp" line="197"/>
+        <location filename="../../src/ui/export/Exporting.cpp" line="202"/>
         <source>Could not export %1 images to &quot;%2&quot;.</source>
         <translation>%1-Bilder konnten nicht nach „%2“ exportiert werden.</translation>
     </message>
     <message>
-        <location filename="../../src/ui/export/Exporting.cpp" line="225"/>
+        <location filename="../../src/ui/export/Exporting.cpp" line="230"/>
         <source>Export failed</source>
         <translation>Export fehlgeschlagen</translation>
     </message>
     <message>
-        <location filename="../../src/ui/export/Exporting.cpp" line="231"/>
+        <location filename="../../src/ui/export/Exporting.cpp" line="236"/>
         <source>%1 pages exported as %2 images</source>
         <translation>%1 Seiten als %2-Bilder exportiert</translation>
     </message>
@@ -1266,7 +1266,7 @@ Für die Seitenauswahl bei PDF wird qpdf benötigt, das in diesem Build fehlt. D
         <translation type="vanished">%1 Seiten als PNG-Bilder exportiert</translation>
     </message>
     <message>
-        <location filename="../../src/ui/export/Exporting.cpp" line="232"/>
+        <location filename="../../src/ui/export/Exporting.cpp" line="237"/>
         <source>Exported &quot;%1&quot;</source>
         <translation>„%1“ exportiert</translation>
     </message>
@@ -2448,33 +2448,33 @@ Text-, Bild- und Zeichenbearbeitungen seit damals stehen in keiner Datei und geh
 <context>
     <name>MainWindow</name>
     <message>
-        <location filename="../../src/ui/MainWindow.cpp" line="133"/>
-        <location filename="../../src/ui/MainWindow.cpp" line="147"/>
+        <location filename="../../src/ui/MainWindow.cpp" line="135"/>
+        <location filename="../../src/ui/MainWindow.cpp" line="149"/>
         <source>Default PDF Application</source>
         <translation>Standard-PDF-Anwendung</translation>
     </message>
     <message>
-        <location filename="../../src/ui/MainWindow.cpp" line="134"/>
+        <location filename="../../src/ui/MainWindow.cpp" line="136"/>
         <source>OpenPDF Studio is not your default application for PDF files. Would you like to make it the default?</source>
         <translation>OpenPDF Studio ist nicht Ihre Standardanwendung für PDF-Dateien. Möchten Sie es als Standard festlegen?</translation>
     </message>
     <message>
-        <location filename="../../src/ui/MainWindow.cpp" line="137"/>
+        <location filename="../../src/ui/MainWindow.cpp" line="139"/>
         <source>Windows then opens its settings for default apps, where you choose OpenPDF Studio for PDF files.</source>
         <translation>Windows öffnet dann seine Einstellungen für Standard-Apps, in denen Sie OpenPDF Studio für PDF-Dateien auswählen.</translation>
     </message>
     <message>
-        <location filename="../../src/ui/MainWindow.cpp" line="139"/>
+        <location filename="../../src/ui/MainWindow.cpp" line="141"/>
         <source>Make Default</source>
         <translation>Als Standard festlegen</translation>
     </message>
     <message>
-        <location filename="../../src/ui/MainWindow.cpp" line="140"/>
+        <location filename="../../src/ui/MainWindow.cpp" line="142"/>
         <source>No</source>
         <translation>Nein</translation>
     </message>
     <message>
-        <location filename="../../src/ui/MainWindow.cpp" line="148"/>
+        <location filename="../../src/ui/MainWindow.cpp" line="150"/>
         <source>OpenPDF Studio could not be made the default application for PDF files.</source>
         <translation>OpenPDF Studio konnte nicht als Standardanwendung für PDF-Dateien festgelegt werden.</translation>
     </message>
@@ -2491,12 +2491,12 @@ Text-, Bild- und Zeichenbearbeitungen seit damals stehen in keiner Datei und geh
         <translation type="vanished">Das Dokument konnte nicht gedruckt werden.</translation>
     </message>
     <message>
-        <location filename="../../src/ui/MainWindow.cpp" line="840"/>
+        <location filename="../../src/ui/MainWindow.cpp" line="899"/>
         <source>PDF files (*.pdf)</source>
         <translation>PDF-Dateien (*.pdf)</translation>
     </message>
     <message>
-        <location filename="../../src/ui/MainWindow.cpp" line="839"/>
+        <location filename="../../src/ui/MainWindow.cpp" line="898"/>
         <source>Save PDF As</source>
         <translation>PDF speichern unter</translation>
     </message>
@@ -2537,19 +2537,19 @@ Text-, Bild- und Zeichenbearbeitungen seit damals stehen in keiner Datei und geh
         <translation type="vanished">Lizenzschlüssel eingeben</translation>
     </message>
     <message>
-        <location filename="../../src/ui/MainWindow.cpp" line="173"/>
+        <location filename="../../src/ui/MainWindow.cpp" line="175"/>
         <source>Later</source>
         <translation>Später</translation>
     </message>
     <message>
-        <location filename="../../src/ui/MainWindow.cpp" line="820"/>
-        <location filename="../../src/ui/MainWindow.cpp" line="825"/>
-        <location filename="../../src/ui/MainWindow.cpp" line="829"/>
+        <location filename="../../src/ui/MainWindow.cpp" line="879"/>
+        <location filename="../../src/ui/MainWindow.cpp" line="884"/>
+        <location filename="../../src/ui/MainWindow.cpp" line="888"/>
         <source>Save failed</source>
         <translation>Speichern fehlgeschlagen</translation>
     </message>
     <message>
-        <location filename="../../src/ui/MainWindow.cpp" line="830"/>
+        <location filename="../../src/ui/MainWindow.cpp" line="889"/>
         <source>Could not write &quot;%1&quot;.
 
 The file may be write-protected or open in another program. The document is unchanged. Try saving it under a different name.</source>
@@ -2570,78 +2570,78 @@ Die Datei ist möglicherweise schreibgeschützt oder in einem anderen Programm g
         <translation type="vanished">Dieser Stand konnte nicht wiederhergestellt werden. Die Kopie des Dokuments, in der er lag, ist nicht mehr vorhanden.</translation>
     </message>
     <message>
-        <location filename="../../src/ui/MainWindow.cpp" line="1017"/>
+        <location filename="../../src/ui/MainWindow.cpp" line="1076"/>
         <source>Edit Mode</source>
         <translation>Bearbeitungsmodus</translation>
     </message>
     <message>
-        <location filename="../../src/ui/MainWindow.cpp" line="1018"/>
+        <location filename="../../src/ui/MainWindow.cpp" line="1077"/>
         <source>Do you want to enable Edit Mode?</source>
         <translation>Möchten Sie den Bearbeitungsmodus aktivieren?</translation>
     </message>
     <message>
-        <location filename="../../src/ui/MainWindow.cpp" line="1251"/>
+        <location filename="../../src/ui/MainWindow.cpp" line="1312"/>
         <source>Untitled</source>
         <translation>Unbenannt</translation>
     </message>
     <message>
-        <location filename="../../src/ui/MainWindow.cpp" line="1255"/>
+        <location filename="../../src/ui/MainWindow.cpp" line="1316"/>
         <source>Unsaved Changes</source>
         <translation>Nicht gespeicherte Änderungen</translation>
     </message>
     <message>
-        <location filename="../../src/ui/MainWindow.cpp" line="1256"/>
+        <location filename="../../src/ui/MainWindow.cpp" line="1317"/>
         <source>Save changes to &quot;%1&quot;?</source>
         <translation>Änderungen an „%1&quot; speichern?</translation>
     </message>
     <message>
-        <location filename="../../src/ui/MainWindow.cpp" line="649"/>
+        <location filename="../../src/ui/MainWindow.cpp" line="708"/>
         <source>Open Document</source>
         <translation>Dokument öffnen</translation>
     </message>
     <message>
-        <location filename="../../src/ui/MainWindow.cpp" line="667"/>
+        <location filename="../../src/ui/MainWindow.cpp" line="726"/>
         <source>Cannot open file</source>
         <translation>Datei lässt sich nicht öffnen</translation>
     </message>
     <message>
-        <location filename="../../src/ui/MainWindow.cpp" line="723"/>
+        <location filename="../../src/ui/MainWindow.cpp" line="782"/>
         <source>There is no room to put the converted file.</source>
         <translation>Für die umgewandelte Datei ist kein Platz.</translation>
     </message>
     <message>
-        <location filename="../../src/ui/MainWindow.cpp" line="738"/>
-        <location filename="../../src/ui/MainWindow.cpp" line="761"/>
+        <location filename="../../src/ui/MainWindow.cpp" line="797"/>
+        <location filename="../../src/ui/MainWindow.cpp" line="820"/>
         <source>Import failed</source>
         <translation>Import fehlgeschlagen</translation>
     </message>
     <message>
-        <location filename="../../src/ui/MainWindow.cpp" line="668"/>
+        <location filename="../../src/ui/MainWindow.cpp" line="727"/>
         <source>&quot;%1&quot; is not a PDF and cannot be turned into one.</source>
         <translation>„%1“ ist kein PDF und lässt sich auch in keines umwandeln.</translation>
     </message>
     <message>
-        <location filename="../../src/ui/MainWindow.cpp" line="168"/>
+        <location filename="../../src/ui/MainWindow.cpp" line="170"/>
         <source>Update available</source>
         <translation>Update verfügbar</translation>
     </message>
     <message>
-        <location filename="../../src/ui/MainWindow.cpp" line="169"/>
+        <location filename="../../src/ui/MainWindow.cpp" line="171"/>
         <source>OpenPDF Studio %1 is available.</source>
         <translation>OpenPDF Studio %1 ist verfügbar.</translation>
     </message>
     <message>
-        <location filename="../../src/ui/MainWindow.cpp" line="170"/>
+        <location filename="../../src/ui/MainWindow.cpp" line="172"/>
         <source>You are running %1.</source>
         <translation>Sie verwenden %1.</translation>
     </message>
     <message>
-        <location filename="../../src/ui/MainWindow.cpp" line="171"/>
+        <location filename="../../src/ui/MainWindow.cpp" line="173"/>
         <source>Open download page</source>
         <translation>Downloadseite öffnen</translation>
     </message>
     <message>
-        <location filename="../../src/ui/MainWindow.cpp" line="739"/>
+        <location filename="../../src/ui/MainWindow.cpp" line="798"/>
         <source>&quot;%1&quot; could not be turned into a PDF.
 
 %2</source>
@@ -2650,17 +2650,17 @@ Die Datei ist möglicherweise schreibgeschützt oder in einem anderen Programm g
 %2</translation>
     </message>
     <message>
-        <location filename="../../src/ui/MainWindow.cpp" line="762"/>
+        <location filename="../../src/ui/MainWindow.cpp" line="821"/>
         <source>&quot;%1&quot; was converted, but the result could not be opened.</source>
         <translation>„%1“ wurde umgewandelt, das Ergebnis ließ sich aber nicht öffnen.</translation>
     </message>
     <message>
-        <location filename="../../src/ui/MainWindow.cpp" line="708"/>
+        <location filename="../../src/ui/MainWindow.cpp" line="767"/>
         <source>Cannot add pages</source>
         <translation>Seiten können nicht hinzugefügt werden</translation>
     </message>
     <message>
-        <location filename="../../src/ui/MainWindow.cpp" line="709"/>
+        <location filename="../../src/ui/MainWindow.cpp" line="768"/>
         <source>The pages of &quot;%1&quot; could not be added.</source>
         <translation>Die Seiten von „%1“ konnten nicht hinzugefügt werden.</translation>
     </message>
@@ -2919,49 +2919,161 @@ Installieren Sie ffmpeg, um sie umzuwandeln, oder betten Sie sie unverändert ei
     </message>
 </context>
 <context>
+    <name>NoteColorPicker</name>
+    <message>
+        <location filename="../../src/ui/notes/NoteColorPicker.cpp" line="154"/>
+        <source>Apply</source>
+        <translation>Übernehmen</translation>
+    </message>
+</context>
+<context>
+    <name>NoteColorRow</name>
+    <message>
+        <location filename="../../src/ui/notes/NoteColorRow.cpp" line="437"/>
+        <source>Yellow</source>
+        <translation>Gelb</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/notes/NoteColorRow.cpp" line="437"/>
+        <source>Orange</source>
+        <translation>Orange</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/notes/NoteColorRow.cpp" line="437"/>
+        <source>Pink</source>
+        <translation>Rosa</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/notes/NoteColorRow.cpp" line="438"/>
+        <source>Green</source>
+        <translation>Grün</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/notes/NoteColorRow.cpp" line="438"/>
+        <source>Blue</source>
+        <translation>Blau</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/notes/NoteColorRow.cpp" line="438"/>
+        <source>Purple</source>
+        <translation>Lila</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/notes/NoteColorRow.cpp" line="387"/>
+        <location filename="../../src/ui/notes/NoteColorRow.cpp" line="459"/>
+        <source>Restore the standard colors</source>
+        <translation>Standardfarben wiederherstellen</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/notes/NoteColorRow.cpp" line="397"/>
+        <source>Own color: click to mix one, then drag it onto a note or into the colors to keep it</source>
+        <translation>Eigene Farbe: klicken zum Mischen, dann auf eine Notiz oder in die Farben ziehen, um sie zu behalten</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/notes/NoteColorRow.cpp" line="382"/>
+        <source>Drag a color here to keep it</source>
+        <translation>Farbe hierher ziehen, um sie zu behalten</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/notes/NoteColorRow.cpp" line="386"/>
+        <source>Mix a color here</source>
+        <translation>Farbe hier mischen</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/notes/NoteColorRow.cpp" line="419"/>
+        <source>Click the colorful bubble to mix a color</source>
+        <translation>Auf die bunte Blase klicken, um eine Farbe zu mischen</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/notes/NoteColorRow.cpp" line="420"/>
+        <source>Drag a color onto a note, or onto a bubble to replace it</source>
+        <translation>Farbe auf eine Notiz ziehen, oder auf eine Blase, um sie zu ersetzen</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/notes/NoteColorRow.cpp" line="442"/>
+        <source>Del or the x removes it</source>
+        <translation>Entf oder das x entfernt sie</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/notes/NoteColorRow.cpp" line="458"/>
+        <source>Remove color</source>
+        <translation>Farbe entfernen</translation>
+    </message>
+    <message>
+        <source>Reset color</source>
+        <translation type="vanished">Farbe zurücksetzen</translation>
+    </message>
+    <message>
+        <source>Choose a note color</source>
+        <translation type="vanished">Notizfarbe wählen</translation>
+    </message>
+</context>
+<context>
     <name>NoteLayer</name>
     <message>
-        <location filename="../../src/ui/notes/NoteLayer.cpp" line="229"/>
+        <location filename="../../src/ui/notes/NoteLayer.cpp" line="456"/>
         <source>Unpin note</source>
         <translation>Notiz lösen</translation>
     </message>
     <message>
-        <location filename="../../src/ui/notes/NoteLayer.cpp" line="107"/>
+        <location filename="../../src/ui/notes/NoteLayer.cpp" line="147"/>
         <source>Note</source>
         <translation>Notiz</translation>
     </message>
     <message>
-        <location filename="../../src/ui/notes/NoteLayer.cpp" line="229"/>
+        <location filename="../../src/ui/notes/NoteLayer.cpp" line="302"/>
+        <source>Move note</source>
+        <translation>Notiz verschieben</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/notes/NoteLayer.cpp" line="287"/>
+        <location filename="../../src/ui/notes/NoteLayer.cpp" line="302"/>
+        <source>Link note</source>
+        <translation>Notiz verknüpfen</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/notes/NoteLayer.cpp" line="376"/>
+        <source>Unlink note</source>
+        <translation>Notiz lösen</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/notes/NoteLayer.cpp" line="456"/>
         <source>Pin note</source>
         <translation>Notiz anheften</translation>
     </message>
     <message>
-        <location filename="../../src/ui/notes/NoteLayer.cpp" line="190"/>
+        <location filename="../../src/ui/notes/NoteLayer.cpp" line="416"/>
         <source>Edit note</source>
         <translation>Notiz bearbeiten</translation>
     </message>
     <message>
-        <location filename="../../src/ui/notes/NoteLayer.cpp" line="411"/>
+        <location filename="../../src/ui/notes/NoteLayer.cpp" line="484"/>
+        <source>Change note color</source>
+        <translation>Notizfarbe ändern</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/notes/NoteLayer_Box.cpp" line="190"/>
         <source>Page %1</source>
         <translation>Seite %1</translation>
     </message>
     <message>
-        <location filename="../../src/ui/notes/NoteLayer.cpp" line="183"/>
+        <location filename="../../src/ui/notes/NoteLayer.cpp" line="409"/>
         <source>Untitled note</source>
         <translation>Notiz ohne Titel</translation>
     </message>
     <message>
-        <location filename="../../src/ui/notes/NoteLayer.cpp" line="215"/>
+        <location filename="../../src/ui/notes/NoteLayer.cpp" line="442"/>
         <source>Delete note</source>
         <translation>Notiz löschen</translation>
     </message>
     <message>
-        <location filename="../../src/ui/notes/NoteLayer.cpp" line="146"/>
+        <location filename="../../src/ui/notes/NoteLayer.cpp" line="243"/>
         <source>Add note</source>
         <translation>Notiz hinzufügen</translation>
     </message>
     <message>
-        <location filename="../../src/ui/notes/NoteLayer.cpp" line="140"/>
+        <location filename="../../src/ui/notes/NoteLayer.cpp" line="233"/>
+        <location filename="../../src/ui/notes/NoteLayer.cpp" line="709"/>
         <source>New note</source>
         <translation>Neue Notiz</translation>
     </message>
@@ -2969,69 +3081,145 @@ Installieren Sie ffmpeg, um sie umzuwandeln, oder betten Sie sie unverändert ei
 <context>
     <name>NotesPanel</name>
     <message>
-        <location filename="../../src/ui/notes/NotesPanel.cpp" line="259"/>
         <source>Pin</source>
-        <translation>Anheften</translation>
+        <translation type="vanished">Anheften</translation>
     </message>
     <message>
-        <location filename="../../src/ui/notes/NotesPanel.cpp" line="271"/>
         <source>Save</source>
-        <translation>Speichern</translation>
+        <translation type="vanished">Speichern</translation>
     </message>
     <message>
-        <location filename="../../src/ui/notes/NotesPanel.cpp" line="264"/>
+        <location filename="../../src/ui/notes/NotesPanel.cpp" line="799"/>
         <source>Notes</source>
         <translation>Notizen</translation>
     </message>
     <message>
-        <location filename="../../src/ui/notes/NotesPanel.cpp" line="267"/>
+        <location filename="../../src/ui/notes/NotesPanel.cpp" line="580"/>
+        <location filename="../../src/ui/notes/NotesPanel.cpp" line="654"/>
         <source>Title</source>
         <translation>Titel</translation>
     </message>
     <message>
-        <location filename="../../src/ui/notes/NotesPanel.cpp" line="259"/>
+        <location filename="../../src/ui/notes/NoteLayer_Box.cpp" line="140"/>
+        <location filename="../../src/ui/notes/NotesPanel.cpp" line="644"/>
+        <source>Drag onto the page to move the note</source>
+        <translation>Auf die Seite ziehen, um die Notiz zu verschieben</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/notes/NotesPanel.cpp" line="718"/>
         <source>Unpin</source>
         <translation>Lösen</translation>
     </message>
     <message>
-        <location filename="../../src/ui/notes/NotesPanel.cpp" line="242"/>
         <source>No notes yet. Add one and place it on the current page.</source>
-        <translation>Noch keine Notizen. Fügen Sie eine Notiz auf der aktuellen Seite hinzu.</translation>
+        <translation type="vanished">Noch keine Notizen. Fügen Sie eine Notiz auf der aktuellen Seite hinzu.</translation>
     </message>
     <message>
-        <location filename="../../src/ui/notes/NotesPanel.cpp" line="270"/>
         <source>Cancel</source>
-        <translation>Abbrechen</translation>
+        <translation type="vanished">Abbrechen</translation>
     </message>
     <message>
-        <location filename="../../src/ui/notes/NotesPanel.cpp" line="269"/>
         <source>Delete</source>
-        <translation>Löschen</translation>
+        <translation type="vanished">Löschen</translation>
     </message>
     <message>
-        <location filename="../../src/ui/notes/NotesPanel.cpp" line="268"/>
+        <location filename="../../src/ui/notes/NoteLayer_Box.cpp" line="163"/>
+        <location filename="../../src/ui/notes/NotesPanel.cpp" line="588"/>
+        <location filename="../../src/ui/notes/NotesPanel.cpp" line="659"/>
         <source>Write a note…</source>
         <translation>Notiz schreiben…</translation>
     </message>
     <message>
-        <location filename="../../src/ui/notes/NotesPanel.cpp" line="68"/>
+        <location filename="../../src/ui/notes/NotesPanel.cpp" line="700"/>
         <source>Page %1</source>
         <translation>Seite %1</translation>
     </message>
     <message>
-        <location filename="../../src/ui/notes/NotesPanel.cpp" line="48"/>
+        <location filename="../../src/ui/notes/NotesPanel.cpp" line="672"/>
         <source>Untitled note</source>
         <translation>Notiz ohne Titel</translation>
     </message>
     <message>
-        <location filename="../../src/ui/notes/NotesPanel.cpp" line="265"/>
+        <location filename="../../src/ui/notes/NotesPanel.cpp" line="573"/>
+        <source>Drag onto the page to place the note</source>
+        <translation>Auf die Seite ziehen, um die Notiz zu platzieren</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/notes/NotesPanel.cpp" line="607"/>
+        <source>Drag onto the page</source>
+        <translation>Auf die Seite ziehen</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/notes/NotesPanel.cpp" line="611"/>
+        <source>Discard</source>
+        <translation>Verwerfen</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/notes/NoteLayer_Box.cpp" line="186"/>
+        <location filename="../../src/ui/notes/NotesPanel.cpp" line="699"/>
+        <source>“%1” · p. %2</source>
+        <translation>„%1“ · S. %2</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/notes/NotesPanel.cpp" line="665"/>
+        <source>Note color</source>
+        <translation>Notizfarbe</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/notes/NotesPanel.cpp" line="706"/>
+        <source>Unlink from the text</source>
+        <translation>Vom Text lösen</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/notes/NotesPanel.cpp" line="718"/>
+        <source>Pin to top</source>
+        <translation>Oben anheften</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/notes/NotesPanel.cpp" line="726"/>
+        <source>Show on page</source>
+        <translation>Auf der Seite zeigen</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/notes/NotesPanel.cpp" line="732"/>
+        <source>Delete note</source>
+        <translation>Notiz löschen</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/notes/NotesPanel.cpp" line="739"/>
+        <source>Pinned</source>
+        <translation>Angeheftet</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/notes/NotesPanel.cpp" line="786"/>
+        <source>No notes yet.
+Click + and drag the new note onto the page. Let go over text to link it.</source>
+        <translation>Noch keine Notizen.
+Klicken Sie auf + und ziehen Sie die neue Notiz auf die Seite. Über Text losgelassen, wird sie mit ihm verknüpft.</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/notes/NotesPanel.cpp" line="801"/>
+        <source>New note: click, then drag it onto the page</source>
+        <translation>Neue Notiz: klicken, dann auf die Seite ziehen</translation>
+    </message>
+    <message>
+        <source>No notes yet.
+Click + to add one, or drag the + onto the page.</source>
+        <translation type="vanished">Noch keine Notizen.
+Klicken Sie auf +, um eine hinzuzufügen, oder ziehen Sie das + auf die Seite.</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/notes/NotesPanel.cpp" line="800"/>
         <source>Close notes</source>
         <translation>Notizen schließen</translation>
     </message>
     <message>
-        <location filename="../../src/ui/notes/NotesPanel.cpp" line="266"/>
+        <source>New note: click, or drag it onto the page</source>
+        <translation type="vanished">Neue Notiz: klicken oder auf die Seite ziehen</translation>
+    </message>
+    <message>
         <source>New note</source>
-        <translation>Neue Notiz</translation>
+        <translation type="vanished">Neue Notiz</translation>
     </message>
 </context>
 <context>

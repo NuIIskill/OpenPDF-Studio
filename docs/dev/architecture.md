@@ -241,6 +241,11 @@ Links and notes are read by `AnnotationLoader`: as much as fits 50 ms when the
 document opens, the rest page by page on the worker. Any change to a link or
 note first reads the remaining pages, so undo always sees the whole list.
 
+A note linked to text is a highlight annotation. New links are drawn by
+`NoteLayer` over the page; ones already in the file are drawn by the page,
+so a removed one is hidden in the open document while rendering
+(`PdfiumEdits::showNoteHighlights`) and its page counts as edited.
+
 `ContentProvider` (`engine/edit/ContentModel.hpp`) finds text lines,
 paragraphs, table cells, form fields and images on a page. Hover only reads
 its cache, because building a page synchronously stalls scrolling.

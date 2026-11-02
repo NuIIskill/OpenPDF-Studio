@@ -21,7 +21,9 @@ class BookmarkPanel : public QWidget
     Q_OBJECT
 
 public:
-    static constexpr int kWidth = 300;
+    static constexpr int kWidth    = 300;
+    static constexpr int kMinWidth = 220;
+    static constexpr int kMaxWidth = 560;
 
     explicit BookmarkPanel(QWidget *parent = nullptr);
 
@@ -30,11 +32,16 @@ public:
     void setCurrentPage(int page);
     void refreshTheme();
     void retranslateUi();
+    void setPreferredWidth(int width);
+    [[nodiscard]] int preferredWidth() const { return m_width; }
 
 Q_SIGNALS:
     void closeRequested();
     void pageRequested(int page);
     void bookmarksEdited(const QList<PdfBookmark> &bookmarks);
+
+protected:
+    void showEvent(QShowEvent *event) override;
 
 private:
     using Path = QList<int>;
@@ -54,12 +61,15 @@ private:
     void deleteBookmark();
     void moveBookmark(int delta);
     void setExpanded(QTreeWidgetItem *item, bool expanded);
+    void rememberWidth();
 
     QLabel         *m_title       { nullptr };
     QLineEdit      *m_search      { nullptr };
     QTreeWidget    *m_tree        { nullptr };
     QStackedWidget *m_content     { nullptr };
-    QLabel         *m_empty       { nullptr };
+    QWidget        *m_empty       { nullptr };
+    QLabel         *m_emptyIcon   { nullptr };
+    QLabel         *m_emptyText   { nullptr };
     IconButton     *m_close       { nullptr };
     IconButton     *m_add         { nullptr };
     IconButton     *m_rename      { nullptr };
@@ -70,6 +80,7 @@ private:
     QList<PdfBookmark> m_bookmarks;
     int                m_pageCount { 0 };
     int                m_currentPage { 0 };
+    int                m_width { kWidth };
     bool               m_editingEnabled { false };
     bool               m_rebuilding { false };
 };

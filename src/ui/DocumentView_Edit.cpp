@@ -178,11 +178,15 @@ DocumentView::DocumentView(QWidget *parent)
         m_journal.recordChange({ DocumentHistory::Kind::LinkRemoved, page });
     });
     m_noteLayer = new NoteLayer(this, this);
+    m_noteLayer->setSelection(m_selection);
+    connect(m_noteLayer, &NoteLayer::pageNeedsRerender, this, &DocumentView::rerenderPage);
+    connect(m_noteLayer, &NoteLayer::undoRequested, this, &DocumentView::undo);
     connect(m_noteLayer, &NoteLayer::notesChanged,
             this, &DocumentView::notesChanged);
     connect(m_noteLayer, &NoteLayer::noteActivated, this,
             [this](const QString &id, int page) {
-        goToPage(page);
+        if (QWidget *marker = m_noteLayer->marker(id)) ensureWidgetVisible(marker, 80, 160);
+        else goToPage(page);
         Q_EMIT noteSelected(id);
     });
     connect(m_noteLayer, &NoteLayer::noteAdded, this, [this](int page) {

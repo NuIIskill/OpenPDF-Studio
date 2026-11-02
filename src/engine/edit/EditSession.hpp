@@ -73,6 +73,9 @@ public:
         bool    removed  { false };
         bool    pinned { false };
         bool    originalPinned { false };
+        QList<QRectF> textRects;
+        QColor  color;
+        QColor  originalColor;
 
         bool operator==(const NoteEdit &) const = default;
     };
@@ -165,6 +168,7 @@ public:
     bool hasDrawEditsOnPage(int page) const;
     bool hasLinkEditsOnPage(int page) const;
     bool hasNoteEditsOnPage(int page) const;
+    bool hasRemovedHighlightsOnPage(int page) const;
     void clearImageEdits();
     const QList<ImageEdit> &imageEdits() const { return m_imageEdits; }
 

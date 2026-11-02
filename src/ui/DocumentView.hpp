@@ -178,7 +178,7 @@ public:
     void        copySelectedText();
     void        openFind();
     QList<NoteData> notes() const;
-    void createNote();
+    NoteLayer *noteLayer() const { return m_noteLayer; }
     void selectNote(const QString &id);
     void updateNote(const QString &id, const QString &title, const QString &text);
     void deleteNote(const QString &id);

@@ -9,6 +9,7 @@
 #include "engine/edit/TextBlock.hpp"
 #include "engine/edit/TextLayout.hpp"
 
+#include <QColor>
 #include <QImage>
 #include <QList>
 #include <QPointF>
@@ -69,6 +70,9 @@ public:
         QString text;
         QRectF  bounds;
         bool    pinned { false };
+        QList<QRectF> textRects;
+        QString quote;
+        QColor  color;
     };
 
     virtual QList<Note> pageNotes(int page) const { Q_UNUSED(page) return {}; }
@@ -143,6 +147,9 @@ public:
     virtual Selection selectPage(int page,
                                  const std::optional<QPointF> &from,
                                  const std::optional<QPointF> &to) const = 0;
+
+    virtual Selection sentenceAt(int page, const QPointF &pdfPt) const
+    { Q_UNUSED(page) Q_UNUSED(pdfPt) return {}; }
 
     virtual bool hasSelectableText(int page) const = 0;
     virtual bool hiddenText(int page, const QRectF &area) const;

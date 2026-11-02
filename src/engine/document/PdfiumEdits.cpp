@@ -518,6 +518,26 @@ bool sameNoteBounds(const QRectF &a, const QRectF &b)
         && qAbs(a.height() - b.height()) < 0.5;
 }
 
+bool isNote(FPDF_ANNOTATION annotation, const EditSession::NoteEdit &edit,
+            const PdfiumPageSpace &space)
+{
+    const int subtype = FPDFAnnot_GetSubtype(annotation);
+    if (subtype != (edit.textRects.isEmpty() ? FPDF_ANNOT_TEXT : FPDF_ANNOT_HIGHLIGHT))
+        return false;
+    if (!edit.originalId.isEmpty()) return noteString(annotation, "NM") == edit.originalId;
+    return noteString(annotation, "Contents") == edit.originalText
+        && sameNoteBounds(annotationBounds(annotation, space), edit.originalBounds);
+}
+
+void setNoteStrings(FPDF_ANNOTATION annotation, const EditSession::NoteEdit &edit)
+{
+    setAnnotationString(annotation, "NM", edit.id);
+    setAnnotationString(annotation, "T", edit.title);
+    setAnnotationString(annotation, "Contents", edit.text);
+    setAnnotationString(annotation, "OpenPDFPinned",
+                        edit.pinned ? QStringLiteral("1") : QStringLiteral("0"));
+}
+
 }
 
 namespace {
@@ -599,15 +619,7 @@ void PdfiumEdits::applyNoteEdits(FPDF_PAGE page, int pageIndex,
         for (int i = 0; i < count; ++i) {
             FPDF_ANNOTATION annotation = FPDFPage_GetAnnot(page, i);
             if (!annotation) continue;
-            const bool rightType = FPDFAnnot_GetSubtype(annotation) == FPDF_ANNOT_TEXT;
-            const QString id = rightType ? noteString(annotation, "NM") : QString();
-            const bool matches = rightType && (
-                (!edit.originalId.isEmpty() && id == edit.originalId)
-                || (edit.originalId.isEmpty()
-                    && noteString(annotation, "Contents") == edit.originalText
-                    && sameNoteBounds(annotationBounds(annotation, space),
-                                      edit.originalBounds)));
-            if (!matches) {
+            if (!isNote(annotation, edit, space)) {
                 FPDFPage_CloseAnnot(annotation);
                 continue;
             }
@@ -615,13 +627,15 @@ void PdfiumEdits::applyNoteEdits(FPDF_PAGE page, int pageIndex,
                 FPDFPage_CloseAnnot(annotation);
                 FPDFPage_RemoveAnnot(page, i);
             } else {
-                setAnnotationRect(annotation, edit.pdfBounds, space);
-                setAnnotationString(annotation, "NM", edit.id);
-                setAnnotationString(annotation, "T", edit.title);
-                setAnnotationString(annotation, "Contents", edit.text);
-                setAnnotationString(annotation, "OpenPDFPinned",
-                                    edit.pinned ? QStringLiteral("1")
-                                                : QStringLiteral("0"));
+                // A highlight's rectangle follows its text, not the marker shown beside it.
+                if (edit.textRects.isEmpty()) setAnnotationRect(annotation, edit.pdfBounds, space);
+                setNoteStrings(annotation, edit);
+                if (edit.color.isValid() && edit.color != edit.originalColor) {
+                    FPDFAnnot_SetColor(annotation, FPDFANNOT_COLORTYPE_Color, edit.color.red(),
+                                       edit.color.green(), edit.color.blue(), 255);
+                    // A drawn icon keeps the old color; without one every reader draws it anew.
+                    FPDFAnnot_SetAP(annotation, FPDF_ANNOT_APPEARANCEMODE_NORMAL, nullptr);
+                }
                 FPDFPage_CloseAnnot(annotation);
             }
             break;
@@ -630,17 +644,56 @@ void PdfiumEdits::applyNoteEdits(FPDF_PAGE page, int pageIndex,
 
     for (const EditSession::NoteEdit &edit : session.noteEdits()) {
         if (edit.page != pageIndex || edit.existing || edit.removed) continue;
-        FPDF_ANNOTATION annotation = FPDFPage_CreateAnnot(page, FPDF_ANNOT_TEXT);
+        const bool highlight = !edit.textRects.isEmpty();
+        FPDF_ANNOTATION annotation = FPDFPage_CreateAnnot(
+            page, highlight ? FPDF_ANNOT_HIGHLIGHT : FPDF_ANNOT_TEXT);
         if (!annotation) continue;
-        setAnnotationRect(annotation, edit.pdfBounds, space);
-        setAnnotationString(annotation, "NM", edit.id);
-        setAnnotationString(annotation, "T", edit.title);
-        setAnnotationString(annotation, "Contents", edit.text);
-        setAnnotationString(annotation, "OpenPDFPinned",
-                            edit.pinned ? QStringLiteral("1")
-                                        : QStringLiteral("0"));
-        FPDFAnnot_SetColor(annotation, FPDFANNOT_COLORTYPE_Color,
-                           255, 204, 0, 255);
+        if (highlight) {
+            QRectF bounds;
+            for (const QRectF &rect : edit.textRects) bounds = bounds.united(rect);
+            setAnnotationRect(annotation, bounds, space);
+            appendLinkQuadPoints(annotation, edit.textRects, space);
+            setAnnotationString(annotation, "OpenPDFNote", QStringLiteral("1"));
+        } else {
+            setAnnotationRect(annotation, edit.pdfBounds, space);
+        }
+        const QColor color = edit.color.isValid() ? edit.color : QColor(255, 204, 0);
+        FPDFAnnot_SetColor(annotation, FPDFANNOT_COLORTYPE_Color, color.red(), color.green(),
+                           color.blue(), 255);
+        setNoteStrings(annotation, edit);
+        FPDFPage_CloseAnnot(annotation);
+    }
+}
+
+void PdfiumEdits::showNoteHighlights(FPDF_PAGE page, int pageIndex, const EditSession *session)
+{
+    // The preview hides a highlight the session removes; the flag lives only in
+    // the open document, the writer starts from the file.
+    if (!page) return;
+    const PdfiumPageSpace space(page);
+    const int count = FPDFPage_GetAnnotCount(page);
+    for (int i = 0; i < count; ++i) {
+        FPDF_ANNOTATION annotation = FPDFPage_GetAnnot(page, i);
+        if (!annotation) continue;
+        if (FPDFAnnot_GetSubtype(annotation) == FPDF_ANNOT_HIGHLIGHT) {
+            bool hide = false;
+            if (session)
+                for (const EditSession::NoteEdit &edit : session->noteEdits())
+                    if (edit.page == pageIndex && edit.existing && edit.removed
+                            && !edit.textRects.isEmpty() && isNote(annotation, edit, space)) {
+                        hide = true;
+                        break;
+                    }
+            const bool ours = noteString(annotation, "OpenPDFHidden") == QLatin1String("1");
+            const int flags = FPDFAnnot_GetFlags(annotation);
+            if (hide && !(flags & FPDF_ANNOT_FLAG_HIDDEN)) {
+                FPDFAnnot_SetFlags(annotation, flags | FPDF_ANNOT_FLAG_HIDDEN);
+                setAnnotationString(annotation, "OpenPDFHidden", QStringLiteral("1"));
+            } else if (!hide && ours) {
+                FPDFAnnot_SetFlags(annotation, flags & ~FPDF_ANNOT_FLAG_HIDDEN);
+                setAnnotationString(annotation, "OpenPDFHidden", QStringLiteral("0"));
+            }
+        }
         FPDFPage_CloseAnnot(annotation);
     }
 }

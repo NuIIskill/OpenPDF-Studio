@@ -67,6 +67,36 @@ void AppSettings::setExportCompressImages(bool compress)
     settings().setValue(QStringLiteral("export/compressImages"), compress);
 }
 
+QStringList AppSettings::noteColors() const
+{
+    return settings().value(QStringLiteral("notes/colors")).toStringList();
+}
+
+void AppSettings::setNoteColors(const QStringList &colors)
+{
+    settings().setValue(QStringLiteral("notes/colors"), colors);
+}
+
+bool AppSettings::noteColorHintSeen() const
+{
+    return settings().value(QStringLiteral("notes/colorHintSeen"), false).toBool();
+}
+
+void AppSettings::setNoteColorHintSeen(bool seen)
+{
+    settings().setValue(QStringLiteral("notes/colorHintSeen"), seen);
+}
+
+QStringList AppSettings::notePalette() const
+{
+    return settings().value(QStringLiteral("notes/palette")).toStringList();
+}
+
+void AppSettings::setNotePalette(const QStringList &colors)
+{
+    settings().setValue(QStringLiteral("notes/palette"), colors);
+}
+
 QString AppSettings::lastOpenedFile() const
 {
     return settings().value(QLatin1String(kLastOpenedFile)).toString();
@@ -262,6 +292,15 @@ QByteArray AppSettings::splitterState() const
 void AppSettings::setSplitterState(const QByteArray &state)
 {
     settings().setValue(QStringLiteral("panels/splitterState"), state);
+}
+
+int AppSettings::bookmarkPanelWidth() const
+{
+    return settings().value(QStringLiteral("panels/bookmarkWidth"), 0).toInt();
+}
+void AppSettings::setBookmarkPanelWidth(int width)
+{
+    settings().setValue(QStringLiteral("panels/bookmarkWidth"), width);
 }
 
 bool AppSettings::autoUpdateCheck() const

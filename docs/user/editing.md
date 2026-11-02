@@ -54,9 +54,9 @@ that page.
 | --- | --- |
 | Image | Insert an image; move, scale, rotate, replace, copy, paste or delete an existing page image |
 | Draw | Use pen, highlighter and eraser with adjustable colour and width; strokes save as vector paths |
-| Notes | Place a page comment and manage comments in the notes panel |
+| Notes | Click the page for a note there (with a note open, a click only closes it; an empty note a click made goes again when you click away), or click + and drag the new note out of the panel onto the page; let go over text to link the sentence, or drag over text to link exactly that (with a note open, it moves that note's link); drag a card, marker or the note's box to move it; give it a color from the swatches, or mix your own and drag it onto a note or into a free place to keep it; drag a swatch onto another to swap them or onto a free place to move it; Del, or the x that shows after resting on a swatch, removes it; right-click a free place to mix a color into it |
 | Link | Select text, click Link, enter the address and choose Set Link; edit or remove existing links by right-clicking them |
-| Bookmark | Navigate the outline; add the current page, rename, remove and reorder bookmarks |
+| Bookmark | Navigate the outline; add the current page, rename, remove and reorder bookmarks; drag the panel's edge to make it wider or narrower |
 
 Existing images are changed in place, preserving their ordering relative to
 text. Bookmark changes require qpdf.

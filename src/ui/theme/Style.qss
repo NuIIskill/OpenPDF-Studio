@@ -152,8 +152,8 @@ QSplitter::handle:vertical   { height: 1px; }
 }
 QLabel#BookmarkPanelTitle {
     color: #111827;
-    font-size: 14px;
-    font-weight: 600;
+    font-size: 20px;
+    font-weight: 700;
 }
 QPushButton#BookmarkPanelClose,
 QPushButton#BookmarkAction {
@@ -165,6 +165,7 @@ QPushButton#BookmarkPanelClose:hover,
 QPushButton#BookmarkAction:hover { background: #F3F4F6; }
 QPushButton#BookmarkAction:pressed { background: #E5E7EB; }
 QPushButton#BookmarkAction:disabled { background: transparent; }
+QFrame#BookmarkDivider { background: #E5E7EB; border: none; }
 QLineEdit#BookmarkSearch {
     background: #FFFFFF;
     border: 1px solid #D1D5DB;
@@ -175,22 +176,24 @@ QLineEdit#BookmarkSearch {
 }
 QLineEdit#BookmarkSearch:focus { border-color: #93C5FD; }
 QTreeWidget#BookmarkTree {
+    show-decoration-selected: 0;
     background: transparent;
     border: none;
     color: #1F2937;
     font-size: 12px;
     outline: none;
+    qproperty-selectionFill: #EFF6FF;
+    qproperty-hoverFill: #F9FAFB;
 }
 QTreeWidget#BookmarkTree::item {
     min-height: 30px;
     padding: 1px 3px;
-    border-radius: 4px;
 }
-QTreeWidget#BookmarkTree::item:hover { background: #F9FAFB; }
-QTreeWidget#BookmarkTree::item:selected {
-    background: #EFF6FF;
-    color: #1D4ED8;
-}
+QTreeWidget#BookmarkTree::item:hover,
+QTreeWidget#BookmarkTree::item:selected,
+QTreeWidget#BookmarkTree::branch:hover,
+QTreeWidget#BookmarkTree::branch:selected { background: transparent; }
+QTreeWidget#BookmarkTree::item:selected { color: #1D4ED8; }
 QTreeWidget#BookmarkTree::branch:closed:has-children {
     image: url(:/icons/chevron-right.svg);
 }
@@ -199,59 +202,71 @@ QTreeWidget#BookmarkTree::branch:open:has-children {
 }
 QLabel#BookmarkEmpty {
     color: #9CA3AF;
-    font-size: 12px;
-    padding: 24px;
+    font-size: 13px;
 }
 
 /* ── Notes ──────────────────────────────────────────────── */
 #NotesPanel { background: #FFFFFF; border-left: 1px solid #E5E7EB; }
-QLabel#NotesTitle { color: #111827; font-size: 17px; font-weight: 700; }
+QLabel#NotesTitle { color: #111827; font-size: 20px; font-weight: 700; }
 QPushButton#NotesClose {
     background: transparent; border: none; border-radius: 6px; padding: 3px;
 }
 QPushButton#NotesClose:hover { background: #F3F4F6; }
-QPushButton#NotesNew {
-    background: #2563EB; border: none; border-radius: 6px; color: #FFFFFF;
-    font-size: 13px; font-weight: 600; padding: 9px 15px;
-}
+QPushButton#NotesNew { background: #2563EB; border: none; border-radius: 8px; }
 QPushButton#NotesNew:hover { background: #1D4ED8; }
-QPushButton#NotesNew:disabled { background: #93C5FD; color: #EFF6FF; }
+QPushButton#NotesNew:pressed { background: #1E40AF; }
+QPushButton#NotesNew:disabled { background: #BFDBFE; }
 QScrollArea#NotesScroll, QWidget#NotesList { background: transparent; border: none; }
 QFrame#NoteCard {
-    background: #FFFFFF; border: 1px solid #E5E7EB; border-radius: 8px;
+    background: #FFFFFF; border: 1px solid #E5E7EB; border-radius: 10px;
 }
-QFrame#NoteCard:hover { border-color: #93C5FD; background: #F9FAFB; }
-QFrame#NoteCard[selected="true"] { border: 1px solid #3B82F6; background: #F8FAFF; }
+QFrame#NoteCard:hover { border-color: #BFDBFE; }
+QFrame#NoteCard[selected="true"] { border: 1px solid #3B82F6; background: #FFFFFF; }
+QFrame#NoteCard[draft="true"] { border: none; background: transparent; }
+QLabel#NoteDraftHint { color: #2563EB; font-size: 12px; font-weight: 600; }
+QWidget#NoteHighlight { background: rgba(250, 204, 21, 0.38); }
+QWidget#NoteLinkPreview { background: rgba(250, 204, 21, 0.22); border: 1px dashed #EAB308; }
+QFrame#NoteColorPicker { background: #FFFFFF; border: 1px solid #E5E7EB; border-radius: 12px; }
+QLineEdit#NoteColorHex {
+    background: #F9FAFB; border: 1px solid #E5E7EB; border-radius: 6px; padding: 4px 6px;
+    color: #111827; font-size: 12px;
+}
+QLineEdit#NoteColorHex:focus { border-color: #60A5FA; }
+QPushButton#NoteColorApply {
+    background: #2563EB; border: none; border-radius: 6px; color: #FFFFFF;
+    font-size: 12px; font-weight: 600; padding: 6px 12px;
+}
+QPushButton#NoteColorApply:hover { background: #1D4ED8; }
+QLabel#NoteColorHint { color: #6B7280; font-size: 11px; }
 QLabel#NoteDot { color: #FACC15; font-size: 14px; }
-QLabel#NoteCardTitle, QLabel#NotePopupTitle {
-    color: #1F2937; font-size: 13px; font-weight: 700;
+QLabel#NoteCardTitle { color: #111827; font-size: 13px; font-weight: 600; }
+QLabel#NoteCardBody { color: #374151; font-size: 13px; }
+QLabel#NotePopupTitle { color: #1F2937; font-size: 13px; font-weight: 700; }
+QLabel#NotePopupBody { color: #374151; font-size: 12px; }
+QLabel#NotePopupHint { color: #9CA3AF; font-size: 12px; font-style: italic; }
+QLabel#NoteCardMeta { color: #6B7280; font-size: 12px; }
+QLabel#NotesEmpty { color: #9CA3AF; font-size: 13px; }
+QLineEdit#NoteTitleEdit {
+    background: transparent; border: none; padding: 0 0 0 1px; color: #111827;
+    font-size: 13px; font-weight: 600;
 }
-QLabel#NoteCardBody, QLabel#NotePopupBody { color: #374151; font-size: 12px; }
-QLabel#NoteCardMeta { color: #6B7280; font-size: 11px; }
-QLabel#NotePinMarker { color: #2563EB; font-size: 10px; }
-QLabel#NotesEmpty { color: #9CA3AF; font-size: 12px; padding: 24px 8px; }
-QWidget#NoteEditor { border-top: 1px solid #E5E7EB; padding-top: 10px; }
-QLineEdit#NoteTitleEdit, QTextEdit#NoteTextEdit {
-    background: #FFFFFF; border: 1px solid #D1D5DB; border-radius: 7px;
-    color: #111827; font-size: 12px; padding: 8px;
+QTextEdit#NoteTextEdit {
+    background: transparent; border: none; padding: 0 0 0 3px; color: #1F2937; font-size: 13px;
 }
-QLineEdit#NoteTitleEdit:focus, QTextEdit#NoteTextEdit:focus { border-color: #60A5FA; }
-QPushButton#NoteSecondaryButton {
-    background: #F3F4F6; border: none; border-radius: 6px; color: #4B5563;
-    font-size: 12px; padding: 7px 10px;
+QPushButton#NoteCardAction {
+    background: transparent; border: none; border-radius: 6px; padding: 0;
 }
-QPushButton#NoteSecondaryButton:hover { background: #E5E7EB; }
-QPushButton#NoteSaveButton {
-    background: #2563EB; border: none; border-radius: 6px; color: white;
-    font-size: 12px; font-weight: 600; padding: 7px 14px;
-}
-QPushButton#NoteSaveButton:hover { background: #1D4ED8; }
+QPushButton#NoteCardAction:hover { background: #F3F4F6; }
+QPushButton#NoteCardAction:checked { background: #EFF6FF; }
 QPushButton#NoteMarker {
     background: #FACC15; border: 2px solid #FFFFFF; border-radius: 4px; padding: 3px;
 }
 QPushButton#NoteMarker:hover { background: #EAB308; }
+QLabel#NoteDragGhost {
+    background: #FACC15; border: 2px solid #FFFFFF; border-radius: 4px;
+}
 QFrame#NotePopup {
-    background: #FFFFFF; border: 1px solid #D1D5DB; border-radius: 9px;
+    background: #FFFFFF; border: 1px solid #E5E7EB; border-radius: 10px;
 }
 
 /* ── Redact ─────────────────────────────────────────────── */

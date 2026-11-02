@@ -3,6 +3,8 @@
 #include "ui/PresentationWindow.hpp"
 #include "ui/DocumentView.hpp"
 #include "ui/bookmarks/BookmarkPanel.hpp"
+#include "ui/notes/NoteColorRow.hpp"
+#include "ui/notes/NoteLayer.hpp"
 #include "ui/notes/NotesPanel.hpp"
 #include "ui/redact/RedactionPanel.hpp"
 #include "ui/open/StartPage.hpp"
@@ -220,6 +222,30 @@ void MainWindow::buildUi()
     m_textPanel    = new TextPropertiesPanel(central);
     m_notesPanel   = new NotesPanel(central);
     m_notesPanel->setDocumentAvailable(false);
+    {
+        // Twelve places, empty ones kept as empty names; colors kept separately
+        // by an earlier version fill free places once.
+        const QStringList stored = m_appSettings->notePalette();
+        QList<QColor> palette;
+        for (const QString &name : stored) palette << QColor(name);
+        if (stored.isEmpty()) palette = NoteColorRow::defaultPalette();
+        while (palette.size() < NoteColorRow::MaxColors) palette << QColor();
+        const QStringList earlier = m_appSettings->noteColors();
+        for (const QString &name : earlier) {
+            const QColor color(name);
+            const int free = int(palette.indexOf(QColor()));
+            if (color.isValid() && !palette.contains(color) && free >= 0) palette[free] = color;
+        }
+        if (!earlier.isEmpty()) {
+            QStringList names;
+            for (const QColor &color : std::as_const(palette))
+                names << (color.isValid() ? color.name() : QString());
+            m_appSettings->setNotePalette(names);
+            m_appSettings->setNoteColors({});
+        }
+        m_notesPanel->setPalette(palette);
+        m_notesPanel->setColorHint(!m_appSettings->noteColorHintSeen());
+    }
     m_rightSidebar = new RightSidebar(central);
     m_textPanel->setFixedWidth(0);
     m_textPanel->hide();
@@ -350,8 +376,41 @@ void MainWindow::connectPanels()
     connect(m_notesPanel, &NotesPanel::closeRequested, this, [this]() {
         onToolSelected(QStringLiteral("select"));
     });
-    connect(m_notesPanel, &NotesPanel::newNoteRequested, this, [this]() {
-        if (DocumentView *dv = currentDocView()) dv->createNote();
+    connect(m_notesPanel, &NotesPanel::placeRequested, this,
+            [this](const QString &id, const QPoint &globalTopLeft) {
+        if (DocumentView *dv = currentDocView())
+            dv->noteLayer()->dropAt(id, {}, {}, globalTopLeft);
+    });
+    connect(m_notesPanel, &NotesPanel::draftDropped, this,
+            [this](const QString &title, const QString &text, const QColor &color,
+                   const QPoint &globalTopLeft) {
+        DocumentView *dv = currentDocView();
+        m_notesPanel->draftPlaced(dv && dv->noteLayer()->dropAt({}, title, text, globalTopLeft, color));
+    });
+    connect(m_notesPanel, &NotesPanel::colorDroppedOnPage, this,
+            [this](const QColor &color, const QPoint &globalPos) {
+        if (DocumentView *dv = currentDocView()) dv->noteLayer()->colorAt(globalPos, color);
+    });
+    const auto names = [](const QList<QColor> &colors) {
+        QStringList list;
+        for (const QColor &color : colors) list << (color.isValid() ? color.name() : QString());
+        return list;
+    };
+    connect(m_notesPanel, &NotesPanel::colorHintSeen, this, [this]() {
+        m_appSettings->setNoteColorHintSeen(true);
+    });
+    connect(m_notesPanel, &NotesPanel::paletteChanged, this, [this, names](const QList<QColor> &colors) {
+        m_appSettings->setNotePalette(names(colors));
+    });
+    connect(m_notesPanel, &NotesPanel::colorRequested, this,
+            [this](const QString &id, const QColor &color) {
+        if (DocumentView *dv = currentDocView()) dv->noteLayer()->setColor(id, color);
+    });
+    connect(m_notesPanel, &NotesPanel::dragHovered, this, [this](const QPoint &globalTopLeft) {
+        if (DocumentView *dv = currentDocView()) dv->noteLayer()->previewAt(globalTopLeft);
+    });
+    connect(m_notesPanel, &NotesPanel::unlinkRequested, this, [this](const QString &id) {
+        if (DocumentView *dv = currentDocView()) dv->noteLayer()->unlink(id);
     });
     connect(m_notesPanel, &NotesPanel::noteSelected, this, [this](const QString &id) {
         if (DocumentView *dv = currentDocView()) dv->selectNote(id);
@@ -1183,6 +1242,7 @@ void MainWindow::applyPanelLayout()
     const QByteArray splitter = m_appSettings->splitterState();
     if (!splitter.isEmpty())
         m_splitter->restoreState(splitter);
+    m_bookmarkPanel->setPreferredWidth(m_appSettings->bookmarkPanelWidth());
 }
 
 void MainWindow::savePanelLayout()
@@ -1194,6 +1254,7 @@ void MainWindow::savePanelLayout()
 
     m_appSettings->setRightPanelCollapsed(m_rightSidebarCollapsed);
     m_appSettings->setSplitterState(m_splitter->saveState());
+    m_appSettings->setBookmarkPanelWidth(m_bookmarkPanel->preferredWidth());
     m_leftSidebar->saveToolLayout();
     m_appSettings->sync();
 }

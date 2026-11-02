@@ -217,6 +217,14 @@ bool EditSession::hasNoteEditsOnPage(int page) const
     return false;
 }
 
+bool EditSession::hasRemovedHighlightsOnPage(int page) const
+{
+    for (const NoteEdit &edit : m_noteEdits)
+        if (edit.page == page && edit.existing && edit.removed && !edit.textRects.isEmpty())
+            return true;
+    return false;
+}
+
 bool EditSession::hasEditsOnPage(int page) const
 {
     for (const auto &e : m_edits)

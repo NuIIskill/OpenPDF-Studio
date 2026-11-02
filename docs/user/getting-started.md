@@ -3,7 +3,7 @@
 [README](../../README.md) · [User documentation](../../README.md#user-documentation)
 
 OpenPDF Studio is a native desktop PDF viewer and editor for Linux and Windows.
-Version 0.3.5 is an alpha. Saving replaces the original file, so keep a backup
+Version 0.3.6 is an alpha. Saving replaces the original file, so keep a backup
 of important PDFs and check the result in a second viewer.
 
 ## Open a document
@@ -86,7 +86,7 @@ Settings → **Add-on Packages** adds and removes OCR languages and ffmpeg: on
 Linux through the distribution's package manager, on Windows as a download.
 
 **Save preferences** under Settings → **Advanced** keeps the window and panel
-layout, the tool rail, the chosen signature profile and certificate, and in the
+layout including the width of the bookmark panel, the tool rail, the chosen signature profile and certificate, and in the
 export dialog the open format groups and **Compress images**. With it
 off, the application starts with its defaults each time.
 

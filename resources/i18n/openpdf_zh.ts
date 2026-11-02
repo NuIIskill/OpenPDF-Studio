@@ -4,77 +4,77 @@
 <context>
     <name>BookmarkPanel</name>
     <message>
-        <location filename="../../src/ui/bookmarks/BookmarkPanel.cpp" line="175"/>
+        <location filename="../../src/ui/bookmarks/BookmarkPanel.cpp" line="256"/>
         <source>Bookmarks</source>
         <translation>书签</translation>
     </message>
     <message>
-        <location filename="../../src/ui/bookmarks/BookmarkPanel.cpp" line="176"/>
+        <location filename="../../src/ui/bookmarks/BookmarkPanel.cpp" line="257"/>
         <source>Search bookmarks</source>
         <translation>搜索书签</translation>
     </message>
     <message>
-        <location filename="../../src/ui/bookmarks/BookmarkPanel.cpp" line="178"/>
-        <location filename="../../src/ui/bookmarks/BookmarkPanel.cpp" line="202"/>
+        <location filename="../../src/ui/bookmarks/BookmarkPanel.cpp" line="259"/>
+        <location filename="../../src/ui/bookmarks/BookmarkPanel.cpp" line="283"/>
         <source>This document has no bookmarks.</source>
         <translation>此文档没有书签。</translation>
     </message>
     <message>
-        <location filename="../../src/ui/bookmarks/BookmarkPanel.cpp" line="179"/>
-        <location filename="../../src/ui/bookmarks/BookmarkPanel.cpp" line="203"/>
+        <location filename="../../src/ui/bookmarks/BookmarkPanel.cpp" line="260"/>
+        <location filename="../../src/ui/bookmarks/BookmarkPanel.cpp" line="284"/>
         <source>Open a PDF to view its bookmarks.</source>
         <translation>打开 PDF 以查看其书签。</translation>
     </message>
     <message>
-        <location filename="../../src/ui/bookmarks/BookmarkPanel.cpp" line="180"/>
+        <location filename="../../src/ui/bookmarks/BookmarkPanel.cpp" line="261"/>
         <source>Close bookmarks</source>
         <translation>关闭书签</translation>
     </message>
     <message>
-        <location filename="../../src/ui/bookmarks/BookmarkPanel.cpp" line="181"/>
+        <location filename="../../src/ui/bookmarks/BookmarkPanel.cpp" line="262"/>
         <source>Add bookmark for current page</source>
         <translation>为当前页面添加书签</translation>
     </message>
     <message>
-        <location filename="../../src/ui/bookmarks/BookmarkPanel.cpp" line="182"/>
-        <location filename="../../src/ui/bookmarks/BookmarkPanel.cpp" line="330"/>
+        <location filename="../../src/ui/bookmarks/BookmarkPanel.cpp" line="263"/>
+        <location filename="../../src/ui/bookmarks/BookmarkPanel.cpp" line="413"/>
         <source>Rename bookmark</source>
         <translation>重命名书签</translation>
     </message>
     <message>
-        <location filename="../../src/ui/bookmarks/BookmarkPanel.cpp" line="183"/>
-        <location filename="../../src/ui/bookmarks/BookmarkPanel.cpp" line="348"/>
+        <location filename="../../src/ui/bookmarks/BookmarkPanel.cpp" line="264"/>
+        <location filename="../../src/ui/bookmarks/BookmarkPanel.cpp" line="431"/>
         <source>Delete bookmark</source>
         <translation>删除书签</translation>
     </message>
     <message>
-        <location filename="../../src/ui/bookmarks/BookmarkPanel.cpp" line="184"/>
+        <location filename="../../src/ui/bookmarks/BookmarkPanel.cpp" line="265"/>
         <source>Move bookmark up</source>
         <translation>上移书签</translation>
     </message>
     <message>
-        <location filename="../../src/ui/bookmarks/BookmarkPanel.cpp" line="185"/>
+        <location filename="../../src/ui/bookmarks/BookmarkPanel.cpp" line="266"/>
         <source>Move bookmark down</source>
         <translation>下移书签</translation>
     </message>
     <message>
-        <location filename="../../src/ui/bookmarks/BookmarkPanel.cpp" line="307"/>
+        <location filename="../../src/ui/bookmarks/BookmarkPanel.cpp" line="390"/>
         <source>Add bookmark</source>
         <translation>添加书签</translation>
     </message>
     <message>
-        <location filename="../../src/ui/bookmarks/BookmarkPanel.cpp" line="307"/>
-        <location filename="../../src/ui/bookmarks/BookmarkPanel.cpp" line="330"/>
+        <location filename="../../src/ui/bookmarks/BookmarkPanel.cpp" line="390"/>
+        <location filename="../../src/ui/bookmarks/BookmarkPanel.cpp" line="413"/>
         <source>Title:</source>
         <translation>标题：</translation>
     </message>
     <message>
-        <location filename="../../src/ui/bookmarks/BookmarkPanel.cpp" line="308"/>
+        <location filename="../../src/ui/bookmarks/BookmarkPanel.cpp" line="391"/>
         <source>Page %1</source>
         <translation>第 %1 页</translation>
     </message>
     <message>
-        <location filename="../../src/ui/bookmarks/BookmarkPanel.cpp" line="349"/>
+        <location filename="../../src/ui/bookmarks/BookmarkPanel.cpp" line="432"/>
         <source>Delete &quot;%1&quot; and its child bookmarks?</source>
         <translation>删除“%1”及其子书签吗？</translation>
     </message>
@@ -523,7 +523,7 @@
         <translation type="vanished">将PDF拖放至此处或点击标签页打开</translation>
     </message>
     <message>
-        <location filename="../../src/ui/DocumentView.cpp" line="321"/>
+        <location filename="../../src/ui/DocumentView.cpp" line="315"/>
         <source>PDF rendering is not available in this build.
 Please use a build that includes Qt6::Pdf support.
 (See build-win.sh for instructions.)</source>
@@ -576,40 +576,40 @@ Please use a build that includes Qt6::Pdf support.
         <translation type="vanished">移动图像</translation>
     </message>
     <message>
-        <location filename="../../src/ui/DocumentView.cpp" line="379"/>
+        <location filename="../../src/ui/DocumentView.cpp" line="373"/>
         <source>Shift+click extends the selection</source>
         <translation>Shift+单击扩展选区</translation>
     </message>
     <message>
-        <location filename="../../src/ui/DocumentView.cpp" line="382"/>
+        <location filename="../../src/ui/DocumentView.cpp" line="376"/>
         <source>Shift: straight line in 45° steps</source>
         <translation>Shift：以 45° 为步长画直线</translation>
     </message>
     <message>
-        <location filename="../../src/ui/DocumentView.cpp" line="384"/>
+        <location filename="../../src/ui/DocumentView.cpp" line="378"/>
         <source>Shift: draw over detected images, keep the aspect ratio, move along one axis</source>
         <translation>Shift：在识别出的图像上绘制、保持宽高比、沿单一轴移动</translation>
     </message>
     <message>
-        <location filename="../../src/ui/DocumentView.cpp" line="387"/>
+        <location filename="../../src/ui/DocumentView.cpp" line="381"/>
         <source>Shift+drag edits the text inside the box</source>
         <translation>Shift+拖动编辑框内的文字</translation>
     </message>
     <message>
-        <location filename="../../src/ui/DocumentView.cpp" line="551"/>
+        <location filename="../../src/ui/DocumentView.cpp" line="545"/>
         <location filename="../../src/ui/view/ImageAnnotationLayer.cpp" line="308"/>
         <source>Paste</source>
         <translation>粘贴</translation>
     </message>
     <message>
-        <location filename="../../src/ui/DocumentView.cpp" line="556"/>
+        <location filename="../../src/ui/DocumentView.cpp" line="550"/>
         <location filename="../../src/ui/view/ImageAnnotationLayer.cpp" line="319"/>
         <location filename="../../modules/rich-media/ui/MediaLayer.cpp" line="258"/>
         <source>Delete</source>
         <translation>删除</translation>
     </message>
     <message>
-        <location filename="../../src/ui/DocumentView.cpp" line="545"/>
+        <location filename="../../src/ui/DocumentView.cpp" line="539"/>
         <location filename="../../src/ui/view/ImageAnnotationLayer.cpp" line="304"/>
         <source>Copy</source>
         <translation>复制</translation>
@@ -627,7 +627,7 @@ Please use a build that includes Qt6::Pdf support.
         <translation type="vanished">所有文件 (*)</translation>
     </message>
     <message>
-        <location filename="../../src/ui/DocumentView.cpp" line="319"/>
+        <location filename="../../src/ui/DocumentView.cpp" line="313"/>
         <location filename="../../src/ui/DocumentView_Edit.cpp" line="105"/>
         <source>Drop a document here or click a tab to open</source>
         <translation>将文档拖到此处，或点击标签页打开</translation>
@@ -798,7 +798,7 @@ Please use a build that includes Qt6::Pdf support.
         <translation type="vanished">暂不可用。</translation>
     </message>
     <message>
-        <location filename="../../src/ui/export/ExportDialog.cpp" line="137"/>
+        <location filename="../../src/ui/export/ExportDialog.cpp" line="139"/>
         <source>Export - OpenPDF Studio</source>
         <translation>导出 - OpenPDF Studio</translation>
     </message>
@@ -811,105 +811,105 @@ Please use a build that includes Qt6::Pdf support.
         <translation type="vanished">导出 PNG 图片时不使用。</translation>
     </message>
     <message>
-        <location filename="../../src/ui/export/ExportDialog.cpp" line="191"/>
+        <location filename="../../src/ui/export/ExportDialog.cpp" line="194"/>
         <source>Not available in this build: rewriting a PDF&apos;s annotations, forms, fonts or encryption needs qpdf.</source>
         <translation>此版本不可用：重写 PDF 的注释、表单、字体或加密需要 qpdf。</translation>
     </message>
     <message>
-        <location filename="../../src/ui/export/ExportDialog.cpp" line="205"/>
-        <location filename="../../src/ui/export/ExportDialog.cpp" line="727"/>
+        <location filename="../../src/ui/export/ExportDialog.cpp" line="208"/>
+        <location filename="../../src/ui/export/ExportDialog.cpp" line="737"/>
         <source>Estimated file size: unknown</source>
         <translation>预计文件大小：未知</translation>
     </message>
     <message>
-        <location filename="../../src/ui/export/ExportDialog.cpp" line="212"/>
+        <location filename="../../src/ui/export/ExportDialog.cpp" line="215"/>
         <source>Estimated file size: unknown (check the page range)</source>
         <translation>预计文件大小：未知（请检查页面范围）</translation>
     </message>
     <message>
-        <location filename="../../src/ui/export/ExportDialog.cpp" line="275"/>
+        <location filename="../../src/ui/export/ExportDialog.cpp" line="282"/>
         <source>Estimated file size: ~%1  (%2 of %3 pages)</source>
         <translation>预计文件大小：约 %1（%2 / %3 页）</translation>
     </message>
     <message>
-        <location filename="../../src/ui/export/ExportDialog.cpp" line="329"/>
+        <location filename="../../src/ui/export/ExportDialog.cpp" line="336"/>
         <source>Select Save Location</source>
         <translation>选择保存位置</translation>
     </message>
     <message>
-        <location filename="../../src/ui/export/ExportDialog.cpp" line="340"/>
+        <location filename="../../src/ui/export/ExportDialog.cpp" line="347"/>
         <source>Missing filename</source>
         <translation>缺少文件名</translation>
     </message>
     <message>
-        <location filename="../../src/ui/export/ExportDialog.cpp" line="340"/>
+        <location filename="../../src/ui/export/ExportDialog.cpp" line="347"/>
         <source>Please enter a filename.</source>
         <translation>请输入文件名。</translation>
     </message>
     <message>
-        <location filename="../../src/ui/export/ExportDialog.cpp" line="344"/>
+        <location filename="../../src/ui/export/ExportDialog.cpp" line="351"/>
         <source>Missing location</source>
         <translation>缺少保存位置</translation>
     </message>
     <message>
-        <location filename="../../src/ui/export/ExportDialog.cpp" line="344"/>
+        <location filename="../../src/ui/export/ExportDialog.cpp" line="351"/>
         <source>Please select a save location.</source>
         <translation>请选择保存位置。</translation>
     </message>
     <message>
-        <location filename="../../src/ui/export/ExportDialog.cpp" line="349"/>
+        <location filename="../../src/ui/export/ExportDialog.cpp" line="356"/>
         <source>No document</source>
         <translation>没有文档</translation>
     </message>
     <message>
-        <location filename="../../src/ui/export/ExportDialog.cpp" line="349"/>
+        <location filename="../../src/ui/export/ExportDialog.cpp" line="356"/>
         <source>Please open a PDF document first.</source>
         <translation>请先打开一个 PDF 文档。</translation>
     </message>
     <message>
-        <location filename="../../src/ui/export/ExportDialog.cpp" line="357"/>
+        <location filename="../../src/ui/export/ExportDialog.cpp" line="364"/>
         <source>Invalid page range</source>
         <translation>页面范围无效</translation>
     </message>
     <message>
-        <location filename="../../src/ui/export/ExportDialog.cpp" line="358"/>
+        <location filename="../../src/ui/export/ExportDialog.cpp" line="365"/>
         <source>&quot;%1&quot; is not a valid range for a document with %2 pages.
 Use page numbers like 1-3, 5, 8-10.</source>
         <translation>“%1”不是 %2 页文档的有效范围。
 请使用 1-3, 5, 8-10 这样的页码。</translation>
     </message>
     <message>
-        <location filename="../../src/ui/export/ExportDialog.cpp" line="382"/>
+        <location filename="../../src/ui/export/ExportDialog.cpp" line="389"/>
         <source>%1 image files</source>
         <translation>%1 个图片文件</translation>
     </message>
     <message>
-        <location filename="../../src/ui/export/ExportDialog.cpp" line="383"/>
+        <location filename="../../src/ui/export/ExportDialog.cpp" line="390"/>
         <source>Overwrite existing file?</source>
         <translation>覆盖现有文件？</translation>
     </message>
     <message>
-        <location filename="../../src/ui/export/ExportDialog.cpp" line="384"/>
+        <location filename="../../src/ui/export/ExportDialog.cpp" line="391"/>
         <source>%1 already exists. Do you want to overwrite it?</source>
         <translation>%1 已存在。是否覆盖？</translation>
     </message>
     <message>
-        <location filename="../../src/ui/export/ExportDialog.cpp" line="500"/>
+        <location filename="../../src/ui/export/ExportDialog.cpp" line="507"/>
         <source>Documents</source>
         <translation>文档</translation>
     </message>
     <message>
-        <location filename="../../src/ui/export/ExportDialog.cpp" line="503"/>
+        <location filename="../../src/ui/export/ExportDialog.cpp" line="510"/>
         <source>Best for sharing and printing</source>
         <translation>最适合共享和打印</translation>
     </message>
     <message>
-        <location filename="../../src/ui/export/ExportDialog.cpp" line="506"/>
+        <location filename="../../src/ui/export/ExportDialog.cpp" line="513"/>
         <source>Long-term archiving</source>
         <translation>长期存档</translation>
     </message>
     <message>
-        <location filename="../../src/ui/export/ExportDialog.cpp" line="510"/>
+        <location filename="../../src/ui/export/ExportDialog.cpp" line="517"/>
         <source>Edit in Microsoft Word</source>
         <translation>在 Microsoft Word 中编辑</translation>
     </message>
@@ -922,192 +922,192 @@ Use page numbers like 1-3, 5, 8-10.</source>
         <translation type="vanished">PNG 图片</translation>
     </message>
     <message>
-        <location filename="../../src/ui/export/ExportDialog.cpp" line="514"/>
+        <location filename="../../src/ui/export/ExportDialog.cpp" line="521"/>
         <source>Edit in LibreOffice</source>
         <translation>在 LibreOffice 中编辑</translation>
     </message>
     <message>
-        <location filename="../../src/ui/export/ExportDialog.cpp" line="515"/>
+        <location filename="../../src/ui/export/ExportDialog.cpp" line="522"/>
         <source>Images</source>
         <translation>图像</translation>
     </message>
     <message>
-        <location filename="../../src/ui/export/ExportDialog.cpp" line="518"/>
+        <location filename="../../src/ui/export/ExportDialog.cpp" line="525"/>
         <source>Lossless page images</source>
         <translation>无损页面图像</translation>
     </message>
     <message>
-        <location filename="../../src/ui/export/ExportDialog.cpp" line="520"/>
+        <location filename="../../src/ui/export/ExportDialog.cpp" line="527"/>
         <source>Smaller files for photos and scans</source>
         <translation>照片和扫描件的文件更小</translation>
     </message>
     <message>
-        <location filename="../../src/ui/export/ExportDialog.cpp" line="523"/>
+        <location filename="../../src/ui/export/ExportDialog.cpp" line="530"/>
         <source>For print and archiving</source>
         <translation>用于打印和归档</translation>
     </message>
     <message>
-        <location filename="../../src/ui/export/ExportDialog.cpp" line="525"/>
+        <location filename="../../src/ui/export/ExportDialog.cpp" line="532"/>
         <source>Small images for the web</source>
         <translation>适合网页的小图像</translation>
     </message>
     <message>
-        <location filename="../../src/ui/export/ExportDialog.cpp" line="526"/>
+        <location filename="../../src/ui/export/ExportDialog.cpp" line="533"/>
         <source>Text &amp; Web</source>
         <translation>文本和网页</translation>
     </message>
     <message>
-        <location filename="../../src/ui/export/ExportDialog.cpp" line="530"/>
+        <location filename="../../src/ui/export/ExportDialog.cpp" line="537"/>
         <source>Plain text without layout</source>
         <translation>无版式的纯文本</translation>
     </message>
     <message>
-        <location filename="../../src/ui/export/ExportDialog.cpp" line="533"/>
+        <location filename="../../src/ui/export/ExportDialog.cpp" line="540"/>
         <source>Text with headings and lists</source>
         <translation>带标题和列表的文本</translation>
     </message>
     <message>
-        <location filename="../../src/ui/export/ExportDialog.cpp" line="536"/>
+        <location filename="../../src/ui/export/ExportDialog.cpp" line="543"/>
         <source>Opens in any web browser</source>
         <translation>可在任何浏览器中打开</translation>
     </message>
     <message>
-        <location filename="../../src/ui/export/ExportDialog.cpp" line="575"/>
+        <location filename="../../src/ui/export/ExportDialog.cpp" line="584"/>
         <source>File</source>
         <translation>文件</translation>
     </message>
     <message>
-        <location filename="../../src/ui/export/ExportDialog.cpp" line="576"/>
+        <location filename="../../src/ui/export/ExportDialog.cpp" line="585"/>
         <source>Choose where to save your file.</source>
         <translation>选择文件的保存位置。</translation>
     </message>
     <message>
-        <location filename="../../src/ui/export/ExportDialog.cpp" line="589"/>
+        <location filename="../../src/ui/export/ExportDialog.cpp" line="598"/>
         <source>Browse…</source>
         <translation>浏览…</translation>
     </message>
     <message>
-        <location filename="../../src/ui/export/ExportDialog.cpp" line="594"/>
+        <location filename="../../src/ui/export/ExportDialog.cpp" line="603"/>
         <source>Filename</source>
         <translation>文件名</translation>
     </message>
     <message>
-        <location filename="../../src/ui/export/ExportDialog.cpp" line="596"/>
+        <location filename="../../src/ui/export/ExportDialog.cpp" line="605"/>
         <source>Save location</source>
         <translation>保存位置</translation>
     </message>
     <message>
-        <location filename="../../src/ui/export/ExportDialog.cpp" line="601"/>
+        <location filename="../../src/ui/export/ExportDialog.cpp" line="610"/>
         <source>Open file after export</source>
         <translation>导出后打开文件</translation>
     </message>
     <message>
-        <location filename="../../src/ui/export/ExportDialog.cpp" line="603"/>
+        <location filename="../../src/ui/export/ExportDialog.cpp" line="612"/>
         <source>Automatically open the exported file when the process completes.</source>
         <translation>导出完成后自动打开导出的文件。</translation>
     </message>
     <message>
-        <location filename="../../src/ui/export/ExportDialog.cpp" line="610"/>
+        <location filename="../../src/ui/export/ExportDialog.cpp" line="619"/>
         <source>Pages</source>
         <translation>页面</translation>
     </message>
     <message>
-        <location filename="../../src/ui/export/ExportDialog.cpp" line="611"/>
+        <location filename="../../src/ui/export/ExportDialog.cpp" line="620"/>
         <source>Select which pages to export.</source>
         <translation>选择要导出的页面。</translation>
     </message>
     <message>
-        <location filename="../../src/ui/export/ExportDialog.cpp" line="614"/>
+        <location filename="../../src/ui/export/ExportDialog.cpp" line="623"/>
         <source>All pages (%1)</source>
         <translation>全部页面（%1）</translation>
     </message>
     <message>
-        <location filename="../../src/ui/export/ExportDialog.cpp" line="615"/>
+        <location filename="../../src/ui/export/ExportDialog.cpp" line="624"/>
         <source>All pages</source>
         <translation>全部页面</translation>
     </message>
     <message>
-        <location filename="../../src/ui/export/ExportDialog.cpp" line="616"/>
+        <location filename="../../src/ui/export/ExportDialog.cpp" line="625"/>
         <source>Current page (%1)</source>
         <translation>当前页面（%1）</translation>
     </message>
     <message>
-        <location filename="../../src/ui/export/ExportDialog.cpp" line="617"/>
+        <location filename="../../src/ui/export/ExportDialog.cpp" line="626"/>
         <source>Current page</source>
         <translation>当前页面</translation>
     </message>
     <message>
-        <location filename="../../src/ui/export/ExportDialog.cpp" line="618"/>
+        <location filename="../../src/ui/export/ExportDialog.cpp" line="627"/>
         <source>Range</source>
         <translation>范围</translation>
     </message>
     <message>
-        <location filename="../../src/ui/export/ExportDialog.cpp" line="622"/>
+        <location filename="../../src/ui/export/ExportDialog.cpp" line="631"/>
         <source>For example: 1-3, 5, 8-10</source>
         <translation>例如：1-3, 5, 8-10</translation>
     </message>
     <message>
-        <location filename="../../src/ui/export/ExportDialog.cpp" line="648"/>
+        <location filename="../../src/ui/export/ExportDialog.cpp" line="657"/>
         <source>Settings</source>
         <translation>设置</translation>
     </message>
     <message>
-        <location filename="../../src/ui/export/ExportDialog.cpp" line="649"/>
+        <location filename="../../src/ui/export/ExportDialog.cpp" line="658"/>
         <source>Adjust quality and include additional content.</source>
         <translation>调整质量并包含附加内容。</translation>
     </message>
     <message>
-        <location filename="../../src/ui/export/ExportDialog.cpp" line="654"/>
+        <location filename="../../src/ui/export/ExportDialog.cpp" line="663"/>
         <source>Compress images</source>
         <translation>压缩图像</translation>
     </message>
     <message>
-        <location filename="../../src/ui/export/ExportDialog.cpp" line="658"/>
+        <location filename="../../src/ui/export/ExportDialog.cpp" line="668"/>
         <source>Quality</source>
         <translation>质量</translation>
     </message>
     <message>
-        <location filename="../../src/ui/export/ExportDialog.cpp" line="669"/>
+        <location filename="../../src/ui/export/ExportDialog.cpp" line="679"/>
         <source>Maximum</source>
         <translation>最高</translation>
     </message>
     <message>
-        <location filename="../../src/ui/export/ExportDialog.cpp" line="670"/>
+        <location filename="../../src/ui/export/ExportDialog.cpp" line="680"/>
         <source>High</source>
         <translation>高</translation>
     </message>
     <message>
-        <location filename="../../src/ui/export/ExportDialog.cpp" line="671"/>
+        <location filename="../../src/ui/export/ExportDialog.cpp" line="681"/>
         <source>Medium</source>
         <translation>中</translation>
     </message>
     <message>
-        <location filename="../../src/ui/export/ExportDialog.cpp" line="672"/>
+        <location filename="../../src/ui/export/ExportDialog.cpp" line="682"/>
         <source>Low</source>
         <translation>低</translation>
     </message>
     <message>
-        <location filename="../../src/ui/export/ExportDialog.cpp" line="678"/>
+        <location filename="../../src/ui/export/ExportDialog.cpp" line="688"/>
         <source>Reduces file size without noticeable quality loss.</source>
         <translation>在不明显降低质量的情况下减小文件大小。</translation>
     </message>
     <message>
-        <location filename="../../src/ui/export/ExportDialog.cpp" line="693"/>
+        <location filename="../../src/ui/export/ExportDialog.cpp" line="703"/>
         <source>Keep forms</source>
         <translation>保留表单</translation>
     </message>
     <message>
-        <location filename="../../src/ui/export/ExportDialog.cpp" line="694"/>
+        <location filename="../../src/ui/export/ExportDialog.cpp" line="704"/>
         <source>Include comments</source>
         <translation>包含注释</translation>
     </message>
     <message>
-        <location filename="../../src/ui/export/ExportDialog.cpp" line="697"/>
+        <location filename="../../src/ui/export/ExportDialog.cpp" line="707"/>
         <source>Preserve form fields and data.</source>
         <translation>保留表单字段及其数据。</translation>
     </message>
     <message>
-        <location filename="../../src/ui/export/ExportDialog.cpp" line="698"/>
+        <location filename="../../src/ui/export/ExportDialog.cpp" line="708"/>
         <source>Export comments and annotations.</source>
         <translation>导出批注和注释。</translation>
     </message>
@@ -1120,12 +1120,12 @@ Use page numbers like 1-3, 5, 8-10.</source>
         <translation type="vanished">控制导出文件中保留的内容。</translation>
     </message>
     <message>
-        <location filename="../../src/ui/export/ExportDialog.cpp" line="699"/>
+        <location filename="../../src/ui/export/ExportDialog.cpp" line="709"/>
         <source>Embed fonts</source>
         <translation>嵌入字体</translation>
     </message>
     <message>
-        <location filename="../../src/ui/export/ExportDialog.cpp" line="701"/>
+        <location filename="../../src/ui/export/ExportDialog.cpp" line="711"/>
         <source>Include all used fonts in the PDF file.</source>
         <translation>在 PDF 文件中包含所有使用的字体。</translation>
     </message>
@@ -1162,12 +1162,12 @@ Use page numbers like 1-3, 5, 8-10.</source>
         <translation type="vanished">从文件中移除所有 JavaScript 操作。</translation>
     </message>
     <message>
-        <location filename="../../src/ui/export/ExportDialog.cpp" line="729"/>
+        <location filename="../../src/ui/export/ExportDialog.cpp" line="739"/>
         <source>Cancel</source>
         <translation>取消</translation>
     </message>
     <message>
-        <location filename="../../src/ui/export/ExportDialog.cpp" line="734"/>
+        <location filename="../../src/ui/export/ExportDialog.cpp" line="744"/>
         <source>Export</source>
         <translation>导出</translation>
     </message>
@@ -1200,18 +1200,18 @@ Use page numbers like 1-3, 5, 8-10.</source>
         <translation type="vanished">正在导出“%1”…</translation>
     </message>
     <message>
-        <location filename="../../src/ui/export/Exporting.cpp" line="135"/>
+        <location filename="../../src/ui/export/Exporting.cpp" line="136"/>
         <source>Exporting page %1 of %2…</source>
         <translation>正在导出第 %1 页，共 %2 页…</translation>
     </message>
     <message>
-        <location filename="../../src/ui/export/Exporting.cpp" line="181"/>
+        <location filename="../../src/ui/export/Exporting.cpp" line="184"/>
         <source>Writing &quot;%1&quot;…</source>
         <translation>正在写入“%1”…</translation>
     </message>
     <message>
-        <location filename="../../src/ui/export/Exporting.cpp" line="188"/>
-        <location filename="../../src/ui/export/Exporting.cpp" line="206"/>
+        <location filename="../../src/ui/export/Exporting.cpp" line="193"/>
+        <location filename="../../src/ui/export/Exporting.cpp" line="211"/>
         <source>Could not write to &quot;%1&quot;.</source>
         <translation>无法写入“%1”。</translation>
     </message>
@@ -1224,13 +1224,13 @@ Use page numbers like 1-3, 5, 8-10.</source>
         <translation type="vanished">无法将 PNG 图像导出到“%1”。</translation>
     </message>
     <message>
-        <location filename="../../src/ui/export/Exporting.cpp" line="99"/>
-        <location filename="../../src/ui/export/Exporting.cpp" line="164"/>
+        <location filename="../../src/ui/export/Exporting.cpp" line="100"/>
+        <location filename="../../src/ui/export/Exporting.cpp" line="167"/>
         <source>Could not write &quot;%1&quot;.</source>
         <translation>无法写入“%1”。</translation>
     </message>
     <message>
-        <location filename="../../src/ui/export/Exporting.cpp" line="101"/>
+        <location filename="../../src/ui/export/Exporting.cpp" line="102"/>
         <source>Could not write &quot;%1&quot;.
 
 Selecting pages for a PDF needs qpdf, which this build does not include. Exporting as Word or PNG is unaffected.</source>
@@ -1239,17 +1239,17 @@ Selecting pages for a PDF needs qpdf, which this build does not include. Exporti
 为 PDF 选择页面需要 qpdf，而此版本未包含。导出为 Word 或 PNG 不受影响。</translation>
     </message>
     <message>
-        <location filename="../../src/ui/export/Exporting.cpp" line="197"/>
+        <location filename="../../src/ui/export/Exporting.cpp" line="202"/>
         <source>Could not export %1 images to &quot;%2&quot;.</source>
         <translation>无法将 %1 图像导出到“%2”。</translation>
     </message>
     <message>
-        <location filename="../../src/ui/export/Exporting.cpp" line="225"/>
+        <location filename="../../src/ui/export/Exporting.cpp" line="230"/>
         <source>Export failed</source>
         <translation>导出失败</translation>
     </message>
     <message>
-        <location filename="../../src/ui/export/Exporting.cpp" line="231"/>
+        <location filename="../../src/ui/export/Exporting.cpp" line="236"/>
         <source>%1 pages exported as %2 images</source>
         <translation>已将 %1 页导出为 %2 图片</translation>
     </message>
@@ -1262,7 +1262,7 @@ Selecting pages for a PDF needs qpdf, which this build does not include. Exporti
         <translation type="vanished">已将 %1 页导出为 PNG 图片</translation>
     </message>
     <message>
-        <location filename="../../src/ui/export/Exporting.cpp" line="232"/>
+        <location filename="../../src/ui/export/Exporting.cpp" line="237"/>
         <source>Exported &quot;%1&quot;</source>
         <translation>已导出“%1”</translation>
     </message>
@@ -2428,33 +2428,33 @@ Text, image and drawing edits made since then are not part of any file yet and w
 <context>
     <name>MainWindow</name>
     <message>
-        <location filename="../../src/ui/MainWindow.cpp" line="133"/>
-        <location filename="../../src/ui/MainWindow.cpp" line="147"/>
+        <location filename="../../src/ui/MainWindow.cpp" line="135"/>
+        <location filename="../../src/ui/MainWindow.cpp" line="149"/>
         <source>Default PDF Application</source>
         <translation>默认 PDF 应用程序</translation>
     </message>
     <message>
-        <location filename="../../src/ui/MainWindow.cpp" line="134"/>
+        <location filename="../../src/ui/MainWindow.cpp" line="136"/>
         <source>OpenPDF Studio is not your default application for PDF files. Would you like to make it the default?</source>
         <translation>OpenPDF Studio 不是 PDF 文件的默认应用程序。是否将其设为默认？</translation>
     </message>
     <message>
-        <location filename="../../src/ui/MainWindow.cpp" line="137"/>
+        <location filename="../../src/ui/MainWindow.cpp" line="139"/>
         <source>Windows then opens its settings for default apps, where you choose OpenPDF Studio for PDF files.</source>
         <translation>随后 Windows 会打开默认应用设置，您可以在其中为 PDF 文件选择 OpenPDF Studio。</translation>
     </message>
     <message>
-        <location filename="../../src/ui/MainWindow.cpp" line="139"/>
+        <location filename="../../src/ui/MainWindow.cpp" line="141"/>
         <source>Make Default</source>
         <translation>设为默认</translation>
     </message>
     <message>
-        <location filename="../../src/ui/MainWindow.cpp" line="140"/>
+        <location filename="../../src/ui/MainWindow.cpp" line="142"/>
         <source>No</source>
         <translation>否</translation>
     </message>
     <message>
-        <location filename="../../src/ui/MainWindow.cpp" line="148"/>
+        <location filename="../../src/ui/MainWindow.cpp" line="150"/>
         <source>OpenPDF Studio could not be made the default application for PDF files.</source>
         <translation>无法将 OpenPDF Studio 设为 PDF 文件的默认应用程序。</translation>
     </message>
@@ -2463,49 +2463,49 @@ Text, image and drawing edits made since then are not part of any file yet and w
         <translation type="vanished">打开PDF</translation>
     </message>
     <message>
-        <location filename="../../src/ui/MainWindow.cpp" line="840"/>
+        <location filename="../../src/ui/MainWindow.cpp" line="899"/>
         <source>PDF files (*.pdf)</source>
         <translation>PDF文件 (*.pdf)</translation>
     </message>
     <message>
-        <location filename="../../src/ui/MainWindow.cpp" line="839"/>
+        <location filename="../../src/ui/MainWindow.cpp" line="898"/>
         <source>Save PDF As</source>
         <translation>另存PDF为</translation>
     </message>
     <message>
-        <location filename="../../src/ui/MainWindow.cpp" line="168"/>
+        <location filename="../../src/ui/MainWindow.cpp" line="170"/>
         <source>Update available</source>
         <translation>有可用更新</translation>
     </message>
     <message>
-        <location filename="../../src/ui/MainWindow.cpp" line="169"/>
+        <location filename="../../src/ui/MainWindow.cpp" line="171"/>
         <source>OpenPDF Studio %1 is available.</source>
         <translation>OpenPDF Studio %1 现已推出。</translation>
     </message>
     <message>
-        <location filename="../../src/ui/MainWindow.cpp" line="170"/>
+        <location filename="../../src/ui/MainWindow.cpp" line="172"/>
         <source>You are running %1.</source>
         <translation>您正在使用 %1。</translation>
     </message>
     <message>
-        <location filename="../../src/ui/MainWindow.cpp" line="171"/>
+        <location filename="../../src/ui/MainWindow.cpp" line="173"/>
         <source>Open download page</source>
         <translation>打开下载页面</translation>
     </message>
     <message>
-        <location filename="../../src/ui/MainWindow.cpp" line="173"/>
+        <location filename="../../src/ui/MainWindow.cpp" line="175"/>
         <source>Later</source>
         <translation>稍后</translation>
     </message>
     <message>
-        <location filename="../../src/ui/MainWindow.cpp" line="820"/>
-        <location filename="../../src/ui/MainWindow.cpp" line="825"/>
-        <location filename="../../src/ui/MainWindow.cpp" line="829"/>
+        <location filename="../../src/ui/MainWindow.cpp" line="879"/>
+        <location filename="../../src/ui/MainWindow.cpp" line="884"/>
+        <location filename="../../src/ui/MainWindow.cpp" line="888"/>
         <source>Save failed</source>
         <translation>保存失败</translation>
     </message>
     <message>
-        <location filename="../../src/ui/MainWindow.cpp" line="830"/>
+        <location filename="../../src/ui/MainWindow.cpp" line="889"/>
         <source>Could not write &quot;%1&quot;.
 
 The file may be write-protected or open in another program. The document is unchanged. Try saving it under a different name.</source>
@@ -2514,58 +2514,58 @@ The file may be write-protected or open in another program. The document is unch
 该文件可能被写保护或已在其他程序中打开。文档未被更改。请尝试以其他名称保存。</translation>
     </message>
     <message>
-        <location filename="../../src/ui/MainWindow.cpp" line="1017"/>
+        <location filename="../../src/ui/MainWindow.cpp" line="1076"/>
         <source>Edit Mode</source>
         <translation>编辑模式</translation>
     </message>
     <message>
-        <location filename="../../src/ui/MainWindow.cpp" line="1018"/>
+        <location filename="../../src/ui/MainWindow.cpp" line="1077"/>
         <source>Do you want to enable Edit Mode?</source>
         <translation>是否启用编辑模式？</translation>
     </message>
     <message>
-        <location filename="../../src/ui/MainWindow.cpp" line="1251"/>
+        <location filename="../../src/ui/MainWindow.cpp" line="1312"/>
         <source>Untitled</source>
         <translation>无标题</translation>
     </message>
     <message>
-        <location filename="../../src/ui/MainWindow.cpp" line="1255"/>
+        <location filename="../../src/ui/MainWindow.cpp" line="1316"/>
         <source>Unsaved Changes</source>
         <translation>未保存的更改</translation>
     </message>
     <message>
-        <location filename="../../src/ui/MainWindow.cpp" line="1256"/>
+        <location filename="../../src/ui/MainWindow.cpp" line="1317"/>
         <source>Save changes to &quot;%1&quot;?</source>
         <translation>是否保存对“%1”的更改？</translation>
     </message>
     <message>
-        <location filename="../../src/ui/MainWindow.cpp" line="649"/>
+        <location filename="../../src/ui/MainWindow.cpp" line="708"/>
         <source>Open Document</source>
         <translation>打开文档</translation>
     </message>
     <message>
-        <location filename="../../src/ui/MainWindow.cpp" line="667"/>
+        <location filename="../../src/ui/MainWindow.cpp" line="726"/>
         <source>Cannot open file</source>
         <translation>无法打开文件</translation>
     </message>
     <message>
-        <location filename="../../src/ui/MainWindow.cpp" line="723"/>
+        <location filename="../../src/ui/MainWindow.cpp" line="782"/>
         <source>There is no room to put the converted file.</source>
         <translation>没有空间存放转换后的文件。</translation>
     </message>
     <message>
-        <location filename="../../src/ui/MainWindow.cpp" line="738"/>
-        <location filename="../../src/ui/MainWindow.cpp" line="761"/>
+        <location filename="../../src/ui/MainWindow.cpp" line="797"/>
+        <location filename="../../src/ui/MainWindow.cpp" line="820"/>
         <source>Import failed</source>
         <translation>导入失败</translation>
     </message>
     <message>
-        <location filename="../../src/ui/MainWindow.cpp" line="668"/>
+        <location filename="../../src/ui/MainWindow.cpp" line="727"/>
         <source>&quot;%1&quot; is not a PDF and cannot be turned into one.</source>
         <translation>“%1”不是 PDF，也无法转换为 PDF。</translation>
     </message>
     <message>
-        <location filename="../../src/ui/MainWindow.cpp" line="739"/>
+        <location filename="../../src/ui/MainWindow.cpp" line="798"/>
         <source>&quot;%1&quot; could not be turned into a PDF.
 
 %2</source>
@@ -2574,17 +2574,17 @@ The file may be write-protected or open in another program. The document is unch
 %2</translation>
     </message>
     <message>
-        <location filename="../../src/ui/MainWindow.cpp" line="762"/>
+        <location filename="../../src/ui/MainWindow.cpp" line="821"/>
         <source>&quot;%1&quot; was converted, but the result could not be opened.</source>
         <translation>“%1”已转换，但无法打开结果。</translation>
     </message>
     <message>
-        <location filename="../../src/ui/MainWindow.cpp" line="708"/>
+        <location filename="../../src/ui/MainWindow.cpp" line="767"/>
         <source>Cannot add pages</source>
         <translation>无法添加页面</translation>
     </message>
     <message>
-        <location filename="../../src/ui/MainWindow.cpp" line="709"/>
+        <location filename="../../src/ui/MainWindow.cpp" line="768"/>
         <source>The pages of &quot;%1&quot; could not be added.</source>
         <translation>无法添加“%1”中的页面。</translation>
     </message>
@@ -2843,49 +2843,161 @@ Install ffmpeg to convert it, or embed it as it is.</source>
     </message>
 </context>
 <context>
+    <name>NoteColorPicker</name>
+    <message>
+        <location filename="../../src/ui/notes/NoteColorPicker.cpp" line="154"/>
+        <source>Apply</source>
+        <translation>应用</translation>
+    </message>
+</context>
+<context>
+    <name>NoteColorRow</name>
+    <message>
+        <location filename="../../src/ui/notes/NoteColorRow.cpp" line="437"/>
+        <source>Yellow</source>
+        <translation>黄色</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/notes/NoteColorRow.cpp" line="437"/>
+        <source>Orange</source>
+        <translation>橙色</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/notes/NoteColorRow.cpp" line="437"/>
+        <source>Pink</source>
+        <translation>粉色</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/notes/NoteColorRow.cpp" line="438"/>
+        <source>Green</source>
+        <translation>绿色</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/notes/NoteColorRow.cpp" line="438"/>
+        <source>Blue</source>
+        <translation>蓝色</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/notes/NoteColorRow.cpp" line="438"/>
+        <source>Purple</source>
+        <translation>紫色</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/notes/NoteColorRow.cpp" line="387"/>
+        <location filename="../../src/ui/notes/NoteColorRow.cpp" line="459"/>
+        <source>Restore the standard colors</source>
+        <translation>恢复标准颜色</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/notes/NoteColorRow.cpp" line="397"/>
+        <source>Own color: click to mix one, then drag it onto a note or into the colors to keep it</source>
+        <translation>自定义颜色：点击调配，然后拖到注释上或拖入颜色中保存</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/notes/NoteColorRow.cpp" line="382"/>
+        <source>Drag a color here to keep it</source>
+        <translation>将颜色拖到这里以保留</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/notes/NoteColorRow.cpp" line="386"/>
+        <source>Mix a color here</source>
+        <translation>在此调配颜色</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/notes/NoteColorRow.cpp" line="419"/>
+        <source>Click the colorful bubble to mix a color</source>
+        <translation>点击彩色圆点调配颜色</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/notes/NoteColorRow.cpp" line="420"/>
+        <source>Drag a color onto a note, or onto a bubble to replace it</source>
+        <translation>将颜色拖到注释上，或拖到色块上以替换它</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/notes/NoteColorRow.cpp" line="442"/>
+        <source>Del or the x removes it</source>
+        <translation>按 Del 或点 x 可删除</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/notes/NoteColorRow.cpp" line="458"/>
+        <source>Remove color</source>
+        <translation>删除颜色</translation>
+    </message>
+    <message>
+        <source>Reset color</source>
+        <translation type="vanished">重置颜色</translation>
+    </message>
+    <message>
+        <source>Choose a note color</source>
+        <translation type="vanished">选择注释颜色</translation>
+    </message>
+</context>
+<context>
     <name>NoteLayer</name>
     <message>
-        <location filename="../../src/ui/notes/NoteLayer.cpp" line="107"/>
+        <location filename="../../src/ui/notes/NoteLayer.cpp" line="147"/>
         <source>Note</source>
         <translation>注释</translation>
     </message>
     <message>
-        <location filename="../../src/ui/notes/NoteLayer.cpp" line="140"/>
+        <location filename="../../src/ui/notes/NoteLayer.cpp" line="233"/>
+        <location filename="../../src/ui/notes/NoteLayer.cpp" line="709"/>
         <source>New note</source>
         <translation>新建注释</translation>
     </message>
     <message>
-        <location filename="../../src/ui/notes/NoteLayer.cpp" line="146"/>
+        <location filename="../../src/ui/notes/NoteLayer.cpp" line="243"/>
         <source>Add note</source>
         <translation>添加注释</translation>
     </message>
     <message>
-        <location filename="../../src/ui/notes/NoteLayer.cpp" line="183"/>
+        <location filename="../../src/ui/notes/NoteLayer.cpp" line="302"/>
+        <source>Move note</source>
+        <translation>移动注释</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/notes/NoteLayer.cpp" line="287"/>
+        <location filename="../../src/ui/notes/NoteLayer.cpp" line="302"/>
+        <source>Link note</source>
+        <translation>关联注释</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/notes/NoteLayer.cpp" line="376"/>
+        <source>Unlink note</source>
+        <translation>取消关联注释</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/notes/NoteLayer.cpp" line="409"/>
         <source>Untitled note</source>
         <translation>无标题注释</translation>
     </message>
     <message>
-        <location filename="../../src/ui/notes/NoteLayer.cpp" line="190"/>
+        <location filename="../../src/ui/notes/NoteLayer.cpp" line="416"/>
         <source>Edit note</source>
         <translation>编辑注释</translation>
     </message>
     <message>
-        <location filename="../../src/ui/notes/NoteLayer.cpp" line="215"/>
+        <location filename="../../src/ui/notes/NoteLayer.cpp" line="442"/>
         <source>Delete note</source>
         <translation>删除注释</translation>
     </message>
     <message>
-        <location filename="../../src/ui/notes/NoteLayer.cpp" line="229"/>
+        <location filename="../../src/ui/notes/NoteLayer.cpp" line="456"/>
         <source>Pin note</source>
         <translation>固定注释</translation>
     </message>
     <message>
-        <location filename="../../src/ui/notes/NoteLayer.cpp" line="229"/>
+        <location filename="../../src/ui/notes/NoteLayer.cpp" line="456"/>
         <source>Unpin note</source>
         <translation>取消固定注释</translation>
     </message>
     <message>
-        <location filename="../../src/ui/notes/NoteLayer.cpp" line="411"/>
+        <location filename="../../src/ui/notes/NoteLayer.cpp" line="484"/>
+        <source>Change note color</source>
+        <translation>更改注释颜色</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/notes/NoteLayer_Box.cpp" line="190"/>
         <source>Page %1</source>
         <translation>第 %1 页</translation>
     </message>
@@ -2893,69 +3005,145 @@ Install ffmpeg to convert it, or embed it as it is.</source>
 <context>
     <name>NotesPanel</name>
     <message>
-        <location filename="../../src/ui/notes/NotesPanel.cpp" line="48"/>
+        <location filename="../../src/ui/notes/NotesPanel.cpp" line="573"/>
+        <source>Drag onto the page to place the note</source>
+        <translation>拖到页面上以放置注释</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/notes/NotesPanel.cpp" line="607"/>
+        <source>Drag onto the page</source>
+        <translation>拖到页面上</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/notes/NotesPanel.cpp" line="611"/>
+        <source>Discard</source>
+        <translation>丢弃</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/notes/NoteLayer_Box.cpp" line="140"/>
+        <location filename="../../src/ui/notes/NotesPanel.cpp" line="644"/>
+        <source>Drag onto the page to move the note</source>
+        <translation>拖到页面上以移动注释</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/notes/NotesPanel.cpp" line="672"/>
         <source>Untitled note</source>
         <translation>无标题注释</translation>
     </message>
     <message>
-        <location filename="../../src/ui/notes/NotesPanel.cpp" line="68"/>
+        <location filename="../../src/ui/notes/NoteLayer_Box.cpp" line="186"/>
+        <location filename="../../src/ui/notes/NotesPanel.cpp" line="699"/>
+        <source>“%1” · p. %2</source>
+        <translation>“%1” · 第 %2 页</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/notes/NotesPanel.cpp" line="665"/>
+        <source>Note color</source>
+        <translation>注释颜色</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/notes/NotesPanel.cpp" line="700"/>
         <source>Page %1</source>
         <translation>第 %1 页</translation>
     </message>
     <message>
-        <location filename="../../src/ui/notes/NotesPanel.cpp" line="242"/>
-        <source>No notes yet. Add one and place it on the current page.</source>
-        <translation>还没有注释。添加一个并将其放在当前页面上。</translation>
+        <location filename="../../src/ui/notes/NotesPanel.cpp" line="706"/>
+        <source>Unlink from the text</source>
+        <translation>取消与文本的关联</translation>
     </message>
     <message>
-        <location filename="../../src/ui/notes/NotesPanel.cpp" line="259"/>
+        <location filename="../../src/ui/notes/NotesPanel.cpp" line="718"/>
+        <source>Pin to top</source>
+        <translation>置顶</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/notes/NotesPanel.cpp" line="726"/>
+        <source>Show on page</source>
+        <translation>在页面上显示</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/notes/NotesPanel.cpp" line="732"/>
+        <source>Delete note</source>
+        <translation>删除注释</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/notes/NotesPanel.cpp" line="739"/>
+        <source>Pinned</source>
+        <translation>已置顶</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/notes/NotesPanel.cpp" line="786"/>
+        <source>No notes yet.
+Click + and drag the new note onto the page. Let go over text to link it.</source>
+        <translation>还没有注释。
+点击 + 并将新注释拖到页面上。在文本上松开即可与该文本关联。</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/notes/NotesPanel.cpp" line="801"/>
+        <source>New note: click, then drag it onto the page</source>
+        <translation>新建注释：点击后拖到页面上</translation>
+    </message>
+    <message>
+        <source>No notes yet.
+Click + to add one, or drag the + onto the page.</source>
+        <translation type="vanished">还没有注释。
+点击 + 添加，或将 + 拖到页面上。</translation>
+    </message>
+    <message>
+        <source>New note: click, or drag it onto the page</source>
+        <translation type="vanished">新建注释：点击，或拖到页面上</translation>
+    </message>
+    <message>
+        <source>No notes yet. Add one and place it on the current page.</source>
+        <translation type="vanished">还没有注释。添加一个并将其放在当前页面上。</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/notes/NotesPanel.cpp" line="718"/>
         <source>Unpin</source>
         <translation>取消固定</translation>
     </message>
     <message>
-        <location filename="../../src/ui/notes/NotesPanel.cpp" line="259"/>
         <source>Pin</source>
-        <translation>固定</translation>
+        <translation type="vanished">固定</translation>
     </message>
     <message>
-        <location filename="../../src/ui/notes/NotesPanel.cpp" line="264"/>
+        <location filename="../../src/ui/notes/NotesPanel.cpp" line="799"/>
         <source>Notes</source>
         <translation>注释</translation>
     </message>
     <message>
-        <location filename="../../src/ui/notes/NotesPanel.cpp" line="265"/>
+        <location filename="../../src/ui/notes/NotesPanel.cpp" line="800"/>
         <source>Close notes</source>
         <translation>关闭注释</translation>
     </message>
     <message>
-        <location filename="../../src/ui/notes/NotesPanel.cpp" line="266"/>
         <source>New note</source>
-        <translation>新建注释</translation>
+        <translation type="vanished">新建注释</translation>
     </message>
     <message>
-        <location filename="../../src/ui/notes/NotesPanel.cpp" line="267"/>
+        <location filename="../../src/ui/notes/NotesPanel.cpp" line="580"/>
+        <location filename="../../src/ui/notes/NotesPanel.cpp" line="654"/>
         <source>Title</source>
         <translation>标题</translation>
     </message>
     <message>
-        <location filename="../../src/ui/notes/NotesPanel.cpp" line="268"/>
+        <location filename="../../src/ui/notes/NoteLayer_Box.cpp" line="163"/>
+        <location filename="../../src/ui/notes/NotesPanel.cpp" line="588"/>
+        <location filename="../../src/ui/notes/NotesPanel.cpp" line="659"/>
         <source>Write a note…</source>
         <translation>写一条注释…</translation>
     </message>
     <message>
-        <location filename="../../src/ui/notes/NotesPanel.cpp" line="269"/>
         <source>Delete</source>
-        <translation>删除</translation>
+        <translation type="vanished">删除</translation>
     </message>
     <message>
-        <location filename="../../src/ui/notes/NotesPanel.cpp" line="270"/>
         <source>Cancel</source>
-        <translation>取消</translation>
+        <translation type="vanished">取消</translation>
     </message>
     <message>
-        <location filename="../../src/ui/notes/NotesPanel.cpp" line="271"/>
         <source>Save</source>
-        <translation>保存</translation>
+        <translation type="vanished">保存</translation>
     </message>
 </context>
 <context>

@@ -1,6 +1,8 @@
 #pragma once
 
+#include <QColor>
 #include <QDateTime>
+#include <QList>
 #include <QRectF>
 #include <QString>
 
@@ -13,6 +15,10 @@ struct NoteData
     QRectF    pdfBounds;
     QDateTime modified;
     bool      pinned { false };
+    QList<QRectF> textRects;
+    QString   quote;
+    QColor    color;
+    QColor    originalColor;
     bool      existing { false };
     bool      removed { false };
     QString   originalId;

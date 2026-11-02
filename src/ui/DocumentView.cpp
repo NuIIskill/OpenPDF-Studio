@@ -219,12 +219,6 @@ QList<NoteData> DocumentView::notes() const
     return m_noteLayer ? m_noteLayer->notes() : QList<NoteData>{};
 }
 
-void DocumentView::createNote()
-{
-    if (m_noteLayer && pageCount() > 0)
-        m_noteLayer->addAtPageCenter(currentPage());
-}
-
 void DocumentView::selectNote(const QString &id)
 {
     if (m_noteLayer) m_noteLayer->activate(id);
@@ -646,7 +640,7 @@ bool DocumentView::eventFilter(QObject *obj, QEvent *e)
                 m_imageLayer->handlePress(cvsPos);
                 return true;
             case Tool::Comment:
-                m_noteLayer->addAt(cvsPos);
+                m_noteLayer->press(cvsPos);
                 return true;
             case Tool::Draw:
                 m_drawingLayer->handlePress(cvsPos);
@@ -673,7 +667,7 @@ bool DocumentView::eventFilter(QObject *obj, QEvent *e)
             viewport()->setCursor(overImage ? Qt::PointingHandCursor : Qt::CrossCursor);
             if (m_imageLayer->handleMove(cvsPos, scroll)) return true;
         }
-        if ((m_tool == Tool::Select || m_tool == Tool::Attach)
+        if ((m_tool == Tool::Select || m_tool == Tool::Attach || m_tool == Tool::Comment)
                 && (me->buttons() & Qt::LeftButton) && m_selection->handleMove(cvsPos))
             return true;
     } else if (e->type() == QEvent::MouseButtonRelease) {
@@ -685,6 +679,10 @@ bool DocumentView::eventFilter(QObject *obj, QEvent *e)
             }
             if (textTool && m_textInput->release(toCanvas(me->pos()))) return true;
             if (m_tool == Tool::Image && m_imageLayer->handleRelease(scroll)) return true;
+            if (m_tool == Tool::Comment) {
+                m_noteLayer->release();
+                return true;
+            }
             if (m_tool == Tool::Select || m_tool == Tool::Attach) {
                 m_rubberBand->hide();
                 if (m_selection->handleRelease()) return true;

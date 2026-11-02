@@ -17,6 +17,8 @@ void applyToPage(FPDF_DOCUMENT doc, FPDF_PAGE page, int pageIndex,
 
 void applyNoteEdits(FPDF_PAGE page, int pageIndex, const EditSession &session);
 
+void showNoteHighlights(FPDF_PAGE page, int pageIndex, const EditSession *session);
+
 TextLayout::Metrics metrics(FPDF_DOCUMENT doc, FPDF_PAGE page, FPDF_TEXTPAGE textPage,
                             const EditSession::Edit &edit);
 

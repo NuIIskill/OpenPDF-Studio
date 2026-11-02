@@ -114,10 +114,12 @@ QImage PdfiumBackend::renderPageInternal(int page, qreal scale,
         }
     }
 
+    const EditSession *notes = session;
     if (session && !session->hasEditsOnPage(page)
             && !session->hasImageEditsOnPage(page)
             && !session->hasDrawEditsOnPage(page)
-            && !session->hasLinkEditsOnPage(page))
+            && !session->hasLinkEditsOnPage(page)
+            && !session->hasRemovedHighlightsOnPage(page))
         session = nullptr;
 
     // Background renders keep the page loaded, so the tiles of one page share
@@ -130,6 +132,7 @@ QImage PdfiumBackend::renderPageInternal(int page, qreal scale,
     const auto closePage = [keep, pg] { if (!keep) FPDF_ClosePage(pg); };
 
     if (session && !keep) PdfiumEdits::applyToPage(m_doc, pg, page, *session);
+    PdfiumEdits::showNoteHighlights(pg, page, notes);
     if (keep && target.size() != px && !primeImages(page, pg, *cancelled)) return {};
 
     FPDF_BITMAP bmp = FPDFBitmap_Create(target.width(), target.height(), 0);
@@ -262,16 +265,18 @@ PdfBackend::AreaRender PdfiumBackend::renderChanges(int page, qreal scale,
     AreaRender result;
     const QSize px = pixelSize(page, scale);
     if (!m_doc || px.isEmpty()) return result;
+    const EditSession *notes = session;
     if (session && !session->hasEditsOnPage(page) && !session->hasImageEditsOnPage(page)
-            && !session->hasDrawEditsOnPage(page) && !session->hasLinkEditsOnPage(page))
+            && !session->hasDrawEditsOnPage(page) && !session->hasLinkEditsOnPage(page)
+            && !session->hasRemovedHighlightsOnPage(page))
         session = nullptr;
     const QRect pageRect(QPoint(), px);
 
-    // Form fields are painted over the render and link edits change
-    // annotations; neither shows up as a changed page object.
+    // Form fields are painted over the render, link edits and removed
+    // highlights change annotations; none shows up as a changed page object.
     bool painted = false;
     if (session) {
-        painted = session->hasLinkEditsOnPage(page);
+        painted = session->hasLinkEditsOnPage(page) || session->hasRemovedHighlightsOnPage(page);
         for (const EditSession::Edit &edit : session->snapshotEdits())
             if (edit.page == page && !edit.formField.isEmpty()) painted = true;
     }
@@ -313,6 +318,7 @@ PdfBackend::AreaRender PdfiumBackend::renderChanges(int page, qreal scale,
         return result;
     }
 
+    PdfiumEdits::showNoteHighlights(pg, page, notes);
     FPDF_BITMAP bmp = FPDFBitmap_Create(target.width(), target.height(), 0);
     if (!bmp) { closePage(); return result; }
     FPDFBitmap_FillRect(bmp, 0, 0, target.width(), target.height(), 0xFFFFFFFF);

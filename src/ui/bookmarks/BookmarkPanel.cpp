@@ -4,13 +4,16 @@
 #include "ui/widgets/IconButton.hpp"
 
 #include <QAction>
+#include <QFrame>
 #include <QHeaderView>
 #include <QHBoxLayout>
 #include <QInputDialog>
 #include <QLabel>
 #include <QLineEdit>
 #include <QMessageBox>
+#include <QPainter>
 #include <QSignalBlocker>
+#include <QSplitter>
 #include <QStackedWidget>
 #include <QTreeWidget>
 #include <QVBoxLayout>
@@ -34,6 +37,39 @@ QList<int> variantPath(const QVariant &variant)
     return path;
 }
 
+class BookmarkTree : public QTreeWidget
+{
+    Q_OBJECT
+    Q_PROPERTY(QColor selectionFill MEMBER m_selectionFill)
+    Q_PROPERTY(QColor hoverFill MEMBER m_hoverFill)
+
+public:
+    using QTreeWidget::QTreeWidget;
+
+protected:
+    void drawRow(QPainter *painter, const QStyleOptionViewItem &option,
+                 const QModelIndex &index) const override
+    {
+        const bool selected = selectionModel()->isSelected(index);
+        const bool hovered = viewport()->underMouse()
+            && indexAt(viewport()->mapFromGlobal(QCursor::pos())).row() == index.row()
+            && indexAt(viewport()->mapFromGlobal(QCursor::pos())).parent() == index.parent();
+        if (selected || hovered) {
+            painter->save();
+            painter->setRenderHint(QPainter::Antialiasing);
+            painter->setPen(Qt::NoPen);
+            painter->setBrush(selected ? m_selectionFill : m_hoverFill);
+            painter->drawRoundedRect(QRectF(option.rect), 6, 6);
+            painter->restore();
+        }
+        QTreeWidget::drawRow(painter, option, index);
+    }
+
+private:
+    QColor m_selectionFill;
+    QColor m_hoverFill;
+};
+
 }
 
 BookmarkPanel::BookmarkPanel(QWidget *parent)
@@ -41,12 +77,13 @@ BookmarkPanel::BookmarkPanel(QWidget *parent)
 {
     setObjectName(QStringLiteral("BookmarkPanel"));
     setAttribute(Qt::WA_StyledBackground, true);
-    setFixedWidth(kWidth);
-    setSizePolicy(QSizePolicy::Fixed, QSizePolicy::Expanding);
+    setMinimumWidth(kMinWidth);
+    setMaximumWidth(kMaxWidth);
+    setSizePolicy(QSizePolicy::Preferred, QSizePolicy::Expanding);
 
     auto *layout = new QVBoxLayout(this);
-    layout->setContentsMargins(14, 12, 14, 12);
-    layout->setSpacing(10);
+    layout->setContentsMargins(16, 18, 16, 14);
+    layout->setSpacing(12);
 
     auto *header = new QHBoxLayout;
     header->setContentsMargins(0, 0, 0, 0);
@@ -55,8 +92,8 @@ BookmarkPanel::BookmarkPanel(QWidget *parent)
     header->addWidget(m_title, 1);
     m_close = new IconButton(this);
     m_close->setObjectName(QStringLiteral("BookmarkPanelClose"));
-    m_close->setFixedSize(28, 28);
-    m_close->setIconSize(QSize(17, 17));
+    m_close->setFixedSize(30, 30);
+    m_close->setIconSize(QSize(18, 18));
     connect(m_close, &QPushButton::clicked,
             this, &BookmarkPanel::closeRequested);
     header->addWidget(m_close);
@@ -71,8 +108,8 @@ BookmarkPanel::BookmarkPanel(QWidget *parent)
             this, &BookmarkPanel::filterTree);
 
     auto *actions = new QHBoxLayout;
-    actions->setContentsMargins(2, 0, 2, 0);
-    actions->setSpacing(12);
+    actions->setContentsMargins(0, 0, 0, 0);
+    actions->setSpacing(2);
     m_add      = new IconButton(this);
     m_rename   = new IconButton(this);
     m_delete   = new IconButton(this);
@@ -81,14 +118,20 @@ BookmarkPanel::BookmarkPanel(QWidget *parent)
     for (IconButton *button : { m_add, m_rename, m_delete,
                                 m_moveUp, m_moveDown }) {
         button->setObjectName(QStringLiteral("BookmarkAction"));
-        button->setFixedSize(28, 28);
+        button->setFixedSize(30, 30);
         button->setIconSize(QSize(17, 17));
         actions->addWidget(button);
+        if (button == m_delete) actions->addSpacing(10);
     }
     actions->addStretch(1);
     layout->addLayout(actions);
 
-    m_tree = new QTreeWidget(this);
+    auto *divider = new QFrame(this);
+    divider->setObjectName(QStringLiteral("BookmarkDivider"));
+    divider->setFixedHeight(1);
+    layout->addWidget(divider);
+
+    m_tree = new BookmarkTree(this);
     m_tree->setObjectName(QStringLiteral("BookmarkTree"));
     m_tree->setColumnCount(2);
     m_tree->setHeaderHidden(true);
@@ -96,13 +139,25 @@ BookmarkPanel::BookmarkPanel(QWidget *parent)
     m_tree->setIndentation(16);
     m_tree->setUniformRowHeights(true);
     m_tree->setAnimated(false);
+    m_tree->setHorizontalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
+    m_tree->setTextElideMode(Qt::ElideRight);
+    m_tree->header()->setStretchLastSection(false);
     m_tree->header()->setSectionResizeMode(0, QHeaderView::Stretch);
     m_tree->header()->setSectionResizeMode(1, QHeaderView::ResizeToContents);
 
-    m_empty = new QLabel(this);
-    m_empty->setObjectName(QStringLiteral("BookmarkEmpty"));
-    m_empty->setAlignment(Qt::AlignCenter);
-    m_empty->setWordWrap(true);
+    m_empty = new QWidget(this);
+    auto *emptyColumn = new QVBoxLayout(m_empty);
+    emptyColumn->setContentsMargins(12, 40, 12, 12);
+    emptyColumn->setSpacing(10);
+    m_emptyIcon = new QLabel(m_empty);
+    m_emptyIcon->setAlignment(Qt::AlignCenter);
+    emptyColumn->addWidget(m_emptyIcon);
+    m_emptyText = new QLabel(m_empty);
+    m_emptyText->setObjectName(QStringLiteral("BookmarkEmpty"));
+    m_emptyText->setAlignment(Qt::AlignCenter);
+    m_emptyText->setWordWrap(true);
+    emptyColumn->addWidget(m_emptyText);
+    emptyColumn->addStretch(1);
 
     m_content = new QStackedWidget(this);
     m_content->setObjectName(QStringLiteral("BookmarkContent"));
@@ -138,7 +193,6 @@ BookmarkPanel::BookmarkPanel(QWidget *parent)
 
     retranslateUi();
     refreshTheme();
-    rebuildTree();
 }
 
 void BookmarkPanel::setDocument(const QList<PdfBookmark> &bookmarks,
@@ -156,6 +210,30 @@ void BookmarkPanel::setCurrentPage(int page)
     m_currentPage = qBound(0, page, qMax(0, m_pageCount - 1));
 }
 
+void BookmarkPanel::setPreferredWidth(int width)
+{
+    if (width > 0) m_width = qBound(kMinWidth, width, kMaxWidth);
+}
+
+void BookmarkPanel::showEvent(QShowEvent *event)
+{
+    QWidget::showEvent(event);
+    auto *splitter = qobject_cast<QSplitter *>(parentWidget());
+    const int index = splitter ? splitter->indexOf(this) : -1;
+    if (index < 0 || index + 1 >= splitter->count()) return;
+    connect(splitter, &QSplitter::splitterMoved, this,
+            &BookmarkPanel::rememberWidth, Qt::UniqueConnection);
+    QList<int> sizes = splitter->sizes();
+    sizes[index + 1] = qMax(0, sizes[index + 1] + sizes[index] - m_width);
+    sizes[index] = m_width;
+    splitter->setSizes(sizes);
+}
+
+void BookmarkPanel::rememberWidth()
+{
+    if (isVisible()) m_width = width();
+}
+
 void BookmarkPanel::refreshTheme()
 {
     m_close->setIconName(QStringLiteral("x"), Theme::IconMuted);
@@ -168,13 +246,16 @@ void BookmarkPanel::refreshTheme()
     const QList<QAction *> actions = m_search->actions();
     if (actions.isEmpty()) m_search->addAction(search, QLineEdit::LeadingPosition);
     else                   actions.first()->setIcon(search);
+    m_emptyIcon->setPixmap(Theme::renderSvg(QStringLiteral("bookmark"), Theme::IconMuted,
+                                            28, devicePixelRatioF()));
+    rebuildTree(itemPath(m_tree->currentItem()));
 }
 
 void BookmarkPanel::retranslateUi()
 {
     m_title->setText(tr("Bookmarks"));
     m_search->setPlaceholderText(tr("Search bookmarks"));
-    m_empty->setText(m_pageCount > 0
+    m_emptyText->setText(m_pageCount > 0
         ? tr("This document has no bookmarks.")
         : tr("Open a PDF to view its bookmarks."));
     m_close->setToolTip(tr("Close bookmarks"));
@@ -198,7 +279,7 @@ void BookmarkPanel::rebuildTree(const Path &selection)
     m_rebuilding = false;
 
     filterTree(m_search->text());
-    m_empty->setText(m_pageCount > 0
+    m_emptyText->setText(m_pageCount > 0
         ? tr("This document has no bookmarks.")
         : tr("Open a PDF to view its bookmarks."));
     if (m_bookmarks.isEmpty()) m_content->setCurrentWidget(m_empty);
@@ -217,9 +298,11 @@ void BookmarkPanel::appendItems(QTreeWidgetItem *parent,
         Path path = parentPath;
         path.append(i);
         item->setText(0, bookmark.title);
+        item->setToolTip(0, bookmark.title);
         item->setText(1, bookmark.page >= 0 ? QString::number(bookmark.page + 1)
                                              : QString{});
         item->setTextAlignment(1, Qt::AlignRight | Qt::AlignVCenter);
+        item->setForeground(1, Theme::IconMuted);
         item->setData(0, Qt::UserRole, bookmark.page);
         item->setData(0, Qt::UserRole + 1, pathVariant(path));
         appendItems(item, bookmark.children, path);
@@ -380,3 +463,5 @@ void BookmarkPanel::setExpanded(QTreeWidgetItem *item, bool expanded)
     if (PdfBookmark *bookmark = bookmarkAt(itemPath(item)))
         bookmark->expanded = expanded;
 }
+
+#include "BookmarkPanel.moc"

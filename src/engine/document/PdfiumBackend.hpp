@@ -31,6 +31,7 @@ public:
     bool isOwnerPassword(const QString &file, const QString &password) const override;
     QList<Link> pageLinks(int page) const override;
     QList<Note> pageNotes(int page) const override;
+    Selection sentenceAt(int page, const QPointF &pdfPt) const override;
     QList<PageImage> pageImages(int page) const override;
     QImage pageImage(int page, const QList<int> &key) const override;
     QSizeF pageSizePts(int page) const override;

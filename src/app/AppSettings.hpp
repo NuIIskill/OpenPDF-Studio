@@ -29,6 +29,13 @@ public:
     [[nodiscard]] bool exportCompressImages() const;
     void setExportCompressImages(bool compress);
 
+    [[nodiscard]] QStringList noteColors() const;
+    void setNoteColors(const QStringList &colors);
+    [[nodiscard]] bool noteColorHintSeen() const;
+    void setNoteColorHintSeen(bool seen);
+    [[nodiscard]] QStringList notePalette() const;
+    void setNotePalette(const QStringList &colors);
+
     [[nodiscard]] QString lastOpenedFile() const;
     void setLastOpenedFile(const QString &path);
 
@@ -81,6 +88,9 @@ public:
 
     [[nodiscard]] QByteArray splitterState() const;
     void setSplitterState(const QByteArray &state);
+
+    [[nodiscard]] int bookmarkPanelWidth() const;
+    void setBookmarkPanelWidth(int width);
 
     [[nodiscard]] QString mediaPlayback() const;
     void setMediaPlayback(const QString &mode);
