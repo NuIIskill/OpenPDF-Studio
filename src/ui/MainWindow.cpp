@@ -92,6 +92,7 @@ SettingsPanel *MainWindow::openSettings()
     connect(panel, &SettingsPanel::languageChangeRequested, this, &MainWindow::applyLanguage);
     connect(panel, &SettingsPanel::shortcutsChanged,        this, &MainWindow::loadShortcuts);
     connect(panel, &SettingsPanel::zoomSettingsChanged,     this, &MainWindow::loadZoomSettings);
+    connect(panel, &SettingsPanel::hintAnimationsChanged,   this, &MainWindow::loadHintAnimations);
     connect(panel, &SettingsPanel::panelLayoutSettingChanged,
             this, &MainWindow::savePanelLayout);
     connect(panel, &SettingsPanel::signatureTrustChanged, this, [this]() {
@@ -244,8 +245,8 @@ void MainWindow::buildUi()
             m_appSettings->setNoteColors({});
         }
         m_notesPanel->setPalette(palette);
-        m_notesPanel->setColorHint(!m_appSettings->noteColorHintSeen());
     }
+    loadHintAnimations();
     m_rightSidebar = new RightSidebar(central);
     m_textPanel->setFixedWidth(0);
     m_textPanel->hide();
@@ -398,6 +399,9 @@ void MainWindow::connectPanels()
     };
     connect(m_notesPanel, &NotesPanel::colorHintSeen, this, [this]() {
         m_appSettings->setNoteColorHintSeen(true);
+    });
+    connect(m_notesPanel, &NotesPanel::draftNudgeSeen, this, [this]() {
+        m_appSettings->setNoteDraftNudgeSeen(true);
     });
     connect(m_notesPanel, &NotesPanel::paletteChanged, this, [this, names](const QList<QColor> &colors) {
         m_appSettings->setNotePalette(names(colors));
@@ -972,6 +976,15 @@ void MainWindow::loadZoomSettings()
     for (DocumentView *dv : m_docViews)
         dv->setZoomSettings(m_appSettings->zoomStep(), m_appSettings->ctrlWheelZoom(),
                             m_appSettings->zoomToPointer(), m_appSettings->wheelAction());
+}
+
+void MainWindow::loadHintAnimations()
+{
+    const QString mode = m_appSettings->hintAnimations();
+    const bool always = mode == QLatin1String("always");
+    const bool once = !always && mode != QLatin1String("off");
+    m_notesPanel->setHints(always || (once && !m_appSettings->noteColorHintSeen()),
+                           always || (once && !m_appSettings->noteDraftNudgeSeen()), always);
 }
 
 void MainWindow::onModeSelected(const QString &mode)

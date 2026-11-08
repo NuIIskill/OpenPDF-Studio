@@ -17,6 +17,7 @@ QT_END_NAMESPACE
 
 class AppSettings;
 class LicensePage;
+class SettingCheckBox;
 class SettingsSearch;
 class ShortcutRow;
 class UpdateChecker;
@@ -44,6 +45,7 @@ Q_SIGNALS:
     void zoomSettingsChanged();
     void panelLayoutSettingChanged();
     void signatureTrustChanged();
+    void hintAnimationsChanged();
 
 protected:
     void changeEvent(QEvent *e) override;
@@ -152,6 +154,7 @@ private:
     QAbstractButton *m_autoUpdateCheck     { nullptr };
     QComboBox       *m_updateIntervalCombo { nullptr };
     QAbstractButton *m_preserveLayoutCheck { nullptr };
+    SettingCheckBox *m_hintAnimationsCheck { nullptr };
     QAbstractButton *m_debugLogCheck       { nullptr };
     QComboBox       *m_logLevelCombo       { nullptr };
 

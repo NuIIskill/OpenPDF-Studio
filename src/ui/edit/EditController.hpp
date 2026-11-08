@@ -17,6 +17,8 @@
 
 class DocumentSource;
 class EditCallout;
+class TurnedFrame;
+class QUndoCommand;
 class QUndoStack;
 class HoverHighlight;
 class OcrEngine;
@@ -54,7 +56,8 @@ public:
 
 #ifdef HAVE_PDF_RENDERING
     void setSession(EditSession *session) { m_session = session; m_opener.setSession(session); }
-    void clearOcrCache() { m_opener.clearOcrCache(); }
+    void forgetScans() { m_opener.forgetScans(); }
+    void readScansNear(int page) { m_opener.readScansNear(page); }
 
     QByteArray encodedEdits() const;
     void       restoreEncodedEdits(const QByteArray &data);
@@ -74,7 +77,7 @@ public:
 
     void syncBoundsFromFrame();
     void takeBounds(const QRectF &bounds);
-    void keepWindowOnPage();
+    void keepWindowOnPage(std::optional<QPointF> at = std::nullopt);
     QRectF frameRoom(int page) const;
 
     void refreshAdvanceMeasure();
@@ -100,6 +103,18 @@ public:
     void commit(const QString &newText);
 
     void cancel();
+
+    /// Where the open edit's text sits on its page and where the user carried it.
+    struct TextMove {
+        int     fromPage { -1 };
+        QRectF  from;
+        int     toPage { -1 };
+        QPointF by;
+        QList<TextLayout::OriginalLine> lines;
+    };
+    std::optional<TextMove> textMove() const;
+    void setMoveFollower(std::function<void(const TextMove &, QUndoCommand *)> follower)
+    { m_moveFollower = std::move(follower); }
 
     void createTextFrame(const QRect &viewportDragRect);
     bool pasteBox(const QPoint &canvasPos);
@@ -131,6 +146,7 @@ public:
     int     activeEditSourcePage { -1 };
     QRectF  activeEditBounds;
     QRectF  activeEditOriginalBounds;
+    int     activeEditOriginalPage { -1 };
 
     QList<QRectF> activeEditEraseRects;
     QRectF        activeEditEraseBounds;
@@ -235,7 +251,7 @@ private:
     QString documentKey() const;
     void presentEditor(const EditTarget &t);
     QTransform turnToShown() const;
-    void pointCallout();
+    void showTurnedFrame(const std::optional<EditSession::Edit> &window);
 
     EditSession::Edit makeSessionEdit(int page, const QRectF &bounds,
                                       const QRectF &sourceRect,
@@ -245,6 +261,7 @@ private:
     EditSession *m_session { nullptr };
     QUndoStack  *m_undo    { nullptr };
     EditOpener   m_opener;
+    std::function<void(const TextMove &, QUndoCommand *)> m_moveFollower;
 #endif
     PageCanvas     *m_canvas { nullptr };
     DocumentSource *m_src    { nullptr };
@@ -252,5 +269,7 @@ private:
     ZoomController *m_zoom   { nullptr };
     HoverHighlight *m_hover  { nullptr };
     OcrEngine      *m_ocr    { nullptr };
+    TurnedFrame    *m_turned { nullptr };
     EditCallout    *m_callout { nullptr };
+    QPointF         m_windowFromText;
 };

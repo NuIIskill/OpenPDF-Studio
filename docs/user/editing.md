@@ -19,10 +19,11 @@ a fallback font. Use the format bar and text properties to adjust formatting.
 With part of the text selected, font, size, bold, italic, underline and colour
 change only that part.
 
-Text that runs up, down or upside down on the page is edited the same way. It
-stays where it is and changes as you type, while you type in a small upright
-window beside it that points to it. Drag the window aside if it is in the way;
-the text does not move with it.
+Text that runs up, down or upside down on the page gets the same frame as
+other text, turned with it: drag its edge to move it, drag a handle to make it
+larger or smaller. You type in a small upright window beside it that points to
+it, and the text changes in place as you type. Drag the window aside if it is
+in the way; it moves along when you move the text.
 
 ![A paragraph selected in the inline editor, with its blue text frame and the font, size, colour and alignment controls above it](../images/screenshots/inline-text-editing.png)
 
@@ -41,9 +42,11 @@ page exactly. qpdf is needed to preserve original page content during text saves
 ## Scans and OCR
 
 When a page has no usable text, the editor falls back to OCR if Tesseract is
-included in the build. It recognizes text from the scan and replaces the
-selected area with editable text. Recognition and font matching are approximate;
-check characters, line breaks and background after saving. All installed
+included in the build. A scanned page is read once, a few seconds after it
+is in view with the text tool chosen or when the search reaches it, and is then
+edited like text: the same paragraphs, Shift frames and selections. Recognition and font matching are approximate;
+check characters, line breaks and background after saving. OCR copes with
+shadows, grey paper and pages scanned a few degrees askew. All installed
 languages of the 12 that Settings → **Add-on Packages** offers are used; a
 language added there counts at the next click. Without any, a notice leads to
 that page.
@@ -54,7 +57,7 @@ that page.
 | --- | --- |
 | Image | Insert an image; move, scale, rotate, replace, copy, paste or delete an existing page image |
 | Draw | Use pen, highlighter and eraser with adjustable colour and width; strokes save as vector paths |
-| Notes | Click the page for a note there (with a note open, a click only closes it; an empty note a click made goes again when you click away), or click + and drag the new note out of the panel onto the page; let go over text to link the sentence, or drag over text to link exactly that (with a note open, it moves that note's link); drag a card, marker or the note's box to move it; give it a color from the swatches, or mix your own and drag it onto a note or into a free place to keep it; drag a swatch onto another to swap them or onto a free place to move it; Del, or the x that shows after resting on a swatch, removes it; right-click a free place to mix a color into it |
+| Notes | Click the page for a note there (with a note open, a click only closes it; an empty note a click made goes again when you click away), or click + and drag the new note out of the panel onto the page; let go over text to link the sentence, or drag over text to link exactly that (with a note open, it moves that note's link); drag a card, marker or the note's box to move it; a linked note goes along when its text is moved; give it a color from the swatches, or mix your own and drag it onto a note or into a free place to keep it; drag a swatch onto another to swap them or onto a free place to move it; Del, or the x that shows after resting on a swatch, removes it; right-click a free place to mix a color into it |
 | Link | Select text, click Link, enter the address and choose Set Link; edit or remove existing links by right-clicking them |
 | Bookmark | Navigate the outline; add the current page, rename, remove and reorder bookmarks; drag the panel's edge to make it wider or narrower |
 

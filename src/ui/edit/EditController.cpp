@@ -1,5 +1,6 @@
 #include "ui/edit/EditController.hpp"
 #include "ui/edit/EditCallout.hpp"
+#include "ui/edit/TurnedFrame.hpp"
 
 #include <QTimer>
 
@@ -44,10 +45,12 @@ public:
         , m_before(std::move(before)), m_after(std::move(after)) {}
 
     void undo() override {
+        QUndoCommand::undo();
         m_session->restoreEdits(m_before);
         rerender();
     }
     void redo() override {
+        QUndoCommand::redo();
         if (m_firstRedo) { m_firstRedo = false; return; }
         m_session->restoreEdits(m_after);
         rerender();
@@ -160,8 +163,11 @@ void EditController::syncBoundsFromFrame()
 void EditController::takeBounds(const QRectF &bounds)
 {
 #ifdef HAVE_PDF_RENDERING
-    // The window of turned text moves alone: the text starts where it did.
-    if (activeEditTurned)
+    // The window of turned text moves alone: the text starts where it did. Resized,
+    // or dragged by its frame on the text, the pivot stays and the text follows the box.
+    const bool sameSize = qAbs(bounds.width() - activeEditBounds.width()) < 0.01
+                       && qAbs(bounds.height() - activeEditBounds.height()) < 0.01;
+    if (activeEditTurned && sameSize && !m_frame->paintHidden())
         activeEditTurnPivot += EditOpener::turnedPivotShift(currentBox.rotationDeg,
                                                             bounds.topLeft() - activeEditBounds.topLeft());
 #endif
@@ -173,29 +179,30 @@ QRectF EditController::frameRoom(int page) const
 {
 #ifdef HAVE_PDF_RENDERING
     const QRectF sheet(QPointF(), m_src->renderer()->pageSizePts(page));
-    if (!activeEditTurned) return sheet;
-    // The window may grow as far as its turned text has room on the page.
-    const QRectF turned = turnToShown().inverted().mapRect(sheet);
-    return sheet.united(QRectF(sheet.topLeft(), QPointF(turned.right(), turned.bottom())));
+    // The upright frame of turned text has the page turned back as its room;
+    // its window moved alone has the page.
+    const bool windowMoves = m_frame->movingBox() && !m_frame->paintHidden();
+    return activeEditTurned && !windowMoves ? turnToShown().inverted().mapRect(sheet) : sheet;
 #else
     Q_UNUSED(page)
     return {};
 #endif
 }
 
-void EditController::keepWindowOnPage()
+void EditController::keepWindowOnPage(std::optional<QPointF> at)
 {
 #ifdef HAVE_PDF_RENDERING
-    // Grown past the page, the window of turned text slides back onto it.
+    // The window of turned text stays on the page and beside its text; the text stays put.
     if (!activeEditTurned || activeEditPage < 0 || !m_frame->isVisible()) return;
     if (m_frame->dragging()) {
-        QTimer::singleShot(150, this, [this] { keepWindowOnPage(); });
+        QTimer::singleShot(150, this, [this, at] { keepWindowOnPage(at); });
         return;
     }
     const QLabel *lbl = m_canvas->pageLabel(activeEditPage);
     if (!lbl) return;
     const QSizeF pageSize = m_src->renderer()->pageSizePts(activeEditPage);
     QRectF on = activeEditBounds;
+    if (at) on.moveTopLeft(*at);
     EditOpener::clampTo(QRectF(QPointF(), pageSize.expandedTo(on.size())), on);
     // Grown over its text, a window the user did not place finds room beside it again.
     const QRectF shown = turnToShown().mapRect(activeEditBounds);
@@ -208,6 +215,8 @@ void EditController::keepWindowOnPage()
     m_frame->repositionForZoom(QRectF(on.topLeft() * scale + QPointF(lbl->pos()), on.size() * scale),
                                qMax(1.0, currentEditorFontSizePt * scale), currentBox, scale);
     refreshLivePreview();
+#else
+    Q_UNUSED(at)
 #endif
 }
 
@@ -250,23 +259,21 @@ void EditController::refreshLivePreview()
         Q_EMIT livePreviewChanged(activeEditPage, edits);
         return;
     }
+    std::optional<EditSession::Edit> window;
     if (activeEditFieldName.isEmpty() && !text.isEmpty()) {
         const QRectF eraseAt = activeEditEraseBounds.isNull()
                                    ? activeEditOriginalBounds : activeEditEraseBounds;
         edits.append(makeSessionEdit(activeEditPage, activeEditBounds, eraseAt, text));
         // Turned text is typed in an upright window beside it and shown turned where it is.
+        // The window is drawn by its card over the page, so marks on the page stay under it.
         if (activeEditTurned) {
-            EditSession::Edit turned = edits.last();
-            EditSession::turnAbout(turned, activeEditTurnPivot);
-            EditSession::Edit &window = edits.last();
-            window.box.rotationDeg     = 0.0;
-            window.box.backgroundEnabled = true;
-            window.box.backgroundColor = Qt::white;
-            edits.append(turned);
+            window = edits.last();
+            window->box.rotationDeg = 0.0;
+            EditSession::turnAbout(edits.last(), activeEditTurnPivot);
         }
     }
     edits += m_rest;
-    pointCallout();
+    showTurnedFrame(window);
     Q_EMIT livePreviewChanged(activeEditPage, edits);
 #endif
 }
@@ -374,6 +381,20 @@ QTransform EditController::turnToShown() const
     if (!activeEditTurned) return {};
     const QPointF &p = activeEditTurnPivot;
     return QTransform().translate(p.x(), p.y()).rotate(currentBox.rotationDeg).translate(-p.x(), -p.y());
+}
+
+std::optional<EditController::TextMove> EditController::textMove() const
+{
+    // Only text taken out of the page has something linked to it; a new box does not.
+    if (activeEditPage < 0 || activeEditOriginalPage < 0 || !activeEditNeedsBlank
+            || !(activeEditMovedByUser || m_frame->dragging()))
+        return std::nullopt;
+    const QTransform shown = turnToShown();
+    const QPointF by = shown.map(activeEditBounds.topLeft())
+                     - shown.map(activeEditOriginalBounds.topLeft());
+    if (activeEditPage == activeEditOriginalPage && by.isNull()) return std::nullopt;
+    return TextMove { activeEditOriginalPage, shown.mapRect(activeEditOriginalBounds),
+                      activeEditPage, by };
 }
 
 void EditController::presentEditor(const EditTarget &t)
@@ -559,6 +580,7 @@ void EditController::openTarget(const EditTarget &t)
     activeEditSourcePage     = t.sourcePage;
     activeEditBounds         = t.bounds;
     activeEditOriginalBounds = t.originalBounds;
+    activeEditOriginalPage   = t.editPage;
     activeEditNeedsBlank     = t.needsBlank;
     activeEditEraseBounds    = t.eraseBounds;
     currentBox               = t.box;
@@ -652,6 +674,7 @@ void EditController::commit(const QString &newText)
                                                           : activeEditPage;
     const QRectF bounds     = activeEditBounds;
     const QRectF origBounds = activeEditOriginalBounds;
+    std::optional<TextMove> move = textMove();
     // A framed edit goes back into the paragraph or box it was cut from.
     const std::optional<EditSession::Edit> merged =
         m_hasUnit && !activeEditMovedByUser && currentLook().sameStyle(m_presented)
@@ -747,6 +770,9 @@ void EditController::commit(const QString &newText)
         // page the same spot holds other text.
         text.sourcePage = srcPage;
         if (page != srcPage && !text.laid) text.originalLines.clear();
+        // Set anew, the text may break or space its lines otherwise than before.
+        if (move && !activeEditTurned && m_src->backend())
+            move->lines = m_src->backend()->editLines(text, nullptr);
         m_session->addEdit(std::move(text));
     }
     for (EditSession::Edit &rest : m_rest) m_session->addEdit(std::move(rest));
@@ -755,9 +781,10 @@ void EditController::commit(const QString &newText)
 
     const auto snapAfter = m_session->snapshotEdits();
     if (snapAfter != snapBefore) {
-
-        m_undo->push(new EditUndoCmd(m_session, this, srcPage, page,
-                                          snapBefore, snapAfter));
+        auto *step = new EditUndoCmd(m_session, this, srcPage, page, snapBefore, snapAfter);
+        // What is linked to the moved text goes with it, in the same step.
+        if (move && !merged && !trimNew.isEmpty() && m_moveFollower) m_moveFollower(*move, step);
+        m_undo->push(step);
 
         Q_EMIT changeRecorded({ trimNew.isEmpty() ? DocumentHistory::Kind::TextRemoved
                                          : DocumentHistory::Kind::TextEdited,
@@ -804,24 +831,56 @@ void EditController::hideFrame()
     // Keys the box held go back to the page view (the viewport's focus proxy), not to a panel.
     if (m_frame->isAncestorOf(QApplication::focusWidget()))
         m_canvas->canvasWidget()->parentWidget()->setFocus(Qt::OtherFocusReason);
-    m_frame->hide();
+    if (m_turned) m_turned->leave();
     if (m_callout) m_callout->hide();
+    m_frame->hide();
 }
 
-void EditController::pointCallout()
+void EditController::showTurnedFrame(const std::optional<EditSession::Edit> &window)
 {
     const QLabel *lbl = activeEditPage >= 0 ? m_canvas->pageLabel(activeEditPage) : nullptr;
     if (!activeEditTurned || !lbl || !m_frame->isVisible()) {
+        if (m_turned) m_turned->leave();
+        if (m_callout) m_callout->hide();
+        return;
+    }
+    const qreal scale = PdfRenderer::screenScale(m_zoom->zoom());
+    if (!m_turned) {
+        m_turned = new TurnedFrame(m_frame);
+        // Dragged by its frame on the text, the window is hidden and comes back
+        // as far from the text as it was.
+        m_turned->setOnDrag([this](bool on) {
+            const QPointF textAt = turnToShown().mapRect(activeEditBounds).topLeft();
+            if (on) m_windowFromText = activeEditBounds.topLeft() - textAt;
+            m_frame->setPaintHidden(on);
+            refreshLivePreview();
+            if (!on) keepWindowOnPage(textAt + m_windowFromText);
+        });
+    }
+    const QPointF pivot = QPointF(lbl->pos()) + activeEditTurnPivot * scale;
+    m_turned->place(QTransform().translate(pivot.x(), pivot.y()).rotate(currentBox.rotationDeg)
+                                .translate(-pivot.x(), -pivot.y()),
+                    currentBox.rotationDeg);
+    if (m_frame->paintHidden()) {
         if (m_callout) m_callout->hide();
         return;
     }
     if (!m_callout) m_callout = new EditCallout(m_frame->parentWidget());
-    const qreal scale = PdfRenderer::screenScale(m_zoom->zoom());
     const QTransform toCanvas = turnToShown() * QTransform::fromScale(scale, scale)
                               * QTransform::fromTranslate(lbl->x(), lbl->y());
+    QImage text;
+    if (window && m_src->backend()) {
+        const qreal dpr = m_frame->devicePixelRatioF();
+        const QRectF px(activeEditBounds.topLeft() * scale * dpr, activeEditBounds.size() * scale * dpr);
+        text = m_src->backend()->renderEditText(activeEditPage, scale * dpr, { *window },
+                                                px.toAlignedRect());
+        text.setDevicePixelRatio(dpr);
+    }
     m_callout->point(QRectF(activeEditBounds.topLeft() * scale + QPointF(lbl->pos()),
                             activeEditBounds.size() * scale),
-                     toCanvas.map(QPolygonF(activeEditBounds)), currentBox.rotationDeg);
+                     toCanvas.map(QPolygonF(activeEditBounds)), currentBox.rotationDeg, text);
+    // Over the page's marks and notes, under its own frame.
+    m_frame->raise();
     m_callout->stackUnder(m_frame);
 }
 #endif

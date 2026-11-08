@@ -436,6 +436,15 @@ void SettingsPanel::applyAndClose()
         m_settings->setPreservePanelLayout(preserve);
     }
 
+    bool hintsChanged = false;
+    if (m_hintAnimationsCheck) {
+        const Qt::CheckState state = m_hintAnimationsCheck->checkState();
+        const QString mode = state == Qt::Checked ? QStringLiteral("always")
+            : state == Qt::Unchecked ? QStringLiteral("off") : QStringLiteral("once");
+        hintsChanged = mode != m_settings->hintAnimations();
+        m_settings->setHintAnimations(mode);
+    }
+
     if (m_readModeCheck)
         m_settings->setOpenInReadMode(m_readModeCheck->isChecked());
     if (m_externalLinksCombo)
@@ -471,6 +480,8 @@ void SettingsPanel::applyAndClose()
         Q_EMIT panelLayoutSettingChanged();
     if (trustChanged)
         Q_EMIT signatureTrustChanged();
+    if (hintsChanged)
+        Q_EMIT hintAnimationsChanged();
 
     accept();
 }

@@ -153,7 +153,12 @@ void DocumentView::setTool(Tool tool)
 
     switch (tool) {
     case Tool::Pan:    viewport()->setCursor(Qt::OpenHandCursor);    break;
-    case Tool::Text:   viewport()->setCursor(Qt::IBeamCursor);       break;
+    case Tool::Text:
+        viewport()->setCursor(Qt::IBeamCursor);
+#ifdef HAVE_PDF_RENDERING
+        if (m_editMode) m_edit.readScansNear(currentPage());
+#endif
+        break;
     case Tool::Select: viewport()->setCursor(Qt::IBeamCursor);       break;
     case Tool::Image:
         viewport()->setCursor(Qt::CrossCursor);
@@ -304,6 +309,9 @@ void DocumentView::reportCurrentPage()
     const int page = currentPage();
     if (page == m_lastReportedPage) return;
     m_lastReportedPage = page;
+#ifdef HAVE_PDF_RENDERING
+    if (m_editMode && m_tool == Tool::Text) m_edit.readScansNear(page);
+#endif
     Q_EMIT pageChanged(page + 1, m_src->pageCount());
 }
 

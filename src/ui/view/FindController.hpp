@@ -1,5 +1,6 @@
 #pragma once
 
+#include <QHash>
 #include <QList>
 #include <QObject>
 #include <QRectF>
@@ -75,6 +76,7 @@ private:
     QTimer        *m_progressDelay { nullptr };
     int            m_search { 0 };
     bool           m_searching { false };
+    QHash<int, int> m_reading;
 
     QList<Match>   m_matches;
     QList<QWidget *> m_overlays;

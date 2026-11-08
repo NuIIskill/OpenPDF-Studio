@@ -57,10 +57,17 @@ struct DocxBlock {
     DocxTable table;
 
     DocxImage picture;
+    DocxImage withLabels;
 
     QColor fillColor;
     QColor strokeColor;
     double strokeWidthPt { 0.0 };
+};
+
+/// A web link on a page with the text it lies on.
+struct DocxLink {
+    QString url;
+    QString text;
 };
 
 struct DocxPage {
@@ -68,6 +75,7 @@ struct DocxPage {
     QList<ContentItem> items;
     DocxImage        background;
     QList<DocxBlock> blocks;
+    QList<DocxLink>  links;
     QMarginsF        marginsPt { 56.0, 45.0, 56.0, 45.0 };
 };
 

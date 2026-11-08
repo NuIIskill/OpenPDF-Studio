@@ -100,6 +100,7 @@ private:
     void refreshUndoRedo();
     void loadShortcuts();
     void loadZoomSettings();
+    void loadHintAnimations();
 
     SettingsPanel *openSettings();
 

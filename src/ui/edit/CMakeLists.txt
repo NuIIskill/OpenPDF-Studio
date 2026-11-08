@@ -20,4 +20,6 @@ target_sources(OpenPDFStudio PRIVATE
     TextBoxFrame.hpp
     TextToolInput.cpp
     TextToolInput.hpp
+    TurnedFrame.cpp
+    TurnedFrame.hpp
 )

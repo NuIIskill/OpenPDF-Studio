@@ -180,7 +180,8 @@ ExportRequest ExportDialog::request() const
 
 void ExportDialog::updateOptionAvailability()
 {
-    const bool pdf   = m_selectedFormat == QLatin1String("pdf");
+    const bool pdfa  = m_selectedFormat == QLatin1String("pdfa");
+    const bool pdf   = m_selectedFormat == QLatin1String("pdf") || pdfa;
     const bool image = isImageFormat(m_selectedFormat);
 
     m_settingsCard->setVisible(m_selectedFormat != QLatin1String("txt")
@@ -196,6 +197,11 @@ void ExportDialog::updateOptionAvailability()
     for (QCheckBox *box : { m_commentsChk, m_formsChk, m_fontsChk }) {
         box->setEnabled(qpdf);
         box->setToolTip(missing);
+    }
+    if (pdfa) {
+        m_fontsChk->setChecked(true);
+        m_fontsChk->setEnabled(false);
+        m_fontsChk->setToolTip(tr("PDF/A always embeds every font."));
     }
     for (QCheckBox *box : { m_compressChk, m_commentsChk, m_formsChk, m_fontsChk })
         box->setCursor(box->isEnabled() ? Qt::PointingHandCursor : Qt::ArrowCursor);
@@ -300,7 +306,8 @@ QString ExportDialog::selectedPath() const
                             && name.endsWith(QLatin1String(".jpeg"), Qt::CaseInsensitive))
                         || (m_selectedFormat == QLatin1String("tiff")
                             && name.endsWith(QLatin1String(".tif"), Qt::CaseInsensitive));
-    if (m_selectedFormat != QLatin1String("pdf") && !otherName
+    if (m_selectedFormat != QLatin1String("pdf") && m_selectedFormat != QLatin1String("pdfa")
+        && !otherName
         && !name.endsWith(ext, Qt::CaseInsensitive))
         name += ext;
     return QDir(dir).filePath(name);
@@ -510,7 +517,8 @@ QWidget *ExportDialog::buildFormatList()
                          QStringLiteral("PDF"), tr("Best for sharing and printing"), true);
     m_formats->addFormat(QStringLiteral("pdfa"),
                          Theme::renderSvg(QStringLiteral("export-pdfa"), Qt::transparent, 32, dpr),
-                         QStringLiteral("PDF/A"), tr("Long-term archiving"), false);
+                         QStringLiteral("PDF/A"), tr("Long-term archiving"),
+                         pdfExportAvailable());
     m_formats->addFormat(QStringLiteral("word"),
                          letterIcon(QColor(0x2B, 0x57, 0x9A), QStringLiteral("W"), dpr),
                          QStringLiteral("Word"),

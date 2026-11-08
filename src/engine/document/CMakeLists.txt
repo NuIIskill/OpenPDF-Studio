@@ -26,6 +26,7 @@ target_sources(OpenPDFStudio PRIVATE
     PdfiumBackend_Notes.cpp
     PdfiumBackend_Permissions.cpp
     PdfiumBackend_Render.cpp
+    PdfiumBackend_Scan.cpp
     PdfiumContentProvider.cpp
     PdfiumContentProvider.hpp
     PdfiumEdits.cpp
@@ -36,6 +37,8 @@ target_sources(OpenPDFStudio PRIVATE
     PdfiumImages.hpp
     PdfiumLock.cpp
     PdfiumLock.hpp
+    PdfiumScanText.cpp
+    PdfiumScanText.hpp
     PdfiumText.cpp
     PdfiumText_Styles.cpp
     PdfiumTextCut.cpp

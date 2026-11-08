@@ -2,8 +2,10 @@
 #include "app/PdfPwStore.hpp"
 
 #include "app/SafeWrite.hpp"
+#include "engine/document/PdfConformance.hpp"
 
 #include <QBuffer>
+#include <QCoreApplication>
 #include <QDebug>
 #include <QFile>
 #include <QImage>
@@ -158,15 +160,47 @@ void recompressImages(QPDF &pdf, int quality)
     }
 }
 
+void copyInfo(QPDF &in, QPDF &out)
+{
+    QPDFObjectHandle source = in.getTrailer().getKey("/Info");
+    if (!source.isDictionary()) return;
+    QPDFObjectHandle info = QPDFObjectHandle::newDictionary();
+    for (const std::string &key : source.getKeys())
+        if (source.getKey(key).isString())
+            info.replaceKey(key, QPDFObjectHandle::newString(source.getKey(key).getStringValue()));
+    out.getTrailer().replaceKey("/Info", out.makeIndirectObject(info));
+}
+
+// The written file is converted once more; anything still to do means it is not PDF/A.
+bool verifyPdfA(const QString &staging, PdfA::Report &report)
+{
+    PdfA::Report again;
+    QStringList broken;
+    try {
+        QPDF written;
+        written.processFile(staging.toLocal8Bit().constData());
+        PdfA::convert(written, again);
+        broken = PdfConformance::problems(staging, {});
+    } catch (const std::exception &ex) {
+        broken << QString::fromUtf8(ex.what());
+    }
+    if (again.clean() && broken.isEmpty()) return true;
+    qWarning() << "[PDF] PDF/A check of the written file failed:" << again.blockers << again.changes
+               << again.repairs << broken;
+    report.blockers << QCoreApplication::translate("PdfA", "The written file did not pass the PDF/A check.");
+    report.blockers << again.blockers << again.changes << broken;
+    return false;
+}
+
 }
 #endif
 
 bool exportPdf(const QString &sourcePath, const WriteGrant &outPathGrant,
-               const PdfExportOptions &options)
+               const PdfExportOptions &options, PdfA::Report *pdfA)
 {
     const QString outPath = outPathGrant.path();
 #ifndef HAVE_QPDF
-    Q_UNUSED(sourcePath) Q_UNUSED(outPath) Q_UNUSED(options)
+    Q_UNUSED(sourcePath) Q_UNUSED(outPath) Q_UNUSED(options) Q_UNUSED(pdfA)
     return false;
 #else
     if (sourcePath.isEmpty() || outPath.isEmpty()) return false;
@@ -207,10 +241,18 @@ bool exportPdf(const QString &sourcePath, const WriteGrant &outPathGrant,
 
         if (!options.keepForms)
             out.getRoot().removeKey("/AcroForm");
-        if (!options.embedFonts)
+        if (!options.embedFonts && !options.pdfA)
             stripEmbeddedFonts(out);
         if (options.compressImages)
             recompressImages(out, options.imageQuality);
+
+        PdfA::Report unused;
+        PdfA::Report &report = pdfA ? *pdfA : unused;
+        if (options.pdfA) {
+            copyInfo(in, out);
+            PdfA::convert(out, report);
+            if (!report.blockers.isEmpty()) return false;
+        }
 
         const QString staging = SafeWrite::stagingPath(outPath);
         if (staging.isEmpty()) return false;
@@ -218,7 +260,10 @@ bool exportPdf(const QString &sourcePath, const WriteGrant &outPathGrant,
             QPDFWriter writer(out, staging.toLocal8Bit().constData());
             writer.setCompressStreams(true);
             writer.setObjectStreamMode(qpdf_o_generate);
-            if (!options.userPassword.isEmpty()) {
+            if (options.pdfA) {
+                writer.forcePDFVersion("1.7");
+                writer.setNewlineBeforeEndstream(true);
+            } else if (!options.userPassword.isEmpty()) {
                 const std::string pass = options.userPassword.toStdString();
 
                 writer.setR6EncryptionParameters(
@@ -228,6 +273,10 @@ bool exportPdf(const QString &sourcePath, const WriteGrant &outPathGrant,
                       true, qpdf_r3p_full,   true);
             }
             writer.write();
+        }
+        if (options.pdfA && !verifyPdfA(staging, report)) {
+            SafeWrite::discard(staging);
+            return false;
         }
         return SafeWrite::commit(staging, outPath);
 

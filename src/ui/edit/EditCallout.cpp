@@ -32,11 +32,12 @@ QRectF EditCallout::chipRect() const
     return QRectF(m_box.left() - kCard, m_box.top() - kCard - 26.0, 64.0, 22.0);
 }
 
-void EditCallout::point(const QRectF &box, const QPolygonF &target, double turn)
+void EditCallout::point(const QRectF &box, const QPolygonF &target, double turn, const QImage &text)
 {
     m_box    = box;
     m_target = target;
     m_turn   = turn;
+    m_text   = text;
     const QRect area = box.adjusted(-kCard - 6, -kCard - 6, kCard + 6, kCard + 6)
                            .united(chipRect().adjusted(-2, -2, 2, 2))
                            .united(target.boundingRect().adjusted(-4, -4, 4, 4))
@@ -60,21 +61,18 @@ void EditCallout::paintEvent(QPaintEvent *)
     p.setBrush(QColor(0x3B, 0x82, 0xF6, 22));
     p.drawPolygon(m_target);
 
-    // A card around the box, leaving the box itself to the page, which draws the text.
+    // A card with the box and its text, over whatever the page shows there.
     const QRectF card = m_box.adjusted(-kCard, -kCard, kCard, kCard);
     for (int i = 4; i >= 1; --i) {
         QPainterPath shadow;
         shadow.addRoundedRect(card.adjusted(-i, -i + 2, i, i + 2), kRadius + i, kRadius + i);
-        shadow.addRect(m_box);
+        shadow.addRoundedRect(card, kRadius, kRadius);
         p.fillPath(shadow, QColor(0, 0, 0, 10));
     }
-    QPainterPath ring;
-    ring.addRoundedRect(card, kRadius, kRadius);
-    ring.addRect(m_box);
-    p.fillPath(ring, Qt::white);
     p.setPen(QPen(QColor(0xCB, 0xD5, 0xE1), 1.0));
-    p.setBrush(Qt::NoBrush);
+    p.setBrush(Qt::white);
     p.drawRoundedRect(card, kRadius, kRadius);
+    if (!m_text.isNull()) p.drawImage(m_box.topLeft(), m_text);
 
     // How the text is turned: a small frame turned the same way, its reading
     // direction and the angle.

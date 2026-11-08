@@ -270,7 +270,12 @@ DocumentView::DocumentView(QWidget *parent)
     });
 
     connect(m_editorFrame, &TextBoxFrame::moveStarted, this, [this]() {
-        m_layoutEngine->setDraggingText(true);
+        // The window of turned text moves alone over the page, the text stays put.
+        if (m_edit.activeEditTurned) {
+            if (const QLabel *lbl = pageLabel(m_edit.activeEditPage))
+                m_edit.placeFramePage(lbl, m_edit.activeEditPage);
+        }
+        m_layoutEngine->setDraggingText(!m_edit.activeEditTurned || m_editorFrame->paintHidden());
     });
     connect(m_editorFrame, &TextBoxFrame::dragEnded, this, [this]() {
         m_layoutEngine->setDraggingText(false);
@@ -288,7 +293,7 @@ DocumentView::DocumentView(QWidget *parent)
         if (m_edit.activeEditPage < 0) return;
 
         // Only a drag carries the box to another page; growing text stays on its own,
-        // and the window of turned text on the text's page.
+        // and turned text on its page.
         auto [pg, lbl] = m_editorFrame->dragging() && !m_edit.activeEditTurned
                              ? pageAtCanvasPos(inner.center().toPoint())
                                                    : std::pair<int, QLabel *>(-1, nullptr);
@@ -308,11 +313,11 @@ DocumentView::DocumentView(QWidget *parent)
             inner.size() / scale);
         m_edit.clampToPdfPage(pg, newBounds);
         m_edit.takeBounds(newBounds);
-        if (m_editorFrame->movingBox()) m_edit.activeEditWindowPlaced = true;
+        if (m_editorFrame->movingBox() && !m_editorFrame->paintHidden()) m_edit.activeEditWindowPlaced = true;
         m_edit.notifyBoundsChanged();
         if (m_edit.activeEditTurned) QTimer::singleShot(0, this, [this] { m_edit.keepWindowOnPage(); });
-        // Turned text stays put while its window is dragged.
-        m_layoutEngine->setDraggingText(m_editorFrame->movingBox() && !m_edit.activeEditTurned);
+        m_layoutEngine->setDraggingText(m_editorFrame->movingBox()
+                                        && (!m_edit.activeEditTurned || m_editorFrame->paintHidden()));
         m_edit.refreshLivePreview();
     });
     m_hover->setEditorFrame(m_editorFrame);
@@ -362,6 +367,23 @@ DocumentView::DocumentView(QWidget *parent)
 
     connect(&m_edit, &EditController::changeRecorded, this,
             [this](const DocumentHistory::Change &c) { m_journal.recordChange(c); });
+
+#ifdef HAVE_PDF_RENDERING
+    // Notes linked to text go with it while it is carried and when it is put down.
+    const auto showFollowing = [this] {
+        const auto move = m_edit.textMove();
+        if (move) m_noteLayer->showFollowing(move->fromPage, move->from, move->toPage, move->by);
+        else      m_noteLayer->showFollowing(-1, {}, -1, {});
+    };
+    connect(m_editorFrame, &TextBoxFrame::boundsChanged, this, showFollowing);
+    connect(m_editorFrame, &TextBoxFrame::dragEnded, this, showFollowing);
+    connect(&m_edit, &EditController::textBoxEditingChanged, this, [this](bool active) {
+        if (!active) m_noteLayer->showFollowing(-1, {}, -1, {});
+    });
+    m_edit.setMoveFollower([this](const EditController::TextMove &move, QUndoCommand *step) {
+        m_noteLayer->follow(move.fromPage, move.from, move.toPage, move.by, move.lines, step);
+    });
+#endif
 }
 
 DocumentView::~DocumentView()
@@ -386,6 +408,9 @@ void DocumentView::setEditMode(bool on)
     m_editMode = on;
     m_layoutEngine->setEditMode(on);
     if (!on) setTool(m_tool);
+#ifdef HAVE_PDF_RENDERING
+    else if (m_tool == Tool::Text) m_edit.readScansNear(currentPage());
+#endif
 }
 
 QRectF DocumentView::editBounds() const

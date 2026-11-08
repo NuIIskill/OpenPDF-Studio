@@ -6,6 +6,7 @@
 #include "engine/document/RenderPool.hpp"
 #include "app/PdfPwStore.hpp"
 #include "engine/edit/EditSession.hpp"
+#include "engine/ocr/OcrSearch.hpp"
 
 #include <QElapsedTimer>
 #include <QFileInfo>
@@ -21,9 +22,53 @@
 #  include <unistd.h>
 #endif
 
+namespace {
+
+QList<PdfBackend::ScanLine> scanLines(const QList<OcrEngine::Line> &read)
+{
+    // One box for each character, as PDFium counts them: a space between words has none.
+    QList<PdfBackend::ScanLine> lines;
+    for (const OcrEngine::Line &words : read) {
+        PdfBackend::ScanLine line;
+        for (const OcrEngine::Word &word : words) {
+            if (!line.text.isEmpty()) {
+                line.text += u' ';
+                line.boxes.append(QRectF());
+            }
+            for (qsizetype i = 0; i < word.text.size(); ++i) {
+                line.text += word.text.at(i);
+                if (!word.text.at(i).isLowSurrogate()) line.boxes.append(word.chars.value(i));
+            }
+        }
+        if (!line.boxes.isEmpty()) lines.append(line);
+    }
+    return lines;
+}
+
+}
+
 DocumentWorker::DocumentWorker(PdfBackend *backend)
     : m_backend(backend)
 {
+    m_ocr = std::make_unique<OcrSearch>(
+        [this] {
+            { std::lock_guard lock(m_mutex); }
+            m_wake.notify_all();
+        },
+        [this](int page, quint64 epoch, bool ready, const QList<OcrEngine::Line> &read) {
+            // The text is set on this thread: the fonts of its layer outlive the reader.
+            QMetaObject::invokeMethod(this, [this, page, epoch, ready, read] {
+                if (!m_ocr->current(epoch)) return;
+                if (ready) m_backend->setScanText(page, scanLines(read));
+                m_ocr->done(page, epoch, ready);
+                scanRead(page);
+            }, Qt::QueuedConnection);
+        },
+        [this](int page, quint64 epoch, int percent) {
+            QMetaObject::invokeMethod(this, [this, page, epoch, percent] {
+                if (m_ocr->current(epoch)) Q_EMIT scanProgress(page, percent);
+            }, Qt::QueuedConnection);
+        });
     m_thread = QThread::create([this] {
 #ifdef Q_OS_LINUX
         // Linux gives each thread its own niceness; on few cores the window
@@ -106,6 +151,8 @@ void DocumentWorker::stop()
         m_renders.clear();
         m_annotationPages.clear();
         m_search = {};
+        m_scanWait = {};
+        m_scanPages.clear();
         m_helperPages.clear();
         for (const Copy &copy : std::as_const(m_copies)) cancelled.append(copy.output.path());
         m_copies.clear();
@@ -119,6 +166,7 @@ void DocumentWorker::stop()
         }
         m_idle.wait(lock, [this] { return !m_busy; });
     }
+    m_ocr->reset();
     if (m_pool) m_pool->closeDocument();
     m_helpersOpen = false;
     for (const QString &output : std::as_const(cancelled)) postCopyFailed(output);
@@ -127,9 +175,22 @@ void DocumentWorker::stop()
 
 void DocumentWorker::findText(int search, const QString &needle)
 {
+    m_scanWait = { search, needle, {}, false };
+    m_ocr->retry();
     {
         std::lock_guard lock(m_mutex);
         m_search = { search, needle, 0 };
+    }
+    m_wake.notify_all();
+}
+
+void DocumentWorker::readScan(int page)
+{
+    m_ocr->retry();
+    {
+        std::lock_guard lock(m_mutex);
+        m_scanPages.removeAll(page);
+        m_scanPages.prepend(page);
     }
     m_wake.notify_all();
 }
@@ -166,7 +227,7 @@ bool DocumentWorker::forHelpers(const Render &render) const
 bool DocumentWorker::hasOwnWork() const
 {
     if (m_quit || !m_copies.isEmpty() || !m_annotationPages.isEmpty()) return true;
-    if (!m_search.needle.isEmpty() && m_search.next < m_backend->pageCount()) return true;
+    if (searchReady() || scanReady()) return true;
     return std::any_of(m_renders.cbegin(), m_renders.cend(),
                        [this](const Render &r) { return !forHelpers(r); });
 }
@@ -228,6 +289,7 @@ void DocumentWorker::run()
         Search   search;
         bool     searchLast     = false;
         int      annotationPage = -1;
+        int      scanPage       = -1;
         quint64  generation     = 0;
         {
             std::unique_lock lock(m_mutex);
@@ -243,8 +305,7 @@ void DocumentWorker::run()
             const auto own = std::find_if(m_renders.begin(), m_renders.end(),
                                           [this](const Render &r) { return !forHelpers(r); });
             // A search takes turns with renders, so neither waits for the other.
-            const bool searching = !m_search.needle.isEmpty()
-                                && m_search.next < m_backend->pageCount();
+            const bool searching = searchReady();
             m_searchTurn = searching && (!m_searchTurn || own == m_renders.end());
             if (m_searchTurn) {
                 search     = m_search;
@@ -258,6 +319,8 @@ void DocumentWorker::run()
                 copy = m_copies.takeFirst();
                 m_runningCopy = copy->output.path();
                 m_cancelCopy  = false;
+            } else if (scanReady()) {
+                scanPage = m_scanPages.takeFirst();
             } else {
                 const int focus = m_focusPage;
                 qsizetype best = 0;
@@ -272,6 +335,7 @@ void DocumentWorker::run()
         if (render)      runRender(*render, generation);
         else if (search.id) runSearch(search.id, search.needle, search.next, searchLast, generation);
         else if (copy)   runCopy(*copy, generation);
+        else if (scanPage >= 0) runScan(scanPage, generation);
         else             runAnnotations(annotationPage, generation);
     }
 }
@@ -317,15 +381,104 @@ void DocumentWorker::runAnnotations(int page, quint64 generation)
     });
 }
 
+bool DocumentWorker::searchReady() const
+{
+    // Scanned pages wait their turn with OCR rather than piling up as images.
+    return !m_search.needle.isEmpty() && m_search.next < m_backend->pageCount()
+        && m_ocr->queued() < OcrSearch::threads();
+}
+
+bool DocumentWorker::scanReady() const
+{
+    return !m_scanPages.isEmpty() && m_ocr->queued() < OcrSearch::threads();
+}
+
+bool DocumentWorker::startScan(int page, quint64 generation)
+{
+    if (m_ocr->reading(page)) return true;
+    const QSizeF size = m_backend->pageSizePts(page);
+    const qreal scale = OcrSearch::scaleFor(size);
+    // What the view waits for comes first; an interrupted page is taken up again.
+    bool yielded = false;
+    const QImage image = m_backend->renderPageInBackground(
+        page, scale, nullptr, [this, generation, &yielded] {
+            if (generation != m_generation) return true;
+            std::lock_guard lock(m_mutex);
+            yielded = std::any_of(m_renders.cbegin(), m_renders.cend(),
+                                  [this](const Render &r) { return !forHelpers(r); });
+            return yielded;
+        });
+    if (yielded) return false;
+    if (!image.isNull())
+        m_ocr->read(page, image.convertToFormat(QImage::Format_Grayscale8), size, scale);
+    return true;
+}
+
+void DocumentWorker::runScan(int page, quint64 generation)
+{
+    const bool wanted = m_ocr->available() && page < m_backend->pageCount()
+                     && !m_backend->hasSelectableText(page) && !m_backend->hasScanText(page);
+    if (wanted && !startScan(page, generation)) {
+        std::lock_guard lock(m_mutex);
+        if (generation == m_generation && !m_scanPages.contains(page)) m_scanPages.prepend(page);
+        return;
+    }
+    // A page read on is announced once OCR hands its text over.
+    if (!wanted || !m_ocr->reading(page))
+        post(generation, [this, page] { Q_EMIT scanTextRead(page); });
+}
+
 void DocumentWorker::runSearch(int search, const QString &needle, int page, bool last,
                                quint64 generation)
 {
     const QList<PdfBackend::TextMatch> matches = m_backend->findTextOnPage(page, needle);
-    post(generation, [this, search, page, matches, last] {
-        if (!matches.isEmpty()) Q_EMIT textFound(search, page, matches);
-        Q_EMIT pageSearched(search, page);
-        if (last) Q_EMIT searchDone(search);
+    // A scan has no text of its own; OCR reads it once, its own threads aside,
+    // and the normal search reads what it found.
+    if (matches.isEmpty() && m_ocr->available() && !m_backend->hasSelectableText(page)
+            && !m_backend->hasScanText(page)) {
+        if (!startScan(page, generation)) {
+            std::lock_guard lock(m_mutex);
+            if (m_search.id == search) m_search.next = std::min(m_search.next, page);
+            return;
+        }
+        post(generation, [this, search, page, last] { waitForScan(search, page, last); });
+        return;
+    }
+    const QList<PdfBackend::TextMatch> found = matches.isEmpty() && m_backend->hasScanText(page)
+        ? m_backend->findScanText(page, needle) : matches;
+    post(generation, [this, search, page, found, last] {
+        pageDone(search, page, found, last);
     });
+}
+
+void DocumentWorker::pageDone(int search, int page, const QList<PdfBackend::TextMatch> &matches,
+                              bool last)
+{
+    if (!matches.isEmpty()) Q_EMIT textFound(search, page, matches);
+    Q_EMIT pageSearched(search, page);
+    if (search != m_scanWait.search) return;
+    m_scanWait.scanned = m_scanWait.scanned || last;
+    if (!m_scanWait.scanned || !m_scanWait.pages.isEmpty()) return;
+    m_scanWait = {};
+    Q_EMIT searchDone(search);
+}
+
+void DocumentWorker::waitForScan(int search, int page, bool last)
+{
+    if (search != m_scanWait.search) return;
+    if (m_ocr->reading(page)) {
+        m_scanWait.pages.append(page);
+        m_scanWait.scanned = m_scanWait.scanned || last;
+        return;
+    }
+    pageDone(search, page, m_backend->findScanText(page, m_scanWait.needle), last);
+}
+
+void DocumentWorker::scanRead(int page)
+{
+    Q_EMIT scanTextRead(page);
+    if (!m_scanWait.pages.removeOne(page)) return;
+    waitForScan(m_scanWait.search, page, false);
 }
 
 void DocumentWorker::post(quint64 generation, std::function<void()> emitter)

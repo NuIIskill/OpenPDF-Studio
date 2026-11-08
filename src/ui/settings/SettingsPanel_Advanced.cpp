@@ -104,6 +104,16 @@ void SettingsPanel::buildAdvancedInterface(QVBoxLayout *vl)
     m_preserveLayoutCheck = addSettingsCheck(cl, tr("Save preferences"),
         tr("Keeps everything you set up for yourself, such as the panel layout and signing."),
         m_settings->preservePanelLayout());
+    cl->addSpacing(8);
+    m_hintAnimationsCheck = static_cast<SettingCheckBox *>(addSettingsCheck(cl,
+        tr("Interactive UI"),
+        tr("Controls wiggle to show how they work, such as the note colors and a new note. "
+           "Yellow: only the first time. Checked: every time."),
+        false));
+    m_hintAnimationsCheck->setTristate(true);
+    const QString mode = m_settings->hintAnimations();
+    m_hintAnimationsCheck->setCheckState(mode == QLatin1String("always") ? Qt::Checked
+        : mode == QLatin1String("off") ? Qt::Unchecked : Qt::PartiallyChecked);
 }
 
 void SettingsPanel::buildAdvancedDiagnostics(QVBoxLayout *vl)
@@ -152,6 +162,7 @@ void SettingsPanel::buildAdvancedReset(QVBoxLayout *vl)
         if (m_updateIntervalCombo) selectComboData(m_updateIntervalCombo,
                                               QStringLiteral("daily"));
         if (m_preserveLayoutCheck) m_preserveLayoutCheck->setChecked(true);
+        if (m_hintAnimationsCheck) m_hintAnimationsCheck->setCheckState(Qt::PartiallyChecked);
         if (m_debugLogCheck)       m_debugLogCheck->setChecked(false);
         if (m_logLevelCombo)       selectComboData(m_logLevelCombo,
                                               QStringLiteral("info"));

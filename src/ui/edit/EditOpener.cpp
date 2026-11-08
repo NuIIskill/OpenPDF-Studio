@@ -8,6 +8,7 @@
 #include "ui/view/ZoomController.hpp"
 
 #include <QApplication>
+#include <QEventLoop>
 #include <QFontMetricsF>
 #include <QLabel>
 #include <QStringList>
@@ -92,22 +93,10 @@ bool EditOpener::resolveEditTarget(const QPoint &canvasPos, EditOpen &o, int &la
     // Languages installed while the document is open count right away.
     if (scan) m_ocr->refresh();
     m_ocrMissing = scan && !m_ocr->isReady();
-    if (scan && m_ocr->isReady()) {
-        if (!m_ocrCache.contains(pageIdx)) {
-            const qreal ocrScale = qMax(o.scale * m_canvas->canvasWidget()->devicePixelRatioF(), 300.0 / 72.0);
-            QApplication::setOverrideCursor(Qt::WaitCursor);
-            QApplication::processEvents(QEventLoop::ExcludeUserInputEvents);
-            const QImage pageImg = m_src->renderer()->renderPage(pageIdx, ocrScale);
-            m_ocrCache[pageIdx] = m_ocr->recognizePage(pageImg, o.pageSize,
-                                                             ocrScale);
-            QApplication::restoreOverrideCursor();
-        }
-        const OcrEngine::Block ocr = OcrEngine::blockAt(m_ocrCache[pageIdx], o.pdfPt);
-        if (ocr.isValid()) {
-            o.block   = TextBlock{ pageIdx, ocr.pdfBounds, ocr.text };
-            o.scanned = true;
-        }
-    }
+    // A scan is read once, by the same OCR as the search, and from then on
+    // edited as the text it holds.
+    if (scan && m_ocr->isReady() && waitForScan(pageIdx))
+        o.block = m_src->backend()->textAt(pageIdx, o.pdfPt, o.erasedZones);
 
     if (!o.block.isValid()) return false;
 

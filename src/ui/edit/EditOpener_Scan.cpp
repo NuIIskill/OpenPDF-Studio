@@ -4,6 +4,8 @@
 
 #include "engine/document/DocumentSource.hpp"
 
+#include <QApplication>
+#include <QEventLoop>
 #include <QStringList>
 
 QList<QRectF> EditOpener::scanLines(const EditOpen &o) const
@@ -26,8 +28,9 @@ void EditOpener::matchScanFace(EditOpen &o)
                                                     const TextLayout::OriginalLine &b) {
         return a.rect.top() < b.rect.top();
     });
-    // A line alone, as a code in a form, is read again where the reading at hand fits its pixels badly.
-    if (texts.size() == 1 && o.framedLines.isEmpty()) {
+    // A line alone, as a code in a form, is read again where the reading at hand fits its pixels
+    // badly; what OCR read here was already set in the face of the scan.
+    if (texts.size() == 1 && o.framedLines.isEmpty() && !m_src->backend()->hasScanText(o.block.page)) {
         const QString was = texts.first().text;
         rereadScanLine(o, texts.first());
         if (texts.first().text != was) {
@@ -150,10 +153,7 @@ QList<ScanFont::Line> EditOpener::scanContext(EditOpen &o, const QList<TextLayou
     // The nearest other lines of the page.
     QList<std::pair<QRectF, QString>> near;
     const QRectF around = o.block.pdfBounds.adjusted(-o.pageSize.width(), -80.0, o.pageSize.width(), 80.0);
-    if (m_ocrCache.contains(o.block.page)) {
-        for (const OcrEngine::Block &b : std::as_const(m_ocrCache[o.block.page]))
-            if (around.intersects(b.pdfBounds)) near.append({ b.pdfBounds, b.text });
-    } else if (m_src->backend()) {
+    if (m_src->backend()) {
         for (const TextLayout::OriginalLine &line :
              m_src->backend()->originalLines(o.block.page, around, o.erasedZones))
             near.append({ line.rect, line.text });
@@ -171,6 +171,42 @@ QList<ScanFont::Line> EditOpener::scanContext(EditOpen &o, const QList<TextLayou
         if (out.size() >= 8) break;
     }
     return out;
+}
+
+void EditOpener::readScansNear(int page)
+{
+    // The scans in view are read before the text tool clicks them, the one shown first.
+    PdfBackend *backend = m_src->backend();
+    if (!backend || !m_src->worker() || !m_ocr || !m_ocr->isReady()) return;
+    for (const int near : { page + 1, page - 1, page }) {
+        if (near < 0 || near >= m_src->pageCount() || m_scansAsked.contains(near)) continue;
+        m_scansAsked.insert(near);
+        if (!backend->hasSelectableText(near) && !backend->hasScanText(near))
+            m_src->worker()->readScan(near);
+    }
+}
+
+bool EditOpener::waitForScan(int page)
+{
+    PdfBackend *backend = m_src->backend();
+    DocumentWorker *worker = m_src->worker();
+    if (!backend || !worker) return false;
+    if (backend->hasScanText(page)) return true;
+    m_scansAsked.insert(page);
+    QEventLoop wait;
+    const QMetaObject::Connection read = QObject::connect(worker, &DocumentWorker::scanTextRead,
+                                                          &wait, [&wait, page](int p) {
+        if (p == page) wait.quit();
+    });
+    const QMetaObject::Connection stopped = QObject::connect(worker, &DocumentWorker::stopped,
+                                                             &wait, &QEventLoop::quit);
+    worker->readScan(page);
+    QApplication::setOverrideCursor(Qt::WaitCursor);
+    wait.exec(QEventLoop::ExcludeUserInputEvents);
+    QApplication::restoreOverrideCursor();
+    QObject::disconnect(read);
+    QObject::disconnect(stopped);
+    return backend->hasScanText(page);
 }
 
 QList<TextLayout::OriginalLine> EditOpener::scanTextLines(const EditOpen &o) const

@@ -34,13 +34,22 @@ appearance before sharing it.
 | TIFF | One lossless page image per selected page, for print and archiving |
 | WebP | One page image per selected page, with quality control; **Maximum** is lossless |
 | TXT | The text of the selected pages as UTF-8, without layout; a blank line separates pages |
-| Markdown (`.md`) | Flowing text with headings, lists, tables, bold and italic; no pictures |
+| Markdown (`.md`) | Flowing text with headings, lists, tables, links, bold and italic; no pictures |
 | HTML (`.html`) | The same as Markdown plus the pictures, embedded in one file; with image compression and quality control |
-| PDF/A | Listed in the dialog but not implemented; the option is disabled |
+| PDF/A | PDF/A-2b for long-term archiving; the same options as PDF, fonts are always embedded |
 
 PDF page selection and rewriting comments, forms, fonts or image compression
 require qpdf. Without it, those PDF controls are disabled. Keeping existing
 form fields during export does not provide a form editor.
+
+PDF/A also requires qpdf. Fonts the document does not carry are embedded from
+an installed font with the same character widths, such as Liberation Sans for
+Helvetica or Arial. Scripts, media, hidden annotations and digital signatures
+are removed, since PDF/A does not allow them; a message lists what changed.
+The export stops with the reason when a document uses CMYK colours, a font
+without a matching installed font, or the Symbol or ZapfDingbats fonts. Fonts
+the document already embeds are checked too; one that lacks characters the
+document shows, or whose widths do not match its program, stops the export.
 
 Without **Compress images**, Word and OpenDocument keep pictures at their
 original resolution as PNG and the quality setting is unavailable.
@@ -59,6 +68,12 @@ Markdown and HTML recognise headings by their size and lists by their
 markers, and drop the page layout. TXT, Markdown and HTML take the text layer
 of each page. Scanned pages without one have no text, since export does not
 run OCR; HTML shows them as pictures.
+
+Both link the web links of the PDF and web and mail addresses written in the
+text, show coloured boxes as boxes (Markdown as quotes) and leave out running
+heads and feet; only web and mail links are taken over. HTML keeps a drawing as
+one picture with a chart's labels in it, Markdown gives a chart's labels line
+by line.
 
 ## Print
 

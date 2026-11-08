@@ -18,6 +18,8 @@
 #include <QVBoxLayout>
 #include <QWidget>
 
+#include <algorithm>
+
 FindController::FindController(PageCanvas *canvas, QWidget *viewport,
                                DocumentSource *source, QObject *parent)
     : QObject(parent)
@@ -84,7 +86,7 @@ FindController::FindController(PageCanvas *canvas, QWidget *viewport,
     // Only a search that takes a while shows how far it has got.
     m_progressDelay = new QTimer(this);
     m_progressDelay->setSingleShot(true);
-    m_progressDelay->setInterval(1500);
+    m_progressDelay->setInterval(300);
     connect(m_progressDelay, &QTimer::timeout, this, [this]() {
         if (!m_searching) return;
         placeProgress();
@@ -107,8 +109,15 @@ FindController::FindController(PageCanvas *canvas, QWidget *viewport,
                 [this](int search, int page, const QList<PdfBackend::TextMatch> &matches) {
             for (const PdfBackend::TextMatch &match : matches) addMatches(search, page, match.rects);
         });
+        // Scanned pages report once OCR has read them, out of order, and how far
+        // OCR got while it reads; the bar counts each page in hundredths.
         connect(worker, &DocumentWorker::pageSearched, this, [this](int search, int page) {
-            if (search == m_search) m_progress->setValue(page + 1);
+            if (search == m_search) m_progress->setValue(m_progress->value() + 100 - m_reading.take(page));
+        });
+        connect(worker, &DocumentWorker::scanProgress, this, [this](int page, int percent) {
+            if (!m_searching || percent <= m_reading.value(page)) return;
+            m_progress->setValue(m_progress->value() + percent - m_reading.value(page));
+            m_reading.insert(page, percent);
         });
         connect(worker, &DocumentWorker::searchDone, this, [this](int search) {
             if (search != m_search) return;
@@ -207,7 +216,8 @@ void FindController::startSearch(const QString &needle)
     Q_UNUSED(needle)
 #endif
     if (!m_searching) return;
-    m_progress->setRange(0, m_source->pageCount());
+    m_reading.clear();
+    m_progress->setRange(0, m_source->pageCount() * 100);
     m_progress->setValue(0);
     m_progressDelay->start();
 }
@@ -215,11 +225,15 @@ void FindController::startSearch(const QString &needle)
 void FindController::addMatches(int search, int page, const QList<QRectF> &rects)
 {
     if (search != m_search) return;
-    m_matches.append({ page, rects });
+    const auto at = std::upper_bound(m_matches.cbegin(), m_matches.cend(), page,
+                                     [](int p, const Match &m) { return p < m.page; });
+    const qsizetype index = at - m_matches.cbegin();
+    m_matches.insert(index, { page, rects });
     if (m_active < 0) {
-        activate(0);
+        activate(int(index));
         return;
     }
+    if (index <= m_active) ++m_active;
     updateCounter();
     if (!m_overlayTimer->isActive()) m_overlayTimer->start();
 }

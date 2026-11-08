@@ -3,7 +3,7 @@
 [README](../../README.md) · [User documentation](../../README.md#user-documentation)
 
 OpenPDF Studio is a native desktop PDF viewer and editor for Linux and Windows.
-Version 0.3.6 is an alpha. Saving replaces the original file, so keep a backup
+Version 0.3.7 is an alpha. Saving replaces the original file, so keep a backup
 of important PDFs and check the result in a second viewer.
 
 ## Open a document
@@ -33,6 +33,9 @@ See [Editing](editing.md#opening-word-opendocument-and-images) for import limits
 
 - `Ctrl+F` opens the find bar. Enter and Shift+Enter move between matches;
   the hit counter shows your position.
+- Scanned pages are searched too, by the same rules as text: OCR reads them
+  during the first search, which therefore takes a few seconds per page;
+  later searches are instant.
 - Use the zoom buttons, `Ctrl++`, `Ctrl+-` or Ctrl+mouse wheel to zoom.
   Wheel action, step size and zoom towards the pointer can be changed in Settings.
 - `F5` starts presentation mode. Embedded video currently shows its poster
@@ -89,6 +92,10 @@ Linux through the distribution's package manager, on Windows as a download.
 layout including the width of the bookmark panel, the tool rail, the chosen signature profile and certificate, and in the
 export dialog the open format groups and **Compress images**. With it
 off, the application starts with its defaults each time.
+
+**Interactive UI** below it decides whether anything in the notes panel
+wiggles to show how it works: yellow (the default) only the first time,
+checked every time, unchecked never.
 
 On first use, the installer or application asks whether usage is personal or
 business. Personal is preselected. This relates to the separately licensed

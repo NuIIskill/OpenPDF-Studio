@@ -18,6 +18,7 @@
 #include <optional>
 
 class EditSession;
+class OcrSearch;
 class QThread;
 class RenderPool;
 
@@ -48,6 +49,7 @@ public:
     void stop();
     void setDocument(const QString &path);
     void findText(int search, const QString &needle);
+    void readScan(int page);
 
     std::optional<Render> takeForHelper(int helper);
     void helperDone(int helper, const QImage &image, int milliseconds);
@@ -62,6 +64,8 @@ Q_SIGNALS:
     void textFound(int search, int page, const QList<PdfBackend::TextMatch> &matches);
     void pageSearched(int search, int page);
     void searchDone(int search);
+    void scanTextRead(int page);
+    void scanProgress(int page, int percent);
     void stopped();
 
 private:
@@ -75,6 +79,13 @@ private:
     void runCopy(const Copy &copy, quint64 generation);
     void runAnnotations(int page, quint64 generation);
     void runSearch(int search, const QString &needle, int page, bool last, quint64 generation);
+    bool searchReady() const;
+    bool scanReady() const;
+    bool startScan(int page, quint64 generation);
+    void runScan(int page, quint64 generation);
+    void pageDone(int search, int page, const QList<PdfBackend::TextMatch> &matches, bool last);
+    void waitForScan(int search, int page, bool last);
+    void scanRead(int page);
     void post(quint64 generation, std::function<void()> emitter);
     void postCopyFailed(const QString &output);
     bool forHelpers(const Render &render) const;
@@ -111,6 +122,12 @@ private:
     std::atomic<bool>    m_cancelRender { false };
     std::atomic<bool>    m_cancelCopy   { false };
     std::atomic<quint64> m_generation   { 0 };
+
+    /// The scanned pages the current search waits for OCR to read.
+    struct ScanWait { int search = 0; QString needle; QList<int> pages; bool scanned = false; };
+    ScanWait                   m_scanWait;
+    QList<int>                 m_scanPages;
+    std::unique_ptr<OcrSearch> m_ocr;
 };
 
 #endif

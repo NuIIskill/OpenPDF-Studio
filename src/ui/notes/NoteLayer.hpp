@@ -1,5 +1,6 @@
 #pragma once
 
+#include "engine/edit/TextLayout.hpp"
 #include "ui/notes/Note.hpp"
 #include "ui/view/PageCanvas.hpp"
 
@@ -19,6 +20,7 @@
 QT_BEGIN_NAMESPACE
 class QFrame;
 class QPushButton;
+class QUndoCommand;
 class QUndoStack;
 class QWidget;
 QT_END_NAMESPACE
@@ -59,6 +61,9 @@ public:
                 const QPoint &globalTopLeft, const QColor &color = {});
     void previewAt(const QPoint &globalTopLeft);
     void unlink(const QString &id);
+    void showFollowing(int fromPage, const QRectF &from, int toPage, const QPointF &by);
+    void follow(int fromPage, const QRectF &from, int toPage, const QPointF &by,
+                const QList<TextLayout::OriginalLine> &lines, QUndoCommand *step);
     QWidget *marker(const QString &id) const;
     void activate(const QString &id);
     void update(const QString &id, const QString &title, const QString &text);
@@ -96,7 +101,17 @@ private:
         bool operator==(const Target &) const = default;
     };
 
+    struct Following {
+        int     fromPage { -1 };
+        QRectF  from;
+        int     toPage { -1 };
+        QPointF by;
+    };
+
     void addEntry(NoteData note, bool position = true);
+    static bool follows(const NoteData &note, const Following &move);
+    static NoteData carried(NoteData note, const Following &move);
+    NoteData shown(const NoteData &note) const;
     Target targetAt(const QPoint &canvasPos, bool linkText) const;
     QPointF onPage(int page, const QPointF &topLeft) const;
     bool addNote(const Target &target, const QString &title, const QString &text,
@@ -137,6 +152,7 @@ private:
     QList<QWidget *> m_highlights;
     QList<QWidget *> m_preview;
     Target       m_previewTarget;
+    Following    m_following;
     QHash<QString, int> m_hiddenHighlights;
     TextSelectionController *m_selection { nullptr };
     QPoint       m_pressAt { -1, -1 };

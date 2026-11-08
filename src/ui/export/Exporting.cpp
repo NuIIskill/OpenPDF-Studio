@@ -77,7 +77,7 @@ void runInBackground(const std::function<void()> &work)
 }
 
 bool writePdf(const QString &source, int pageCount, const ExportRequest &request,
-              const WriteGrant &output, QString *failure)
+              const WriteGrant &output, QString *failure, QStringList *changes)
 {
     const QString shownName = QFileInfo(request.path).fileName();
     PdfExportOptions opt;
@@ -87,14 +87,22 @@ bool writePdf(const QString &source, int pageCount, const ExportRequest &request
     opt.embedFonts      = request.embedFonts;
     opt.compressImages  = request.compressImages;
     opt.imageQuality    = request.imageQuality;
+    opt.pdfA            = request.format == QLatin1String("pdfa");
 
     const bool plainRequest = request.pages.size() == pageCount
                            && request.includeComments && request.keepForms
-                           && request.embedFonts;
+                           && request.embedFonts && !opt.pdfA;
     bool ok = false;
+    PdfA::Report report;
     if (pdfExportAvailable())
-        runInBackground([&] { ok = exportPdf(source, output, opt); });
+        runInBackground([&] { ok = exportPdf(source, output, opt, &report); });
     if (!ok && plainRequest) ok = copyFile(source, output);
+    *changes = report.changes;
+    if (!ok && !report.blockers.isEmpty()) {
+        *failure = Exporting::tr("\"%1\" cannot be exported as PDF/A:\n\n%2")
+                       .arg(shownName, QStringLiteral("• ") + report.blockers.join(QStringLiteral("\n• ")));
+        return false;
+    }
     *failure = ok ? QString{}
                   : pdfExportAvailable()
                       ? Exporting::tr("Could not write \"%1\".").arg(shownName)
@@ -117,6 +125,7 @@ void Exporting::run(QWidget *parent, DocumentView *view, const ExportRequest &re
     const QString shownName = QFileInfo(request.path).fileName();
     bool ok = false;
     QString failure;
+    QStringList changes;
 
     QElapsedTimer busy;
     busy.start();
@@ -211,7 +220,8 @@ void Exporting::run(QWidget *parent, DocumentView *view, const ExportRequest &re
         failure = tr("Could not write to \"%1\".").arg(request.path);
 
     } else {
-        ok = writePdf(copy.path(), view->pageCount(), request, WriteGrant(request.path), &failure);
+        ok = writePdf(copy.path(), view->pageCount(), request, WriteGrant(request.path), &failure,
+                      &changes);
     }
 
     if (busy.elapsed() < MinBusyMs) {
@@ -235,6 +245,10 @@ void Exporting::run(QWidget *parent, DocumentView *view, const ExportRequest &re
     const bool many = image && pages > 1;
     indicator->showDone(many ? tr("%1 pages exported as %2 images").arg(pages).arg(imageName)
                              : tr("Exported \"%1\"").arg(shownName));
+    if (!changes.isEmpty())
+        QMessageBox::information(parent, tr("Exported as PDF/A"),
+                                 tr("PDF/A needed these changes to \"%1\":\n\n%2")
+                                     .arg(shownName, QStringLiteral("• ") + changes.join(QStringLiteral("\n• "))));
 
     if (request.openAfterExport) {
         const QString target = many ? QFileInfo(request.path).absolutePath() : request.path;

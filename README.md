@@ -5,7 +5,7 @@ existing text, organize pages, annotate, redact, sign and export documents in on
 desktop application. Word, OpenDocument and image files open as PDF working
 copies, converted locally.
 
-Current version: **0.3.6, alpha**. Saving replaces the original file, so keep a
+Current version: **0.3.7, alpha**. Saving replaces the original file, so keep a
 backup of important PDFs and check the result in a second viewer.
 
 ![OpenPDF Studio displaying the NLBK test PDF, with editing tools on the left and document actions on the right](docs/images/screenshots/overview.png)
@@ -15,28 +15,29 @@ Sample document: [NLBK Niedersachsen test PDF](https://www.nlbk.niedersachsen.de
 
 ## Key features
 
-- Read several documents in tabs, search text, browse bookmarks and present pages;
-  an empty tab lists the recently opened files.
+- Read several documents in tabs, search text, also on scanned pages, browse
+  bookmarks and present pages; an empty tab lists the recently opened files.
 - Edit text in place, also turned text, with font, size, style and colour for a
   whole box or only the selected characters; add text and images, draw and highlight.
 - Leave notes on the page or linked to text, in colours of your own, and manage
-  them in the notes panel.
-- Edit scanned pages through OCR in up to 12 languages.
+  them in the notes panel; linked notes move along with their text.
+- Edit scanned pages like text through OCR in up to 12 languages.
 - Redact text, images and drawings for good, checked before the file is written.
 - Reorder, rotate, insert, delete and merge pages, or append another file's pages,
   with undo, history and crash recovery.
 - Place handwritten or digital signatures, see each signature's status on the page,
   and manage passwords and permissions; restricted PDFs follow their permissions.
-- Export to PDF, Word, OpenDocument, PNG, JPEG, TIFF, WebP, plain text, Markdown or HTML, and print with a preview, several pages per
-  sheet or as a poster over 2, 4 or 9 sheets.
+- Export to PDF, PDF/A-2b, Word, OpenDocument, PNG, JPEG, TIFF, WebP, plain
+  text, Markdown or HTML, and print with a preview, several pages per sheet or
+  as a poster over 2, 4 or 9 sheets.
 - Play, embed and open video and audio through the separately licensed Rich Media module.
 - Add or remove OCR languages and ffmpeg in Settings > Add-on Packages, through
   the package manager on Linux and as a verified download on Windows.
 - Choose light or dark themes, customize shortcuts and tools, and use English
   or one of 11 translations.
 
-Feature availability depends on the components included in a build. PDF/A
-export and a complete form editor are not available yet. The
+Feature availability depends on the components included in a build. A
+complete form editor is not available yet. The
 [user documentation](#user-documentation) explains workflows and limitations.
 
 ## Supported operating systems
@@ -54,15 +55,15 @@ or the [download page](https://openpdf-studio.nullskill.de/download.html).
 On Linux, install the RPM or DEB with your package manager, or run the AppImage:
 
 ```bash
-sudo dnf install ./openpdf-studio-0.3.6-1.x86_64.rpm
-sudo apt install ./openpdf-studio_0.3.6_amd64.deb
+sudo dnf install ./openpdf-studio-0.3.7-1.x86_64.rpm
+sudo apt install ./openpdf-studio_0.3.7_amd64.deb
 # Alternatively:
-chmod +x OpenPDF_Studio-0.3.6-x86_64.AppImage
-./OpenPDF_Studio-0.3.6-x86_64.AppImage
+chmod +x OpenPDF_Studio-0.3.7-x86_64.AppImage
+./OpenPDF_Studio-0.3.7-x86_64.AppImage
 ```
 
-On Windows, run `OpenPDF-Studio-0.3.6-Setup.exe`, or extract
-`OpenPDF-Studio-0.3.6-win64-portable.zip` and start `OpenPDFStudio.exe`.
+On Windows, run `OpenPDF-Studio-0.3.7-Setup.exe`, or extract
+`OpenPDF-Studio-0.3.7-win64-portable.zip` and start `OpenPDFStudio.exe`.
 The setup offers ffmpeg as an optional component. See
 [Installation](docs/user/installation.md) for details.
 
@@ -86,7 +87,7 @@ for the terms and component boundaries.
 | [Installation](docs/user/installation.md) | Linux packages, Windows setup and portable mode |
 | [Editing](docs/user/editing.md) | Text, scans, images, annotations, notes, redaction, pages and media |
 | [Signatures](docs/user/signatures.md) | Handwritten and digital signatures, certificates and trust |
-| [Export](docs/user/export.md) | PDF, Word, OpenDocument, images, text, Markdown, HTML and printing |
+| [Export](docs/user/export.md) | PDF, PDF/A, Word, OpenDocument, images, text, Markdown, HTML and printing |
 | [Licensing](docs/user/licensing.md) | Core, Rich Media, personal use and business licensing |
 | [Troubleshooting](docs/user/troubleshooting.md) | Missing features, rendering, OCR, media and recovery |
 

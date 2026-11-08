@@ -154,6 +154,18 @@ public:
     virtual bool hasSelectableText(int page) const = 0;
     virtual bool hiddenText(int page, const QRectF &area) const;
 
+    /// A line of a scan as OCR read it, each character with its box on the page.
+    struct ScanLine {
+        QString       text;
+        QList<QRectF> boxes;
+    };
+
+    virtual void setScanText(int page, const QList<ScanLine> &lines)
+    { Q_UNUSED(page) Q_UNUSED(lines) }
+    virtual bool hasScanText(int page) const { Q_UNUSED(page) return false; }
+    virtual QList<TextMatch> findScanText(int page, const QString &text) const
+    { Q_UNUSED(page) Q_UNUSED(text) return {}; }
+
     virtual QString embeddedFontFamily(int page, const QPointF &pdfPt) const;
 
     virtual bool exactFontAt(int page, const QPointF &pdfPt) const;

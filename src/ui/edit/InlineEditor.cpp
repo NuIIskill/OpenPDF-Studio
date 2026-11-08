@@ -385,6 +385,7 @@ void InlineEditor::moveCursorTo(int position, bool keepAnchor)
 
 void InlineEditor::paintEvent(QPaintEvent *e)
 {
+    if (!m_paintsOnScreen) return;
     QTextEdit::paintEvent(e);
     if (!usesEngineLayout() || m_lines.isEmpty()) return;
     QPainter p(viewport());

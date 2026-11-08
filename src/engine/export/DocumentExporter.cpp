@@ -303,6 +303,14 @@ QList<DocxPage> DocumentExporter::allPageContent(const QList<int> &pages,
         measureLeadWords(page.blocks, m_src.backend, i);
         if (page.blocks.isEmpty())
             page.background = DocxXml::encodePicture(layout.erased, options);
+        if (m_src.backend)
+            for (const PdfBackend::Link &link : m_src.backend->pageLinks(i)) {
+                QStringList words;
+                for (const QRectF &rect : link.textRects)
+                    words << m_src.backend->selectPage(i, QPointF(rect.left(), rect.center().y()),
+                                                       QPointF(rect.right(), rect.center().y())).text;
+                page.links.append({ link.url, words.join(u' ').simplified() });
+            }
 
         result.append(std::move(page));
     }

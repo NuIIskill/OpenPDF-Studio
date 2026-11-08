@@ -132,7 +132,7 @@ class NudgeSlot : public QWidget
 public:
     static constexpr int kRest = 14;
 
-    explicit NudgeSlot(QWidget *parent) : QWidget(parent)
+    NudgeSlot(bool tugs, QWidget *parent) : QWidget(parent), m_tugs(tugs)
     {
         m_tug = new QVariantAnimation(this);
         m_tug->setDuration(900);
@@ -158,11 +158,12 @@ public:
         card->setParent(this);
         card->installEventFilter(this);
         place();
-        m_again->start();
+        if (m_tugs) m_again->start();
     }
 
     void nudge()
     {
+        if (!m_tugs) return;
         m_tug->stop();
         m_tug->start();
     }
@@ -220,6 +221,7 @@ private:
     QVariantAnimation *m_tug { nullptr };
     QTimer            *m_again { nullptr };
     qreal              m_offset { kRest };
+    bool               m_tugs { true };
 };
 
 QPushButton *cardAction(const QString &icon, const QString &tip, QWidget *parent)
@@ -335,6 +337,11 @@ void NotesPanel::setSelectedNote(const QString &id)
 void NotesPanel::setDocumentAvailable(bool available)
 {
     m_new->setEnabled(available);
+    // Without a document the draft cannot be placed; what was typed comes back with the next +.
+    if (!available && m_draft) {
+        m_draft = false;
+        rebuildList();
+    }
 }
 
 void NotesPanel::openDraft()
@@ -342,6 +349,10 @@ void NotesPanel::openDraft()
     commitEdit();
     if (!m_draft) {
         m_draft = true;
+        if (m_repeatHints) {
+            m_colorHint = true;
+            m_hintStage = 1;
+        }
         rebuildList();
     }
     m_scroll->ensureVisible(0, 0);
@@ -351,6 +362,7 @@ void NotesPanel::openDraft()
 
 void NotesPanel::closeDraft()
 {
+    if (m_draftNudgeShown && !m_repeatHints) m_draftNudge = false;
     m_draft = false;
     m_draftTitle.clear();
     m_draftText.clear();
@@ -437,9 +449,35 @@ bool NotesPanel::eventFilter(QObject *watched, QEvent *event)
     return QWidget::eventFilter(watched, event);
 }
 
+void NotesPanel::showEvent(QShowEvent *event)
+{
+    QWidget::showEvent(event);
+    markHintsShown();
+}
+
+void NotesPanel::markHintsShown()
+{
+    // A hint counts as seen once it was on screen.
+    if (m_repeatHints || !isVisible()) return;
+    if (m_colorHint && !m_colorHintShown && !m_listWidget->findChildren<NoteColorRow *>().isEmpty()) {
+        m_colorHintShown = true;
+        Q_EMIT colorHintSeen();
+    }
+    if (m_draftNudge && !m_draftNudgeShown && m_draftSlot) {
+        m_draftNudgeShown = true;
+        Q_EMIT draftNudgeSeen();
+    }
+}
+
 void NotesPanel::hideEvent(QHideEvent *event)
 {
     commitEdit();
+    // A hint shown once ends when the panel closes, unless it is to come every time.
+    if (!m_repeatHints && (m_colorHintShown || m_draftNudgeShown)) {
+        m_colorHint = m_colorHint && !m_colorHintShown;
+        m_draftNudge = m_draftNudge && !m_draftNudgeShown;
+        QTimer::singleShot(0, this, &NotesPanel::rebuildList);
+    }
     QWidget::hideEvent(event);
 }
 
@@ -451,6 +489,7 @@ NoteColorRow *NotesPanel::makeColorRow(QWidget *parent)
     if (m_popColor.isValid()) row->pop(m_popColor);
     connect(row, &NoteColorRow::picked, this, &NotesPanel::tookColor);
     connect(row, &NoteColorRow::dragStarted, this, [this]() {
+        if (!m_colorHint && !m_repeatHints) return;
         for (NoteColorRow *r : m_listWidget->findChildren<NoteColorRow *>()) r->setDropTargets(true);
     });
     connect(row, &NoteColorRow::dragEnded, this, [this]() {
@@ -479,9 +518,14 @@ NoteColorRow *NotesPanel::makeColorRow(QWidget *parent)
     return row;
 }
 
-void NotesPanel::setColorHint(bool on)
+void NotesPanel::setHints(bool colorHint, bool draftNudge, bool repeat)
 {
-    m_colorHint = on;
+    m_colorHint = colorHint;
+    m_hintStage = 1;
+    m_draftNudge = draftNudge;
+    m_repeatHints = repeat;
+    m_colorHintShown = false;
+    m_draftNudgeShown = false;
     rebuildList();
 }
 
@@ -563,7 +607,7 @@ void NotesPanel::keepColor(const QColor &color)
 
 QWidget *NotesPanel::makeDraft()
 {
-    auto *slot = new NudgeSlot(m_listWidget);
+    auto *slot = new NudgeSlot(m_draftNudge, m_listWidget);
     auto *card = new NoteCard(false, {}, slot);
     card->setProperty("draft", true);
 
@@ -792,6 +836,7 @@ void NotesPanel::rebuildList()
         m_listLayout->addWidget(empty);
     }
     m_listLayout->addStretch();
+    markHintsShown();
 }
 
 void NotesPanel::retranslateUi()

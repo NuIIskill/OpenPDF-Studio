@@ -620,8 +620,25 @@ bool TextBoxFrame::eventFilter(QObject *watched, QEvent *event)
     return true;
 }
 
+void TextBoxFrame::setPaintHidden(bool on)
+{
+    m_paintHidden = on;
+    m_editor->setPaintsOnScreen(!on);
+    update();
+    m_editor->viewport()->update();
+}
+
+void TextBoxFrame::renderTurned(QPaintDevice *to)
+{
+    // The box and its handles only: the caret and selection stay in the window.
+    m_renderingTurned = true;
+    render(to, QPoint(), QRegion(), {});
+    m_renderingTurned = false;
+}
+
 void TextBoxFrame::paintEvent(QPaintEvent *)
 {
+    if (m_paintHidden && !m_renderingTurned) return;
     QPainter p(this);
     p.setRenderHint(QPainter::Antialiasing, true);
 

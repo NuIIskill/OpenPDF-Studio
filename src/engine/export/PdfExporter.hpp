@@ -1,6 +1,7 @@
 #pragma once
 
 #include "engine/document/WriteGrant.hpp"
+#include "engine/export/PdfA.hpp"
 #include <QList>
 #include <QString>
 
@@ -12,10 +13,11 @@ struct PdfExportOptions {
     bool       embedFonts      { true };
     bool       compressImages  { true };
     int        imageQuality    { 85 };
+    bool       pdfA            { false };
     QString    userPassword;
 };
 
 bool exportPdf(const QString &sourcePath, const WriteGrant &outPath,
-               const PdfExportOptions &options);
+               const PdfExportOptions &options, PdfA::Report *pdfA = nullptr);
 
 bool pdfExportAvailable();

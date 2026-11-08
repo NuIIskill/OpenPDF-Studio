@@ -23,6 +23,20 @@ public:
     static constexpr int kBox     = 20;
     static constexpr int kSpacing = 14;
 
+    void setTristate(bool on) { m_tristate = on; }
+
+    [[nodiscard]] Qt::CheckState checkState() const
+    {
+        return m_partial ? Qt::PartiallyChecked : isChecked() ? Qt::Checked : Qt::Unchecked;
+    }
+
+    void setCheckState(Qt::CheckState state)
+    {
+        m_partial = state == Qt::PartiallyChecked;
+        setChecked(state == Qt::Checked);
+        update();
+    }
+
     [[nodiscard]] QSize sizeHint() const override
     {
         const QFontMetrics fm(labelFont());
@@ -31,6 +45,15 @@ public:
     }
 
 protected:
+    void nextCheckState() override
+    {
+        if (!m_tristate) {
+            QAbstractButton::nextCheckState();
+            return;
+        }
+        setCheckState(m_partial ? Qt::Checked : isChecked() ? Qt::Unchecked : Qt::PartiallyChecked);
+    }
+
     void paintEvent(QPaintEvent *) override
     {
         const bool on = isChecked();
@@ -53,6 +76,14 @@ protected:
             path.lineTo(x + w * 0.44, y + h * 0.70);
             path.lineTo(x + w * 0.76, y + h * 0.32);
             p.drawPath(path);
+        } else if (m_partial) {
+            p.setPen(Qt::NoPen);
+            p.setBrush(QColor(QStringLiteral("#EAB308")));
+            p.drawRoundedRect(box, 5, 5);
+            p.setPen(QPen(Qt::white, 2.4, Qt::SolidLine, Qt::RoundCap));
+            const qreal y = box.center().y();
+            p.drawLine(QPointF(box.left() + box.width() * 0.28, y),
+                       QPointF(box.right() - box.width() * 0.28, y));
         } else {
             p.setPen(QPen(QColor(dk ? QStringLiteral("#4B5563")
                                     : QStringLiteral("#D1D5DB")), 1.5));
@@ -68,6 +99,9 @@ protected:
     }
 
 private:
+    bool m_tristate { false };
+    bool m_partial  { false };
+
     [[nodiscard]] QFont labelFont() const
     {
         QFont f = font();

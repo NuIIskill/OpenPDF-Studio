@@ -11,6 +11,7 @@
 
 #include <QColor>
 #include <QHash>
+#include <QSet>
 #include <QList>
 #include <QPoint>
 #include <QPointF>
@@ -99,7 +100,8 @@ public:
     void attach(PageCanvas *canvas, DocumentSource *src, ZoomController *zoom, OcrEngine *ocr)
     { m_canvas = canvas; m_src = src; m_zoom = zoom; m_ocr = ocr; }
     void setSession(EditSession *session) { m_session = session; }
-    void clearOcrCache() { m_ocrCache.clear(); }
+    void forgetScans() { m_scansAsked.clear(); }
+    void readScansNear(int page);
     bool ocrMissing() const { return m_ocrMissing; }
 
     bool open(const QPoint &from, const QPoint &to, bool framed, int &lastCommittedPage,
@@ -152,13 +154,14 @@ private:
     void matchScanFace(EditOpen &o);
     void rereadScanLine(EditOpen &o, TextLayout::OriginalLine &line);
     QList<ScanFont::Line> scanContext(EditOpen &o, const QList<TextLayout::OriginalLine> &taken);
+    bool waitForScan(int page);
 
     PageCanvas     *m_canvas  { nullptr };
     DocumentSource *m_src     { nullptr };
     ZoomController *m_zoom    { nullptr };
     OcrEngine      *m_ocr     { nullptr };
     EditSession    *m_session { nullptr };
-    QHash<int, QList<OcrEngine::Block>> m_ocrCache;
+    QSet<int> m_scansAsked;
     bool m_ocrMissing { false };
 
     struct PageLines { int page = -1; QList<TextLayout::OriginalLine> lines; };

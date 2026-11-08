@@ -1,13 +1,16 @@
 #include "engine/ocr/OcrEngine.hpp"
 #include "engine/ocr/OcrLanguages.hpp"
+#include "engine/ocr/OcrStyle.hpp"
 
 #ifdef HAVE_TESSERACT
 #  include <tesseract/baseapi.h>
+#  include <tesseract/ocrclass.h>
 #  include <leptonica/allheaders.h>
 #endif
 
 #include <QDebug>
 #include <QStringList>
+#include <QtMath>
 #include <algorithm>
 #include <cmath>
 #include <limits>
@@ -56,6 +59,9 @@ void OcrEngine::refresh()
         for (const std::string &lang : loaded)
             names << QString::fromStdString(lang);
         qDebug() << "[OCR] Tesseract ready:" << names.join(u'+');
+        // Sauvola thresholds each part of a page by its surroundings, so a
+        // shadow or a grey scan keeps its text.
+        api->SetVariable("thresholding_method", "2");
         m_api   = api;
         m_ready = true;
         return;
@@ -84,79 +90,206 @@ QList<OcrEngine::Block> OcrEngine::recognizePage(const QImage &pageImage,
 {
     QList<Block> result;
 
-#ifdef HAVE_TESSERACT
-    if (!m_ready || pageImage.isNull() || renderScale <= 0.0) return result;
-
-    auto *api = static_cast<tesseract::TessBaseAPI *>(m_api);
-
-    const QImage img = pageImage.convertToFormat(QImage::Format_RGB888);
-
-    const int bpp  = img.depth() / 8;
-    const int bpl  = static_cast<int>(img.bytesPerLine());
-
-    api->SetImage(img.bits(), img.width(), img.height(), bpp, bpl);
-    api->SetPageSegMode(tesseract::PSM_AUTO);
-
-    if (api->Recognize(nullptr) != 0) {
-        qWarning() << "[OCR] Recognize() failed";
-        api->Clear();
-        return result;
-    }
-
-    tesseract::ResultIterator *ri = api->GetIterator();
-    if (!ri) { api->Clear(); return result; }
-
-    const QRectF pageRect(QPointF(0, 0), pageSizePts);
-
     // A line is split where its words stand far apart, as table cells do: a
     // gap wider than two and a half times the line's height.
-    struct Word { QRectF box; QString text; };
-    QList<Word> line;
-    const auto flush = [&]() {
+    for (const Line &line : recognizeLines(pageImage, pageSizePts, renderScale)) {
         double height = 0.0;
-        for (const Word &w : std::as_const(line)) height = std::max(height, w.box.height());
+        for (const Word &w : line) height = std::max(height, w.pdfBounds.height());
         QRectF box;
         QString text;
         for (int i = 0; i < line.size(); ++i) {
             const Word &w = line.at(i);
-            if (i > 0 && w.box.left() - line.at(i - 1).box.right() > height * 2.5) {
+            if (i > 0 && w.pdfBounds.left() - line.at(i - 1).pdfBounds.right() > height * 2.5) {
                 if (!text.isEmpty()) result.append({ box, text });
                 box = QRectF();
                 text.clear();
             }
-            box = box.isNull() ? w.box : box.united(w.box);
+            box = box.isNull() ? w.pdfBounds : box.united(w.pdfBounds);
             text += (text.isEmpty() ? QString() : QStringLiteral(" ")) + w.text;
         }
         if (!text.isEmpty()) result.append({ box, text });
-        line.clear();
+    }
+    qDebug() << "[OCR] Page recognition complete:" << result.size() << "lines found";
+    return result;
+}
+
+QList<OcrEngine::Line> OcrEngine::recognizeLines(const QImage &pageImage,
+                                                 const QSizeF  &pageSizePts,
+                                                 qreal          renderScale,
+                                                 bool           settle,
+                                                 const std::function<bool()> &cancelled,
+                                                 const std::function<void(int percent)> &progress) const
+{
+    QList<Line> lines;
+
+#ifdef HAVE_TESSERACT
+    if (!m_ready || pageImage.isNull() || renderScale <= 0.0) return lines;
+
+    auto *api = static_cast<tesseract::TessBaseAPI *>(m_api);
+    QImage straight;
+    const QTransform toPage = setPage(pageImage, renderScale, settle ? &straight : nullptr);
+    api->SetPageSegMode(tesseract::PSM_AUTO);
+
+    // Reading is most of the time, setting the words in the scan's face the rest.
+    constexpr int kReading = 60;
+    int shown = -1;
+    const auto report = [&](int percent) {
+        if (!progress || percent == shown) return;
+        shown = percent;
+        progress(percent);
+    };
+    tesseract::ETEXT_DESC monitor;
+    struct Watch {
+        const std::function<bool()> &cancelled;
+        const std::function<void(int)> &report;
+        const tesseract::ETEXT_DESC &monitor;
+    };
+    const std::function<void(int)> reported = report;
+    Watch watch { cancelled, reported, monitor };
+    // Tesseract asks whether to stop after each word, with its progress set.
+    monitor.cancel = [](void *data, int) {
+        const auto *w = static_cast<const Watch *>(data);
+        w->report(w->monitor.progress * kReading / 100);
+        return w->cancelled && w->cancelled();
+    };
+    monitor.cancel_this = &watch;
+    if (api->Recognize(cancelled || progress ? &monitor : nullptr) != 0 || (cancelled && cancelled())) {
+        if (!cancelled || !cancelled()) qWarning() << "[OCR] Recognize() failed";
+        api->Clear();
+        return lines;
+    }
+
+    tesseract::ResultIterator *ri = api->GetIterator();
+    if (!ri) { api->Clear(); return lines; }
+
+    const auto bounds = [&](tesseract::PageIteratorLevel level) {
+        int x1 = 0, y1 = 0, x2 = 0, y2 = 0;
+        if (!ri->BoundingBox(level, &x1, &y1, &x2, &y2)) return QRectF();
+        return QRectF(x1, y1, x2 - x1, y2 - y1);
+    };
+
+    Line line;
+    Word word;
+    bool skip = false;
+    int paragraph = 0;
+    const auto endWord = [&]() {
+        if (!word.text.trimmed().isEmpty()) line.append(word);
+        word = Word();
     };
     do {
-        if (ri->IsAtBeginningOf(tesseract::RIL_TEXTLINE)) flush();
-        const char *raw = ri->GetUTF8Text(tesseract::RIL_WORD);
+        if (ri->Empty(tesseract::RIL_SYMBOL)) continue;
+        if (ri->IsAtBeginningOf(tesseract::RIL_WORD)) {
+            endWord();
+            if (ri->IsAtBeginningOf(tesseract::RIL_TEXTLINE) && !line.isEmpty()) {
+                lines.append(line);
+                line.clear();
+            }
+            if (ri->IsAtBeginningOf(tesseract::RIL_PARA)) ++paragraph;
+            word.pdfBounds = bounds(tesseract::RIL_WORD);
+            word.paragraph = paragraph;
+            skip = word.pdfBounds.isEmpty();
+            int x1 = 0, y1 = 0, x2 = 0, y2 = 0;
+            const double mid = word.pdfBounds.center().x();
+            word.baseline = ri->Baseline(tesseract::RIL_TEXTLINE, &x1, &y1, &x2, &y2)
+                ? (x2 != x1 ? y1 + (y2 - y1) * (mid - x1) / double(x2 - x1) : double(y1))
+                : word.pdfBounds.bottom();
+        }
+        if (skip) continue;
+        const char *raw = ri->GetUTF8Text(tesseract::RIL_SYMBOL);
         if (!raw) continue;
-        const QString text = QString::fromUtf8(raw).trimmed();
+        const QString symbol = QString::fromUtf8(raw);
         delete[] raw;
-        if (text.isEmpty()) continue;
-
-        int x1 = 0, y1 = 0, x2 = 0, y2 = 0;
-        if (!ri->BoundingBox(tesseract::RIL_WORD, &x1, &y1, &x2, &y2)) continue;
-        const QRectF bounds = QRectF(x1 / renderScale, y1 / renderScale,
-                                     (x2 - x1) / renderScale, (y2 - y1) / renderScale)
-                                  .intersected(pageRect);
-        if (!bounds.isEmpty()) line.append({ bounds, text });
-    } while (ri->Next(tesseract::RIL_WORD));
-    flush();
+        const QRectF box = bounds(tesseract::RIL_SYMBOL);
+        for (const QChar c : symbol) {
+            word.text += c;
+            word.chars.append(box);
+        }
+    } while (ri->Next(tesseract::RIL_SYMBOL));
+    endWord();
+    if (!line.isEmpty()) lines.append(line);
 
     delete ri;
     api->Clear();
-    qDebug() << "[OCR] Page recognition complete:" << result.size() << "lines found";
+
+    report(kReading);
+    if (settle)
+        OcrStyle::settle(straight, renderScale, lines, cancelled, [&](qreal done) {
+            report(kReading + int(done * (100 - kReading)));
+        });
+    if (cancelled && cancelled()) return {};
+
+    // What was found on the straightened pixels is turned back onto the page.
+    const QRectF pageRect(QPointF(0, 0), pageSizePts);
+    for (Line &l : lines) {
+        for (Word &w : l) {
+            w.baseline = toPage.map(QPointF(w.pdfBounds.center().x(), w.baseline)).y();
+            w.pdfBounds = toPage.mapRect(w.pdfBounds).intersected(pageRect);
+            for (QRectF &c : w.chars)
+                if (!c.isEmpty()) c = toPage.mapRect(c).intersected(pageRect);
+        }
+        l.erase(std::remove_if(l.begin(), l.end(), [](const Word &w) { return w.pdfBounds.isEmpty(); }), l.end());
+    }
+    lines.erase(std::remove_if(lines.begin(), lines.end(), [](const Line &l) { return l.isEmpty(); }), lines.end());
 #else
     Q_UNUSED(pageImage)
     Q_UNUSED(pageSizePts)
     Q_UNUSED(renderScale)
+    Q_UNUSED(settle)
+    Q_UNUSED(cancelled)
+    Q_UNUSED(progress)
 #endif
 
-    return result;
+    return lines;
+}
+
+QTransform OcrEngine::setPage(const QImage &pageImage, qreal renderScale, QImage *straight) const
+{
+    QTransform toPage = QTransform::fromScale(1.0 / renderScale, 1.0 / renderScale);
+#ifdef HAVE_TESSERACT
+    auto *api = static_cast<tesseract::TessBaseAPI *>(m_api);
+    const QImage gray = pageImage.convertToFormat(QImage::Format_Grayscale8);
+    Pix *pix = pixCreate(gray.width(), gray.height(), 8);
+    for (int y = 0; y < gray.height(); ++y) {
+        const uchar *from = gray.constScanLine(y);
+        l_uint32 *to = pixGetData(pix) + y * pixGetWpl(pix);
+        for (int x = 0; x < gray.width(); ++x) SET_DATA_BYTE(to, x, from[x]);
+    }
+
+    // A scan lies a little askew; Tesseract reads it straightened, and what
+    // it finds is turned back onto the page.
+    l_float32 angle = 0.0f, confidence = 0.0f;
+    Pix *ink = nullptr;
+    if (pixSauvolaBinarizeTiled(pix, 25, 0.35f, 1, 1, nullptr, &ink) == 0)
+        pixFindSkew(ink, &angle, &confidence);
+    pixDestroy(&ink);
+    if (confidence >= 3.0f && std::abs(angle) >= 0.1f) {
+        if (Pix *straight = pixRotate(pix, qDegreesToRadians(angle), L_ROTATE_AREA_MAP,
+                                      L_BRING_IN_WHITE, 0, 0)) {
+            pixDestroy(&pix);
+            pix = straight;
+            const QPointF center(gray.width() / 2.0, gray.height() / 2.0);
+            toPage.translate(center.x(), center.y());
+            toPage.rotate(-angle);
+            toPage.translate(-center.x(), -center.y());
+        }
+    }
+
+    if (straight) {
+        *straight = QImage(int(pixGetWidth(pix)), int(pixGetHeight(pix)), QImage::Format_Grayscale8);
+        for (int y = 0; y < straight->height(); ++y) {
+            const l_uint32 *from = pixGetData(pix) + y * pixGetWpl(pix);
+            uchar *to = straight->scanLine(y);
+            for (int x = 0; x < straight->width(); ++x) to[x] = uchar(GET_DATA_BYTE(from, x));
+        }
+    }
+    api->SetImage(pix);
+    api->SetSourceResolution(qRound(renderScale * 72.0));
+    pixDestroy(&pix);
+#else
+    Q_UNUSED(pageImage)
+    Q_UNUSED(straight)
+#endif
+    return toPage;
 }
 
 QString OcrEngine::Table::toPlainText() const
@@ -366,7 +499,10 @@ QString OcrEngine::recognizeLine(const QImage &image, int dpi) const
                   img.depth() / 8, static_cast<int>(img.bytesPerLine()));
     api->SetSourceResolution(dpi);
     api->SetPageSegMode(tesseract::PSM_SINGLE_LINE);
+    // A line cut from a page is evenly lit and keeps one threshold for all of it.
+    api->SetVariable("thresholding_method", "0");
     char *raw = api->GetUTF8Text();
+    api->SetVariable("thresholding_method", "2");
     api->Clear();
     api->SetPageSegMode(tesseract::PSM_AUTO);
     if (!raw) return {};

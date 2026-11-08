@@ -15,6 +15,8 @@
 #include <QDebug>
 #include <QFileInfo>
 
+#include <cstdio>
+
 namespace Cli {
 
 namespace {
@@ -44,6 +46,7 @@ int exportPdfCommand(const QStringList &args)
         else if (o == QLatin1String("noforms"))    opt.keepForms       = false;
         else if (o == QLatin1String("nofonts"))    opt.embedFonts      = false;
         else if (o == QLatin1String("nocompress")) opt.compressImages  = false;
+        else if (o == QLatin1String("pdfa"))       opt.pdfA            = true;
         else if (o.startsWith(QLatin1String("q=")))
             opt.imageQuality = o.mid(2).toInt();
         else if (o.startsWith(QLatin1String("pw=")))
@@ -53,7 +56,13 @@ int exportPdfCommand(const QStringList &args)
         else if (o.startsWith(QLatin1String("pages=")))
             appendPages(o.mid(6), opt.pages);
     }
-    return exportPdf(args.at(2), CliWrites::to(args.at(3)), opt) ? 0 : 3;
+    PdfA::Report report;
+    const bool ok = exportPdf(args.at(2), CliWrites::to(args.at(3)), opt, &report);
+    for (const QString &line : std::as_const(report.changes))
+        std::fprintf(stderr, "changed: %s\n", qPrintable(line));
+    for (const QString &line : std::as_const(report.blockers))
+        std::fprintf(stderr, "blocked: %s\n", qPrintable(line));
+    return ok ? 0 : 3;
 }
 
 int exportDocxCommand(const QStringList &args)

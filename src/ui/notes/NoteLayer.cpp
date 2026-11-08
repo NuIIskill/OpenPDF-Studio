@@ -13,6 +13,7 @@
 #include <QDataStream>
 #include <QGraphicsOpacityEffect>
 #include <QLabel>
+#include <QPainter>
 #include <QPushButton>
 #include <QTimer>
 #include <QUndoCommand>
@@ -20,6 +21,7 @@
 #include <QUuid>
 
 #include <algorithm>
+#include <limits>
 #include <utility>
 
 namespace {
@@ -30,6 +32,67 @@ QRectF markerBeside(const QList<QRectF> &rects)
 {
     const QRectF last = rects.last();
     return QRectF(last.right() + 2.0, last.center().y() - kNoteSize / 2, kNoteSize, kNoteSize);
+}
+
+qreal area(const QRectF &rect)
+{
+    return rect.width() * rect.height();
+}
+
+/// A text highlight drawn as the page draws one from the file: the note's color multiplied onto it.
+class Highlight : public QWidget
+{
+public:
+    Highlight(const QColor &color, QWidget *parent) : QWidget(parent), m_color(color) {}
+
+protected:
+    void paintEvent(QPaintEvent *) override
+    {
+        QPainter painter(this);
+        painter.setCompositionMode(QPainter::CompositionMode_Multiply);
+        painter.fillRect(rect(), m_color);
+    }
+
+private:
+    QColor m_color;
+};
+
+// Where the quote is set in the laid lines, one rect per line, the place nearest to `near`.
+QList<QRectF> quoteIn(const QList<TextLayout::OriginalLine> &lines, const QString &quote,
+                      const QPointF &near)
+{
+    struct At { int line; int index; };
+    QString flat, wanted;
+    QList<At> at;
+    for (int l = 0; l < lines.size(); ++l)
+        for (int i = 0; i < lines.at(l).text.size(); ++i)
+            if (!lines.at(l).text.at(i).isSpace()) {
+                flat += lines.at(l).text.at(i);
+                at.append({ l, i });
+            }
+    for (const QChar c : quote) if (!c.isSpace()) wanted += c;
+    QList<QRectF> best;
+    if (wanted.isEmpty()) return best;
+    qreal nearest = std::numeric_limits<qreal>::max();
+    for (int from = flat.indexOf(wanted); from >= 0; from = flat.indexOf(wanted, from + 1)) {
+        QList<QRectF> rects;
+        for (int k = from; k < from + wanted.size(); ++k) {
+            const TextLayout::OriginalLine &line = lines.at(at.at(k).line);
+            const int i = at.at(k).index;
+            if (i >= line.charX.size()) return {};
+            const qreal right = i + 1 < line.charX.size() ? line.charX.at(i + 1) : line.endX;
+            const QRectF glyph(QPointF(line.charX.at(i), line.rect.top()),
+                               QPointF(right, line.rect.bottom()));
+            if (k > from && at.at(k - 1).line == at.at(k).line) rects.last() |= glyph;
+            else rects.append(glyph);
+        }
+        const qreal distance = (rects.first().topLeft() - near).manhattanLength();
+        if (distance < nearest) {
+            nearest = distance;
+            best = rects;
+        }
+    }
+    return best;
 }
 
 QString newId()
@@ -50,8 +113,9 @@ class NoteUndoCommand : public QUndoCommand
 {
 public:
     NoteUndoCommand(NoteLayer *layer, QList<NoteData> before,
-                    QList<NoteData> after, const QString &text)
-        : QUndoCommand(text)
+                    QList<NoteData> after, const QString &text,
+                    QUndoCommand *parent = nullptr)
+        : QUndoCommand(text, parent)
         , m_layer(layer)
         , m_before(std::move(before))
         , m_after(std::move(after))
@@ -376,6 +440,89 @@ void NoteLayer::unlink(const QString &id)
     placeAt(id, target, tr("Unlink note"));
 }
 
+bool NoteLayer::follows(const NoteData &note, const Following &move)
+{
+    // A note goes with moved text when most of what it is linked to was in it.
+    if (note.removed || note.page != move.fromPage || note.textRects.isEmpty()) return false;
+    qreal inside = 0.0, all = 0.0;
+    for (const QRectF &rect : note.textRects) {
+        inside += area(rect.intersected(move.from));
+        all    += area(rect);
+    }
+    return all > 0.0 && inside * 2.0 >= all;
+}
+
+NoteData NoteLayer::carried(NoteData note, const Following &move)
+{
+    // What lay in the moved text goes by the move; a line of it left behind stays.
+    note.page = move.toPage;
+    note.pdfBounds.translate(move.by);
+    for (QRectF &rect : note.textRects)
+        if (area(rect.intersected(move.from)) * 2.0 >= area(rect)) rect.translate(move.by);
+    return note;
+}
+
+NoteData NoteLayer::shown(const NoteData &note) const
+{
+    return follows(note, m_following) ? carried(note, m_following) : note;
+}
+
+void NoteLayer::showFollowing(int fromPage, const QRectF &from, int toPage, const QPointF &by)
+{
+    const Following next { fromPage, from, toPage, by };
+    if (next.fromPage == m_following.fromPage && next.from == m_following.from
+            && next.toPage == m_following.toPage && next.by == m_following.by)
+        return;
+    m_following = next;
+    relayout();
+}
+
+void NoteLayer::follow(int fromPage, const QRectF &from, int toPage, const QPointF &by,
+                       const QList<TextLayout::OriginalLine> &lines, QUndoCommand *step)
+{
+    m_following = {};
+    if (m_beforeChange) m_beforeChange();
+    const Following move { fromPage, from, toPage, by };
+    const QList<NoteData> before = state();
+    QList<int> going;
+    for (int i = 0; i < m_entries.size(); ++i)
+        if (follows(m_entries.at(i).data, move)) going.append(i);
+    for (int i : std::as_const(going)) {
+        NoteData moved = carried(m_entries.at(i).data, move);
+        // Set anew, the text keeps its note on the very characters it was linked to.
+        QList<QRectF> set = quoteIn(lines, moved.quote, moved.textRects.first().topLeft());
+        // Line by line it keeps the height it had, so its look does not change.
+        if (set.size() == moved.textRects.size())
+            for (int k = 0; k < set.size(); ++k) {
+                const qreal middle = set.at(k).center().y();
+                const qreal height = moved.textRects.at(k).height();
+                set[k].setTop(middle - height / 2);
+                set[k].setHeight(height);
+            }
+        if (!set.isEmpty()) {
+            moved.textRects = set;
+            moved.pdfBounds.moveTopLeft(onPage(toPage, markerBeside(set).topLeft()));
+        }
+        if (moved.existing) {
+            // The writer looks for a note on its own page and of its own kind,
+            // so it is removed there and written anew.
+            m_entries[i].data.removed = true;
+            m_entries[i].marker->hide();
+            moved.id = newId();
+            moved.existing = false;
+            moved.originalId.clear();
+            addEntry(moved, false);
+        } else {
+            m_entries[i].data = moved;
+        }
+    }
+    relayout();
+    if (going.isEmpty()) return;
+    syncSession();
+    new NoteUndoCommand(this, before, state(), tr("Move note"), step);
+    notifyChanged();
+}
+
 QWidget *NoteLayer::marker(const QString &id) const
 {
     const int index = indexOf(id);
@@ -647,12 +794,11 @@ void NoteLayer::relayout()
 {
     const qreal scale = m_canvas->screenScale();
     for (const Entry &entry : std::as_const(m_entries)) {
-        if (!entry.marker || entry.data.page < 0
-                || entry.data.page >= m_canvas->pageLabelCount()) continue;
-        const QLabel *label = m_canvas->pageLabel(entry.data.page);
+        const NoteData note = shown(entry.data);
+        if (!entry.marker || note.page < 0 || note.page >= m_canvas->pageLabelCount()) continue;
+        const QLabel *label = m_canvas->pageLabel(note.page);
         if (!label) continue;
-        const QPointF topLeft = entry.data.pdfBounds.topLeft() * scale
-                              + QPointF(label->pos());
+        const QPointF topLeft = note.pdfBounds.topLeft() * scale + QPointF(label->pos());
         entry.marker->move(topLeft.toPoint());
     }
     showHighlights();
@@ -668,15 +814,13 @@ QList<QWidget *> NoteLayer::paint(int page, const QList<QRectF> &rects, const QS
     if (!label) return marks;
     const qreal scale = m_canvas->screenScale();
     for (const QRectF &rect : rects) {
-        auto *mark = new QWidget(m_canvas->canvasWidget());
+        QWidget *mark = color.isValid() ? new Highlight(color, m_canvas->canvasWidget())
+                                        : new QWidget(m_canvas->canvasWidget());
         mark->setObjectName(name);
-        mark->setAttribute(Qt::WA_StyledBackground, true);
+        mark->setAttribute(Qt::WA_StyledBackground, !color.isValid());
         mark->setAttribute(Qt::WA_TransparentForMouseEvents, true);
         const QRectF shown(rect.topLeft() * scale + QPointF(label->pos()), rect.size() * scale);
         mark->setGeometry(shown.toAlignedRect());
-        if (color.isValid())
-            mark->setStyleSheet(QStringLiteral("background: rgba(%1, %2, %3, 0.38);")
-                                    .arg(color.red()).arg(color.green()).arg(color.blue()));
         mark->show();
         marks.append(mark);
     }
@@ -690,10 +834,12 @@ void NoteLayer::showHighlights()
     // What the file already has is drawn by the page itself.
     qDeleteAll(m_highlights);
     m_highlights.clear();
-    for (const Entry &entry : std::as_const(m_entries))
-        if (!entry.data.existing && !entry.data.removed && !entry.data.textRects.isEmpty())
-            m_highlights += paint(entry.data.page, entry.data.textRects,
-                                  QStringLiteral("NoteHighlight"), entry.data.color);
+    for (const Entry &entry : std::as_const(m_entries)) {
+        const NoteData note = shown(entry.data);
+        if (!note.existing && !note.removed && !note.textRects.isEmpty())
+            m_highlights += paint(note.page, note.textRects,
+                                  QStringLiteral("NoteHighlight"), note.color);
+    }
     for (const Entry &entry : std::as_const(m_entries)) if (entry.marker) entry.marker->raise();
 }
 

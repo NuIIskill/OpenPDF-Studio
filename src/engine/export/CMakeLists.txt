@@ -7,10 +7,29 @@ target_sources(OpenPDFStudio PRIVATE
     DocxLayout.hpp
     DocxXml.cpp
     DocxXml.hpp
+    FontProgram.cpp
+    FontProgram.hpp
+    FontProgram_Cff.cpp
+    FontProgram_Type1.cpp
+    GlyphNames.cpp
+    GlyphNames.hpp
     MarkupExporter.cpp
     MarkupExporter.hpp
+    MarkupExporter_Html.cpp
+    MarkupPieces.cpp
+    MarkupPieces.hpp
     OdtExporter.cpp
     OdtExporter.hpp
+    PdfA.cpp
+    PdfA.hpp
+    PdfAAppearances.cpp
+    PdfAAppearances.hpp
+    PdfAContent.cpp
+    PdfAContent.hpp
+    PdfAFonts.cpp
+    PdfAFonts.hpp
+    PdfAGlyphs.cpp
+    PdfAGlyphs.hpp
     PdfExporter.cpp
     PdfExporter.hpp
     PrintSheets.cpp

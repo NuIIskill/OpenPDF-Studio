@@ -92,8 +92,9 @@ QString fontNameAt(FPDF_TEXTPAGE tp, int index)
 
 }
 
-PdfiumContentProvider::PdfiumContentProvider(FPDF_DOCUMENT doc)
+PdfiumContentProvider::PdfiumContentProvider(FPDF_DOCUMENT doc, ScanText scanText)
     : m_doc(doc)
+    , m_scanText(std::move(scanText))
 {
 }
 
@@ -126,8 +127,8 @@ QList<ContentItem> PdfiumContentProvider::buildPageItems(int page,
 
     // Turned text is read in its own direction and turned back onto the page.
     QList<ContentItem> text;
-    if (FPDF_TEXTPAGE tp = FPDFText_LoadPage(pg)) {
-        const QMap<int, QList<ContentCluster>> words = collectWords(tp, space, mergeVertical);
+    const auto read = [&](FPDF_TEXTPAGE tp, const PdfiumPageSpace &in, const QList<QRectF> &boxes) {
+        const QMap<int, QList<ContentCluster>> words = collectWords(tp, in, mergeVertical, boxes);
         for (auto it = words.cbegin(); it != words.cend(); ++it) {
             const QTransform turn = QTransform().rotate(it.key());
             for (ContentItem item : classifyContentClusters(it.value(), mergeVertical)) {
@@ -137,6 +138,15 @@ QList<ContentItem> PdfiumContentProvider::buildPageItems(int page,
                 text.append(item);
             }
         }
+    };
+    // A scan that OCR read is edited as the text it holds.
+    FPDF_PAGE scanPage = nullptr;
+    FPDF_TEXTPAGE scanText = nullptr;
+    QList<QRectF> scanBoxes;
+    if (mergeVertical && m_scanText && m_scanText(page, scanPage, scanText, scanBoxes)) {
+        read(scanText, PdfiumPageSpace(scanPage), scanBoxes);
+    } else if (FPDF_TEXTPAGE tp = FPDFText_LoadPage(pg)) {
+        read(tp, space, {});
         FPDFText_ClosePage(tp);
     }
     FPDF_ClosePage(pg);
@@ -151,7 +161,8 @@ QList<ContentItem> PdfiumContentProvider::buildPageItems(int page,
 
 QMap<int, QList<ContentCluster>> PdfiumContentProvider::collectWords(FPDF_TEXTPAGE tp,
                                                                      const PdfiumPageSpace &space,
-                                                                     bool byTurn) const
+                                                                     bool byTurn,
+                                                                     const QList<QRectF> &boxes) const
 {
     QMap<int, QList<ContentCluster>> words;
     const int count = FPDFText_CountChars(tp);
@@ -184,9 +195,14 @@ QMap<int, QList<ContentCluster>> PdfiumContentProvider::collectWords(FPDF_TEXTPA
         const QTransform unturn = QTransform().rotate(-turn);
         double originX = 0, originY = 0;
         FPDFText_GetCharOrigin(tp, i, &originX, &originY);
-        const QRectF box = unturn.mapRect(space.toView(left, bottom, right, top));
+        QRectF box = unturn.mapRect(space.toView(left, bottom, right, top));
         const QPointF origin = unturn.map(space.toView(originX, originY));
         originX = origin.x();
+        // A scanned character stands where OCR found it.
+        if (const QRectF scanned = boxes.value(i); !scanned.isEmpty()) {
+            box     = scanned;
+            originX = scanned.left();
+        }
         const double baseline = origin.y();
         const double fontSize = PdfiumTextRules::effectiveFontSize(tp, i);
 

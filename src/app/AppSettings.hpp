@@ -33,6 +33,8 @@ public:
     void setNoteColors(const QStringList &colors);
     [[nodiscard]] bool noteColorHintSeen() const;
     void setNoteColorHintSeen(bool seen);
+    [[nodiscard]] bool noteDraftNudgeSeen() const;
+    void setNoteDraftNudgeSeen(bool seen);
     [[nodiscard]] QStringList notePalette() const;
     void setNotePalette(const QStringList &colors);
 
@@ -82,6 +84,9 @@ public:
 
     [[nodiscard]] bool preservePanelLayout() const;
     void setPreservePanelLayout(bool enabled);
+
+    [[nodiscard]] QString hintAnimations() const;
+    void setHintAnimations(const QString &mode);
 
     [[nodiscard]] bool rightPanelCollapsed() const;
     void setRightPanelCollapsed(bool collapsed);

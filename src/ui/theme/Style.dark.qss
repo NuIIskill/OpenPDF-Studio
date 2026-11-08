@@ -204,7 +204,6 @@ QFrame#NoteCard:hover { border-color: #64748B; }
 QFrame#NoteCard[selected="true"] { border: 1px solid #3B82F6; background: #3D3D3D; }
 QFrame#NoteCard[draft="true"] { border: none; background: transparent; }
 QLabel#NoteDraftHint { color: #93C5FD; font-size: 12px; font-weight: 600; }
-QWidget#NoteHighlight { background: rgba(250, 204, 21, 0.38); }
 QWidget#NoteLinkPreview { background: rgba(250, 204, 21, 0.22); border: 1px dashed #EAB308; }
 QFrame#NoteColorPicker { background: #3D3D3D; border: 1px solid #555555; border-radius: 12px; }
 QLineEdit#NoteColorHex {

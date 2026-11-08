@@ -105,12 +105,17 @@ line's room over its spaces in the same layout, so editor and file agree.
 Text turned by whole quarter turns, by its matrix or by /Rotate, is read in its
 own direction and opened as a box turned by `TextBoxProperties::rotationDeg`.
 It is typed in an upright window beside it (`EditOpener::windowSpot()`): the
-window is the box in a frame turned back about a pivot, and the preview draws
-the box twice, upright on white in the window and turned in place
-(`EditSession::turnAbout()`), which is also what closing writes.
-`EditController::takeBounds()` moves the pivot with the window, so moving or
-zooming it never moves the text; `EditCallout` draws the arrow to it. Its
-original objects are always set anew, never kept.
+window is the box in a frame turned back about a pivot. The preview draws the
+box turned in place (`EditSession::turnAbout()`), which is also what closing
+writes; `EditCallout` draws the window's text (`renderEditText()`) on white
+over the page, so the page's marks and notes stay under it.
+`TurnedFrame` draws the window's frame turned on the text and passes the
+pointer to the window turned back, so moving and resizing it there work as on
+upright text: the pivot stays put during such a drag and the window is hidden,
+then `EditController::keepWindowOnPage()` puts it back at its old distance to
+the text. `EditController::takeBounds()` moves the pivot when the window alone
+moves (dragged, zoomed), so the text stays; the card also carries the arrow
+to it and the angle. Its original objects are always set anew, never kept.
 PDFium's page writer is lossy: it drops Type3 text, character and word
 spacing, soft masks and every colour that is not DeviceRGB. So the page's own
 content is not taken from PDFium. `OriginalContent` (qpdf) counts the page's
@@ -202,7 +207,15 @@ A mouse wheel step glides instead of jumping (`SmoothScroll`), driven by the
 window's frames; touchpad gestures are left as they are.
 
 The grid of thumbnails and the find bar use the worker too: thumbnails in view
-first, the search page by page with matches shown as they come in.
+first, the search page by page with matches shown as they come in. A page
+without a text layer is rendered at 300 dpi and handed to `OcrSearch`
+(`engine/ocr/`), which reads it on up to three low-priority threads.
+`PdfiumScanText` sets what was read as invisible text of a document kept in
+memory until the file is closed, so PDFium's own search finds it by the rules
+it uses for text; each match is shown on the boxes of the scanned letters. The
+text is set on the main thread, since the fonts of that document must outlive
+the reader. The find bar sorts the late matches in by page, and its progress
+bar counts a page being read by how far OCR got (`DocumentWorker::scanProgress`).
 The page organizer opens its files again as `OrganizerDoc`s, each with its own
 worker, and loads its thumbnails the same way (`ui/organizer/OrganizerThumbnails`).
 
@@ -255,9 +268,11 @@ first word would have fit, at a justified line short of the margin, an
 indent, a list marker or a heading. Columns and cells are told apart by the
 white channel running down between them (`TextGutters`), which the line
 reader in `PdfiumBackend` uses as well, so a click opens the same lines both
-see. When a
-click finds no text, `EditController` falls back to OCR on a page rendered at
-300 dpi or more, split into cells where words stand far apart. Text that shows
+see. A scan
+that OCR has read is read as that text by the line reader and by the content
+detection, as if it had an invisible OCR layer; a click on an unread scan waits
+for the worker to read it (`DocumentWorker::readScan()`), which the text tool
+already asks for the page in view and its neighbours. Text that shows
 only as a scan's pixels, found by OCR or in an invisible OCR text layer
 (`PdfBackend::hiddenText()`), is an `Edit::scanned`: `ScanFont` finds the
 installed face, weight, size and baseline its pixels match by rendering the
@@ -373,19 +388,37 @@ on startup.
 - **Export** (`engine/export/`): PDF with page selection through qpdf, DOCX
   and ODT with layout detection, PNG, JPEG, TIFF or WebP per page, plain
   text from each page's text layer, Markdown and HTML (`MarkupExporter`, from
-  the same `DocxPage` content as DOCX, as flowing text), and printing. ODT takes
+  the same `DocxPage` content as DOCX turned into `MarkupPieces`, as flowing
+  text; `DocxPage::links` brings the page's web links along and
+  `DocxBlock::withLabels` a chart as the page shows it), and printing. ODT takes
   the same page content as DOCX (`DocxPage`) and writes it with `OdtExporter`.
   A line's changes of font, size and colour travel as `ContentItem::runs`. `Exporting` and
   `Printing` read an `ExportCopy`, written by `writeRecoveryCopy()`, so unsaved
   changes are exported and printed like a save would write them; the formats
   run on a worker thread.
+  PDF/A-2b (`PdfA`) converts the qpdf document `exportPdf` built before it is
+  written: XMP metadata, sRGB output intent, forbidden actions and annotations
+  out, missing appearances drawn (`PdfAAppearances`), and fonts the content
+  shows without a program embedded from an installed font with the same widths
+  (`PdfAContent` finds them, `PdfAFonts` embeds a subset). `PdfAGlyphs` checks
+  the fonts already embedded against their programs (`FontProgram` reads
+  TrueType, CFF and Type1): a glyph for every character shown and the same
+  widths; a missing Type3 glyph becomes an empty one. What it cannot fix, CMYK
+  colour among it, stops the export. The written file is converted once
+  more; anything left to do discards it.
   `PrintSheets` lays the pages out on sheets, for the preview
   in `PrintDialog` and for the printer alike. DOCX pictures are compressed page by page while the content
   is collected, so long documents never hold their rasters all at once.
 - **OCR** (`engine/ocr/`): Tesseract, for text the page has no text layer for.
   It loads the offered languages that are installed (`OcrLanguages`) and
   reloads when that set changes; a scan clicked without any shows `EditNotice`
-  with a way to the add-on page.
+  with a way to the add-on page. A page is binarized with Sauvola and
+  straightened before reading; the boxes found are turned back onto the page.
+  For the search and the editor `OcrStyle` then sets each word in the face its paragraph is
+  printed in (`ScanFont`) and tries the readings OCR confuses (a dash and a
+  hyphen, § and 8, O and ©, o and 0, a missing accent or abbreviation point);
+  one replaces OCR's only where the scan sides with it on most of the pixels
+  the two differ in, and the letter boxes come from that setting.
 
 ## Add-on packages
 

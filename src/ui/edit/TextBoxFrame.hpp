@@ -70,6 +70,10 @@ public:
     bool   dragging() const { return m_drag != Handle::None; }
     bool   movingBox() const { return m_drag == Handle::Move; }
     void   holdDragForZoom();
+    void   setPaintHidden(bool on);
+    bool   paintHidden() const { return m_paintHidden; }
+    bool   renderingTurned() const { return m_renderingTurned; }
+    void   renderTurned(QPaintDevice *to);
 
     void growToFitText();
     void setGrowHorizontal(bool on);
@@ -140,6 +144,8 @@ private:
     bool          m_hasInnerTopLeft { false };
 
     bool          m_userSized { false };
+    bool          m_paintHidden { false };
+    bool          m_renderingTurned { false };
     QPointF       m_anchorPt;
     bool          m_hasAnchor { false };
 

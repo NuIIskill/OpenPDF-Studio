@@ -27,7 +27,7 @@ exports apply to the current shell. Document and screenshot modes still use
 
 ```text
 build/OpenPDFStudio --export-pdf    in.pdf out.pdf [pages=1,3-4] [nocomments] [noforms]
-                                    [nofonts] [nocompress] [q=60] [pw=…] [srcpw=…]
+                                    [nofonts] [nocompress] [q=60] [pw=…] [srcpw=…] [pdfa]
 build/OpenPDFStudio --export-docx   in.pdf out.docx [pages=1,3-4] [q=60] [nocompress] [srcpw=…]
 build/OpenPDFStudio --export-odt    in.pdf out.odt [pages=1,3-4] [q=60] [nocompress] [srcpw=…]
 build/OpenPDFStudio --export-images in.pdf out.png [pages=1,3-4] [q=85] [srcpw=…]

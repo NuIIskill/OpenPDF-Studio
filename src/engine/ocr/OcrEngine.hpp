@@ -6,6 +6,9 @@
 #include <QRectF>
 #include <QSizeF>
 #include <QString>
+#include <QTransform>
+
+#include <functional>
 
 /// OCR engine wrapping Tesseract.
 class OcrEngine
@@ -17,6 +20,15 @@ public:
         bool    isTable { false };
         bool isValid() const { return !text.trimmed().isEmpty() && !pdfBounds.isEmpty(); }
     };
+
+    struct Word {
+        QRectF        pdfBounds;
+        QString       text;
+        QList<QRectF> chars;
+        qreal         baseline  { 0.0 };
+        int           paragraph { 0 };
+    };
+    using Line = QList<Word>;
 
     /// A single cell in a recognised table.
     struct TableCell {
@@ -52,6 +64,13 @@ public:
                                 const QSizeF  &pageSizePts,
                                 qreal          renderScale) const;
 
+    QList<Line> recognizeLines(const QImage &pageImage,
+                               const QSizeF  &pageSizePts,
+                               qreal          renderScale,
+                               bool           settle = false,
+                               const std::function<bool()> &cancelled = {},
+                               const std::function<void(int percent)> &progress = {}) const;
+
     QList<Table> recognizeTables(const QImage &pageImage,
                                   const QSizeF  &pageSizePts,
                                   qreal          renderScale) const;
@@ -66,6 +85,7 @@ public:
 
 private:
     void release();
+    QTransform setPage(const QImage &pageImage, qreal renderScale, QImage *straight = nullptr) const;
 
     void   *m_api   { nullptr };
     bool    m_ready { false };

@@ -9,6 +9,7 @@
 #include "engine/document/PdfiumImages.hpp"
 #include "engine/document/PdfiumLock.hpp"
 #include "engine/document/PdfiumPageSpace.hpp"
+#include "engine/document/PdfiumScanText.hpp"
 #include "engine/document/PdfiumTextRules.hpp"
 #include "engine/document/PdfiumWriter.hpp"
 #include "engine/edit/ContentMap.hpp"
@@ -163,6 +164,7 @@ PdfiumBackend::~PdfiumBackend()
         std::lock_guard guard(m_metricsMutex);
         m_metricsCache.clear();
     }
+    m_scanText.reset();
     if (m_doc) {
         PdfiumFonts::releaseFonts(m_doc);
         FPDF_CloseDocument(m_doc);
@@ -199,6 +201,7 @@ bool PdfiumBackend::open(const QString &path, const PasswordAsker &ask)
     PdfiumLock lock;
     dropBackgroundPages();
     dropReadPages();
+    m_scanText.reset();
     if (m_doc) {
         PdfiumFonts::releaseFonts(m_doc);
         FPDF_CloseDocument(m_doc);
@@ -223,6 +226,7 @@ void PdfiumBackend::close()
         std::lock_guard guard(m_metricsMutex);
         m_metricsCache.clear();
     }
+    m_scanText.reset();
     if (m_doc) {
         PdfiumFonts::releaseFonts(m_doc);
         FPDF_CloseDocument(m_doc);
@@ -352,7 +356,14 @@ QSize PdfiumBackend::pixelSize(int page, qreal scale) const
 std::unique_ptr<ContentProvider> PdfiumBackend::makeContentProvider() const
 {
     if (!m_doc) return nullptr;
-    return std::make_unique<PdfiumContentProvider>(m_doc);
+    return std::make_unique<PdfiumContentProvider>(
+        m_doc, [this](int page, FPDF_PAGE &pg, FPDF_TEXTPAGE &text, QList<QRectF> &boxes) {
+            pg   = readPage(page);
+            text = readText(page);
+            if (!pg || !text || !readScan(page, pg, text)) return false;
+            boxes = m_scanText->boxes(page);
+            return true;
+        });
 }
 
 bool PdfiumBackend::saveWithEdits(const WriteGrant &output,
@@ -598,6 +609,8 @@ std::vector<PdfiumLine> PdfiumBackend::linesOfPage(int page,
     if (!pg) return lines;
     FPDF_TEXTPAGE tp = readText(page);
     if (!tp) return lines;
+    QList<QRectF> scanBoxes;
+    if (readScan(page, pg, tp)) scanBoxes = m_scanText->boxes(page);
 
     const PdfiumPageSpace space(pg);
     const int    total      = FPDFText_CountChars(tp);
@@ -630,6 +643,14 @@ std::vector<PdfiumLine> PdfiumBackend::linesOfPage(int page,
         const QPointF origin = unturn.map(space.toView(originX, originY));
         originX = origin.x();
         double baseline = origin.y();
+        // A scanned character stands where OCR found it, a space after the character before it.
+        const QRectF scanned = scanBoxes.value(i);
+        if (!scanned.isEmpty()) {
+            box     = scanned;
+            originX = scanned.left();
+        } else if (!scanBoxes.isEmpty()) {
+            box.setWidth(0.0);
+        }
 
         // A space that the writer placed through the text matrix instead of a
         // glyph comes back with an empty box at a meaningless spot; Qt's own PDF
@@ -641,6 +662,7 @@ std::vector<PdfiumLine> PdfiumBackend::linesOfPage(int page,
             box      = QRectF(previous.box.right(), previous.box.top(),
                               0.01, previous.box.height());
             baseline = previous.baseline;
+            if (!scanBoxes.isEmpty()) originX = previous.endX;
         }
         if (box.width() <= 0.0 && box.height() <= 0.0) continue;
 
@@ -651,7 +673,7 @@ std::vector<PdfiumLine> PdfiumBackend::linesOfPage(int page,
 
         FPDF_PAGEOBJECT object = FPDFText_GetTextObject(tp, i);
         const double fontSize = PdfiumTextRules::effectiveFontSize(tp, i);
-        const double advance = object ? PdfiumFonts::glyphWidth(FPDFTextObj_GetFont(object),
+        const double advance = object && scanned.isEmpty() ? PdfiumFonts::glyphWidth(FPDFTextObj_GetFont(object),
                                                                cp, fontSize)
                                       : box.width();
         const bool generated = FPDFText_IsGenerated(tp, i) == 1;
@@ -829,12 +851,22 @@ TextBlock PdfiumBackend::textAt(int page, const QPointF &pdfPt,
         return QPointF(qMax(0.0, qMax(r.left() - p.x(), p.x() - r.right())),
                        qMax(0.0, qMax(r.top()  - p.y(), p.y() - r.bottom())));
     };
+    // Of lines whose boxes overlap there, as of a skewed scan, the one whose letters lie nearest.
+    const auto nearestLetter = [&pdfPt](const PdfiumLine &line) {
+        double nearest = std::numeric_limits<double>::max();
+        for (const QPointF &at : line.charIn)
+            nearest = std::min(nearest, std::hypot(at.x() - pdfPt.x(), at.y() - pdfPt.y()));
+        return nearest;
+    };
     const PdfiumLine *best = nullptr;
     double bestDist = std::numeric_limits<double>::max();
+    double bestLetter = std::numeric_limits<double>::max();
     for (const PdfiumLine &line : lines) {
         const QPointF off = offsets(line);
         const double d  = off.y() * 8.0 + off.x();
-        if (d < bestDist) { bestDist = d; best = &line; }
+        if (d > bestDist) continue;
+        const double letter = nearestLetter(line);
+        if (d < bestDist || letter < bestLetter) { bestDist = d; bestLetter = letter; best = &line; }
     }
     if (!best) return {};
 
@@ -920,6 +952,7 @@ bool PdfiumBackend::hiddenText(int page, const QRectF &area) const
     FPDF_PAGE pg = readPage(page);
     FPDF_TEXTPAGE tp = readText(page);
     if (!pg || !tp) return false;
+    readScan(page, pg, tp);
     const PdfiumPageSpace space(pg);
     bool any = false;
     for (int i = 0, n = FPDFText_CountChars(tp); i < n; ++i) {

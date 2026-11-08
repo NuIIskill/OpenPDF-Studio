@@ -108,7 +108,7 @@ void DocumentView::clearDocument()
 #ifdef HAVE_PDF_RENDERING
     m_hover->hide();
     discardEditHistory();
-    m_edit.clearOcrCache();
+    m_edit.forgetScans();
 
     m_src->close();
 #endif
@@ -208,7 +208,7 @@ bool DocumentView::openContent(const QString &path, const QString &suggestedPath
 
     discardEditHistory();
 
-    m_edit.clearOcrCache();
+    m_edit.forgetScans();
     m_journal.opened(suggestedPath);
     m_bookmarks      = m_src->backend()->bookmarks();
     m_bookmarksDirty = false;

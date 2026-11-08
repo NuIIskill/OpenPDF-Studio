@@ -87,6 +87,16 @@ void AppSettings::setNoteColorHintSeen(bool seen)
     settings().setValue(QStringLiteral("notes/colorHintSeen"), seen);
 }
 
+bool AppSettings::noteDraftNudgeSeen() const
+{
+    return settings().value(QStringLiteral("notes/draftNudgeSeen"), false).toBool();
+}
+
+void AppSettings::setNoteDraftNudgeSeen(bool seen)
+{
+    settings().setValue(QStringLiteral("notes/draftNudgeSeen"), seen);
+}
+
 QStringList AppSettings::notePalette() const
 {
     return settings().value(QStringLiteral("notes/palette")).toStringList();
@@ -274,6 +284,15 @@ bool AppSettings::preservePanelLayout() const
 void AppSettings::setPreservePanelLayout(bool v)
 {
     settings().setValue(QStringLiteral("panels/preserveLayout"), v);
+}
+
+QString AppSettings::hintAnimations() const
+{
+    return settings().value(QStringLiteral("interface/hintAnimations"), QStringLiteral("once")).toString();
+}
+void AppSettings::setHintAnimations(const QString &mode)
+{
+    settings().setValue(QStringLiteral("interface/hintAnimations"), mode);
 }
 
 bool AppSettings::rightPanelCollapsed() const

@@ -7,8 +7,11 @@
 #include "fpdf_text.h"
 #include "fpdfview.h"
 
+#include <memory>
 #include <mutex>
 #include <vector>
+
+class PdfiumScanText;
 
 struct PdfiumChar;
 struct PdfiumLine;
@@ -80,6 +83,9 @@ public:
     QList<TextMatch> findText(const QString &text) const override;
 
     QList<TextMatch> findTextOnPage(int page, const QString &text) const override;
+    void setScanText(int page, const QList<ScanLine> &lines) override;
+    bool hasScanText(int page) const override;
+    QList<TextMatch> findScanText(int page, const QString &text) const override;
     Selection selectPage(int page, const std::optional<QPointF> &from,
                          const std::optional<QPointF> &to) const override;
 
@@ -109,6 +115,7 @@ private:
     FPDF_PAGE     readPage(int page) const;
     FPDF_TEXTPAGE readText(int page) const;
     void          dropReadPages() const;
+    bool          readScan(int page, FPDF_PAGE &pg, FPDF_TEXTPAGE &text) const;
 
     FPDF_DOCUMENT       m_doc { nullptr };
     std::vector<QSizeF> m_pageSizes;
@@ -118,6 +125,7 @@ private:
     mutable std::vector<ReadPage> m_readPages;
     mutable std::mutex m_metricsMutex;
     mutable QList<std::pair<EditSession::Edit, TextLayout::Metrics>> m_metricsCache;
+    std::unique_ptr<PdfiumScanText> m_scanText;
 };
 
 #endif

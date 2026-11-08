@@ -1009,8 +1009,12 @@ QList<DocxBlock> buildDocxBlocks(const DocxLayoutInput &in, QMarginsF *marginsOu
     QSet<int>  droppedTables;
     QSet<int>  overlaidTables;
     QList<DocxBlock> pictures;
-    // Text over a picture goes into a box of its own on top of it.
+    // Text over a picture goes into a box of its own on top of it. Where all
+    // of it is short, as on a chart, the picture is also kept as the page shows
+    // it, with the labels in it, for the exports that let text flow.
     const auto addLabels = [&](const QRectF &area) {
+        bool any = false;
+        bool allShort = true;
         for (int i = 0; i < text.size(); ++i) {
             if (bakedText.contains(i) || !area.contains(text[i].bounds.center())) continue;
             DocxBlock label;
@@ -1019,7 +1023,11 @@ QList<DocxBlock> buildDocxBlocks(const DocxLayoutInput &in, QMarginsF *marginsOu
             label.lines  = { text[i] };
             pictures.append(label);
             bakedText.insert(i);
+            any = true;
+            allShort = allShort && text[i].text.trimmed().size() <= 60;
         }
+        if (!any || !allShort || in.original.isNull()) return DocxImage{};
+        return DocxXml::encodePicture(in.original.copy(erased.toPx(area)), in.options);
     };
     const auto area = [](const QRectF &r) { return r.width() * r.height(); };
 
@@ -1045,8 +1053,8 @@ QList<DocxBlock> buildDocxBlocks(const DocxLayoutInput &in, QMarginsF *marginsOu
         pic.picture = DocxXml::encodePicture(uncut ? source.image : erased.crop(erased.toPx(box)),
                                              in.options);
         if (pic.picture.isNull()) continue;
+        pic.withLabels = addLabels(box);
         imagePictures.append(pic);
-        addLabels(box);
     }
 
     for (const Region &region : findGraphicRegions(erased, paper, claimed)) {
@@ -1109,8 +1117,10 @@ QList<DocxBlock> buildDocxBlocks(const DocxLayoutInput &in, QMarginsF *marginsOu
             pic.kind    = DocxBlock::Kind::Picture;
             pic.bounds  = boundsPt;
             pic.picture = DocxXml::encodePicture(rest, in.options);
+            const qsizetype at = pictures.size();
             if (!pic.picture.isNull()) pictures.append(pic);
-            addLabels(boundsPt);
+            const DocxImage labelled = addLabels(boundsPt);
+            if (!pic.picture.isNull()) pictures[at].withLabels = labelled;
             continue;
         }
 
@@ -1133,8 +1143,10 @@ QList<DocxBlock> buildDocxBlocks(const DocxLayoutInput &in, QMarginsF *marginsOu
 
         pic.picture = DocxXml::encodePicture(erased.crop(region.px), in.options);
         if (pic.picture.isNull()) continue;
+        const qsizetype at = pictures.size();
         pictures.append(pic);
-        addLabels(boundsPt);
+        const DocxImage labelled = addLabels(boundsPt);
+        pictures[at].withLabels = labelled;
     }
     pictures += imagePictures;
 
@@ -1240,11 +1252,25 @@ QList<DocxBlock> buildDocxBlocks(const DocxLayoutInput &in, QMarginsF *marginsOu
         if (b.kind != DocxBlock::Kind::Paragraph) continue;
         const double leftGap  = b.bounds.left() - textLeft;
         const double rightGap = textRight - b.bounds.right();
+        // Lines that all start at one edge are set flush left or justified,
+        // however evenly the block sits between the margins.
+        double leftMost = b.bounds.right();
+        double leftLeast = b.bounds.left();
+        for (const ContentItem &line : b.lines) {
+            leftMost  = qMin(leftMost, line.bounds.left());
+            leftLeast = qMax(leftLeast, line.bounds.left());
+        }
+        const bool sharedEdge = b.lines.size() > 1 && leftLeast - leftMost < 2.0;
 
         // Centred and right-aligned text is given indents that put its middle or
         // its end exactly where it was, whatever was left over from the guess.
-        if (leftGap > 6.0 && rightGap > 6.0
-                && qAbs(leftGap - rightGap) < qMax(4.0, (leftGap + rightGap) * 0.06)) {
+        // A single line in the middle of the page is centred there, even where
+        // the margins found are not even.
+        const bool pageMiddle = b.lines.size() == 1
+            && qAbs(b.bounds.center().x() - in.pageSizePt.width() / 2.0) < 2.0;
+        if (!sharedEdge && leftGap > 6.0 && rightGap > 6.0
+                && (pageMiddle
+                    || qAbs(leftGap - rightGap) < qMax(4.0, (leftGap + rightGap) * 0.06))) {
             b.align = Qt::AlignHCenter;
             b.indentPt      = qMax(0.0, leftGap - rightGap);
             b.rightIndentPt = wrapSlack + qMax(0.0, rightGap - leftGap);

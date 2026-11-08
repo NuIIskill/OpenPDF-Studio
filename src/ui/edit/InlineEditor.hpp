@@ -84,6 +84,7 @@ public:
     void setLookAt(int index);
     TextLayout::Appearance look() const;
     QList<TextLayout::Appearance> appearances() const;
+    void setPaintsOnScreen(bool on) { m_paintsOnScreen = on; }
 
 Q_SIGNALS:
     void committed(const QString &text);
@@ -141,6 +142,7 @@ private:
     bool    m_glyphs          { false };
     qreal   m_lineSpacingPt   { 0.0 };
     bool    m_caretPinned     { false };
+    bool    m_paintsOnScreen  { true };
     QString m_lastText;
     bool    m_caretOn         { true };
     QTimer *m_caretTimer      { nullptr };

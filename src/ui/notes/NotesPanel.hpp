@@ -31,7 +31,7 @@ public:
     void setDocumentAvailable(bool available);
     void draftPlaced(bool placed);
     void setPalette(const QList<QColor> &colors);
-    void setColorHint(bool on);
+    void setHints(bool colorHint, bool draftNudge, bool repeat);
     void retranslateUi();
     void refreshTheme();
 
@@ -51,9 +51,11 @@ Q_SIGNALS:
     void colorDroppedOnPage(const QColor &color, const QPoint &globalPos);
     void paletteChanged(const QList<QColor> &colors);
     void colorHintSeen();
+    void draftNudgeSeen();
 
 protected:
     bool eventFilter(QObject *watched, QEvent *event) override;
+    void showEvent(QShowEvent *event) override;
     void hideEvent(QHideEvent *event) override;
 
 private:
@@ -69,6 +71,7 @@ private:
     void colorDropped(const QColor &color, const QPoint &globalPos, int fromSlot);
     void keepColor(const QColor &color);
     void colorLearned();
+    void markHintsShown();
     void tookColor(const QColor &color);
     void watchDrag(NoteDrag *drag);
     const NoteData *selectedNote() const;
@@ -92,6 +95,10 @@ private:
     QList<QColor>       m_palette;
     bool                m_colorHint { true };
     int                 m_hintStage { 1 };
+    bool                m_draftNudge { true };
+    bool                m_repeatHints { false };
+    bool                m_colorHintShown { false };
+    bool                m_draftNudgeShown { false };
     QColor              m_popColor;
     QColor              m_mixedColor;
     QPointer<QWidget>   m_draftSlot;

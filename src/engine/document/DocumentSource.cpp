@@ -7,6 +7,10 @@ DocumentSource::DocumentSource()
 
     m_renderer = new PdfRenderer(m_backend.get());
     m_worker   = std::make_unique<DocumentWorker>(m_backend.get());
+    // A scan read since its content was found is found again, now with its text.
+    QObject::connect(m_worker.get(), &DocumentWorker::scanTextRead, m_worker.get(), [this](int page) {
+        if (m_contentProvider) m_contentProvider->invalidatePage(page);
+    });
 #endif
 }
 

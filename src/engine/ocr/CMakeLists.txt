@@ -3,4 +3,8 @@ target_sources(OpenPDFStudio PRIVATE
     OcrEngine.hpp
     OcrLanguages.cpp
     OcrLanguages.hpp
+    OcrSearch.cpp
+    OcrSearch.hpp
+    OcrStyle.cpp
+    OcrStyle.hpp
 )
