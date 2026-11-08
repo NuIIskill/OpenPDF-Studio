@@ -1,7 +1,7 @@
 #include "ui/view/ImageAnnotationLayer.hpp"
 
-#include "ui/theme/Theme.hpp"
 #include "ui/view/ImageAnnotation.hpp"
+#include "ui/widgets/ContextMenu.hpp"
 
 #ifdef HAVE_PDF_RENDERING
 #  include "engine/document/PdfBackend.hpp"
@@ -21,12 +21,10 @@
 #include <QImageReader>
 #include <QKeySequence>
 #include <QLabel>
-#include <QMenu>
 #include <QMimeData>
 #include <QPointer>
 #include <QRubberBand>
 #include <QPixmap>
-#include <QStyleOptionMenuItem>
 #include <QTransform>
 #include <QWidget>
 
@@ -36,32 +34,6 @@ namespace {
 
 // QKeySequence names the key through this; Qt's own catalogue is not loaded.
 [[maybe_unused]] const char *const DelKeyName = QT_TRANSLATE_NOOP("QShortcut", "Del");
-
-QColor dangerColor()
-{
-    return Theme::DarkMode ? QColor(QStringLiteral("#F87171"))
-                           : QColor(QStringLiteral("#DC2626"));
-}
-
-/// Image context menu that draws its destructive entry in the danger colour.
-class ImageMenu : public QMenu
-{
-public:
-    using QMenu::QMenu;
-    QAction *danger { nullptr };
-
-protected:
-    void initStyleOption(QStyleOptionMenuItem *option, const QAction *action) const override
-    {
-        QMenu::initStyleOption(option, action);
-        if (!action->isEnabled()) return;
-        const QColor text = action == danger ? dangerColor()
-                                             : option->palette.color(QPalette::ButtonText);
-        for (const QPalette::ColorRole role : { QPalette::Text, QPalette::ButtonText,
-                                                QPalette::WindowText, QPalette::HighlightedText })
-            option->palette.setColor(role, text);
-    }
-};
 
 }
 
@@ -290,35 +262,29 @@ void ImageAnnotationLayer::showContextMenu(ImageAnnotation *ann, const QPoint &g
     const auto dvTr = [](const char *s) {
         return QCoreApplication::translate("DocumentView", s);
     };
-    const auto icon = [](const char *name) {
-        return Theme::makeIcon(QString::fromLatin1(name));
-    };
     const QPoint canvasPos = m_canvas->canvasWidget()->mapFromGlobal(globalPos);
     int          region    = ann ? -1 : detectedAt(canvasPos);
     const bool   onPage    = ann || m_canvas->pageAtCanvasPos(canvasPos).first >= 0;
     const QMimeData *clip  = QGuiApplication::clipboard()->mimeData();
 
-    ImageMenu menu(m_canvas->canvasWidget());
-    menu.setObjectName(QStringLiteral("ImageMenu"));
-    QAction *copy  = menu.addAction(icon("copy"),
+    ContextMenu menu(m_canvas->canvasWidget());
+    QAction *copy  = menu.addAction("copy",
                                     dvTr(QT_TRANSLATE_NOOP("DocumentView", "Copy")));
     copy->setShortcut(QKeySequence::Copy);
     copy->setEnabled(ann || region >= 0);
-    QAction *paste = menu.addAction(icon("clipboard-paste"),
+    QAction *paste = menu.addAction("clipboard-paste",
                                     dvTr(QT_TRANSLATE_NOOP("DocumentView", "Paste")));
     paste->setShortcut(QKeySequence::Paste);
     paste->setEnabled(onPage && clip && clip->hasImage());
     menu.addSeparator();
-    QAction *replace = menu.addAction(icon("image"), tr("Replace image"));
+    QAction *replace = menu.addAction("image", tr("Replace image"));
     menu.addSeparator();
-    QAction *left  = menu.addAction(icon("rotate-ccw"), tr("Rotate 90° left"));
-    QAction *right = menu.addAction(icon("rotate-cw"),  tr("Rotate 90° right"));
+    QAction *left  = menu.addAction("rotate-ccw", tr("Rotate 90° left"));
+    QAction *right = menu.addAction("rotate-cw",  tr("Rotate 90° right"));
     menu.addSeparator();
-    QAction *del   = menu.addAction(Theme::makeIcon(QStringLiteral("trash-2"), dangerColor(),
-                                                    dangerColor()),
-                                    dvTr(QT_TRANSLATE_NOOP("DocumentView", "Delete")));
+    QAction *del   = menu.addDangerAction("trash-2",
+                                          dvTr(QT_TRANSLATE_NOOP("DocumentView", "Delete")));
     del->setShortcut(QKeySequence(Qt::Key_Delete));
-    menu.danger = del;
     for (QAction *a : { replace, left, right, del })
         a->setEnabled(ann || region >= 0);
 

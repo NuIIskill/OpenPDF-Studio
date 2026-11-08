@@ -1,5 +1,6 @@
 #include "ui/view/LinkAnnotationLayer.hpp"
 #include "app/AppSettings.hpp"
+#include "ui/widgets/ContextMenu.hpp"
 
 #ifdef HAVE_PDF_RENDERING
 #  include "engine/document/PdfBackend.hpp"
@@ -12,11 +13,9 @@
 #include <QDataStream>
 #include <QDesktopServices>
 #include <QFrame>
-#include <QIcon>
 #include <QInputDialog>
 #include <QLabel>
 #include <QLineEdit>
-#include <QMenu>
 #include <QMessageBox>
 #include <QPushButton>
 #include <QMouseEvent>
@@ -211,23 +210,18 @@ void LinkAnnotationLayer::showContextMenu(QFrame *widget, const QPoint &globalPo
     const int index = indexOf(widget);
     if (index < 0) return;
 
-    QMenu menu(m_canvas->canvasWidget());
-    QAction *open = menu.addAction(QIcon::fromTheme(QStringLiteral("document-open")),
-                                   tr("Open Link"));
-    QAction *newTab = menu.addAction(QIcon::fromTheme(QStringLiteral("tab-new")),
-                                     tr("Open Link in New Tab"));
+    ContextMenu menu(m_canvas->canvasWidget());
+    QAction *open = menu.addAction("globe", tr("Open Link"));
+    QAction *newTab = menu.addAction("file-plus", tr("Open Link in New Tab"));
     const bool opens = AppSettings().externalLinks() != QLatin1String("never");
     open->setEnabled(opens);
     newTab->setEnabled(opens);
-    QAction *copy = menu.addAction(QIcon::fromTheme(QStringLiteral("edit-copy")),
-                                   tr("Copy Link Address"));
+    QAction *copy = menu.addAction("copy", tr("Copy Link Address"));
     menu.addSeparator();
-    QAction *edit = menu.addAction(QIcon::fromTheme(QStringLiteral("document-edit")),
-                                   tr("Edit Link"));
-    QAction *remove = menu.addAction(QIcon::fromTheme(QStringLiteral("edit-delete")),
-                                     tr("Delete Link"));
+    QAction *edit = menu.addAction("pencil", tr("Edit Link"));
+    QAction *remove = menu.addDangerAction("trash-2", tr("Delete Link"));
     menu.addSeparator();
-    QAction *add = menu.addAction(tr("Add Link..."));
+    QAction *add = menu.addAction("link", tr("Add Link..."));
 
     QAction *chosen = menu.exec(globalPos);
     if (!chosen) return;
@@ -279,8 +273,8 @@ bool LinkAnnotationLayer::showEmptyContextMenu(
     const QPoint &canvasPos, const QPoint &globalPos,
     const QList<TextSelectionController::SelectionPart> &selection)
 {
-    QMenu menu(m_canvas->canvasWidget());
-    QAction *add = menu.addAction(tr("Add Link..."));
+    ContextMenu menu(m_canvas->canvasWidget());
+    QAction *add = menu.addAction("link", tr("Add Link..."));
     if (menu.exec(globalPos) != add) return false;
     if (!selection.isEmpty()) return addSelection(selection);
     addAt(canvasPos);

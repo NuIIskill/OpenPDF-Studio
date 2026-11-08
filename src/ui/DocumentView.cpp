@@ -25,6 +25,7 @@
 #include "ui/view/SmoothScroll.hpp"
 #include "ui/view/ZoomController.hpp"
 #include "ui/view/TextSelectionController.hpp"
+#include "ui/widgets/ContextMenu.hpp"
 #include "ui/widgets/PasswordDialog.hpp"
 
 #include <QFileInfo>
@@ -62,7 +63,7 @@
 #include <QMap>
 #include <QFileDialog>
 #include <QFontMetrics>
-#include <QMenu>
+#include <QKeySequence>
 #include <QPointer>
 #include <QRegularExpression>
 #include <QUndoCommand>
@@ -542,20 +543,21 @@ void DocumentView::showGeneralContextMenu(const QPoint &globalPos)
     const QMimeData *clip = QApplication::clipboard()->mimeData();
     const bool clipText = clip && !clip->text().trimmed().isEmpty();
 
-    QMenu menu(this);
-    QAction *copy = menu.addAction(QIcon::fromTheme(QStringLiteral("edit-copy")),
-                                   tr("Copy"));
+    ContextMenu menu(this);
+    QAction *copy = menu.addAction("copy", tr("Copy"));
+    copy->setShortcut(QKeySequence::Copy);
     // In the open box: the marked text, or with nothing marked the whole box.
     copy->setEnabled(hasSel || hasPageSel || inBox || textHere);
     QAction *paste  = nullptr;
     QAction *remove = nullptr;
     if (inBox || newBox) {
-        paste = menu.addAction(QIcon::fromTheme(QStringLiteral("edit-paste")), tr("Paste"));
+        paste = menu.addAction("clipboard-paste", tr("Paste"));
+        paste->setShortcut(QKeySequence::Paste);
         paste->setEnabled(inBox ? boxEdit->canPaste() : clipText);
     }
     if (inBox) {
         menu.addSeparator();
-        remove = menu.addAction(QIcon::fromTheme(QStringLiteral("edit-delete")), tr("Delete"));
+        remove = menu.addDangerAction("trash-2", tr("Delete"));
     }
 
     QAction *act = menu.exec(globalPos);

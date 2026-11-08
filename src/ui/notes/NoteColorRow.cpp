@@ -3,13 +3,13 @@
 #include "ui/notes/NoteColorPicker.hpp"
 #include "ui/notes/NoteDrag.hpp"
 #include "ui/theme/Theme.hpp"
+#include "ui/widgets/ContextMenu.hpp"
 
 #include <QAbstractButton>
 #include <QConicalGradient>
 #include <QHBoxLayout>
 #include <QKeyEvent>
 #include <QMouseEvent>
-#include <QMenu>
 #include <QLabel>
 #include <QPainter>
 #include <QPointer>
@@ -382,9 +382,9 @@ void NoteColorRow::rebuild()
         empty->setToolTip(tr("Drag a color here to keep it"));
         empty->setContextMenuPolicy(Qt::CustomContextMenu);
         connect(empty, &QWidget::customContextMenuRequested, this, [this, empty, i](const QPoint &at) {
-            QMenu menu(this);
-            QAction *mixHere = menu.addAction(tr("Mix a color here"));
-            QAction *reset   = menu.addAction(tr("Restore the standard colors"));
+            ContextMenu menu(this);
+            QAction *mixHere = menu.addAction("plus", tr("Mix a color here"));
+            QAction *reset   = menu.addAction("refresh-cw", tr("Restore the standard colors"));
             QAction *chosen  = menu.exec(empty->mapToGlobal(at));
             if (chosen == mixHere) mixInto(i, empty);
             else if (chosen == reset) Q_EMIT resetRequested();
@@ -454,9 +454,9 @@ QAbstractButton *NoteColorRow::addSwatch(const QColor &color, int slot)
     });
     swatch->setContextMenuPolicy(Qt::CustomContextMenu);
     connect(swatch, &QWidget::customContextMenuRequested, this, [this, swatch, slot](const QPoint &at) {
-        QMenu menu(this);
-        QAction *remove = menu.addAction(tr("Remove color"));
-        QAction *reset  = menu.addAction(tr("Restore the standard colors"));
+        ContextMenu menu(this);
+        QAction *remove = menu.addDangerAction("trash-2", tr("Remove color"));
+        QAction *reset  = menu.addAction("refresh-cw", tr("Restore the standard colors"));
         QAction *chosen = menu.exec(swatch->mapToGlobal(at));
         if (chosen == remove) Q_EMIT removed(slot);
         else if (chosen == reset) Q_EMIT resetRequested();
