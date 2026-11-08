@@ -120,7 +120,7 @@ export, OCR, signing and printing as included, plus media playback and conversio
 for a full build. Check settings persistence and the portable folder's behavior.
 Confirm optional runtime plugins, language data and license texts are present.
 
-![About page detail showing the application name and version 0.3.2](../images/screenshots/about-version.png)
+![About settings showing the application name and version 0.3.7](../images/screenshots/about-version.png)
 
 *Open Settings → About in the installed artifact and compare its version with
 `version.txt`. This reference shows version 0.3.2.*

@@ -18,7 +18,7 @@ another format and output options.
 The size shown before export is an estimate. Check the actual file and its
 appearance before sharing it.
 
-![PDF export dialog with format selection on the left and filename, save location, page selection, quality and content options on the right](../images/screenshots/export-pdf.png)
+![Export dialog with PDF/A selected under Documents, Images and Text & Web groups below, and output options on the right](../images/screenshots/export-pdf.png)
 
 *Choose the format on the left, then the destination, pages and output options on the right.*
 

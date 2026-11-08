@@ -1,6 +1,7 @@
 # Documentation screenshots
 
-These captures show OpenPDF Studio **0.3.2** on Linux with the English interface.
+The overview, export and About captures show OpenPDF Studio **0.3.7** on Linux
+with the English interface. Other examples were captured in earlier releases.
 Most use the light theme; `overview-dark.png` provides a dark-theme reference.
 Some captures focus on the relevant controls or panel; others show the complete
 window or dialog.
@@ -15,8 +16,7 @@ selection and ordering. The source PDF is not included in this repository.
 The handwritten signature uses the fictional name **Alex Example**. The history
 example contains demonstration notes on the test document. The protection dialog
 uses a masked example password, and the business-license page shows the start
-of an evaluation with an empty key field. The About detail focuses on the
-application name and version.
+of an evaluation with an empty key field. The About page shows the application name and version.
 The digital-signing and print dialogs show the initial state without a
 certificate or system printer configured.
 
@@ -33,7 +33,7 @@ certificate or system printer configured.
 | [Password protection](password-protection.png) | Opening passwords, encryption and the protection dialog |
 | [Handwritten signature](handwritten-signature.png) | Creating and placing a signature appearance |
 | [Digital signature](digital-signature.png) | Certificates, appearance profiles and advanced options |
-| [PDF export](export-pdf.png) | Format, destination, page and content options |
+| [PDF/A export](export-pdf.png) | Format groups, destination, page and content options |
 | [Print preview](print-preview.png) | Preview, paper layout and printer configuration |
 | [First-start usage](first-start-usage.png) | Personal or business declaration after installation |
 | [Business licensing](business-license-settings.png) | Evaluation status and license key entry |

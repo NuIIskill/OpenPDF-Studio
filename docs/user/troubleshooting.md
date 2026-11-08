@@ -110,7 +110,7 @@ Pending protection passwords are not persisted; reapply protection before saving
 Open Settings → **About** to find the running version and the configuration file
 the application is using. Include the version when reporting a problem.
 
-![About page detail showing the application name and version 0.3.3](../images/screenshots/about-version.png)
+![About settings showing the application name and version 0.3.7](../images/screenshots/about-version.png)
 
 *Check Settings → About for the running version before reporting a problem.*
 
