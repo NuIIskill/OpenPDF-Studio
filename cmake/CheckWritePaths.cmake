@@ -14,6 +14,7 @@ set(WRITERS
     src/engine/document/PdfiumWriter.cpp
     src/engine/document/ProtectionWriter.cpp
     src/engine/export/PdfExporter.cpp
+    src/engine/forms/FormFieldWriter.cpp
     src/engine/import/TextDocumentPdf.cpp
     src/engine/redact/RedactionWriter.cpp
     src/engine/sign/FileCertificates.cpp

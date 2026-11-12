@@ -5,6 +5,8 @@
 #include "app/PdfPwStore.hpp"
 #include "engine/document/PdfiumEdits.hpp"
 #include "engine/document/PdfiumFonts.hpp"
+#include "engine/document/PdfiumForms.hpp"
+#include "engine/forms/FormFieldWriter.hpp"
 #include "engine/document/KeptText.hpp"
 #include "engine/document/OriginalContent.hpp"
 #include "engine/document/PdfiumLock.hpp"
@@ -286,7 +288,7 @@ bool takeKeptText(FPDF_PAGE page, const QList<FPDF_PAGEOBJECT> &counted,
     return true;
 }
 
-bool writePages(const QString &sourcePath, const QString &outputPath,
+bool writePages(const QString &sourcePath, const QByteArray &designed, const QString &outputPath,
                 const PdfiumWriter::PagePass &pass, const std::function<bool()> &cancelled,
                 bool &wasEncrypted, QHash<int, KeptText::Kept> &keptPages,
                 QHash<int, OriginalContent::Page> &originalPages,
@@ -296,8 +298,11 @@ bool writePages(const QString &sourcePath, const QString &outputPath,
     const QByteArray path = sourcePath.toUtf8();
     const QByteArray pw   = PdfPwStore::get(sourcePath).toUtf8();
 
-    FPDF_DOCUMENT doc = FPDF_LoadDocument(path.constData(),
-                                          pw.isEmpty() ? nullptr : pw.constData());
+    // A designed form starts from the file with its fields as designed, as the preview does.
+    FPDF_DOCUMENT doc = designed.isEmpty()
+        ? FPDF_LoadDocument(path.constData(), pw.isEmpty() ? nullptr : pw.constData())
+        : FPDF_LoadMemDocument64(designed.constData(), size_t(designed.size()),
+                                 pw.isEmpty() ? nullptr : pw.constData());
     if (!doc) {
         qWarning() << "[PdfiumWriter] konnte" << sourcePath << "nicht öffnen,"
                    << "Fehler" << FPDF_GetLastError();
@@ -376,13 +381,13 @@ bool writePages(const QString &sourcePath, const QString &outputPath,
 
 bool writeAndRestore(const QString &sourcePath, const WriteGrant &output,
                      const PdfiumWriter::PagePass &pass, const std::function<bool()> &cancelled,
-                     bool &wasEncrypted)
+                     bool &wasEncrypted, const QByteArray &designed = {})
 {
     const QString outputPath = output.path();
     QHash<int, KeptText::Kept> keptPages;
     QHash<int, OriginalContent::Page> originalPages;
     QHash<QByteArray, QMap<quint32, uint>> toUnicode;
-    if (!writePages(sourcePath, outputPath, pass, cancelled, wasEncrypted, keptPages,
+    if (!writePages(sourcePath, designed, outputPath, pass, cancelled, wasEncrypted, keptPages,
                     originalPages, toUnicode))
         return false;
 
@@ -430,6 +435,8 @@ bool PdfiumWriter::save(const QString &sourcePath, const WriteGrant &output,
     // Pasted text takes its style from other pages, read before the loop changes them.
     QHash<int, FPDF_PAGE> sourcePages;
     pass.begin = [&](FPDF_DOCUMENT doc) {
+        // Filled in like the preview does it, so the appearances match it.
+        if (!session.formValues().isEmpty()) PdfiumForms(doc).apply(session.formValues());
         for (const EditSession::Edit &e : session.edits())
             for (const TextLayout::Source &s : TextLayout::distinctSources(e.sources))
                 if (s.page != e.page && !sourcePages.contains(s.page))
@@ -450,8 +457,13 @@ bool PdfiumWriter::save(const QString &sourcePath, const WriteGrant &output,
         for (FPDF_PAGE p : std::as_const(sourcePages)) FPDF_ClosePage(p);
     };
 
+    QByteArray designed;
+    if (!session.formDesign().isEmpty()) {
+        designed = FormFieldWriter::build(sourcePath, PdfPwStore::forQpdf(sourcePath), session.formDesign());
+        if (designed.isEmpty()) return false;
+    }
     bool wasEncrypted = false;
-    if (!writeAndRestore(sourcePath, output, pass, cancelled, wasEncrypted)) return false;
+    if (!writeAndRestore(sourcePath, output, pass, cancelled, wasEncrypted, designed)) return false;
 
     const QString password = PdfPwStore::get(sourcePath);
     if (wasEncrypted && !isEncrypted(outputPath, password)) {

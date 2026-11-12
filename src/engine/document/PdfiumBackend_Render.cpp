@@ -114,6 +114,12 @@ QImage PdfiumBackend::renderPageInternal(int page, qreal scale,
         }
     }
 
+    if (session && session->hasFormChangesOnPage(page)) {
+        QImage filled = renderFormPage(page, px, target, *session);
+        if (!filled.isNull() && target.size() == px) session->paintFormFields(page, filled, scale);
+        return filled;
+    }
+
     const EditSession *notes = session;
     if (session && !session->hasEditsOnPage(page)
             && !session->hasImageEditsOnPage(page)
@@ -129,7 +135,7 @@ QImage PdfiumBackend::renderPageInternal(int page, qreal scale,
     FPDF_PAGE pg = keep ? backgroundPage(page, session ? state : 0, session)
                         : FPDF_LoadPage(m_doc, page);
     if (!pg) return {};
-    const auto closePage = [keep, pg] { if (!keep) FPDF_ClosePage(pg); };
+    const auto closePage = [this, keep, pg] { if (!keep) closeShownPage(pg); };
 
     if (session && !keep) PdfiumEdits::applyToPage(m_doc, pg, page, *session);
     PdfiumEdits::showNoteHighlights(pg, page, notes);
@@ -148,6 +154,7 @@ QImage PdfiumBackend::renderPageInternal(int page, qreal scale,
         FPDF_RenderPageBitmap(bmp, pg, -target.x(), -target.y(), px.width(), px.height(),
                               0, FPDF_ANNOT);
     }
+    drawForms(bmp, pg, target, px);
 
     const auto *buffer = static_cast<const uchar *>(FPDFBitmap_GetBuffer(bmp));
     QImage rendered;
@@ -216,7 +223,7 @@ FPDF_PAGE PdfiumBackend::backgroundPage(int page, quint64 state,
     if (state && session) PdfiumEdits::applyToPage(m_doc, loaded, page, *session);
     m_backgroundPages.insert(m_backgroundPages.begin(), { page, state, loaded, false });
     while (m_backgroundPages.size() > kKept) {
-        FPDF_ClosePage(m_backgroundPages.back().page);
+        closeShownPage(m_backgroundPages.back().page);
         m_backgroundPages.pop_back();
     }
     return loaded;
@@ -252,7 +259,7 @@ bool PdfiumBackend::primeImages(int page, FPDF_PAGE pg, const std::function<bool
 
 void PdfiumBackend::dropBackgroundPages() const
 {
-    for (const BackgroundPage &kept : m_backgroundPages) FPDF_ClosePage(kept.page);
+    for (const BackgroundPage &kept : m_backgroundPages) closeShownPage(kept.page);
     m_backgroundPages.clear();
 }
 
@@ -268,15 +275,16 @@ PdfBackend::AreaRender PdfiumBackend::renderChanges(int page, qreal scale,
     const EditSession *notes = session;
     if (session && !session->hasEditsOnPage(page) && !session->hasImageEditsOnPage(page)
             && !session->hasDrawEditsOnPage(page) && !session->hasLinkEditsOnPage(page)
-            && !session->hasRemovedHighlightsOnPage(page))
+            && !session->hasRemovedHighlightsOnPage(page) && !session->hasFormChangesOnPage(page))
         session = nullptr;
     const QRect pageRect(QPoint(), px);
 
-    // Form fields are painted over the render, link edits and removed
+    // Form fields are painted over the render or filled in, link edits and removed
     // highlights change annotations; none shows up as a changed page object.
     bool painted = false;
     if (session) {
-        painted = session->hasLinkEditsOnPage(page) || session->hasRemovedHighlightsOnPage(page);
+        painted = session->hasLinkEditsOnPage(page) || session->hasRemovedHighlightsOnPage(page)
+               || session->hasFormChangesOnPage(page);
         for (const EditSession::Edit &edit : session->snapshotEdits())
             if (edit.page == page && !edit.formField.isEmpty()) painted = true;
     }
@@ -289,7 +297,7 @@ PdfBackend::AreaRender PdfiumBackend::renderChanges(int page, qreal scale,
 
     // The unedited page is only read, so a kept one serves.
     FPDF_PAGE pg = session ? FPDF_LoadPage(m_doc, page) : backgroundPage(page);
-    const auto closePage = [session, pg] { if (session) FPDF_ClosePage(pg); };
+    const auto closePage = [this, session, pg] { if (session) closeShownPage(pg); };
     if (!pg) return result;
 
     if (session) {
@@ -324,6 +332,7 @@ PdfBackend::AreaRender PdfiumBackend::renderChanges(int page, qreal scale,
     FPDFBitmap_FillRect(bmp, 0, 0, target.width(), target.height(), 0xFFFFFFFF);
     FPDF_RenderPageBitmap(bmp, pg, -target.x(), -target.y(), px.width(), px.height(),
                           0, FPDF_ANNOT);
+    drawForms(bmp, pg, target, px);
     if (const auto *buffer = static_cast<const uchar *>(FPDFBitmap_GetBuffer(bmp)))
         result.image = QImage(buffer, target.width(), target.height(),
                               FPDFBitmap_GetStride(bmp), QImage::Format_RGB32).copy();

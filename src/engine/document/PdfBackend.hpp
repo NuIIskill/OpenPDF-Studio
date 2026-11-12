@@ -18,6 +18,7 @@
 #include <QSize>
 #include <QSizeF>
 #include <QString>
+#include <QStringList>
 #include <QTransform>
 
 #include <functional>
@@ -82,6 +83,33 @@ public:
         QList<int> key;
         QRectF     bounds;
     };
+
+    /// One widget of an interactive form field as the file has it.
+    struct FormWidget {
+        enum class Kind { Text, CheckBox, Radio, ComboBox, ListBox, Button, Signature };
+
+        QString     name;
+        QString     tooltip;
+        Kind        kind { Kind::Text };
+        int         page { -1 };
+        QRectF      bounds;
+        QString     value;
+        QString     exportValue;
+        bool        checked { false };
+        QStringList options;
+        int         selected { -1 };
+        int         flags { 0 };
+        double      fontSize { 0.0 };
+        int         alignment { 0 };
+        QColor      textColor { Qt::black };
+        QString     keystroke;
+        QString     format;
+        QString     validate;
+        QString     calculate;
+    };
+
+    virtual bool hasForms() const { return false; }
+    virtual QList<FormWidget> pageForms(int page) const { Q_UNUSED(page) return {}; }
 
     virtual QList<PageImage> pageImages(int page) const { Q_UNUSED(page) return {}; }
     virtual QImage pageImage(int page, const QList<int> &key) const

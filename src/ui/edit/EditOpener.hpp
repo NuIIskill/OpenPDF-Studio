@@ -149,10 +149,11 @@ private:
     void fitEditWidth(EditOpen &o);
     void placeTurnedWindow(EditOpen &o);
     void measureScan(EditOpen &o);
-    QList<QRectF> scanLines(const EditOpen &o) const;
+    QList<QRectF> scanLines(EditOpen &o) const;
     QList<TextLayout::OriginalLine> scanTextLines(const EditOpen &o) const;
+    QList<TextLayout::OriginalLine> scanParagraph(EditOpen &o, bool &cleaned);
     void matchScanFace(EditOpen &o);
-    void rereadScanLine(EditOpen &o, TextLayout::OriginalLine &line);
+    bool rereadScanLine(EditOpen &o, TextLayout::OriginalLine &line);
     QList<ScanFont::Line> scanContext(EditOpen &o, const QList<TextLayout::OriginalLine> &taken);
     bool waitForScan(int page);
 

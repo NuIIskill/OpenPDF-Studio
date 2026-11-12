@@ -11,6 +11,7 @@
 #include <mutex>
 #include <vector>
 
+class PdfiumForms;
 class PdfiumScanText;
 
 struct PdfiumChar;
@@ -34,6 +35,8 @@ public:
     bool isOwnerPassword(const QString &file, const QString &password) const override;
     QList<Link> pageLinks(int page) const override;
     QList<Note> pageNotes(int page) const override;
+    bool hasForms() const override;
+    QList<FormWidget> pageForms(int page) const override;
     Selection sentenceAt(int page, const QPointF &pdfPt) const override;
     QList<PageImage> pageImages(int page) const override;
     QImage pageImage(int page, const QList<int> &key) const override;
@@ -112,6 +115,13 @@ private:
                              const EditSession *session = nullptr) const;
     bool      primeImages(int page, FPDF_PAGE pg, const std::function<bool()> &cancelled) const;
     void      dropBackgroundPages() const;
+    bool      syncForms(const QList<EditSession::FormValue> &values,
+                        const QList<FormSpec> &design) const;
+    QImage    renderFormPage(int page, const QSize &px, const QRect &target,
+                             const EditSession &session) const;
+    void      dropFormDoc() const;
+    void      drawForms(FPDF_BITMAP bmp, FPDF_PAGE pg, const QRect &target, const QSize &px) const;
+    void      closeShownPage(FPDF_PAGE pg) const;
     FPDF_PAGE     readPage(int page) const;
     FPDF_TEXTPAGE readText(int page) const;
     void          dropReadPages() const;
@@ -126,6 +136,14 @@ private:
     mutable std::mutex m_metricsMutex;
     mutable QList<std::pair<EditSession::Edit, TextLayout::Metrics>> m_metricsCache;
     std::unique_ptr<PdfiumScanText> m_scanText;
+    // PDFium draws form fields only through a form environment.
+    std::unique_ptr<PdfiumForms>             m_docForms;
+    // The form is filled in a second load of the file, so the shown document stays as read.
+    mutable FPDF_DOCUMENT                    m_formDoc { nullptr };
+    mutable std::unique_ptr<PdfiumForms>     m_forms;
+    mutable QList<EditSession::FormValue>    m_formApplied;
+    mutable QList<FormSpec>                  m_formDesigned;
+    mutable QByteArray                       m_formBytes;
 };
 
 #endif

@@ -47,6 +47,13 @@ const QStringList &candidates()
     return families;
 }
 
+// Faces seldom printed in office documents win only where they fit clearly better.
+double rarity(const QString &family)
+{
+    static const QStringList rare { "Noto Sans", "Noto Serif", "Open Sans" };
+    return rare.contains(family) ? 0.015 : 0.0;
+}
+
 struct Plane {
     int w { 0 }, h { 0 };
     std::vector<uint8_t> on;
@@ -59,28 +66,78 @@ struct Scan {
     std::vector<float> dark;
     QPoint at;
     int left { 0 }, right { -1 }, top { 0 }, bottom { -1 };
+    int baseline { -1 };
+    int paper { 255 }, inkLevel { 0 };
     QList<std::pair<int, int>> words;
     bool isValid() const { return right > left && bottom > top; }
 };
 
-Scan scanOf(const QImage &img, const QRect &px, const QStringList &words, int textTop, int textBottom)
+bool noWord(const QString &word)
+{
+    return std::none_of(word.cbegin(), word.cend(), [](QChar c) { return c.isLetterOrNumber(); });
+}
+
+// A speck of dust apart from an end of the line is no letter, and a word
+// without letters or digits OCR read there was read from it.
+void dropEndSpecks(Scan &s, QStringList &words)
+{
+    const int band = s.bottom - s.top + 1;
+    const auto inked = [&](int x) {
+        for (int y = s.top; y <= s.bottom; ++y)
+            if (s.ink.at(x, y)) return true;
+        return false;
+    };
+    for (const bool atEnd : { true, false }) {
+        const int step = atEnd ? -1 : 1;
+        const int outer = atEnd ? s.right : s.left;
+        int inner = outer;
+        while (inner + step >= s.left && inner + step <= s.right && inked(inner + step)) inner += step;
+        int next = inner + step;
+        while (next >= s.left && next <= s.right && !inked(next)) next += step;
+        if (next < s.left || next > s.right || std::abs(next - inner) - 1 < qMax(2.0, band * 0.2)) continue;
+        int top = s.bottom, bottom = s.top;
+        for (int x = qMin(inner, outer); x <= qMax(inner, outer); ++x)
+            for (int y = s.top; y <= s.bottom; ++y)
+                if (s.ink.at(x, y)) { top = qMin(top, y); bottom = qMax(bottom, y); }
+        if (std::abs(outer - inner) + 1 > band * 0.3 || bottom - top + 1 > band * 0.3) continue;
+        // Punctuation the text ends in may be the speck, set apart in a fixed pitch face.
+        const QString &word = atEnd ? words.last() : words.first();
+        const bool read = words.size() > 1 && noWord(word);
+        if (!read && !(atEnd ? word.back() : word.front()).isLetterOrNumber()) continue;
+        for (int x = qMin(inner, outer); x <= qMax(inner, outer); ++x)
+            for (int y = s.top; y <= s.bottom; ++y) {
+                s.ink.on[size_t(y) * size_t(s.ink.w) + size_t(x)] = 0;
+                s.dark[size_t(y) * size_t(s.ink.w) + size_t(x)] = 0.0f;
+            }
+        (atEnd ? s.right : s.left) = next;
+        if (read) atEnd ? words.removeLast() : words.removeFirst();
+    }
+}
+
+// The gray of the paper, the most common, and of the ink, the darkest fiftieth, in some rows.
+std::pair<int, int> paperAndInk(const std::vector<int> &lum, int width, int from, int to)
+{
+    int hist[256] = {}, count = 0;
+    for (int y = from; y <= to; ++y)
+        for (int x = 0; x < width; ++x) { ++hist[lum[size_t(y) * size_t(width) + size_t(x)]]; ++count; }
+    int paper = 255, ink = 0;
+    for (int g = 0, most = 0; g < 256; ++g)
+        if (hist[g] > most) { most = hist[g]; paper = g; }
+    for (int g = 0, seen = 0; g < 256; ++g)
+        if ((seen += hist[g]) * 50 >= count) { ink = g; break; }
+    return { paper, ink };
+}
+
+Scan scanOf(const QImage &img, const QRect &px, QStringList &words, int textTop, int textBottom)
 {
     Scan s;
     const QRect r = px.intersected(img.rect());
     if (r.width() < 8 || r.height() < 4) return s;
     std::vector<int> lum(size_t(r.width()) * size_t(r.height()));
-    int hist[256] = {};
     for (int y = 0; y < r.height(); ++y)
-        for (int x = 0; x < r.width(); ++x) {
-            const int g = qGray(img.pixel(r.left() + x, r.top() + y));
-            lum[size_t(y) * size_t(r.width()) + size_t(x)] = g;
-            ++hist[g];
-        }
-    int bg = 255, dark = 0, seen = 0;
-    for (int g = 0, best = 0; g < 256; ++g)
-        if (hist[g] > best) { best = hist[g]; bg = g; }
-    for (int g = 0; g < 256; ++g)
-        if ((seen += hist[g]) * 50 >= int(lum.size())) { dark = g; break; }
+        for (int x = 0; x < r.width(); ++x)
+            lum[size_t(y) * size_t(r.width()) + size_t(x)] = qGray(img.pixel(r.left() + x, r.top() + y));
+    auto [bg, dark] = paperAndInk(lum, r.width(), 0, r.height() - 1);
     if (bg - dark < 60) return s;
     const int cut = (bg + dark) / 2;
     s.at = r.topLeft();
@@ -140,16 +197,42 @@ Scan scanOf(const QImage &img, const QRect &px, const QStringList &words, int te
         if (top - b.second - 1 > mainH * 0.35 || b.second - b.first + 1 > mainH * 0.35) break;
         top = b.first;
     }
-    s.top = top;
-    s.bottom = bands.at(main).second;
+    // The text's own box holds its accents and descenders: ink beyond it is the lines around.
+    const int reach = qMax(2, textHeight / 10);
+    s.top = qMax(top, textTop - reach);
+    s.bottom = qMin(bands.at(main).second, textBottom + reach);
+    if (s.bottom <= s.top) { s.top = top; s.bottom = bands.at(main).second; }
+    // Paper and ink are measured again on the line alone: the paper around
+    // it would make its ink look darker, its strokes thicker.
+    const auto [paper, ink] = paperAndInk(lum, s.ink.w, qMax(0, s.top - 2), qMin(s.ink.h - 1, s.bottom + 2));
+    if (paper - ink >= 60) { bg = paper; dark = ink; }
+    const int lineCut = (bg + dark) / 2;
+    s.paper = bg;
+    s.inkLevel = dark;
     s.left = s.ink.w; s.right = -1;
     for (int y = 0; y < s.ink.h; ++y)
         for (int x = 0; x < s.ink.w; ++x) {
-            uint8_t &on = s.ink.on[size_t(y) * size_t(s.ink.w) + size_t(x)];
-            if (y < s.top || y > s.bottom) { on = 0; s.dark[size_t(y) * size_t(s.ink.w) + size_t(x)] = 0.0f; continue; }
-            if (on) { s.left = qMin(s.left, x); s.right = qMax(s.right, x); }
+            const size_t i = size_t(y) * size_t(s.ink.w) + size_t(x);
+            if (y < s.top || y > s.bottom) { s.ink.on[i] = 0; s.dark[i] = 0.0f; continue; }
+            s.ink.on[i] = lum[i] < lineCut;
+            s.dark[i] = qMax(0.0f, float(bg - lum[i]) / float(bg - dark));
+            if (s.ink.on[i]) { s.left = qMin(s.left, x); s.right = qMax(s.right, x); }
         }
     if (!s.isValid()) return s;
+
+    dropEndSpecks(s, words);
+
+    // The letters stand on the last of the rows dense with ink; below it only descenders reach.
+    {
+        std::vector<int> count(size_t(s.ink.h), 0);
+        int most = 0;
+        for (int y = s.top; y <= s.bottom; ++y) {
+            for (int x = s.left; x <= s.right; ++x) count[size_t(y)] += s.ink.at(x, y);
+            most = qMax(most, count[size_t(y)]);
+        }
+        for (int y = s.bottom; y >= s.top && s.baseline < 0; --y)
+            if (count[size_t(y)] >= most * 0.4) s.baseline = y;
+    }
 
     // Words lie apart by the widest gaps between ink columns; when those do
     // not stand out from the gaps inside words, the line is taken whole.
@@ -164,13 +247,17 @@ Scan scanOf(const QImage &img, const QRect &px, const QStringList &words, int te
         gaps.append({ x, e - x + 1 });
         x = e;
     }
-    const int n = int(words.size());
     QList<std::pair<int, int>> wide = gaps;
     std::sort(wide.begin(), wide.end(), [](const auto &a, const auto &b) { return a.second > b.second; });
-    const bool apart = n >= 2 && wide.size() >= n - 1
-        && wide.at(n - 2).second >= qMax(2.0, (s.bottom - s.top) * 0.12)
-        && (wide.size() == n - 1 || wide.at(n - 2).second >= wide.at(n - 1).second * 1.3);
-    if (!apart) {
+    const auto apart = [&](int n) {
+        return n >= 2 && wide.size() >= n - 1 && wide.at(n - 2).second >= qMax(2.0, (s.bottom - s.top) * 0.12)
+            && (wide.size() == n - 1 || wide.at(n - 2).second >= wide.at(n - 1).second * 1.3);
+    };
+    // A word without letters or digits at an end, read from a speck beside the line, has no gap of its own.
+    while (!apart(int(words.size())) && words.size() > 2 && (noWord(words.last()) || noWord(words.first())))
+        noWord(words.last()) ? words.removeLast() : words.removeFirst();
+    const int n = int(words.size());
+    if (!apart(n)) {
         s.words.append({ s.left, s.right });
         return s;
     }
@@ -188,7 +275,7 @@ Scan scanOf(const QImage &img, const QRect &px, const QStringList &words, int te
 // How alike the gray of the scan and of the rendered line are, the rendering
 // blurred as the scan is: a thin stroke blurred looks as wide as a thick one,
 // but not as dark.
-double grayCover(const Scan &s, const QImage &canvas, double sigma)
+double grayCover(const Scan &s, const QImage &canvas, double sigma, double *slope = nullptr)
 {
     const int w = canvas.width(), h = canvas.height();
     std::vector<float> g(size_t(w) * size_t(h));
@@ -218,24 +305,32 @@ double grayCover(const Scan &s, const QImage &canvas, double sigma)
         for (int k = 0; k < passes; ++k) { pass(g, t, true); pass(t, g, false); }
     }
     double best = -1.0;
+    // Only the rows of the line and a little around are compared, however tall the sample.
+    const int from = qMax(0, s.top - 3), to = qMin(s.ink.h - 1, s.bottom + 3);
     for (int dy = -2; dy <= 2; ++dy) {
         double sa = 0, sb = 0, saa = 0, sbb = 0, sab = 0;
-        const double n = double(s.ink.w) * double(s.ink.h);
-        for (int y = 0; y < s.ink.h; ++y)
+        const double n = double(s.ink.w) * double(to - from + 1);
+        for (int y = from; y <= to; ++y)
             for (int x = 0; x < s.ink.w; ++x) {
                 const double a = s.dark[size_t(y) * size_t(s.ink.w) + size_t(x)];
                 const double b = g[size_t(y + kPad + dy) * size_t(w) + size_t(x)];
                 sa += a; sb += b; saa += a * a; sbb += b * b; sab += a * b;
             }
         const double va = saa - sa * sa / n, vb = sbb - sb * sb / n;
-        if (va > 0.0 && vb > 0.0) best = qMax(best, (sab - sa * sb / n) / std::sqrt(va * vb));
+        if (va <= 0.0 || vb <= 0.0) continue;
+        const double r = (sab - sa * sb / n) / std::sqrt(va * vb);
+        if (r <= best) continue;
+        best = r;
+        // As dark as the scan where the rendering is fully inked: the ink it was printed in.
+        if (slope) *slope = (sab - sa * sb / n) / vb;
     }
     return best;
 }
 
 // How a face at its fitted size covers a scanned line: the size and the share of ink both hold.
 ScanFont::Fit fitLine(const Scan &s, const QStringList &words, const QString &text, const QFont &face,
-                      qreal scale, bool fine = false, double stretch = 1.0, double sigma = -1.0)
+                      qreal scale, bool fine = false, double stretch = 1.0, double sigma = -1.0,
+                      double *printed = nullptr)
 {
     QFont font = face;
     QFontMetricsF fm(font);
@@ -289,7 +384,8 @@ ScanFont::Fit fitLine(const Scan &s, const QStringList &words, const QString &te
             spacing = 0.0;
         }
     }
-    const double base = kPad + s.bottom + 1 - bottom * k;
+    // The letters are set on the scan's baseline; where none was found, the lowest ink meets the lowest letter.
+    const double base = s.baseline >= 0 ? kPad + s.baseline + 1.0 : kPad + s.bottom + 1 - bottom * k;
 
     // Each word is set on the middle of its scanned ink, so faded ends on
     // either side weigh alike.
@@ -313,7 +409,12 @@ ScanFont::Fit fitLine(const Scan &s, const QStringList &words, const QString &te
             p.restore();
         }
     }
-    if (sigma >= 0.0) return { k * kRef / scale, grayCover(s, canvas, sigma), font.bold(), {}, spacing * k / scale };
+    if (sigma >= 0.0) {
+        double slope = 0.0;
+        const double gray = grayCover(s, canvas, sigma, printed ? &slope : nullptr);
+        if (printed) *printed = qBound(0.0, s.paper - slope * (s.paper - s.inkLevel), double(s.paper));
+        return { k * kRef / scale, gray, font.bold(), {}, spacing * k / scale };
+    }
 
     // The rendered line is moved over the scan for the best cover; the final
     // fit also sideways, and between pixels by the slope of the cover around it.
@@ -352,9 +453,39 @@ ScanFont::Fit fitLine(const Scan &s, const QStringList &words, const QString &te
     return { k * kRef / scale, best, font.bold(), origin / scale, spacing * k / scale };
 }
 
+// The blur of a scan, found with the weight that fits best on the line the
+// face covers best: a line in another face fits any blur badly.
+double blurOf(const QList<Scan> &scans, const QList<QStringList> &words, const QList<ScanFont::Line> &lines,
+              const QFont &regular, const QFont &bold, qreal scale)
+{
+    int reference = -1;
+    double covered = -1.0;
+    for (int i = 0; i < scans.size(); ++i) {
+        if (!scans.at(i).isValid()) continue;
+        for (const QFont *face : { &regular, &bold }) {
+            const double c = fitLine(scans.at(i), words.at(i), lines.at(i).text, *face, scale).score;
+            if (c > covered) { covered = c; reference = i; }
+        }
+    }
+    double sigma = 0.82;
+    if (reference < 0) return sigma;
+    double top = -1.0;
+    for (const double tried : { 0.0, 0.82, 1.41, 2.16 })
+        for (const QFont *face : { &regular, &bold }) {
+            const double g = fitLine(scans.at(reference), words.at(reference), lines.at(reference).text,
+                                     *face, scale, false, 1.0, tried).score;
+            if (g > top) { top = g; sigma = tried; }
+        }
+    return sigma;
+}
+
 double roundedSize(double size)
 {
-    // Documents are set in whole and half points; a size that close is taken as meant.
+    // Documents are set in whole points, some in half points; a size that
+    // close is taken as meant, the whole point first, so lines set alike
+    // do not fall either side of a half.
+    const double whole = qRound(size);
+    if (std::abs(whole - size) <= qMin(size * 0.025, 0.4)) return whole;
     const double half = qRound(size * 2.0) / 2.0;
     return std::abs(half - size) <= size * 0.012 ? half : size;
 }
@@ -379,6 +510,7 @@ Match match(const QImage &img, qreal scale, const QList<Line> &lines, const QLis
         const QRectF text = line.textPt.isEmpty() ? line.inkPt : line.textPt;
         const int top = qFloor(text.top() * scale) - px.top(), bottom = qCeil(text.bottom() * scale) - px.top();
         scans.append(words.last().isEmpty() ? Scan{} : scanOf(img, px, words.last(), top, bottom));
+        all.last().text = words.last().join(u' ');
     };
     int chars = 0, height = 0;
     for (const Line &line : lines) {
@@ -395,21 +527,22 @@ Match match(const QImage &img, qreal scale, const QList<Line> &lines, const QLis
             all.removeLast(); words.removeLast(); scans.removeLast();
         }
     }
-    const auto faceOf = [](const QString &family, bool bold) {
+    const auto faceOf = [](const QString &family, bool bold, bool kerned) {
         QFont font(family);
         font.setPixelSize(kRef);
         font.setBold(bold);
-        font.setKerning(false);
+        font.setKerning(kerned);
         font.setHintingPreference(QFont::PreferNoHinting);
         font.setStyleStrategy(QFont::NoFontMerging);
         return font;
     };
+
     // How well a face covers some lines, compared in gray and a little
-    // blurred, so a pixel of offset or kerning does not decide.
-    const auto scoreOf = [&](const QString &name, const QList<int> &on, double contextWeight) {
+    // blurred, so a pixel of offset does not decide.
+    const auto grayOf = [&](const QString &name, bool kerned, const QList<int> &on, double contextWeight) {
         double best = -1.0;
         for (const bool bold : { false, true }) {
-            const QFont font = faceOf(name, bold);
+            const QFont font = faceOf(name, bold, kerned);
             double score = 0.0, weight = 0.0;
             for (const int i : on) {
                 double gray = -1.0;
@@ -423,6 +556,12 @@ Match match(const QImage &img, qreal scale, const QList<Line> &lines, const QLis
             if (weight > 0.0) best = qMax(best, score / weight);
         }
         return best;
+    };
+    // Documents are set with kerning or without, as their program does; it
+    // is found once, on the face the cheap cover puts first.
+    bool kerned = false;
+    const auto scoreOf = [&](const QString &name, const QList<int> &on, double contextWeight) {
+        return grayOf(name, kerned, on, contextWeight);
     };
     const auto widestOf = [&](int from, int to, int count) {
         QList<int> out;
@@ -443,7 +582,7 @@ Match match(const QImage &img, qreal scale, const QList<Line> &lines, const QLis
     for (const QString &name : candidates()) {
         double score = -1.0;
         for (const bool bold : { false, true }) {
-            const QFont font = faceOf(name, bold);
+            const QFont font = faceOf(name, bold, false);
             double sum = 0.0, weight = 0.0;
             for (const int i : own) {
                 const Fit fit = fitLine(scans.at(i), words.at(i), all.at(i).text, font, scale);
@@ -457,46 +596,43 @@ Match match(const QImage &img, qreal scale, const QList<Line> &lines, const QLis
         if (score > -1.0) rough.append({ score, name });
     }
     std::sort(rough.begin(), rough.end(), [](const auto &a, const auto &b) { return a.first > b.first; });
+    if (!rough.isEmpty()) kerned = grayOf(rough.first().second, true, own, 1.0) > grayOf(rough.first().second, false, own, 1.0);
     QList<std::pair<double, QString>> ranked;
     if (!family.isEmpty()) ranked.append({ 1.0, family });
     for (int k = 0; family.isEmpty() && k < qMin(4, int(rough.size())); ++k) {
         const double score = scoreOf(rough.at(k).second, own, 1.0);
-        if (score > -1.0) ranked.append({ score, rough.at(k).second });
+        if (score > -1.0) ranked.append({ score - rarity(rough.at(k).second), rough.at(k).second });
     }
     if (ranked.isEmpty()) return {};
     std::sort(ranked.begin(), ranked.end(), [](const auto &a, const auto &b) { return a.first > b.first; });
     best.family = ranked.first().second;
-    if (all.size() > lines.size() && ranked.size() > 1 && ranked.at(0).first - ranked.at(1).first < 0.03) {
+    if (all.size() > lines.size() && ranked.size() > 1 && ranked.at(0).first - ranked.at(1).first < 0.015) {
         const QList<int> near = own + widestOf(int(lines.size()), int(all.size()), 4);
         double top = -1.0;
         for (int k = 0; k < qMin(3, int(ranked.size())); ++k) {
-            if (ranked.at(0).first - ranked.at(k).first >= 0.03) break;
-            const double score = scoreOf(ranked.at(k).second, near, 0.5);
+            if (ranked.at(0).first - ranked.at(k).first >= 0.015) break;
+            const double score = scoreOf(ranked.at(k).second, near, 0.5) - rarity(ranked.at(k).second);
             if (score > top) { top = score; best.family = ranked.at(k).second; }
         }
     }
     if (best.family.isEmpty()) return {};
     // Each line in the weight it matches, so a bold line among regular ones shows.
-    const QFont regular = faceOf(best.family, false), bold = faceOf(best.family, true);
-    // The blur is the scan's, found on its first line and kept for the others.
-    double sigma = -1.0;
+    const QFont regular = faceOf(best.family, false, kerned), bold = faceOf(best.family, true, kerned);
+    // The blur is the scan's, kept for all lines.
+    const double sigma = blurOf(scans.mid(0, lines.size()), words, all, regular, bold, scale);
     for (int i = 0; i < lines.size(); ++i) {
         if (!scans.at(i).isValid()) { best.lines.append(Fit{}); continue; }
-        // The blur of the scan is the one that fits the regular weight best;
-        // the weight is then decided by the gray at that blur.
         const Scan &scan = scans.at(i);
-        const QString &text = lines.at(i).text;
-        double grayRegular = -1.0;
-        if (sigma < 0.0) {
-            for (const double tried : { 0.0, 0.82, 1.41, 2.16 }) {
-                const double g = fitLine(scan, words.at(i), text, regular, scale, false, 1.0, tried).score;
-                if (g > grayRegular) { grayRegular = g; sigma = tried; }
-            }
-        } else {
-            grayRegular = fitLine(scan, words.at(i), text, regular, scale, false, 1.0, sigma).score;
-        }
+        const QString &text = all.at(i).text;
+        const double grayRegular = fitLine(scan, words.at(i), text, regular, scale, false, 1.0, sigma).score;
         const double grayBold = fitLine(scan, words.at(i), text, bold, scale, false, 1.0, sigma).score;
-        const bool isBold = grayBold > grayRegular;
+        // Most text is set regular: bold has to fit clearly better.
+        // The gray hardly sees how thick the strokes are, the ink they cover
+        // does; bold covers more of any scan, so it has to cover clearly more.
+        const double coverMargin = fitLine(scan, words.at(i), text, bold, scale).score
+                                 - fitLine(scan, words.at(i), text, regular, scale).score;
+        const double margin = grayBold - grayRegular + 0.3 * coverMargin - 0.04;
+        const bool isBold = margin > 0.0;
         const QFont &face = isBold ? bold : regular;
         // Thin ends of strokes fade on a scan, so the words measure a little
         // short: the size is tried a little larger and smaller for the best gray.
@@ -508,20 +644,25 @@ Match match(const QImage &img, qreal scale, const QList<Line> &lines, const QLis
         for (const double step : { -0.03, -0.02, -0.01, 0.01, 0.02, 0.03 }) tryStretch(1.0 + step);
         const double coarse = stretch;
         for (const double step : { -0.005, 0.005 }) tryStretch(coarse + step);
-        const Fit fit = fitLine(scan, words.at(i), text, face, scale, true, stretch);
+        Fit fit = fitLine(scan, words.at(i), text, face, scale, true, stretch);
+        fit.boldMargin = margin;
+        fitLine(scan, words.at(i), text, face, scale, false, stretch, sigma, &fit.inkGray);
         best.lines.append(fit);
     }
-    QList<double> sizes;
-    int weight = 0;
+    QList<double> sizes, inks;
+    double weight = 0.0;
     for (Fit &fit : best.lines) {
         if (fit.sizePt <= 0.0) continue;
         sizes.append(fit.sizePt = roundedSize(fit.sizePt));
-        weight += fit.bold ? 1 : -1;
+        if (fit.inkGray >= 0.0) inks.append(fit.inkGray);
+        weight += fit.boldMargin;
     }
     if (sizes.isEmpty()) return {};
     std::sort(sizes.begin(), sizes.end());
     best.sizePt = sizes.at(sizes.size() / 2);
-    best.bold = weight > 0;
+    std::sort(inks.begin(), inks.end());
+    if (!inks.isEmpty()) best.inkGray = inks.at(inks.size() / 2);
+    best.bold = weight > 0.0;
     return best;
 }
 

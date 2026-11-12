@@ -1,6 +1,7 @@
 #pragma once
 
 #include "engine/edit/ContentMap.hpp"
+#include "engine/forms/FormSpec.hpp"
 #include "engine/edit/TextBlock.hpp"
 #include "engine/edit/TextBoxProperties.hpp"
 #include "engine/edit/TextLayout.hpp"
@@ -78,6 +79,14 @@ public:
         QColor  originalColor;
 
         bool operator==(const NoteEdit &) const = default;
+    };
+
+    /// A new value for an interactive form field, by its full name.
+    struct FormValue {
+        QString    field;
+        QString    value;
+        QList<int> pages;
+        bool operator==(const FormValue &) const = default;
     };
 
     /// Stores one pending text edit.
@@ -182,6 +191,11 @@ public:
     const QList<LinkEdit> &linkEdits() const { return m_linkEdits; }
     void replaceNoteEdits(QList<NoteEdit> edits);
     const QList<NoteEdit> &noteEdits() const { return m_noteEdits; }
+    void replaceFormValues(QList<FormValue> values);
+    const QList<FormValue> &formValues() const { return m_formValues; }
+    void replaceFormDesign(QList<FormSpec> design);
+    const QList<FormSpec> &formDesign() const { return m_formDesign; }
+    bool hasFormChangesOnPage(int page) const;
 
     void clear();
 
@@ -194,7 +208,7 @@ public:
     bool    hasAnyEdits() const
     { return !m_edits.isEmpty() || !m_imageEdits.isEmpty() || !m_imageChanges.isEmpty()
           || !m_drawStrokes.isEmpty() || !m_linkEdits.isEmpty()
-          || !m_noteEdits.isEmpty(); }
+          || !m_noteEdits.isEmpty() || !m_formValues.isEmpty() || !m_formDesign.isEmpty(); }
 
     QString editTextAt(int page, const QRectF &pdfBounds) const;
 
@@ -233,4 +247,6 @@ private:
     QList<DrawStroke> m_drawStrokes;
     QList<LinkEdit>   m_linkEdits;
     QList<NoteEdit>   m_noteEdits;
+    QList<FormValue>  m_formValues;
+    QList<FormSpec>   m_formDesign;
 };

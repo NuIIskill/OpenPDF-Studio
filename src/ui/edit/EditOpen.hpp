@@ -81,6 +81,23 @@ struct EditOpener::EditOpen : EditTarget
             .translated(origin);
     }
 
+    // Scanned lines narrowed to the ink standing on their baselines: a text
+    // layer's box may reach far into the line above.
+    void narrowToInk(QList<TextLayout::OriginalLine> &lines)
+    {
+        for (TextLayout::OriginalLine &line : lines) {
+            const double pad = line.rect.height() * 0.7;
+            if (!cover(pixelsOf(line.rect.adjusted(-pad, -pad, pad, pad)))) continue;
+            const QPointF origin = QPointF(m_area.topLeft()) / kSampleScale;
+            const QRectF ink = InkMetrics::inkOnBaselinePt(m_samp, line.rect.translated(-origin),
+                                                           line.baseline - origin.y(), kSampleScale);
+            if (ink.isEmpty()) continue;
+            const QRectF own = ink.translated(origin);
+            line.rect = QRectF(QPointF(qMin(line.rect.left(), own.left()), own.top()),
+                               QPointF(qMax(line.rect.right(), own.right()), own.bottom()));
+        }
+    }
+
     // A scanned line with room above and below: its descenders hold too little
     // ink for the ink around it, and the matcher takes the line's own band.
     ScanFont::Line scanLine(const QRectF &rect, const QString &text)

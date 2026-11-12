@@ -188,7 +188,8 @@ bool PageLayoutEngine::editedOnPage(int page) const
     return m_session && (m_session->hasEditsOnPage(page) || m_session->hasImageEditsOnPage(page)
                          || m_session->hasDrawEditsOnPage(page)
                          || m_session->hasLinkEditsOnPage(page)
-                         || m_session->hasRemovedHighlightsOnPage(page));
+                         || m_session->hasRemovedHighlightsOnPage(page)
+                         || m_session->hasFormChangesOnPage(page));
 #else
     Q_UNUSED(page)
     return false;

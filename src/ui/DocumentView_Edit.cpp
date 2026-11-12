@@ -16,6 +16,7 @@
 #include "ui/view/LoadingSpinner.hpp"
 #include "ui/notes/NoteLayer.hpp"
 #include "ui/draw/DrawingLayer.hpp"
+#include "ui/forms/FormLayer.hpp"
 #include "ui/redact/RedactionLayer.hpp"
 #include "ui/edit/TextToolInput.hpp"
 #include "ui/view/HoldKeys.hpp"
@@ -239,6 +240,8 @@ DocumentView::DocumentView(QWidget *parent)
     m_overlays.append(new SignatureStatusLayer(this, m_info, this));
     m_redactionLayer = new RedactionLayer(this, this);
     m_overlays.append(m_redactionLayer);
+    m_formLayer = new FormLayer(this, this);
+    m_overlays.append(m_formLayer);
     for (PageOverlay *overlay : std::as_const(m_overlays))
         overlay->setChangeReporter([this](const QString &title, int page) {
             m_journal.recordSideChange(
@@ -328,6 +331,7 @@ DocumentView::DocumentView(QWidget *parent)
     m_linkLayer->setSource(m_src->backend(), m_session, m_undoStack);
     m_noteLayer->setSource(m_src->backend(), m_session, m_undoStack);
     m_drawingLayer->setSource(m_session, m_undoStack);
+    m_formLayer->setSource(m_src->backend(), m_session);
 #endif
 
     m_ocrEngine = new OcrEngine();

@@ -97,6 +97,16 @@ void AppSettings::setNoteDraftNudgeSeen(bool seen)
     settings().setValue(QStringLiteral("notes/draftNudgeSeen"), seen);
 }
 
+bool AppSettings::formKindHintSeen() const
+{
+    return settings().value(QStringLiteral("forms/kindHintSeen"), false).toBool();
+}
+
+void AppSettings::setFormKindHintSeen(bool seen)
+{
+    settings().setValue(QStringLiteral("forms/kindHintSeen"), seen);
+}
+
 QStringList AppSettings::notePalette() const
 {
     return settings().value(QStringLiteral("notes/palette")).toStringList();

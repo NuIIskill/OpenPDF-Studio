@@ -21,6 +21,7 @@ QVector<ToolDef> &catalog()
         { QStringLiteral("image"),    QStringLiteral("image"),           QStringLiteral(QT_TR_NOOP("Image")),      true },
         { QStringLiteral("bookmark"), QStringLiteral("bookmark"),        QStringLiteral(QT_TR_NOOP("Bookmark"))   },
         { QStringLiteral("attach"),   QStringLiteral("link"),            QStringLiteral(QT_TR_NOOP("Link")),       true },
+        { QStringLiteral("form"),     QStringLiteral("form-input"),      QStringLiteral(QT_TR_NOOP("Form fields")), true },
     };
     return tools;
 }

@@ -45,6 +45,8 @@ src/
     edit/         content model, ink metrics, edit session
     export/       the document into another format: PDF options, DOCX, images,
                   printing
+    forms/        form scripts (formats, ranges, calculations), a text
+                  field's layout and the designed fields' writer
     historymanager/
                   change log, journal, restore, timeline archive
     import/       another format into a PDF: docx, odt, images
@@ -67,6 +69,8 @@ src/
     protect/      protecting: password, encryption and permissions
     session/      crash recovery: what was open and how to get it back
     export/       the export dialog, running an export, printing
+    forms/        filling in and designing forms: the overlay, the design
+                  tool and its panel
     import/       turning a Word, OpenDocument or image file into a PDF
     sign/         signing: the sign dialog and the digital signing flow
     widgets/      shared widgets only - see the rule below

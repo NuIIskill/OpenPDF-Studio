@@ -263,6 +263,75 @@ QLabel#RedactionNumber {
 QLabel#RedactionCardTitle { color: #F3F4F6; font-size: 13px; font-weight: 600; }
 QLabel#RedactionCardMeta { color: #9CA3AF; font-size: 11px; }
 
+/* ── Form fields ─────────────────────────────────────────── */
+#FormFieldPanel { background: #353535; border-left: 1px solid #484848; }
+QLabel#FormFieldTitle { color: #F3F4F6; font-size: 20px; font-weight: 700; }
+QLabel#FormFieldHint, QLabel#FormFieldNote { color: #9CA3AF; font-size: 12px; }
+QLabel#FormFieldLabel { color: #F3F4F6; font-size: 13px; font-weight: 600; }
+QFrame#FormFieldDivider { background: #484848; border: none; }
+QScrollArea#FormFieldScroll, QWidget#FormFieldProps { background: transparent; border: none; }
+QPushButton#FormFieldClose { background: transparent; border: none; border-radius: 6px; padding: 3px; }
+QPushButton#FormFieldClose:hover { background: #484848; }
+QFrame#FormFieldKinds { background: #3D3D3D; border: 1px solid #555555; border-radius: 8px; }
+QPushButton#FormFieldKind {
+    background: transparent; color: #E5E7EB; border: none; border-radius: 5px;
+    font-size: 13px; padding: 0 10px 0 28px; text-align: left;
+}
+QPushButton#FormFieldKind:hover { background: #484848; }
+QPushButton#FormFieldKind:checked { background: #323E52; color: #F3F4F6; }
+QPushButton#FormFieldKind:disabled { background: transparent; color: #6B7280; }
+QLabel#FormFieldGhost { background: #3B82F6; border: 2px solid #2B2B2B; border-radius: 6px; }
+#FormFieldPanel QLineEdit, #FormFieldPanel QComboBox, #FormFieldPanel QSpinBox, #FormFieldPanel QDoubleSpinBox {
+    background: #2E2E2E; color: #E5E7EB; border: 1px solid #555555; border-radius: 6px;
+    min-height: 30px; padding: 0 10px; font-size: 13px;
+}
+#FormFieldPanel QLineEdit:hover, #FormFieldPanel QComboBox:hover,
+#FormFieldPanel QSpinBox:hover, #FormFieldPanel QDoubleSpinBox:hover { border-color: #6B7280; }
+#FormFieldPanel QLineEdit:focus, #FormFieldPanel QComboBox:focus,
+#FormFieldPanel QSpinBox:focus, #FormFieldPanel QDoubleSpinBox:focus { border-color: #60A5FA; }
+#FormFieldPanel QLineEdit:disabled, #FormFieldPanel QComboBox:disabled {
+    background: #3A3A3A; color: #777777; border-color: #4A4A4A;
+}
+#FormFieldPanel QComboBox::drop-down { border: none; width: 28px; }
+#FormFieldPanel QComboBox::down-arrow { image: url(:/icons/chevron-down-light.svg); width: 14px; height: 14px; }
+#FormFieldPanel QComboBox QAbstractItemView {
+    background: #2E2E2E; color: #E5E7EB; border: 1px solid #555555; outline: none;
+    selection-background-color: #323E52; selection-color: #F3F4F6;
+}
+#FormFieldPanel QSpinBox, #FormFieldPanel QDoubleSpinBox { padding-right: 24px; }
+#FormFieldPanel QSpinBox::up-button, #FormFieldPanel QDoubleSpinBox::up-button,
+#FormFieldPanel QSpinBox::down-button, #FormFieldPanel QDoubleSpinBox::down-button {
+    subcontrol-origin: border; width: 22px; border: none; background: transparent;
+}
+#FormFieldPanel QSpinBox::up-button, #FormFieldPanel QDoubleSpinBox::up-button { subcontrol-position: top right; margin-top: 3px; }
+#FormFieldPanel QSpinBox::down-button, #FormFieldPanel QDoubleSpinBox::down-button { subcontrol-position: bottom right; margin-bottom: 3px; }
+#FormFieldPanel QSpinBox::up-arrow, #FormFieldPanel QDoubleSpinBox::up-arrow { image: url(:/icons/chevron-up-light.svg); width: 11px; height: 11px; }
+#FormFieldPanel QSpinBox::down-arrow, #FormFieldPanel QDoubleSpinBox::down-arrow { image: url(:/icons/chevron-down-light.svg); width: 11px; height: 11px; }
+QCheckBox#FormFieldCheck { color: #E5E7EB; font-size: 13px; spacing: 8px; }
+QListWidget#FormFieldOptions {
+    background: #2E2E2E; color: #E5E7EB; border: 1px solid #555555; border-radius: 6px;
+    outline: none; font-size: 13px;
+}
+QListWidget#FormFieldOptions::item { padding: 6px 14px 6px 8px; border-bottom: 1px solid #3F3F3F; }
+QListWidget#FormFieldOptions::item:hover { background: #363636; }
+QListWidget#FormFieldOptions::item:selected { background: #323E52; color: #F3F4F6; }
+QListWidget#FormFieldOptions QLineEdit { min-height: 0; padding: 0 4px; border-radius: 3px; }
+QPushButton#FormFieldSecondary {
+    background: #3D3D3D; color: #E5E7EB; border: 1px solid #555555; border-radius: 6px;
+    font-size: 13px; padding: 6px 20px;
+}
+QPushButton#FormFieldSecondary:hover { background: #444444; border-color: #6B7280; }
+QPushButton#FormFieldLink {
+    background: transparent; border: none; color: #60A5FA; font-size: 14px; font-weight: 500;
+    padding: 4px 0; text-align: left;
+}
+QPushButton#FormFieldLink:hover { color: #93C5FD; }
+QPushButton#FormFieldRemove {
+    background: transparent; border: none; border-radius: 6px; color: #F87171; font-size: 13px;
+    padding: 6px 10px 6px 6px; text-align: left;
+}
+QPushButton#FormFieldRemove:hover { background: #4A2E2E; }
+
 /* ── Customize Tools card ────────────────────────────────── */
 QFrame#ToolCustomizeCard {
     background: #404040;

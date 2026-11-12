@@ -211,6 +211,21 @@ QList<OcrEngine::Line> OcrEngine::recognizeLines(const QImage &pageImage,
     delete ri;
     api->Clear();
 
+    // A speck of dust beside a line is read as a mark of its own, far smaller than the words: it is no word.
+    for (Line &l : lines) {
+        if (l.size() < 2) continue;
+        QList<double> heights;
+        for (const Word &w : std::as_const(l)) heights.append(w.pdfBounds.height());
+        std::sort(heights.begin(), heights.end());
+        const double small = heights.at(heights.size() / 2) * 0.25;
+        const auto speck = [small](const Word &w) {
+            return w.pdfBounds.width() < small && w.pdfBounds.height() < small
+                && std::none_of(w.text.cbegin(), w.text.cend(), [](QChar c) { return c.isLetterOrNumber(); });
+        };
+        while (l.size() > 1 && speck(l.last())) l.removeLast();
+        while (l.size() > 1 && speck(l.first())) l.removeFirst();
+    }
+
     report(kReading);
     if (settle)
         OcrStyle::settle(straight, renderScale, lines, cancelled, [&](qreal done) {

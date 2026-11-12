@@ -107,8 +107,8 @@ void SettingsPanel::buildAdvancedInterface(QVBoxLayout *vl)
     cl->addSpacing(8);
     m_hintAnimationsCheck = static_cast<SettingCheckBox *>(addSettingsCheck(cl,
         tr("Interactive UI"),
-        tr("Controls wiggle to show how they work, such as the note colors and a new note. "
-           "Yellow: only the first time. Checked: every time."),
+        tr("Controls wiggle to show how they work, such as the note colors, a new note and the "
+           "form field kinds. Yellow: only the first time. Checked: every time."),
         false));
     m_hintAnimationsCheck->setTristate(true);
     const QString mode = m_settings->hintAnimations();

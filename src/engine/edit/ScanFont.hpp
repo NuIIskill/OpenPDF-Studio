@@ -17,12 +17,15 @@ struct Fit {
     bool bold { false };
     QPointF originPt;
     double spacingPt { 0.0 };
+    double boldMargin { 0.0 };
+    double inkGray { -1.0 };
 };
 
 struct Match {
     QString family;
     bool bold { false };
     double sizePt { 0.0 };
+    double inkGray { -1.0 };
     QList<Fit> lines;
     bool isValid() const { return !family.isEmpty() && sizePt > 0.0; }
 };

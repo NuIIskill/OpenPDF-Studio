@@ -366,6 +366,37 @@ save the view reloads the file like after signing. `RedactionWriter`
    and the bar. A failing page is made an image and the copy checked again;
    if that fails too, the save fails.
 
+## Forms
+
+`FormLayer` (`ui/forms/`) is an overlay. Its state holds the values filled in
+and the designed fields (`FormSpec`, `engine/forms/`), so both are journal
+entries that undo, history and recovery restore. It reads the fields from the
+file page by page and puts boxes over them; with Select, Pan or Bookmark a
+click fills a field in. Formats, ranges and calculations come from the
+standard Acrobat functions in the field scripts (`FormScript`), since PDFium
+runs no JavaScript. A simple `event.value = ...` with `getField()` is
+calculated too, anything else is left alone.
+
+A text field is typed into in a transparent editor over its box.
+`FormTextLayout` (`engine/forms/`) repeats PDFium's layout of the field -
+automatic font size, line breaks, baselines, alignment, Helvetica's widths -
+and `FormEditLayout` sets the editor's lines by it, so the text stands while
+it is typed where the render will draw it.
+
+The Form fields tool (edit mode, `FormDesigner`, `FormFieldPanel`) draws new
+fields and moves, resizes, renames and removes fields of the file.
+
+The layer hands both to the edit session. `FormFieldWriter` (qpdf) builds
+the file with its fields as designed in memory; `PdfiumForms` fills the values
+in through a PDFium form environment, which also makes the appearances. The
+preview renders a page with form changes from this second document
+(`PdfiumBackend::renderFormPage()`), and `PdfiumWriter::save()` starts from
+the same memory document, so the preview is the file.
+
+PDFium draws form fields only through a form environment
+(`FPDF_FFLDraw()`); `PdfiumBackend` keeps one for every document with an
+AcroForm and draws it after each render.
+
 ## Crash recovery
 
 `SessionStore` (`app/`) keeps working copies, snapshots and a list of the open

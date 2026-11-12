@@ -29,6 +29,8 @@ FontInk fontInkPerPt(const QString &text, QFont f);
 
 QRectF inkAroundPt(const QImage &img, const QRectF &linePt, qreal scale);
 
+QRectF inkOnBaselinePt(const QImage &img, const QRectF &linePt, double baselinePt, qreal scale);
+
 double strokeWidthPt(const QImage &img, const QRectF &inkPt, qreal scale);
 
 }

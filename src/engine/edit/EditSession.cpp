@@ -139,6 +139,8 @@ void EditSession::clear()
     m_drawStrokes.clear();
     m_linkEdits.clear();
     m_noteEdits.clear();
+    m_formValues.clear();
+    m_formDesign.clear();
 }
 
 void EditSession::addImageEdit(int page, const QRectF &pdfBounds, const QImage &image)
@@ -214,6 +216,27 @@ bool EditSession::hasNoteEditsOnPage(int page) const
 {
     for (const NoteEdit &edit : m_noteEdits)
         if (edit.page == page) return true;
+    return false;
+}
+
+void EditSession::replaceFormValues(QList<FormValue> values)
+{
+    if (m_formValues == values) return;
+    m_formValues = std::move(values);
+}
+
+void EditSession::replaceFormDesign(QList<FormSpec> design)
+{
+    if (m_formDesign == design) return;
+    m_formDesign = std::move(design);
+}
+
+bool EditSession::hasFormChangesOnPage(int page) const
+{
+    for (const FormValue &value : m_formValues)
+        if (value.pages.contains(page)) return true;
+    for (const FormSpec &spec : m_formDesign)
+        if (spec.pages().contains(page)) return true;
     return false;
 }
 

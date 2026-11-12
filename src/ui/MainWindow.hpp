@@ -9,6 +9,7 @@
 class TopToolbar;
 class LeftSidebar;
 class BookmarkPanel;
+class FormFieldPanel;
 class NotesPanel;
 class DocumentView;
 class RightSidebar;
@@ -127,6 +128,7 @@ private:
     LeftSidebar          *m_leftSidebar  { nullptr };
     BookmarkPanel        *m_bookmarkPanel{ nullptr };
     NotesPanel           *m_notesPanel   { nullptr };
+    FormFieldPanel       *m_formPanel    { nullptr };
     TextPropertiesPanel  *m_textPanel    { nullptr };
     RightSidebar         *m_rightSidebar { nullptr };
     StatusBar            *m_statusBar    { nullptr };

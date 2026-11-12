@@ -418,6 +418,14 @@ void EditOpener::sampleEditColors(EditOpen &o)
         o.color = o.contentItem.textColor;
     } else if (o.canSample()) {
         o.color = o.sampleTextColor(o.toShown().mapRect(o.block.pdfBounds));
+        // A scan's strokes are blurred and lighter than the ink they were
+        // printed in; the edit is drawn crisp in that ink, keeping the hue.
+        const double ink = o.scanFace.isValid() ? o.scanFace.inkGray : -1.0;
+        const double sampled = qGray(o.color.rgb());
+        if (o.scanned && ink >= 0.0 && sampled > ink && sampled > 0.0) {
+            const double f = ink / sampled;
+            o.color = QColor(qRound(o.color.red() * f), qRound(o.color.green() * f), qRound(o.color.blue() * f));
+        }
     }
 
     o.bgColor = Qt::white;

@@ -6,6 +6,7 @@
 #include "engine/document/PdfiumContentProvider.hpp"
 #include "engine/document/PdfiumEdits.hpp"
 #include "engine/document/PdfiumFonts.hpp"
+#include "engine/document/PdfiumForms.hpp"
 #include "engine/document/PdfiumImages.hpp"
 #include "engine/document/PdfiumLock.hpp"
 #include "engine/document/PdfiumPageSpace.hpp"
@@ -165,6 +166,8 @@ PdfiumBackend::~PdfiumBackend()
         m_metricsCache.clear();
     }
     m_scanText.reset();
+    dropFormDoc();
+    m_docForms.reset();
     if (m_doc) {
         PdfiumFonts::releaseFonts(m_doc);
         FPDF_CloseDocument(m_doc);
@@ -202,11 +205,14 @@ bool PdfiumBackend::open(const QString &path, const PasswordAsker &ask)
     dropBackgroundPages();
     dropReadPages();
     m_scanText.reset();
+    dropFormDoc();
+    m_docForms.reset();
     if (m_doc) {
         PdfiumFonts::releaseFonts(m_doc);
         FPDF_CloseDocument(m_doc);
     }
     m_doc  = opened;
+    m_docForms = std::make_unique<PdfiumForms>(m_doc);
     m_path = path;
     m_pageSizes.clear();
     for (int page = 0, count = FPDF_GetPageCount(m_doc); page < count; ++page) {
@@ -227,6 +233,8 @@ void PdfiumBackend::close()
         m_metricsCache.clear();
     }
     m_scanText.reset();
+    dropFormDoc();
+    m_docForms.reset();
     if (m_doc) {
         PdfiumFonts::releaseFonts(m_doc);
         FPDF_CloseDocument(m_doc);
@@ -390,6 +398,7 @@ struct PdfiumChar {
     int    row { 0 };
     double written { 0.0 };
     bool   ligated { false };
+    const void *hiddenWord { nullptr };
 };
 
 struct PdfiumLine {
@@ -530,9 +539,21 @@ void sortIntoRows(std::vector<PdfiumChar> &chars)
         }
         c.row = row;
     }
-    std::sort(chars.begin(), chars.end(), [](const PdfiumChar &a, const PdfiumChar &b) {
+    // The characters of a word of an OCR layer stay together, where the word begins.
+    QHash<std::pair<int, const void *>, double> wordLeft;
+    for (const PdfiumChar &c : chars) {
+        if (!c.hiddenWord) continue;
+        const auto key = std::make_pair(c.row, c.hiddenWord);
+        const auto it = wordLeft.constFind(key);
+        if (it == wordLeft.cend() || c.box.left() < it.value()) wordLeft.insert(key, c.box.left());
+    }
+    const auto leftOf = [&](const PdfiumChar &c) {
+        return c.hiddenWord ? wordLeft.value(std::make_pair(c.row, c.hiddenWord)) : c.box.left();
+    };
+    std::sort(chars.begin(), chars.end(), [&](const PdfiumChar &a, const PdfiumChar &b) {
         if (a.row != b.row) return a.row < b.row;
-        if (a.box.left() != b.box.left()) return a.box.left() < b.box.left();
+        const double la = leftOf(a), lb = leftOf(b);
+        if (la != lb) return la < lb;
         return a.index < b.index;
     });
 }
@@ -686,8 +707,13 @@ std::vector<PdfiumLine> PdfiumBackend::linesOfPage(int page,
                           && std::abs(chars.back().box.left() - box.left()) < 1e-3
                           && std::abs(chars.back().box.right() - box.right()) < 1e-3;
         if (ligated) originX = chars.back().endX;
+        // An OCR layer's word may be stretched over the words after it; its
+        // characters are read together, and a space added after it with them.
+        const void *hiddenWord = object && FPDFTextObj_GetTextRenderMode(object) == FPDF_TEXTRENDERMODE_INVISIBLE
+            ? object : (generated && !chars.empty() && chars.back().index == i - 1 ? chars.back().hiddenWord : nullptr);
         chars.push_back({ box, ch, i, fontSize, baseline, originX,
                           originX + (advance > 0.0 ? advance : box.width()), object });
+        chars.back().hiddenWord = hiddenWord;
         chars.back().ligated = ligated;
         chars.back().generated = generated;
         chars.back().turned    = turned;

@@ -6,6 +6,7 @@
 #include "ui/notes/NoteColorRow.hpp"
 #include "ui/notes/NoteLayer.hpp"
 #include "ui/notes/NotesPanel.hpp"
+#include "ui/forms/FormFieldPanel.hpp"
 #include "ui/redact/RedactionPanel.hpp"
 #include "ui/open/StartPage.hpp"
 #include "ui/bars/TopToolbar.hpp"
@@ -246,7 +247,6 @@ void MainWindow::buildUi()
         }
         m_notesPanel->setPalette(palette);
     }
-    loadHintAnimations();
     m_rightSidebar = new RightSidebar(central);
     m_textPanel->setFixedWidth(0);
     m_textPanel->hide();
@@ -269,6 +269,20 @@ void MainWindow::buildUi()
     connect(redactionPanel, &RedactionPanel::closeRequested, this, [this]() {
         onToolSelected(QStringLiteral("select"));
     });
+
+    m_formPanel = new FormFieldPanel(central);
+    m_formPanel->setDocumentAvailable(false);
+    m_formPanel->setFixedWidth(0);
+    m_formPanel->hide();
+    row->addWidget(m_formPanel, 0);
+    m_toolPanels.insert(QStringLiteral("form"), { m_formPanel, FormFieldPanel::kWidth });
+    connect(m_formPanel, &FormFieldPanel::closeRequested, this, [this]() {
+        onToolSelected(QStringLiteral("select"));
+    });
+    connect(m_formPanel, &FormFieldPanel::kindHintSeen, this, [this]() {
+        m_appSettings->setFormKindHintSeen(true);
+    });
+    loadHintAnimations();
 
     for (const ToolPanels::Panel &def : ToolPanels::all()) {
         QWidget *panel = def.create(central);
@@ -560,6 +574,7 @@ DocumentView *MainWindow::addDocView()
             m_topToolbar->setTabLabel(i, dv->displayName());
         m_statusBar->setPageInfo(1, pages);
         if (dv == currentDocView()) m_notesPanel->setDocumentAvailable(pages > 0);
+        if (dv == currentDocView()) m_formPanel->setDocumentAvailable(pages > 0);
         if (dv == currentDocView()) refreshBookmarkPanel();
         if (dv == currentDocView()) refreshDocumentInfo();
     });
@@ -641,6 +656,7 @@ DocumentView *MainWindow::addDocView()
     m_topToolbar->setCurrentTab(idx);
     m_notesPanel->setNotes(dv->notes());
     m_notesPanel->setDocumentAvailable(dv->pageCount() > 0);
+    m_formPanel->setDocumentAvailable(dv->pageCount() > 0);
     refreshUndoRedo();
     return dv;
 }
@@ -672,6 +688,7 @@ void MainWindow::onTabActivated(int index)
     refreshBookmarkPanel();
     m_notesPanel->setNotes(dv->notes());
     m_notesPanel->setDocumentAvailable(dv->pageCount() > 0);
+    m_formPanel->setDocumentAvailable(dv->pageCount() > 0);
     InfoCenter::dismiss();
     refreshDocumentInfo();
     refreshUndoRedo();
@@ -694,6 +711,7 @@ void MainWindow::onTabCloseRequested(int index)
         m_topToolbar->setTabLabel(0, {});
         m_statusBar->setPageInfo(1, 1);
         m_notesPanel->setDocumentAvailable(false);
+        m_formPanel->setDocumentAvailable(false);
         refreshBookmarkPanel();
         return;
     }
@@ -985,6 +1003,7 @@ void MainWindow::loadHintAnimations()
     const bool once = !always && mode != QLatin1String("off");
     m_notesPanel->setHints(always || (once && !m_appSettings->noteColorHintSeen()),
                            always || (once && !m_appSettings->noteDraftNudgeSeen()), always);
+    if (m_formPanel) m_formPanel->setHint(always || (once && !m_appSettings->formKindHintSeen()), always);
 }
 
 void MainWindow::onModeSelected(const QString &mode)

@@ -23,6 +23,7 @@ target_sources(OpenPDFStudio PRIVATE
     PdfBookmark.hpp
     PdfiumBackend.cpp
     PdfiumBackend.hpp
+    PdfiumBackend_Forms.cpp
     PdfiumBackend_Notes.cpp
     PdfiumBackend_Permissions.cpp
     PdfiumBackend_Render.cpp
@@ -33,6 +34,8 @@ target_sources(OpenPDFStudio PRIVATE
     PdfiumEdits.hpp
     PdfiumFonts.cpp
     PdfiumFonts.hpp
+    PdfiumForms.cpp
+    PdfiumForms.hpp
     PdfiumImages.cpp
     PdfiumImages.hpp
     PdfiumLock.cpp

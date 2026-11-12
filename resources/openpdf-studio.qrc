@@ -29,6 +29,11 @@
         <file>icons/image.svg</file>
         <file>icons/bookmark.svg</file>
         <file>icons/link.svg</file>
+        <file>icons/form-input.svg</file>
+        <file>icons/square-check.svg</file>
+        <file>icons/circle-dot.svg</file>
+        <file>icons/square-chevron-down.svg</file>
+        <file>icons/list.svg</file>
         <file>icons/settings.svg</file>
         <file>icons/save.svg</file>
         <file>icons/printer.svg</file>
@@ -44,6 +49,8 @@
         <file>icons/chevron-left.svg</file>
         <file>icons/chevron-right.svg</file>
         <file>icons/chevron-down.svg</file>
+        <file>icons/chevron-down-light.svg</file>
+        <file>icons/chevron-up-light.svg</file>
         <file>icons/chevron-up.svg</file>
         <file>icons/search.svg</file>
         <file>icons/panel-right.svg</file>

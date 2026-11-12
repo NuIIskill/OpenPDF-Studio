@@ -35,6 +35,8 @@ public:
     void setNoteColorHintSeen(bool seen);
     [[nodiscard]] bool noteDraftNudgeSeen() const;
     void setNoteDraftNudgeSeen(bool seen);
+    [[nodiscard]] bool formKindHintSeen() const;
+    void setFormKindHintSeen(bool seen);
     [[nodiscard]] QStringList notePalette() const;
     void setNotePalette(const QStringList &colors);
 

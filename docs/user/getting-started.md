@@ -93,9 +93,9 @@ layout including the width of the bookmark panel, the tool rail, the chosen sign
 export dialog the open format groups and **Compress images**. With it
 off, the application starts with its defaults each time.
 
-**Interactive UI** below it decides whether anything in the notes panel
-wiggles to show how it works: yellow (the default) only the first time,
-checked every time, unchecked never.
+**Interactive UI** below it decides whether anything in the notes panel and
+the field kinds of the form fields tool wiggle to show how they work: yellow
+(the default) only the first time, checked every time, unchecked never.
 
 On first use, the installer or application asks whether usage is personal or
 business. Personal is preselected. This relates to the separately licensed

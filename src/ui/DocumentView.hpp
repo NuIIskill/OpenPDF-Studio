@@ -19,6 +19,7 @@ QT_END_NAMESPACE
 class DigitalSignatureLayer;
 class DocumentInfoLoader;
 class ProtectionLayer;
+class FormLayer;
 class RedactionLayer;
 struct SignatureAppearance;
 class ImageAnnotationLayer;
@@ -336,6 +337,7 @@ private:
     DocumentInfoLoader *m_info { nullptr };
     ProtectionLayer    *m_protectionLayer { nullptr };
     RedactionLayer     *m_redactionLayer { nullptr };
+    FormLayer          *m_formLayer { nullptr };
     WriteGate           m_writeGate;
 
 

@@ -271,6 +271,80 @@ QRectF inkAroundPt(const QImage &img, const QRectF &linePt, qreal scale)
                                 QPointF((right + 1) / scale, (bottom + 1) / scale)));
 }
 
+QRectF inkOnBaselinePt(const QImage &img, const QRectF &linePt, double baselinePt, qreal scale)
+{
+    // The ink of a scanned line standing on its baseline: the rows of ink
+    // above and below it as far as they run unbroken; where they run into the
+    // line above, they are parted at its thinnest row. A text layer's box may
+    // reach far into that line.
+    if (img.isNull() || linePt.isEmpty() || scale <= 0.0) return {};
+    const double h = linePt.height();
+    const QRect sr = QRectF(QPointF(linePt.left() - h * 0.3, linePt.top()) * scale,
+                            QPointF(linePt.right() + h * 0.3, baselinePt + h * 0.6) * scale)
+                         .toAlignedRect().intersected(img.rect());
+    const int base = qRound(baselinePt * scale);
+    if (sr.width() < 4 || base <= sr.top() || base > sr.bottom()) return {};
+    const int bg = backgroundLuminance(img, sr);
+    const int x0 = qMax(sr.left(), qFloor(linePt.left() * scale)), x1 = qMin(sr.right(), qCeil(linePt.right() * scale));
+    const auto rowInk = [&](int y) {
+        int ink = 0;
+        for (int x = x0; x <= x1; ++x)
+            if (std::abs(lumAt(img, x, y) - bg) > 40) ++ink;
+        return ink;
+    };
+    const int least = qMax(2, (x1 - x0) / 100);
+    // The letters are densest just above the baseline, where their small letters stand.
+    int core = -1, densest = 0;
+    for (int y = qMax(sr.top(), base - qRound(h * 0.4 * scale)); y < base; ++y)
+        if (const int ink = rowInk(y); ink > densest) { densest = ink; core = y; }
+    if (core < 0 || densest < qMax(least, (x1 - x0) / 20)) return {};
+    int top = core;
+    while (top > sr.top() && rowInk(top - 1) >= least) --top;
+    if (top == sr.top() && top > img.rect().top() && rowInk(top - 1) >= least) {
+        int thinnest = top, inkThere = rowInk(top);
+        for (int y = top; y < base - (base - top) / 2; ++y)
+            if (const int ink = rowInk(y); ink < inkThere) { inkThere = ink; thinnest = y; }
+        top = thinnest + 1;
+    }
+    // Dots and accents stand a little apart above the letters, in a short run of their own.
+    const int span = base - top;
+    const auto dotted = [&](int y) {
+        for (int x = x0; x < x1; ++x)
+            if (std::abs(lumAt(img, x, y) - bg) > 40 && std::abs(lumAt(img, x + 1, y) - bg) > 40) return true;
+        return false;
+    };
+    int above = top - 1;
+    while (above > sr.top() && top - above <= span * 0.3 && !dotted(above)) --above;
+    if (above > sr.top() && top - above <= span * 0.3 && dotted(above)) {
+        int runTop = above;
+        while (runTop > sr.top() && dotted(runTop - 1)) --runTop;
+        if (runTop > sr.top() && above - runTop + 1 <= span * 0.3) top = runTop;
+    }
+    // Below the baseline only the descenders reach, a few letters of the
+    // line, each hanging on ink in the row above; a speck of dust hangs on none.
+    int bottom = core;
+    const int lowest = qMin(sr.bottom(), base + int(span * 0.45));
+    const auto hanging = [&](int y) {
+        int n = 0;
+        for (int x = x0; x <= x1; ++x) {
+            if (std::abs(lumAt(img, x, y) - bg) <= 40) continue;
+            for (int dx = -1; dx <= 1 && n >= 0; ++dx)
+                if (x + dx >= x0 && x + dx <= x1 && std::abs(lumAt(img, x + dx, y - 1) - bg) > 40) { ++n; break; }
+        }
+        return n >= 2;
+    };
+    while (bottom < lowest && (rowInk(bottom + 1) >= least || hanging(bottom + 1))) ++bottom;
+    int left = -1, right = -1;
+    for (int x = sr.left(); x <= sr.right(); ++x) {
+        int ink = 0;
+        for (int y = top; y <= bottom; ++y)
+            if (std::abs(lumAt(img, x, y) - bg) > 40) ++ink;
+        if (ink >= 2) { if (left < 0) left = x; right = x; }
+    }
+    if (left < 0) return {};
+    return QRectF(QPointF(left / scale, top / scale), QPointF((right + 1) / scale, (bottom + 1) / scale));
+}
+
 double strokeWidthPt(const QImage &img, const QRectF &inkPt, qreal scale)
 {
     // The typical width of the strokes across: the mean of the middle half of
