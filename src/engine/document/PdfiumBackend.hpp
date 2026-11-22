@@ -3,6 +3,7 @@
 #if defined(HAVE_PDF_RENDERING) && defined(HAVE_PDFIUM)
 
 #include "engine/document/PdfBackend.hpp"
+#include "engine/document/PdfiumScanInk.hpp"
 
 #include "fpdf_text.h"
 #include "fpdfview.h"
@@ -88,6 +89,9 @@ public:
     QList<TextMatch> findTextOnPage(int page, const QString &text) const override;
     void setScanText(int page, const QList<ScanLine> &lines) override;
     bool hasScanText(int page) const override;
+    bool scanBelowText(int page) const override;
+    QList<QRectF> scanPatches(int page) const override;
+    QList<QRectF> scanPictures(int page) const override;
     QList<TextMatch> findScanText(int page, const QString &text) const override;
     Selection selectPage(int page, const std::optional<QPointF> &from,
                          const std::optional<QPointF> &to) const override;
@@ -126,6 +130,7 @@ private:
     FPDF_TEXTPAGE readText(int page) const;
     void          dropReadPages() const;
     bool          readScan(int page, FPDF_PAGE &pg, FPDF_TEXTPAGE &text) const;
+    int           shownOnScan(int page) const;
 
     FPDF_DOCUMENT       m_doc { nullptr };
     std::vector<QSizeF> m_pageSizes;
@@ -136,6 +141,10 @@ private:
     mutable std::mutex m_metricsMutex;
     mutable QList<std::pair<EditSession::Edit, TextLayout::Metrics>> m_metricsCache;
     std::unique_ptr<PdfiumScanText> m_scanText;
+    mutable QHash<int, int> m_shownOnScan;
+    mutable QHash<int, QList<QRectF>> m_scanPatches;
+    mutable QHash<int, QList<QRectF>> m_scanPictures;
+    mutable PdfiumScanInk::Cache m_scanInk;
     // PDFium draws form fields only through a form environment.
     std::unique_ptr<PdfiumForms>             m_docForms;
     // The form is filled in a second load of the file, so the shown document stays as read.

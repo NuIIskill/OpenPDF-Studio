@@ -170,6 +170,8 @@ void EditController::takeBounds(const QRectF &bounds)
     if (activeEditTurned && sameSize && !m_frame->paintHidden())
         activeEditTurnPivot += EditOpener::turnedPivotShift(currentBox.rotationDeg,
                                                             bounds.topLeft() - activeEditBounds.topLeft());
+    // A scan lying askew keeps what it turns about while its box grows, and takes it along when the box is moved.
+    if (scanAskew()) activeEditTurnPivot += bounds.topLeft() - activeEditBounds.topLeft();
 #endif
     activeEditBounds  = bounds;
     currentBox.bounds = bounds;
@@ -269,6 +271,8 @@ void EditController::refreshLivePreview()
         if (activeEditTurned) {
             window = edits.last();
             window->box.rotationDeg = 0.0;
+            EditSession::turnAbout(edits.last(), activeEditTurnPivot);
+        } else if (scanAskew()) {
             EditSession::turnAbout(edits.last(), activeEditTurnPivot);
         }
     }
@@ -444,7 +448,9 @@ void EditController::presentEditor(const EditTarget &t)
         activeEditOriginalLines = t.framedLines;
         for (TextLayout::OriginalLine &line : activeEditOriginalLines)
             line.objectStart = QList<bool>(line.text.size(), false);
-    } else if (activeEditNeedsBlank && activeEditFieldName.isEmpty() && !t.scanned) {
+    } else if (t.scanned) {
+        activeEditOriginalLines = t.scanOriginals;
+    } else if (activeEditNeedsBlank && activeEditFieldName.isEmpty()) {
         if (auto *backend = m_src->backend()) {
             const QList<TextLayout::OriginalLine> lines = !t.framedLines.isEmpty()
                 ? t.framedLines
@@ -476,6 +482,7 @@ void EditController::presentEditor(const EditTarget &t)
     m_frame->setTextAnchor(activeEditHasOrigin, activeEditOriginOffset);
     m_frame->setForbiddenZones({});
     placeFramePage(t.label, t.editPage);
+    m_frame->setRoomRightPt(t.scanned && !activeEditTurned ? t.roomRight : 0.0);
     m_frame->setGrowHorizontal(!t.isSessionEdit
                                || (!t.sessionEdit.originalLines.isEmpty()
                                    && !t.sessionEdit.newText.contains(QChar(TextLayout::kSoftBreak))));
@@ -510,6 +517,8 @@ void EditController::presentEditor(const EditTarget &t)
     } else if (t.isSessionEdit) {
         if (!t.sessionEdit.sources.isEmpty()) m_frame->setCharSources(unbroken(t.sessionEdit.sources));
         if (!t.sessionEdit.marks.isEmpty()) m_frame->setCharMarks(unbroken(t.sessionEdit.marks));
+    } else if (t.scanned && !t.scanMarks.isEmpty()) {
+        m_frame->setCharMarks(t.scanMarks);
     }
 
     activeEditOriginalText        = m_frame->currentText();
@@ -565,7 +574,21 @@ void EditController::openAt(const QPoint &from, const QPoint &to, bool framed)
         return;
     }
     openTarget(t);
-    if (!framed && m_frame->isVisible()) m_frame->showLookAt(from);
+    if (!framed && m_frame->isVisible()) {
+        // The caret stands where the text was clicked, as in any text editor; a
+        // scan lying askew is laid level in its box, turned about the box's middle.
+        if (t.selStart < 0 && !activeEditTurned) {
+            QPointF at(from);
+            if (const QLabel *label = m_canvas->pageLabel(activeEditPage); label && !qFuzzyIsNull(currentBox.rotationDeg)) {
+                const QPointF about = scanAskew() ? activeEditTurnPivot : activeEditBounds.center();
+                const QPointF middle = QPointF(label->pos()) + about * PdfRenderer::screenScale(m_zoom->zoom());
+                at = QTransform().translate(middle.x(), middle.y()).rotate(-currentBox.rotationDeg)
+                                 .translate(-middle.x(), -middle.y()).map(at);
+            }
+            m_frame->placeCaretAt(at.toPoint());
+        }
+        m_frame->showLookAt(from);
+    }
     showLook();
     // Text that cannot be set exactly as it looks is said to be so.
     if (!t.isSessionEdit && activeEditPage >= 0) {
@@ -607,6 +630,8 @@ void EditController::openTarget(const EditTarget &t)
     currentBgColor            = t.bgColor;
     activeEditLaid            = t.laid || (t.isSessionEdit && t.sessionEdit.laid);
     activeEditScanned         = t.scanned;
+    activeScanMarks           = t.isSessionEdit ? t.sessionEdit.scanMarks : t.scanned ? t.scanMarks : QList<TextLayout::Mark>();
+    activeScanSpacingPt       = t.isSessionEdit ? t.sessionEdit.scanSpacingPt : t.scanned ? t.box.characterSpacingPt : 0.0;
     m_rest                    = t.rest;
     m_hasUnit                 = t.hasUnit;
     m_unit                    = t.unit;
@@ -649,6 +674,8 @@ EditSession::Edit EditController::makeSessionEdit(int page, const QRectF &bounds
     e.formField   = activeEditFieldName;
     e.laid        = activeEditLaid;
     e.scanned     = activeEditScanned;
+    e.scanMarks   = activeScanMarks;
+    e.scanSpacingPt = activeScanSpacingPt;
     if (activeEditNeedsBlank) {
         e.eraseRects = activeEditEraseRects;
         if (activeEditSourcePage < 0 || activeEditSourcePage == page)
@@ -765,7 +792,7 @@ void EditController::commit(const QString &newText)
 
     if (!merged && !trimNew.isEmpty()) {
         EditSession::Edit text = makeSessionEdit(page, bounds, eraseAt, newText);
-        if (activeEditTurned) EditSession::turnAbout(text, activeEditTurnPivot);
+        if (activeEditTurned || scanAskew()) EditSession::turnAbout(text, activeEditTurnPivot);
         // The original lines describe glyphs of the source page; on another
         // page the same spot holds other text.
         text.sourcePage = srcPage;
@@ -932,6 +959,8 @@ void EditController::createTextFrame(const QRect &viewportDragRect)
     activeEditLineSpacingPt = 0.0;
     activeEditLaid          = false;
     activeEditScanned       = false;
+    activeScanMarks.clear();
+    activeScanSpacingPt = 0.0;
     m_rest.clear();
     m_hasUnit = false;
     currentBox = defaultBox;
@@ -942,6 +971,7 @@ void EditController::createTextFrame(const QRect &viewportDragRect)
     const qreal fontSize = qMax(1.0, currentEditorFontSizePt * scale);
     m_frame->setDecorations(true);
     m_frame->setGlyphsVisible(false);
+    m_frame->setRoomRightPt(0.0);
     m_frame->setGrowHorizontal(false);
     m_frame->setTextAnchor(false, QPointF());
     m_frame->setLineSpacingPt(activeEditLineSpacingPt);

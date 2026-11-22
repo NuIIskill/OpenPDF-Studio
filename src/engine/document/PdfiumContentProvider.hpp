@@ -31,7 +31,8 @@ private:
     QList<ContentItem> buildPageItems(int page, bool mergeVertical);
 
     QMap<int, QList<ContentCluster>> collectWords(FPDF_TEXTPAGE tp, const PdfiumPageSpace &space,
-                                                  bool byTurn, const QList<QRectF> &boxes = {}) const;
+                                                  bool byTurn, const QList<QRectF> &boxes = {},
+                                                  double *slope = nullptr) const;
 
     void collectAnnotations(FPDF_PAGE pg, const PdfiumPageSpace &space,
                             QList<ContentItem> *fields,

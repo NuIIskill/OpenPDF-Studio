@@ -7,7 +7,7 @@ namespace EditCodec {
 
 namespace {
 
-constexpr quint8 kVersion = 2;
+constexpr quint8 kVersion = 4;
 
 void write(QDataStream &out, const TextBoxProperties &b)
 {
@@ -50,10 +50,13 @@ void write(QDataStream &out, const EditSession::Edit &e)
         out << qint32(s.page) << s.at << s.rise;
     // Not set is -1 for a switch and 0 for the scale.
     const auto state = [](const std::optional<bool> &on) { return qint8(on ? *on : -1); };
-    out << qint32(e.marks.size());
-    for (const TextLayout::Mark &m : e.marks)
-        out << m.family << state(m.bold) << state(m.italic) << state(m.underline) << m.scale
-            << m.color;
+    for (const QList<TextLayout::Mark> *list : { &e.marks, &e.scanMarks }) {
+        out << qint32(list->size());
+        for (const TextLayout::Mark &m : *list)
+            out << m.family << state(m.bold) << state(m.italic) << state(m.underline) << m.scale
+                << m.color;
+    }
+    out << e.scanSpacingPt;
 }
 
 bool read(QDataStream &in, EditSession::Edit &e, quint8 version)
@@ -87,18 +90,26 @@ bool read(QDataStream &in, EditSession::Edit &e, quint8 version)
     }
     if (version < 2) return in.status() == QDataStream::Ok;
     const auto state = [](qint8 on) { return on < 0 ? std::optional<bool>() : std::optional<bool>(on > 0); };
-    qint32 marks = 0;
-    in >> marks;
-    if (marks < 0) return false;
-    for (qint32 i = 0; i < marks && in.status() == QDataStream::Ok; ++i) {
-        TextLayout::Mark m;
-        qint8 bold = -1, italic = -1, underline = -1;
-        in >> m.family >> bold >> italic >> underline >> m.scale >> m.color;
-        m.bold      = state(bold);
-        m.italic    = state(italic);
-        m.underline = state(underline);
-        e.marks.append(m);
-    }
+    const auto readMarks = [&](QList<TextLayout::Mark> &list) {
+        qint32 marks = 0;
+        in >> marks;
+        if (marks < 0) return false;
+        for (qint32 i = 0; i < marks && in.status() == QDataStream::Ok; ++i) {
+            TextLayout::Mark m;
+            qint8 bold = -1, italic = -1, underline = -1;
+            in >> m.family >> bold >> italic >> underline >> m.scale >> m.color;
+            m.bold      = state(bold);
+            m.italic    = state(italic);
+            m.underline = state(underline);
+            list.append(m);
+        }
+        return true;
+    };
+    if (!readMarks(e.marks)) return false;
+    if (version >= 3 && !readMarks(e.scanMarks)) return false;
+    // An edit stored before the spacing a scan opened with was kept stands as it was set.
+    e.scanSpacingPt = e.box.characterSpacingPt;
+    if (version >= 4) in >> e.scanSpacingPt;
     return in.status() == QDataStream::Ok;
 }
 

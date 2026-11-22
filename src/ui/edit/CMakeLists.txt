@@ -12,10 +12,14 @@ target_sources(OpenPDFStudio PRIVATE
     EditOpener.cpp
     EditOpener.hpp
     EditOpener_Scan.cpp
+    EditOpener_ScanPlace.cpp
+    EditOpener_ScanRows.cpp
     InlineEditor.cpp
     InlineEditor_Clipboard.cpp
     InlineEditor_Look.cpp
     InlineEditor.hpp
+    ScanCleanup.cpp
+    ScanCleanup.hpp
     TextBoxFrame.cpp
     TextBoxFrame.hpp
     TextToolInput.cpp

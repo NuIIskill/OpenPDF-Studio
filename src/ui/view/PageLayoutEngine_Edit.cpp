@@ -17,18 +17,22 @@
 #ifdef HAVE_PDF_RENDERING
 EditSession PageLayoutEngine::stateFor(int page, bool withPreview) const
 {
+    // The page under an edit's text laid over it keeps a scan's pixels: the
+    // text brings the cover of what it replaces.
     return stateWith(page, withPreview && m_preview.page == page ? m_preview.edits
-                                                                  : QList<EditSession::Edit>());
+                                                                  : QList<EditSession::Edit>(),
+                     withPreview);
 }
 
-EditSession PageLayoutEngine::stateWith(int page, const QList<EditSession::Edit> &preview) const
+EditSession PageLayoutEngine::stateWith(int page, const QList<EditSession::Edit> &preview,
+                                        bool scanBlank) const
 {
     EditSession state = m_session ? *m_session : EditSession();
     // A preview that brings its own blank, a framed edit going back into its
     // paragraph, stands for what closing gives; the editor's blank is not part of it.
     bool ownBlank = false;
     for (const EditSession::Edit &e : preview) ownBlank |= e.newText.isNull();
-    if (m_blank.page == page && !ownBlank) {
+    if (m_blank.page == page && !ownBlank && (scanBlank || !m_blank.paper.isValid())) {
         EditSession::Edit blank;
         blank.page       = page;
         blank.pdfBounds  = m_blank.bounds;
@@ -84,6 +88,9 @@ DocumentWorker::Render PageLayoutEngine::askTextLayer(int page)
     for (const EditSession::Edit &e : m_preview.edits) {
         const QRectF shown = EditSession::shownBounds(e);
         text = text.isNull() ? shown : text.united(shown);
+        // The text of a scan brings the cover of what it replaces, also beyond a box grown shorter.
+        for (const QRectF &erased : e.eraseRects)
+            if (e.scanned) text = text.united(erased);
         size = qMax(size, e.fontSizePt);
         session->addEdit(e);
     }

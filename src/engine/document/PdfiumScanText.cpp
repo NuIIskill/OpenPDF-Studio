@@ -83,7 +83,7 @@ void PdfiumScanText::set(int page, const QSizeF &pageSize, const QList<PdfBacken
     // Each line is one invisible text object over its scanned characters, so
     // PDFium finds the same words, spaces and line breaks it finds in text.
     QHash<FPDF_PAGEOBJECT, int> lineOf;
-    QList<int> expected(lines.size(), 0);
+    QList<QList<uint>> codes(lines.size());
     for (int l = 0; l < lines.size(); ++l) {
         const PdfBackend::ScanLine &line = lines.at(l);
         QRectF bounds;
@@ -120,7 +120,7 @@ void PdfiumScanText::set(int page, const QSizeF &pageSize, const QList<PdfBacken
         FPDFTextObj_SetTextRenderMode(object, FPDF_TEXTRENDERMODE_INVISIBLE);
         FPDFPage_InsertObject(read.page, object);
         lineOf.insert(object, l);
-        expected[l] = int(line.text.toUcs4().size());
+        codes[l] = points;
     }
     read.text = FPDFText_LoadPage(read.page);
     if (!read.text) {
@@ -128,8 +128,9 @@ void PdfiumScanText::set(int page, const QSizeF &pageSize, const QList<PdfBacken
         return;
     }
 
-    // Each character PDFium reads gets the box OCR found for it; spaces and
-    // line breaks PDFium adds have none.
+    // Each character PDFium reads gets the box OCR found for it, also past
+    // spaces it leaves out, as of a double space; spaces and line breaks
+    // PDFium adds have none.
     QList<int> taken(lines.size(), 0);
     const int count = FPDFText_CountChars(read.text);
     for (int i = 0; i < count; ++i) {
@@ -137,7 +138,13 @@ void PdfiumScanText::set(int page, const QSizeF &pageSize, const QList<PdfBacken
         QRectF box;
         if (FPDFText_IsGenerated(read.text, i) != 1) {
             line = lineOf.value(FPDFText_GetTextObject(read.text, i), -1);
-            if (line >= 0) box = lines.at(line).boxes.value(taken[line]++);
+            if (line >= 0) {
+                const QList<uint> &code = codes.at(line);
+                const uint shown = FPDFText_GetUnicode(read.text, i);
+                int &at = taken[line];
+                while (at < code.size() && code.at(at) != shown && QChar::isSpace(char32_t(code.at(at)))) ++at;
+                box = lines.at(line).boxes.value(at++);
+            }
         }
         read.boxes.append(box);
         read.lines.append(line);
@@ -154,7 +161,7 @@ void PdfiumScanText::set(int page, const QSizeF &pageSize, const QList<PdfBacken
     // A line PDFium read with other characters than were set is shown where PDFium placed them.
     for (int i = 0; i < count; ++i) {
         const int line = read.lines.at(i);
-        if (line < 0 || taken.at(line) == expected.at(line)) continue;
+        if (line < 0 || taken.at(line) == codes.at(line).size()) continue;
         double l = 0, r = 0, b = 0, t = 0;
         read.boxes[i] = FPDFText_GetCharBox(read.text, i, &l, &r, &b, &t)
             ? QRectF(l, pageSize.height() - t, r - l, t - b) : QRectF();

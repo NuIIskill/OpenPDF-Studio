@@ -104,7 +104,9 @@ void InlineEditor::applyStyle()
         doc.setLetterSpacing(QFont::AbsoluteSpacing, tracking);
     setFont(doc);
     document()->setDefaultFont(doc);
-    const QString ink = m_glyphs ? m_currentColor.name()
+    // The ink keeps its opacity, as of text set gray as black under one.
+    const QString ink = m_glyphs ? QStringLiteral("rgba(%1, %2, %3, %4)").arg(m_currentColor.red()).arg(m_currentColor.green())
+                                       .arg(m_currentColor.blue()).arg(m_currentColor.alpha())
                                  : QStringLiteral("transparent");
     setStyleSheet(QString(
         "QTextEdit#InlineEditor {"
@@ -264,6 +266,8 @@ void InlineEditor::relayout()
     params.list               = m_box.listStyle;
     params.align              = m_box.horizontalAlign;
     params.anchor             = m_metrics.anchor;
+    params.holdGaps           = m_metrics.holdGaps;
+    params.scanWiderPt        = m_metrics.holdGaps ? m_box.characterSpacingPt - m_metrics.scanSpacingPt : 0.0;
     const TextLayout::Result result = TextLayout::layout(
         m_metricsText, params, m_box, QRectF(m_metrics.boxTopLeft, m_boundsPt), size,
         m_wraps, m_hasAnchor, m_anchorPt, m_metrics.originals, m_advance);
@@ -370,6 +374,12 @@ int InlineEditor::positionAt(const QPoint &viewportPos) const
     const TextLayout::Line &line = m_lines.at(lineIndex);
     return positionOnLine(lineIndex, (viewportPos.x() - m_pixelOffset.x()) / m_scale
                                          - m_origin.x() - line.x);
+}
+
+void InlineEditor::placeCaretAt(const QPoint &viewportPos)
+{
+    m_goalXPt = -1.0;
+    moveCursorTo(positionAt(viewportPos), false);
 }
 
 void InlineEditor::moveCursorTo(int position, bool keepAnchor)

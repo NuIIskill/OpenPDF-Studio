@@ -112,7 +112,7 @@ private:
     QRect changedAt(int page, qreal scale) const;
 #ifdef HAVE_PDF_RENDERING
     EditSession stateFor(int page, bool withPreview = true) const;
-    EditSession stateWith(int page, const QList<EditSession::Edit> &preview) const;
+    EditSession stateWith(int page, const QList<EditSession::Edit> &preview, bool scanBlank = true) const;
     qreal deviceScale() const;
     bool  tiled(int page) const;
     bool  tiledAt(int page, qreal scale) const;

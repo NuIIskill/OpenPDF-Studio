@@ -191,6 +191,9 @@ public:
     virtual void setScanText(int page, const QList<ScanLine> &lines)
     { Q_UNUSED(page) Q_UNUSED(lines) }
     virtual bool hasScanText(int page) const { Q_UNUSED(page) return false; }
+    virtual bool scanBelowText(int page) const { Q_UNUSED(page) return false; }
+    virtual QList<QRectF> scanPatches(int page) const { Q_UNUSED(page) return {}; }
+    virtual QList<QRectF> scanPictures(int page) const { Q_UNUSED(page) return {}; }
     virtual QList<TextMatch> findScanText(int page, const QString &text) const
     { Q_UNUSED(page) Q_UNUSED(text) return {}; }
 

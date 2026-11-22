@@ -207,8 +207,10 @@ qreal TextBoxFrame::freieBreitePt() const
 {
     if (m_pageRect.isNull()) return 0.0;
     // In points, so the room to the page edge does not change with the zoom.
-    if (!m_pageSizePt.isEmpty() && m_hasInnerTopLeft)
-        return qMax(0.0, m_pageSizePt.width() - (m_innerTopLeft.x() - m_pageRect.left()) / m_scale);
+    if (!m_pageSizePt.isEmpty() && m_hasInnerTopLeft) {
+        const qreal edge = m_roomRightPt > 0.0 ? qMin(m_roomRightPt, m_pageSizePt.width()) : m_pageSizePt.width();
+        return qMax(0.0, edge - (m_innerTopLeft.x() - m_pageRect.left()) / m_scale);
+    }
     const int innen = m_pageRect.right() - x() + 1
                     - (m_decorations ? 2 * kPad : 0);
     return innen > 0 ? (innen + 1) / m_scale : 0.0;
@@ -366,6 +368,11 @@ void TextBoxFrame::setDocumentKey(const QString &key) { m_editor->setDocumentKey
 
 void TextBoxFrame::copyAll() { m_editor->copyAll(); }
 void TextBoxFrame::paste() { m_editor->paste(); }
+
+void TextBoxFrame::placeCaretAt(const QPoint &canvasPos)
+{
+    m_editor->placeCaretAt(m_editor->viewport()->mapFrom(parentWidget(), canvasPos));
+}
 
 void TextBoxFrame::showLookAt(const QPoint &canvasPos)
 {

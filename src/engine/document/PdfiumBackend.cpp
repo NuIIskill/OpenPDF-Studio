@@ -166,6 +166,9 @@ PdfiumBackend::~PdfiumBackend()
         m_metricsCache.clear();
     }
     m_scanText.reset();
+    m_shownOnScan.clear();
+    m_scanPatches.clear();
+    m_scanPictures.clear();
     dropFormDoc();
     m_docForms.reset();
     if (m_doc) {
@@ -205,6 +208,10 @@ bool PdfiumBackend::open(const QString &path, const PasswordAsker &ask)
     dropBackgroundPages();
     dropReadPages();
     m_scanText.reset();
+    m_shownOnScan.clear();
+    m_scanPatches.clear();
+    m_scanPictures.clear();
+    m_scanInk.clear();
     dropFormDoc();
     m_docForms.reset();
     if (m_doc) {
@@ -233,6 +240,10 @@ void PdfiumBackend::close()
         m_metricsCache.clear();
     }
     m_scanText.reset();
+    m_shownOnScan.clear();
+    m_scanPatches.clear();
+    m_scanPictures.clear();
+    m_scanInk.clear();
     dropFormDoc();
     m_docForms.reset();
     if (m_doc) {
@@ -397,6 +408,9 @@ struct PdfiumChar {
     int    turn { 0 };
     int    row { 0 };
     double written { 0.0 };
+    double level { 0.0 };
+    double slope { 0.0 };
+    bool   askew { false };
     bool   ligated { false };
     const void *hiddenWord { nullptr };
 };
@@ -438,6 +452,34 @@ bool wordGap(const PdfiumChar &before, const PdfiumChar &after)
 // Letter-spaced text is written with the same pen gap between every glyph;
 // a gap no wider than that is spacing, not a word break, whether PDFium
 // generated a space for it or the glyph boxes would suggest one.
+// An OCR layer may write the words of a line on a page lying askew each in a
+// level matrix, but stepping along the slope; others level and at one height.
+// Where its level words step like that, they are levelled by the slope of its
+// askew ones.
+void levelSteppedWords(std::vector<PdfiumChar> &chars)
+{
+    std::vector<double> slopes;
+    for (const PdfiumChar &c : chars)
+        if (c.askew && c.slope != 0.0) slopes.push_back(c.slope);
+    if (slopes.empty()) return;
+    std::nth_element(slopes.begin(), slopes.begin() + slopes.size() / 2, slopes.end());
+    const double slope = slopes[slopes.size() / 2];
+    std::vector<double> steps;
+    const PdfiumChar *last = nullptr;
+    for (const PdfiumChar &c : chars) {
+        if (!c.askew || c.slope != 0.0 || !c.hiddenWord || (last && last->hiddenWord == c.hiddenWord)) continue;
+        if (last && c.originX > last->originX && std::abs(c.baseline - last->baseline) < c.fontSize)
+            steps.push_back((c.baseline - last->baseline) / (c.originX - last->originX));
+        last = &c;
+    }
+    if (steps.empty()) return;
+    std::nth_element(steps.begin(), steps.begin() + steps.size() / 2, steps.end());
+    const double step = steps[steps.size() / 2];
+    if (std::abs(step - slope) >= std::abs(step)) return;
+    for (PdfiumChar &c : chars)
+        if (c.askew && c.slope == 0.0) c.level = c.baseline - c.originX * slope;
+}
+
 void dropLetterSpacing(std::vector<PdfiumChar> &chars)
 {
     QHash<const void *, QList<double>> gaps;
@@ -491,6 +533,7 @@ void joinRaisedCharacters(std::vector<PdfiumChar> &chars)
             const bool raised = !space && c.fontSize < n.fontSize * 0.9 && shift >= 0.5
                              && shift <= n.fontSize * 0.6;
             if ((sameRun || raised) && gap <= qMax(n.fontSize, c.fontSize) * 0.5) {
+                c.level += n.baseline - c.baseline;
                 c.baseline = n.baseline;
                 break;
             }
@@ -520,7 +563,7 @@ void sortIntoRows(std::vector<PdfiumChar> &chars)
     for (size_t i = 0; i < order.size(); ++i) order[i] = i;
     std::sort(order.begin(), order.end(), [&](size_t a, size_t b) {
         if (chars[a].turn != chars[b].turn) return chars[a].turn < chars[b].turn;
-        if (chars[a].baseline != chars[b].baseline) return chars[a].baseline < chars[b].baseline;
+        if (chars[a].level != chars[b].level) return chars[a].level < chars[b].level;
         return chars[a].index < chars[b].index;
     });
     int row = -1;
@@ -531,24 +574,26 @@ void sortIntoRows(std::vector<PdfiumChar> &chars)
         PdfiumChar &c = chars[k];
         const double size = c.fontSize > 0.0 ? c.fontSize : c.box.height();
         if (row < 0 || c.turned != turned || c.turn != turn
-                || c.baseline - start > qMax(2.0, size * 0.3)) {
+                || c.level - start > qMax(2.0, size * 0.3)) {
             ++row;
-            start = c.baseline;
+            start = c.level;
             turned = c.turned;
             turn = c.turn;
         }
         c.row = row;
     }
-    // The characters of a word of an OCR layer stay together, where the word begins.
+    // The characters of a word of an OCR layer stay together, where the word's letters begin: the space
+    // before it may stand far off, behind what was read before it on the row.
     QHash<std::pair<int, const void *>, double> wordLeft;
     for (const PdfiumChar &c : chars) {
-        if (!c.hiddenWord) continue;
+        if (!c.hiddenWord || c.ch.at(0).isSpace()) continue;
         const auto key = std::make_pair(c.row, c.hiddenWord);
         const auto it = wordLeft.constFind(key);
         if (it == wordLeft.cend() || c.box.left() < it.value()) wordLeft.insert(key, c.box.left());
     }
     const auto leftOf = [&](const PdfiumChar &c) {
-        return c.hiddenWord ? wordLeft.value(std::make_pair(c.row, c.hiddenWord)) : c.box.left();
+        const auto it = c.hiddenWord ? wordLeft.constFind(std::make_pair(c.row, c.hiddenWord)) : wordLeft.cend();
+        return it == wordLeft.cend() ? c.box.left() : it.value();
     };
     std::sort(chars.begin(), chars.end(), [&](const PdfiumChar &a, const PdfiumChar &b) {
         if (a.row != b.row) return a.row < b.row;
@@ -638,6 +683,7 @@ std::vector<PdfiumLine> PdfiumBackend::linesOfPage(int page,
 
     std::vector<PdfiumChar> chars;
     chars.reserve(total > 0 ? total : 0);
+    int scanWord = -1;
     for (int i = 0; i < total; ++i) {
         double left = 0, right = 0, bottom = 0, top = 0;
         if (!FPDFText_GetCharBox(tp, i, &left, &right, &bottom, &top)) continue;
@@ -655,8 +701,20 @@ std::vector<PdfiumLine> PdfiumBackend::linesOfPage(int page,
         // Text turned by quarter turns is read in its own direction: it is set
         // into lines turned upright and turned back onto the page afterwards.
         // A slant, as of sheared italics, keeps the page's direction.
-        const double angle = FPDFText_GetCharAngle(tp, i);
-        const bool turned = !space.upright(angle);
+        FPDF_PAGEOBJECT object = FPDFText_GetTextObject(tp, i);
+        const bool invisible = object && FPDFTextObj_GetTextRenderMode(object) == FPDF_TEXTRENDERMODE_INVISIBLE;
+        // PDFium's angle of a character leans further the more it is squeezed,
+        // as an OCR layer squeezes its narrow words; their matrix keeps the slope.
+        double angle = FPDFText_GetCharAngle(tp, i);
+        if (FS_MATRIX m; invisible && angle >= 0.0 && FPDFText_GetMatrix(tp, i, &m) && (m.a != 0.0f || m.b != 0.0f))
+            angle = std::fmod(2.0 * M_PI - std::atan2(double(m.b), double(m.a)), 2.0 * M_PI);
+        // An OCR layer over a page scanned a little askew slopes with it: it is
+        // read as level text, its rows told apart where they would stand level.
+        constexpr double kAskew = 0.0524;
+        const double shown = space.shownAngle(angle);
+        const double tilt = shown > M_PI ? shown - 2.0 * M_PI : shown;
+        const bool askew = angle >= 0.0 && std::abs(tilt) <= kAskew && invisible;
+        const bool turned = !askew && !space.upright(angle);
         const int turn = turned ? 90 * (int(std::lround(space.shownAngle(angle) / (M_PI / 2))) % 4)
                                 : 0;
         const QTransform unturn = QTransform().rotate(-turn);
@@ -673,6 +731,10 @@ std::vector<PdfiumLine> PdfiumBackend::linesOfPage(int page,
             box.setWidth(0.0);
         }
 
+        double level = askew ? baseline - originX * std::tan(tilt) : baseline;
+        double slope = askew ? std::tan(tilt) : 0.0;
+        bool leaning = askew;
+
         // A space that the writer placed through the text matrix instead of a
         // glyph comes back with an empty box at a meaningless spot; Qt's own PDF
         // writer does exactly that. Sorted by that spot it ends up somewhere in
@@ -683,6 +745,9 @@ std::vector<PdfiumLine> PdfiumBackend::linesOfPage(int page,
             box      = QRectF(previous.box.right(), previous.box.top(),
                               0.01, previous.box.height());
             baseline = previous.baseline;
+            level    = previous.level;
+            slope    = previous.slope;
+            leaning  = previous.askew;
             if (!scanBoxes.isEmpty()) originX = previous.endX;
         }
         if (box.width() <= 0.0 && box.height() <= 0.0) continue;
@@ -692,7 +757,6 @@ std::vector<PdfiumLine> PdfiumBackend::linesOfPage(int page,
         // An edit takes turned text only where it is turned by whole quarters.
         if (turned && split == LineSplit::Blocks && space.quarterTurn(angle) < 0) continue;
 
-        FPDF_PAGEOBJECT object = FPDFText_GetTextObject(tp, i);
         const double fontSize = PdfiumTextRules::effectiveFontSize(tp, i);
         const double advance = object && scanned.isEmpty() ? PdfiumFonts::glyphWidth(FPDFTextObj_GetFont(object),
                                                                cp, fontSize)
@@ -709,8 +773,11 @@ std::vector<PdfiumLine> PdfiumBackend::linesOfPage(int page,
         if (ligated) originX = chars.back().endX;
         // An OCR layer's word may be stretched over the words after it; its
         // characters are read together, and a space added after it with them.
-        const void *hiddenWord = object && FPDFTextObj_GetTextRenderMode(object) == FPDF_TEXTRENDERMODE_INVISIBLE
-            ? object : (generated && !chars.empty() && chars.back().index == i - 1 ? chars.back().hiddenWord : nullptr);
+        // What OCR read here holds a whole line in one object: its words are told by their spaces.
+        if (!scanBoxes.isEmpty() && (cp == u' ' || scanWord < 0)) scanWord = i;
+        const void *hiddenWord = !scanBoxes.isEmpty()
+            ? static_cast<const void *>(scanBoxes.constData() + qBound(0, scanWord, int(scanBoxes.size()) - 1))
+            : invisible ? object : (generated && !chars.empty() && chars.back().index == i - 1 ? chars.back().hiddenWord : nullptr);
         chars.push_back({ box, ch, i, fontSize, baseline, originX,
                           originX + (advance > 0.0 ? advance : box.width()), object });
         chars.back().hiddenWord = hiddenWord;
@@ -719,7 +786,11 @@ std::vector<PdfiumLine> PdfiumBackend::linesOfPage(int page,
         chars.back().turned    = turned;
         chars.back().turn      = turn;
         chars.back().written   = baseline;
+        chars.back().level     = level;
+        chars.back().slope     = slope;
+        chars.back().askew     = leaning;
     }
+    levelSteppedWords(chars);
     dropLetterSpacing(chars);
     joinRaisedCharacters(chars);
     sortIntoRows(chars);
@@ -733,7 +804,7 @@ std::vector<PdfiumLine> PdfiumBackend::linesOfPage(int page,
         std::swap(first, last);
 
     QList<QRectF> textObjects;
-    if (split == LineSplit::Blocks) {
+    if (split == LineSplit::Blocks && scanBoxes.isEmpty()) {
         const int objects = FPDFPage_CountObjects(pg);
         for (int i = 0; i < objects; ++i) {
             FPDF_PAGEOBJECT obj = FPDFPage_GetObject(pg, i);
@@ -786,6 +857,110 @@ std::vector<PdfiumLine> PdfiumBackend::buildLines(const std::vector<PdfiumChar> 
         }
     }
 
+    // An OCR layer may space the words of a justified line wider than a gap
+    // between blocks, in a narrow column wider than the gutter beside it: a
+    // column starts where a white channel runs down and words start alike in
+    // rows around; another gap parts blocks only where it is far wider than
+    // the other gaps of its column in the row or as wide as between table
+    // cells, or, running down as a channel, where the words after it start
+    // alike in the rows next to it.
+    QHash<int, QList<std::pair<double, double>>> hiddenGaps;
+    QHash<int, QList<double>> wordStarts;
+    QHash<int, int> inkRowOf;
+    {
+        QHash<int, int> lastInk;
+        for (int i = first; i <= last && i < static_cast<int>(chars.size()); ++i) {
+            const PdfiumChar &c = chars[i];
+            if (c.ch.at(0).isSpace()) continue;
+            if (rowOf[i] >= 0) inkRowOf.insert(c.row, rowOf[i]);
+            const auto it = lastInk.constFind(c.row);
+            if (it == lastInk.cend()) {
+                wordStarts[c.row].append(c.box.left());
+            } else {
+                const PdfiumChar &p = chars[size_t(it.value())];
+                if (c.hiddenWord && p.hiddenWord && c.hiddenWord != p.hiddenWord)
+                    hiddenGaps[c.row].append({ p.box.right(), c.box.left() });
+                if (PdfiumTextRules::separatesWords(p.box, c.box, qMax(p.fontSize, c.fontSize)))
+                    wordStarts[c.row].append(c.box.left());
+            }
+            lastInk.insert(c.row, i);
+        }
+    }
+    // Letters set apart are each a word of the layer: a step among them not far wider than the one beside it parts no column.
+    // A line's last word and the next line's first are one word to the layer: counted by row.
+    QHash<std::pair<int, const void *>, int> lettersOf;
+    for (int i = first; i <= last && i < static_cast<int>(chars.size()); ++i)
+        if (chars[i].hiddenWord && !chars[i].ch.at(0).isSpace()) ++lettersOf[{ chars[i].row, chars[i].hiddenWord }];
+    const auto amongLetters = [&](const PdfiumChar &p, const PdfiumChar &c) {
+        if (lettersOf.value({ p.row, p.hiddenWord }) != 1 || lettersOf.value({ c.row, c.hiddenWord }) != 1) return false;
+        // By the step from one letter to the next: up to a place left empty between two of them.
+        const double step = c.box.left() - p.box.left();
+        const QList<std::pair<double, double>> gaps = hiddenGaps.value(c.row);
+        return std::any_of(gaps.cbegin(), gaps.cend(), [&](const std::pair<double, double> &g) {
+            const bool before = std::abs(g.second - p.box.left()) < 0.01, after = std::abs(g.first - c.box.right()) < 0.01;
+            // The step beside is a letter's too, not the way to another entry on the row.
+            const double beside = g.second - g.first + (before ? p.box.width() : c.box.width());
+            return (before || after) && beside * 2.2 >= step && beside <= step * 1.5;
+        });
+    };
+    const auto startsIn = [&](int rowAt, double x, double fontSize) {
+        int alike = 0;
+        // OCR finds a word's left edge a side bearing off, by its first letter.
+        for (const int k : { rowAt - 2, rowAt - 1, rowAt + 1, rowAt + 2 })
+            alike += std::any_of(wordStarts.value(k).cbegin(), wordStarts.value(k).cend(), [&](double at) {
+                return std::abs(at - x) <= qMax(1.5, fontSize * 0.15);
+            });
+        return alike;
+    };
+    const auto column = [&](int rowAt, double from, double to, double fontSize) {
+        const auto ink = inkRowOf.constFind(rowAt);
+        return to - from >= fontSize * 0.5 && ink != inkRowOf.cend() && startsIn(rowAt, to, fontSize) >= 2
+            && TextGutters::separates(rows, ink.value(), from, to);
+    };
+    const auto widerThan = [&](const PdfiumChar &p, const PdfiumChar &c, double fontSize, double times) {
+        const double gap = c.box.left() - p.box.right();
+        if (!c.hiddenWord || !p.hiddenWord || gap >= fontSize * 4.0) return true;
+        const QList<std::pair<double, double>> gaps = hiddenGaps.value(c.row);
+        double left = -1e9, right = 1e9;
+        for (const auto &[from, to] : gaps) {
+            if (!column(c.row, from, to, fontSize)) continue;
+            if (to <= p.box.right()) left = qMax(left, to);
+            else if (from >= c.box.left()) right = qMin(right, from);
+        }
+        QList<double> others;
+        for (const auto &[from, to] : gaps)
+            if (from >= left && to <= right && !(qFuzzyCompare(from, p.box.right()) && qFuzzyCompare(to, c.box.left())))
+                others.append(to - from);
+        if (others.isEmpty()) return true;
+        std::sort(others.begin(), others.end());
+        return gap >= others.at(others.size() / 2) * times;
+    };
+    // A justified line spreads its words evenly; a cell of a table stands
+    // apart by a gap unlike the ones beside it.
+    const auto standsOut = [&](const PdfiumChar &p, const PdfiumChar &c, double fontSize) {
+        if (widerThan(p, c, fontSize, 2.0)) return true;
+        const QList<std::pair<double, double>> gaps = hiddenGaps.value(c.row);
+        const double gap = c.box.left() - p.box.right();
+        double before = -1.0, after = -1.0;
+        for (const auto &[from, to] : gaps) {
+            if (column(c.row, from, to, fontSize)) continue;
+            if (to <= p.box.right() + 0.01 && (before < 0.0 || from > before)) before = from;
+            if (from >= c.box.left() - 0.01 && (after < 0.0 || from < after)) after = from;
+        }
+        for (const auto &[from, to] : gaps)
+            if ((from == before || from == after) && gap > 0.0 && (to - from) / gap >= 0.6 && (to - from) / gap <= 1.67)
+                return false;
+        return true;
+    };
+    // A line of a column starts where a line next to it starts; words of a
+    // fixed pitch face start alike anywhere, so the gap is wider than most too.
+    const auto startsAlike = [&](const PdfiumChar &c, double fontSize) {
+        for (const int k : { c.row - 1, c.row + 1 })
+            for (const double x : wordStarts.value(k))
+                if (std::abs(x - c.box.left()) <= qMax(0.75, fontSize * 0.08)) return true;
+        return false;
+    };
+
     std::vector<PdfiumLine> lines;
     int row = -1;
     int prev = -1;
@@ -817,13 +992,18 @@ std::vector<PdfiumLine> PdfiumBackend::buildLines(const std::vector<PdfiumChar> 
             ? qMax(chars[prev].fontSize, c.fontSize) : c.fontSize;
 
         if (ink && split == LineSplit::Blocks && prev >= 0 && !sameObject(chars[prev], c)
-                && (PdfiumTextRules::separatesBlocks(chars[prev].box, c.box, fontSize)
-                    || PdfiumTextRules::separatesSizes(chars[prev].box, c.box,
-                                                       chars[prev].fontSize, c.fontSize)
+                && (PdfiumTextRules::separatesSizes(chars[prev].box, c.box,
+                                                    chars[prev].fontSize, c.fontSize)
+                    || (PdfiumTextRules::separatesBlocks(chars[prev].box, c.box, fontSize)
+                        && !amongLetters(chars[prev], c) && standsOut(chars[prev], c, fontSize))
+                    || (c.hiddenWord && chars[prev].hiddenWord && rowOf[i] >= 0 && rowOf[i] == rowOf[prev]
+                        && !isListMarker(lines.back().text.trimmed()) && !amongLetters(chars[prev], c)
+                        && column(c.row, chars[prev].box.right(), c.box.left(), fontSize))
                     || (rowOf[i] >= 0 && rowOf[i] == rowOf[prev]
-                        && !isListMarker(lines.back().text.trimmed())
-                        && TextGutters::separates(rows, rowOf[i], chars[prev].box.right(),
-                                                  c.box.left())))) {
+                        && !isListMarker(lines.back().text.trimmed()) && !amongLetters(chars[prev], c)
+                        && TextGutters::separates(rows, rowOf[i], chars[prev].box.right(), c.box.left())
+                        && (standsOut(chars[prev], c, fontSize)
+                            || (startsAlike(c, fontSize) && widerThan(chars[prev], c, fontSize, 1.3)))))) {
             startLine();
             continue;
         }

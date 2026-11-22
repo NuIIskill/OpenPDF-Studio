@@ -115,6 +115,7 @@ public:
     int    lineOf(int position) const;
     QPointF caretPointPt(int position) const;
     int    positionAt(const QPoint &viewportPos) const;
+    void   placeCaretAt(const QPoint &viewportPos);
 
 private:
     int    positionOnLine(int line, double xPt) const;

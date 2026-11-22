@@ -62,6 +62,7 @@ public:
     InlineEditor *editor() const { return m_editor; }
     void copyAll();
     void paste();
+    void placeCaretAt(const QPoint &canvasPos);
     void showLookAt(const QPoint &canvasPos);
     TextLayout::Appearance look() const;
     QList<TextLayout::Appearance> appearances() const;
@@ -77,6 +78,7 @@ public:
 
     void growToFitText();
     void setGrowHorizontal(bool on);
+    void setRoomRightPt(qreal pt) { m_roomRightPt = pt; }
     void setBoxProperties(const TextBoxProperties &properties, qreal scale);
 
 Q_SIGNALS:
@@ -135,6 +137,7 @@ private:
     qreal         m_minInnerWPt { 120.0 };
     bool          m_growHorizontal { false };
     bool          m_growClamped { false };
+    qreal         m_roomRightPt { 0.0 };
     bool          m_overflow { false };
     bool          m_autoHeight { true };
     TextBoxProperties m_box;

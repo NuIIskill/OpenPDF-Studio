@@ -86,7 +86,10 @@ struct EditTarget
     QList<EditSession::Edit>        rest;
     bool                            laid { false };
     bool                            scanned { false };
+    double                          roomRight { 0.0 };
     QList<QRectF>                   scanRects;
+    QList<TextLayout::OriginalLine> scanOriginals;
+    QList<TextLayout::Mark>         scanMarks;
     bool                              hasUnit { false };
     EditSession::Edit                 unit;
     QList<QList<TextLayout::Source>>  unitSources;
@@ -100,7 +103,7 @@ public:
     void attach(PageCanvas *canvas, DocumentSource *src, ZoomController *zoom, OcrEngine *ocr)
     { m_canvas = canvas; m_src = src; m_zoom = zoom; m_ocr = ocr; }
     void setSession(EditSession *session) { m_session = session; }
-    void forgetScans() { m_scansAsked.clear(); }
+    void forgetScans() { m_scansAsked.clear(); m_faces = {}; }
     void readScansNear(int page);
     bool ocrMissing() const { return m_ocrMissing; }
 
@@ -149,11 +152,24 @@ private:
     void fitEditWidth(EditOpen &o);
     void placeTurnedWindow(EditOpen &o);
     void measureScan(EditOpen &o);
+    void levelScan(EditOpen &o);
+    void alignScan(EditOpen &o);
+    void settleScanLetters(EditOpen &o, const ScanFont::Match &face);
     QList<QRectF> scanLines(EditOpen &o) const;
     QList<TextLayout::OriginalLine> scanTextLines(const EditOpen &o) const;
     QList<TextLayout::OriginalLine> scanParagraph(EditOpen &o, bool &cleaned);
     void matchScanFace(EditOpen &o);
+    ScanFont::Line scanLineOf(EditOpen &o, const TextLayout::OriginalLine &line);
+    ScanFont::Match scanFaceOn(EditOpen &o, const TextLayout::OriginalLine &line);
+    QList<ScanFont::Fit> scanFitsIn(EditOpen &o, const QList<TextLayout::OriginalLine> &texts, const QString &family);
+    bool narrowScanLines(EditOpen &o, QList<TextLayout::OriginalLine> &texts, ScanFont::Match &face, int wide);
+    bool partScanFigures(EditOpen &o, QList<TextLayout::OriginalLine> &texts, ScanFont::Match &face);
+    bool placeScanLines(EditOpen &o, QList<TextLayout::OriginalLine> &texts, const ScanFont::Match &face);
     bool rereadScanLine(EditOpen &o, TextLayout::OriginalLine &line);
+    bool rereadSpaced(EditOpen &o, TextLayout::OriginalLine &line, bool clicked);
+    bool keepFigures(EditOpen &o, TextLayout::OriginalLine &line);
+    bool closeApart(EditOpen &o, TextLayout::OriginalLine &line) const;
+    bool endBeforeRow(EditOpen &o, TextLayout::OriginalLine &line, double from, double to);
     QList<ScanFont::Line> scanContext(EditOpen &o, const QList<TextLayout::OriginalLine> &taken);
     bool waitForScan(int page);
 
@@ -163,6 +179,13 @@ private:
     OcrEngine      *m_ocr     { nullptr };
     EditSession    *m_session { nullptr };
     QSet<int> m_scansAsked;
+    // What the lines of the open document's scans measured as, while its pages show the same, and the faces found on them.
+    struct Faces {
+        QList<EditSession::Edit> shown;
+        QHash<QByteArray, ScanFont::Match> found;
+        QStringList families;
+    };
+    Faces m_faces;
     bool m_ocrMissing { false };
 
     struct PageLines { int page = -1; QList<TextLayout::OriginalLine> lines; };

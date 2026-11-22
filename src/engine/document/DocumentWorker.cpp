@@ -6,6 +6,7 @@
 #include "engine/document/RenderPool.hpp"
 #include "app/PdfPwStore.hpp"
 #include "engine/edit/EditSession.hpp"
+#include "engine/edit/ScanPen.hpp"
 #include "engine/ocr/OcrSearch.hpp"
 
 #include <QElapsedTimer>
@@ -23,6 +24,24 @@
 #endif
 
 namespace {
+
+// A picture without ink that lies over the scan is none of the page's text: it takes the paper's tone before the page is read.
+void clearPatches(QImage &gray, const QList<QRectF> &patches, qreal scale)
+{
+    if (patches.isEmpty()) return;
+    qsizetype tones[256] = {};
+    for (int y = 0; y < gray.height(); ++y) {
+        const uchar *row = gray.constScanLine(y);
+        for (int x = 0; x < gray.width(); ++x) ++tones[row[x]];
+    }
+    int paper = 255;
+    for (int t = 0; t < 256; ++t)
+        if (tones[t] > tones[paper]) paper = t;
+    for (const QRectF &patch : patches) {
+        const QRect r = QRectF(patch.topLeft() * scale, patch.size() * scale).toAlignedRect().adjusted(-1, -1, 1, 1).intersected(gray.rect());
+        for (int y = r.top(); y <= r.bottom(); ++y) std::fill_n(gray.scanLine(y) + r.left(), r.width(), uchar(paper));
+    }
+}
 
 QList<PdfBackend::ScanLine> scanLines(const QList<OcrEngine::Line> &read)
 {
@@ -409,15 +428,19 @@ bool DocumentWorker::startScan(int page, quint64 generation)
             return yielded;
         });
     if (yielded) return false;
-    if (!image.isNull())
-        m_ocr->read(page, image.convertToFormat(QImage::Format_Grayscale8), size, scale);
+    if (!image.isNull()) {
+        // A pen's strokes in another colour than the print are none of the page's text.
+        QImage gray = ScanPen::without(image, scale).convertToFormat(QImage::Format_Grayscale8);
+        clearPatches(gray, m_backend->scanPatches(page), scale);
+        m_ocr->read(page, gray, size, scale);
+    }
     return true;
 }
 
 void DocumentWorker::runScan(int page, quint64 generation)
 {
     const bool wanted = m_ocr->available() && page < m_backend->pageCount()
-                     && !m_backend->hasSelectableText(page) && !m_backend->hasScanText(page);
+                     && (!m_backend->hasSelectableText(page) || m_backend->scanBelowText(page)) && !m_backend->hasScanText(page);
     if (wanted && !startScan(page, generation)) {
         std::lock_guard lock(m_mutex);
         if (generation == m_generation && !m_scanPages.contains(page)) m_scanPages.prepend(page);

@@ -1,5 +1,8 @@
 #include "engine/ocr/OcrEngine.hpp"
+#include "engine/edit/ScanPen.hpp"
+#include "engine/edit/ScanRules.hpp"
 #include "engine/ocr/OcrLanguages.hpp"
+#include "engine/ocr/OcrMissed.hpp"
 #include "engine/ocr/OcrStyle.hpp"
 
 #ifdef HAVE_TESSERACT
@@ -14,6 +17,79 @@
 #include <algorithm>
 #include <cmath>
 #include <limits>
+
+namespace {
+
+// Words set close, in small print or before a sign, OCR reads as one: gaps
+// between characters as wide as a space and far wider than all others in the
+// word part it.
+void splitAtSpaces(OcrEngine::Line &line)
+{
+    QList<double> heights;
+    for (const OcrEngine::Word &w : std::as_const(line))
+        for (const QRectF &c : w.chars)
+            if (!c.isEmpty()) heights.append(c.height());
+    if (heights.size() < 4) return;
+    std::sort(heights.begin(), heights.end());
+    const double tall = heights.at(heights.size() * 3 / 4);
+    OcrEngine::Line out;
+    for (const OcrEngine::Word &w : std::as_const(line)) {
+        // The gaps between the characters, each at the index of the one after it.
+        QList<std::pair<qsizetype, double>> gaps;
+        for (qsizetype c = 1; c < w.chars.size(); ++c)
+            if (w.chars.at(c) != w.chars.at(c - 1) && !w.chars.at(c).isEmpty() && !w.chars.at(c - 1).isEmpty())
+                gaps.append({ c, w.chars.at(c).left() - w.chars.at(c - 1).right() });
+        QList<double> widths;
+        for (const auto &gap : std::as_const(gaps)) widths.append(gap.second);
+        std::sort(widths.begin(), widths.end());
+        double space = -1.0;
+        for (qsizetype k = 0; k + 1 < widths.size(); ++k)
+            if (widths.at(k + 1) >= tall * 0.3 && widths.at(k + 1) >= qMax(1.0, widths.at(k)) * 1.8) {
+                space = widths.at(k + 1);
+                break;
+            }
+        qsizetype from = 0;
+        const auto part = [&](qsizetype to) {
+            OcrEngine::Word piece = w;
+            piece.text = w.text.mid(from, to - from);
+            piece.chars = w.chars.mid(from, to - from);
+            piece.pdfBounds = QRectF();
+            for (const QRectF &c : std::as_const(piece.chars))
+                if (!c.isEmpty()) piece.pdfBounds = piece.pdfBounds.isNull() ? c : piece.pdfBounds.united(c);
+            out.append(piece);
+            from = to;
+        };
+        for (const auto &[c, gap] : std::as_const(gaps))
+            if (space > 0.0 && gap >= space) part(c);
+        part(w.text.size());
+    }
+    line = out;
+}
+
+// A line OCR read over table cells is parted where its words stand far
+// apart: a gap wider than five times the line's height. Narrower gaps, as of
+// a justified narrow column or between columns, are told apart where the
+// text is laid out, by the lines around.
+void splitAtGaps(QList<OcrEngine::Line> &lines)
+{
+    QList<OcrEngine::Line> out;
+    for (const OcrEngine::Line &line : std::as_const(lines)) {
+        double height = 0.0;
+        for (const OcrEngine::Word &w : line) height = std::max(height, w.pdfBounds.height());
+        OcrEngine::Line part;
+        for (int i = 0; i < line.size(); ++i) {
+            if (i > 0 && line.at(i).pdfBounds.left() - line.at(i - 1).pdfBounds.right() > height * 5.0) {
+                out.append(part);
+                part.clear();
+            }
+            part.append(line.at(i));
+        }
+        if (!part.isEmpty()) out.append(part);
+    }
+    lines = out;
+}
+
+}
 
 OcrEngine::OcrEngine()
 {
@@ -113,6 +189,97 @@ QList<OcrEngine::Block> OcrEngine::recognizePage(const QImage &pageImage,
     return result;
 }
 
+#ifdef HAVE_TESSERACT
+// A page without its form's rules.
+static QImage withoutRules(const QImage &gray, qreal pxPerPt)
+{
+    if (gray.format() != QImage::Format_Grayscale8) return gray;
+    int tones[256] = {}, paper = 255;
+    for (int y = 0; y < gray.height(); ++y) {
+        const uchar *row = gray.constScanLine(y);
+        for (int x = 0; x < gray.width(); ++x) ++tones[row[x]];
+    }
+    for (int t = 0, most = 0; t < 256; ++t)
+        if (tones[t] > most) { most = tones[t]; paper = t; }
+    QImage out = gray;
+    const auto clear = [&](const QRect &area) {
+        const QRect r = area.intersected(out.rect());
+        for (int y = r.top(); y <= r.bottom(); ++y) std::fill_n(out.scanLine(y) + r.left(), r.width(), uchar(paper));
+    };
+    for (const QRect &rule : ScanRules::find(gray, pxPerPt))
+        clear(rule.width() > rule.height() ? rule.adjusted(0, -1, 0, 1) : rule.adjusted(-1, 0, 1, 0));
+    // Nor is a long curve drawn by hand text: read with the page it pulls the lines beside it into one.
+    return ScanPen::withoutCurves(out, pxPerPt);
+}
+#endif
+
+void OcrEngine::readMissedRows(QList<Line> &lines, const QImage &straight, qreal renderScale, int &paragraph,
+                               const std::function<bool()> &cancelled) const
+{
+    // Rows of letters the page's reading left out, as figures printed far apart, are read set close:
+    // a row is taken where that reading has a letter or figure for each of its letters. What was read
+    // upright through a column of such rows goes first.
+    QList<QRectF> read;
+    QList<std::pair<qsizetype, qsizetype>> from;
+    for (qsizetype l = 0; l < lines.size(); ++l)
+        for (qsizetype k = 0; k < lines.at(l).size(); ++k) {
+            read.append(lines.at(l).at(k).pdfBounds);
+            from.append({ l, k });
+        }
+    QList<int> upright;
+    const QList<OcrMissed::Row> missed = OcrMissed::rows(straight, read, renderScale, &upright);
+    for (qsizetype i = upright.size() - 1; i >= 0; --i) lines[from.at(upright.at(i)).first].removeAt(from.at(upright.at(i)).second);
+    lines.removeIf([](const Line &l) { return l.isEmpty(); });
+    for (const OcrMissed::Row &row : missed) {
+        if (cancelled && cancelled()) break;
+        // A row read before as one line with a letter or figure for each of its letters was read well: its
+        // text stands, and its letters where the scan has them, which a word read over letters far apart tells badly.
+        QString text, pieces;
+        if (row.over) {
+            qsizetype in = 0;
+            QList<std::pair<qreal, QString>> had;
+            for (const Line &l : std::as_const(lines)) {
+                bool here = false;
+                for (const Word &w : l) {
+                    if (!row.bounds.adjusted(-2, -2, 2, 2).contains(w.pdfBounds.center().toPoint())) continue;
+                    had.append({ w.pdfBounds.left(), w.text });
+                    here = true;
+                }
+                in += here;
+            }
+            std::sort(had.begin(), had.end(), [](const auto &a, const auto &b) { return a.first < b.first; });
+            for (const auto &[left, word] : std::as_const(had)) text += word;
+            text.remove(u' ');
+            if (text.size() != row.letters.size()) text.clear();
+            if (in != 1) std::swap(text, pieces);
+        }
+        if (text.isEmpty()) {
+            text = recognizeLine(OcrMissed::closedUp(straight, row), qRound(renderScale * 72.0));
+            text.remove(u' ');
+            // Where the row set close reads as no row, what its pieces were read as stands, a letter for each.
+            if (text.size() != row.letters.size() && !pieces.isEmpty()) text = pieces;
+        }
+        if (text.size() != row.letters.size() || !std::all_of(text.cbegin(), text.cend(), [](QChar c) { return c.isLetterOrNumber(); })) continue;
+        // What was read of such a row before, in pieces, gives way to the row.
+        if (row.over) {
+            for (Line &l : lines)
+                l.removeIf([&](const Word &w) { return row.bounds.adjusted(-2, -2, 2, 2).contains(w.pdfBounds.center().toPoint()); });
+            lines.removeIf([](const Line &l) { return l.isEmpty(); });
+        }
+        Line found;
+        ++paragraph;
+        for (const auto &[first, last] : row.words()) {
+            Word word { {}, text.mid(first, last - first + 1), {}, qreal(row.bounds.bottom() + 1), paragraph };
+            for (int i = first; i <= last; ++i) {
+                word.chars.append(QRectF(row.letters.at(i)));
+                word.pdfBounds |= word.chars.last();
+            }
+            found.append(word);
+        }
+        lines.append(found);
+    }
+}
+
 QList<OcrEngine::Line> OcrEngine::recognizeLines(const QImage &pageImage,
                                                  const QSizeF  &pageSizePts,
                                                  qreal          renderScale,
@@ -127,7 +294,7 @@ QList<OcrEngine::Line> OcrEngine::recognizeLines(const QImage &pageImage,
 
     auto *api = static_cast<tesseract::TessBaseAPI *>(m_api);
     QImage straight;
-    const QTransform toPage = setPage(pageImage, renderScale, settle ? &straight : nullptr);
+    const QTransform toPage = setPage(pageImage, renderScale, &straight);
     api->SetPageSegMode(tesseract::PSM_AUTO);
 
     // Reading is most of the time, setting the words in the scan's face the rest.
@@ -211,6 +378,10 @@ QList<OcrEngine::Line> OcrEngine::recognizeLines(const QImage &pageImage,
     delete ri;
     api->Clear();
 
+    readMissedRows(lines, straight, renderScale, paragraph, cancelled);
+
+    for (Line &l : lines) splitAtSpaces(l);
+    splitAtGaps(lines);
     // A speck of dust beside a line is read as a mark of its own, far smaller than the words: it is no word.
     for (Line &l : lines) {
         if (l.size() < 2) continue;
@@ -289,14 +460,23 @@ QTransform OcrEngine::setPage(const QImage &pageImage, qreal renderScale, QImage
         }
     }
 
-    if (straight) {
-        *straight = QImage(int(pixGetWidth(pix)), int(pixGetHeight(pix)), QImage::Format_Grayscale8);
-        for (int y = 0; y < straight->height(); ++y) {
-            const l_uint32 *from = pixGetData(pix) + y * pixGetWpl(pix);
-            uchar *to = straight->scanLine(y);
-            for (int x = 0; x < straight->width(); ++x) to[x] = uchar(GET_DATA_BYTE(from, x));
+    // A form's rules are no text: read with them, a dashed rule comes back as words and a row between two
+    // of them as its neighbour. They are found on the straightened page, where they run level and whole.
+    QImage level(int(pixGetWidth(pix)), int(pixGetHeight(pix)), QImage::Format_Grayscale8);
+    for (int y = 0; y < level.height(); ++y) {
+        const l_uint32 *from = pixGetData(pix) + y * pixGetWpl(pix);
+        uchar *to = level.scanLine(y);
+        for (int x = 0; x < level.width(); ++x) to[x] = uchar(GET_DATA_BYTE(from, x));
+    }
+    if (const QImage plain = withoutRules(level, renderScale); plain.constBits() != level.constBits()) {
+        level = plain;
+        for (int y = 0; y < level.height(); ++y) {
+            const uchar *from = level.constScanLine(y);
+            l_uint32 *to = pixGetData(pix) + y * pixGetWpl(pix);
+            for (int x = 0; x < level.width(); ++x) SET_DATA_BYTE(to, x, from[x]);
         }
     }
+    if (straight) *straight = level;
     api->SetImage(pix);
     api->SetSourceResolution(qRound(renderScale * 72.0));
     pixDestroy(&pix);

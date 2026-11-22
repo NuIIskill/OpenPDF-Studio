@@ -8,6 +8,7 @@
 #include <QHash>
 #include <QList>
 #include <QMap>
+#include <QPainterPath>
 #include <QSet>
 #include <QString>
 
@@ -42,6 +43,8 @@ QSet<uint> decodable(FPDF_DOCUMENT doc, FPDF_PAGE page, FPDF_FONT font,
                      const QList<uint> &codePoints);
 
 double glyphWidth(FPDF_FONT font, char32_t codePoint, double sizePt);
+
+bool glyphOutline(FPDF_FONT font, char32_t codePoint, double sizePt, QPainterPath *outline);
 
 void setText(FPDF_PAGEOBJECT object, FPDF_FONT font, const QString &text);
 

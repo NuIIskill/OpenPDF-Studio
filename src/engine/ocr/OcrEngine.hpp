@@ -86,6 +86,8 @@ public:
 private:
     void release();
     QTransform setPage(const QImage &pageImage, qreal renderScale, QImage *straight = nullptr) const;
+    void readMissedRows(QList<Line> &lines, const QImage &straight, qreal renderScale, int &paragraph,
+                        const std::function<bool()> &cancelled) const;
 
     void   *m_api   { nullptr };
     bool    m_ready { false };

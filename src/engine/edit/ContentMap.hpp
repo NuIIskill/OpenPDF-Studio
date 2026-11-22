@@ -85,6 +85,7 @@ struct ContentCluster {
     bool    exactWidth { false };
     QPointF origin;
     QRectF  objectBounds;
+    bool    read { false };
 };
 
 QList<ContentItem> classifyContentClusters(QList<ContentCluster> clusters,

@@ -209,11 +209,24 @@ const QRawFont &face(const QString &family, bool bold, bool italic)
                                + (italic ? QStringLiteral("|k") : QString());
     auto it = faces.find(key);
     if (it == faces.end()) {
-        QFont f(family);
-        f.setBold(bold);
-        f.setItalic(italic);
-        f.setStyleStrategy(QFont::NoFontMerging);
-        it = faces.insert(key, QRawFont::fromFont(f));
+        const auto named = [&](const QString &name) {
+            QFont f(name);
+            f.setBold(bold);
+            f.setItalic(italic);
+            f.setStyleStrategy(QFont::NoFontMerging);
+            return QRawFont::fromFont(f);
+        };
+        QRawFont raw = named(family);
+        // A family installed twice, as a Type 1 file and as an OpenType one, is taken as the one that can be embedded.
+        if (raw.isValid() && raw.fontTable("head").isEmpty())
+            for (const QString &other : QFontDatabase::families()) {
+                if (other == raw.familyName() || plainFamily(other).compare(plainFamily(family), Qt::CaseInsensitive) != 0) continue;
+                const QRawFont same = named(other);
+                if (!same.isValid() || same.fontTable("head").isEmpty() || same.weight() != raw.weight() || same.style() != raw.style()) continue;
+                raw = same;
+                break;
+            }
+        it = faces.insert(key, raw);
     }
     return *it;
 }
@@ -518,6 +531,55 @@ double PdfiumFonts::glyphWidth(FPDF_FONT font, char32_t codePoint, double sizePt
     float width = 0.f;
     return FPDFFont_GetGlyphWidth(font, codePoint, static_cast<float>(sizePt), &width)
         ? double(width) : 0.0;
+}
+
+namespace {
+
+// The outline PDFium itself draws a character of a font with, an em wide as the size.
+bool drawnOutline(FPDF_FONT font, char32_t codePoint, double sizePt, QPainterPath *outline)
+{
+    if (QChar::requiresSurrogates(codePoint)) return false;
+    FPDF_GLYPHPATH path = FPDFFont_GetGlyphPath(font, codePoint, float(sizePt));
+    const int count = path ? FPDFGlyphPath_CountGlyphSegments(path) : 0;
+    QPainterPath drawn;
+    QPointF bend[3];
+    int bends = 0;
+    for (int i = 0; i < count; ++i) {
+        FPDF_PATHSEGMENT segment = FPDFGlyphPath_GetGlyphPathSegment(path, i);
+        float x = 0.f, y = 0.f;
+        if (!segment || !FPDFPathSegment_GetPoint(segment, &x, &y)) return false;
+        const QPointF at(x * sizePt, -y * sizePt);
+        switch (FPDFPathSegment_GetType(segment)) {
+        case FPDF_SEGMENT_MOVETO: drawn.moveTo(at); bends = 0; break;
+        case FPDF_SEGMENT_LINETO: drawn.lineTo(at); bends = 0; break;
+        case FPDF_SEGMENT_BEZIERTO:
+            bend[bends++] = at;
+            if (bends == 3) { drawn.cubicTo(bend[0], bend[1], bend[2]); bends = 0; }
+            break;
+        default: return false;
+        }
+        if (FPDFPathSegment_GetClose(segment)) drawn.closeSubpath();
+    }
+    if (drawn.isEmpty()) return false;
+    *outline = drawn;
+    return true;
+}
+
+}
+
+bool PdfiumFonts::glyphOutline(FPDF_FONT font, char32_t codePoint, double sizePt, QPainterPath *outline)
+{
+    // The outline of a character of a face, its origin on the baseline and
+    // y downwards; a space has none and is still known.
+    if (!font) return false;
+    const QRawFont *raw = loadedFace(font);
+    if (!raw) return drawnOutline(font, codePoint, sizePt, outline);
+    if (raw->pixelSize() <= 0.0) return false;
+    const QList<quint32> ids = raw->glyphIndexesForString(QString::fromUcs4(&codePoint, 1));
+    if (ids.size() != 1 || ids.first() == 0) return false;
+    const double k = sizePt / raw->pixelSize();
+    *outline = QTransform::fromScale(k, k).map(raw->pathForGlyph(ids.first()));
+    return true;
 }
 
 void PdfiumFonts::setText(FPDF_PAGEOBJECT object, FPDF_FONT font, const QString &text)

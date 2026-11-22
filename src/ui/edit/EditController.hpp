@@ -162,6 +162,8 @@ public:
     QString activeEditPdfText;
     bool    activeEditLaid { false };
     bool    activeEditScanned { false };
+    QList<TextLayout::Mark> activeScanMarks;
+    double activeScanSpacingPt { 0.0 };
 
     QString activeEditFieldName;
 
@@ -172,6 +174,7 @@ public:
     bool    activeEditTurned { false };
     bool    activeEditWindowPlaced { false };
     QPointF activeEditTurnPivot;
+    bool    scanAskew() const { return activeEditScanned && !activeEditTurned && !qFuzzyIsNull(currentBox.rotationDeg); }
 
     double  activeEditLineSpacingPt { 0.0 };
 

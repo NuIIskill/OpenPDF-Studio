@@ -30,6 +30,7 @@ struct Bitmap {
 struct Style {
     QString family;
     bool    bold { false };
+    bool    italic { false };
     double  sizePx { 0.0 };
     double  baseline { 0.0 };
     double  spacingPx { 0.0 };
@@ -80,6 +81,7 @@ QFont faceOf(const Style &style)
     QFont font(style.family);
     font.setPixelSize(kRef);
     font.setBold(style.bold);
+    font.setItalic(style.italic);
     font.setKerning(false);
     font.setHintingPreference(QFont::PreferNoHinting);
     font.setStyleStrategy(QFont::NoFontMerging);
@@ -294,14 +296,17 @@ double settleWord(const QImage &gray, const Style &style, OcrEngine::Word &word,
         at = takenAt;
     }
 
-    word.text = text;
-    word.chars.clear();
+    QList<QRectF> chars;
     QRectF bounds;
     for (const QRectF &b : std::as_const(drawn.boxes)) {
         const QRectF placed = b.isEmpty() ? QRectF() : b.translated(area.left() + at.dx, area.top() + at.dy);
-        word.chars.append(placed);
+        chars.append(placed);
         if (!placed.isEmpty()) bounds = bounds.isNull() ? placed : bounds.united(placed);
     }
+    // A setting reaching into the next word was in a face that does not fit it.
+    if (bounds.right() > rightLimit) return -1.0;
+    word.text = text;
+    word.chars = chars;
     if (!bounds.isEmpty()) word.pdfBounds = bounds;
     return explained;
 }
@@ -312,6 +317,7 @@ Style styleOf(const ScanFont::Match &m, qreal scale)
     const ScanFont::Fit &fit = m.lines.first();
     style.family = m.family;
     style.bold = fit.bold;
+    style.italic = fit.italic;
     style.sizePx = fit.sizePt * scale;
     style.spacingPx = fit.spacingPt * scale;
     return style;
@@ -323,18 +329,21 @@ ScanFont::Match lineFace(const QImage &gray, qreal scale, const OcrEngine::Line 
     constexpr int kEnough = 28;
     QRectF box;
     QStringList words;
+    QList<double> starts;
     int chars = 0;
     for (const OcrEngine::Word &w : line) {
         if (chars >= kEnough) break;
         box = box.isNull() ? w.pdfBounds : box.united(w.pdfBounds);
         words.append(w.text);
+        starts.append(w.pdfBounds.left() / scale);
         chars += int(w.text.size()) + 1;
     }
     if (box.isEmpty()) return {};
     const QRectF pt(box.topLeft() / scale, box.size() / scale);
     const double h = pt.height();
+    // Where OCR found each word tells the words apart, also across wide gaps between columns.
     const ScanFont::Match m = ScanFont::match(gray, scale, { { pt.adjusted(0.0, -h * 0.5, 0.0, h * 0.6),
-                                                               words.join(u' '), pt } });
+                                                               words.join(u' '), pt, starts } });
     return m.isValid() && !m.lines.isEmpty() && m.lines.first().sizePt > 0.0 ? m : ScanFont::Match{};
 }
 

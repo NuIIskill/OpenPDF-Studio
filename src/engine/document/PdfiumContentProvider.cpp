@@ -12,10 +12,13 @@
 #include "fpdf_text.h"
 
 #include <QColor>
+#include <QHash>
 #include <QRegularExpression>
 #include <QStringList>
 #include <QTransform>
 
+#include <algorithm>
+#include <cmath>
 #include <vector>
 
 namespace {
@@ -40,7 +43,8 @@ QColor fillColorAt(FPDF_TEXTPAGE tp, int index)
     unsigned int r = 0, g = 0, b = 0, a = 0;
     if (!FPDFText_GetFillColor(tp, index, &r, &g, &b, &a)) return {};
     if (a == 0) return {};
-    return QColor(static_cast<int>(r), static_cast<int>(g), static_cast<int>(b));
+    // Text set gray as black under an opacity keeps it, so the editor shows it gray.
+    return QColor(static_cast<int>(r), static_cast<int>(g), static_cast<int>(b), static_cast<int>(a));
 }
 
 QString annotString(FPDF_ANNOTATION annot, const char *key)
@@ -128,9 +132,13 @@ QList<ContentItem> PdfiumContentProvider::buildPageItems(int page,
     // Turned text is read in its own direction and turned back onto the page.
     QList<ContentItem> text;
     const auto read = [&](FPDF_TEXTPAGE tp, const PdfiumPageSpace &in, const QList<QRectF> &boxes) {
-        const QMap<int, QList<ContentCluster>> words = collectWords(tp, in, mergeVertical, boxes);
+        double slope = 0.0;
+        const QMap<int, QList<ContentCluster>> words = collectWords(tp, in, mergeVertical, boxes, &slope);
         for (auto it = words.cbegin(); it != words.cend(); ++it) {
-            const QTransform turn = QTransform().rotate(it.key());
+            // An OCR layer over a page scanned askew was read level, turned back
+            // by the page's slope; its items turn with the page again.
+            const QTransform turn = QTransform().rotate(it.key())
+                                  * (it.key() == 0 ? QTransform(1.0, -slope, slope, 1.0, 0.0, 0.0).inverted() : QTransform());
             for (ContentItem item : classifyContentClusters(it.value(), mergeVertical)) {
                 item.bounds     = turn.mapRect(item.bounds);
                 item.textOrigin = turn.map(item.textOrigin);
@@ -162,10 +170,51 @@ QList<ContentItem> PdfiumContentProvider::buildPageItems(int page,
 QMap<int, QList<ContentCluster>> PdfiumContentProvider::collectWords(FPDF_TEXTPAGE tp,
                                                                      const PdfiumPageSpace &space,
                                                                      bool byTurn,
-                                                                     const QList<QRectF> &boxes) const
+                                                                     const QList<QRectF> &boxes,
+                                                                     double *slope) const
 {
     QMap<int, QList<ContentCluster>> words;
     const int count = FPDFText_CountChars(tp);
+
+    // An OCR layer over a page scanned a little askew slopes with it, each
+    // word by its matrix, as PDFium's character angle leans with how far a
+    // word is squeezed: it is read level, sheared by the page's slope.
+    constexpr double kAskew = 0.0524;
+    const auto tiltOf = [&](int i) {
+        FPDF_PAGEOBJECT object = FPDFText_GetTextObject(tp, i);
+        FS_MATRIX m;
+        if (!object || FPDFTextObj_GetTextRenderMode(object) != FPDF_TEXTRENDERMODE_INVISIBLE
+                || !FPDFText_GetMatrix(tp, i, &m) || (m.a == 0.0f && m.b == 0.0f))
+            return qQNaN();
+        const double shown = space.shownAngle(std::fmod(2.0 * M_PI - std::atan2(double(m.b), double(m.a)), 2.0 * M_PI));
+        const double tilt = shown > M_PI ? shown - 2.0 * M_PI : shown;
+        return std::abs(tilt) <= kAskew ? tilt : qQNaN();
+    };
+    QList<double> slopes;
+    for (int i = 0; byTurn && i < count && boxes.isEmpty(); ++i)
+        if (const double tilt = tiltOf(i); !std::isnan(tilt) && tilt != 0.0) slopes.append(std::tan(tilt));
+    // What the app's OCR read is set level line by line, its characters'
+    // boxes where OCR found them: the slope is that of the letters standing
+    // on the baseline along each long line.
+    QHash<FPDF_PAGEOBJECT, QList<QPointF>> feet;
+    for (int i = 0; byTurn && i < count && i < boxes.size(); ++i) {
+        const QChar ch(static_cast<char16_t>(FPDFText_GetUnicode(tp, i)));
+        const QRectF &box = boxes.at(i);
+        if (!box.isEmpty() && (ch.isUpper() || ch.isDigit() || QStringLiteral("acemnorsuvwxz").contains(ch)))
+            feet[FPDFText_GetTextObject(tp, i)].append(QPointF(box.center().x(), box.bottom()));
+    }
+    for (const QList<QPointF> &line : std::as_const(feet)) {
+        if (line.size() < 6 || line.last().x() - line.first().x() < 100.0) continue;
+        double mx = 0.0, my = 0.0;
+        for (const QPointF &f : line) { mx += f.x(); my += f.y(); }
+        mx /= line.size(); my /= line.size();
+        double sxy = 0.0, sxx = 0.0;
+        for (const QPointF &f : line) { sxy += (f.x() - mx) * (f.y() - my); sxx += (f.x() - mx) * (f.x() - mx); }
+        if (sxx > 0.0 && std::abs(sxy / sxx) <= std::tan(kAskew)) slopes.append(sxy / sxx);
+    }
+    std::sort(slopes.begin(), slopes.end());
+    const double shear = slopes.isEmpty() ? 0.0 : slopes.at(slopes.size() / 2);
+    if (slope) *slope = shear;
 
     ContentCluster current;
     bool           open = false;
@@ -187,7 +236,8 @@ QMap<int, QList<ContentCluster>> PdfiumContentProvider::collectWords(FPDF_TEXTPA
         const QChar ch(static_cast<char16_t>(FPDFText_GetUnicode(tp, i)));
         if (ch.isNull()) continue;
         // Text turned otherwise than by whole quarters cannot be edited.
-        const int turn = byTurn ? space.quarterTurn(FPDFText_GetCharAngle(tp, i)) : 0;
+        const bool askew = byTurn && !std::isnan(tiltOf(i));
+        const int turn = byTurn && !askew ? space.quarterTurn(FPDFText_GetCharAngle(tp, i)) : 0;
         if (turn < 0) { flush(); continue; }
         if (ch.isSpace() || (open && turn != currentTurn)) flush();
         if (ch.isSpace()) continue;
@@ -198,13 +248,27 @@ QMap<int, QList<ContentCluster>> PdfiumContentProvider::collectWords(FPDF_TEXTPA
         QRectF box = unturn.mapRect(space.toView(left, bottom, right, top));
         const QPointF origin = unturn.map(space.toView(originX, originY));
         originX = origin.x();
-        // A scanned character stands where OCR found it.
-        if (const QRectF scanned = boxes.value(i); !scanned.isEmpty()) {
+        // A scanned character stands where OCR found it; its line, set level,
+        // stands where OCR found it in its middle.
+        const QRectF scanned = boxes.value(i);
+        double level = askew ? originX * shear : 0.0;
+        if (!scanned.isEmpty()) {
             box     = scanned;
             originX = scanned.left();
+            box.translate(0.0, -box.center().x() * shear);
+            float l = 0, b = 0, r = 0, t = 0;
+            if (FPDF_PAGEOBJECT obj = FPDFText_GetTextObject(tp, i); obj && FPDFPageObj_GetBounds(obj, &l, &b, &r, &t))
+                level = (space.toView(l, b).x() + space.toView(r, t).x()) / 2.0 * shear;
+        } else if (askew) {
+            box.translate(0.0, -originX * shear);
         }
-        const double baseline = origin.y();
+        const double baseline = origin.y() - level;
         const double fontSize = PdfiumTextRules::effectiveFontSize(tp, i);
+        // A page lying askew is turned, not sheared: its margins lean as its
+        // lines slope, so each line is also set back along itself.
+        const double along = askew || !scanned.isEmpty() ? baseline * shear : 0.0;
+        box.translate(along, 0.0);
+        originX += along;
 
         if (open && (!PdfiumTextRules::sameLine(baseline, lastBaseline, box.height())
                      || PdfiumTextRules::separatesWords(lastBox, box, fontSize)))
@@ -220,10 +284,12 @@ QMap<int, QList<ContentCluster>> PdfiumContentProvider::collectWords(FPDF_TEXTPA
             current.textColor     = fillColorAt(tp, i);
             current.exactWidth    = true;
             current.origin        = QPointF(originX, baseline);
+            current.read          = askew || !boxes.value(i).isEmpty();
             if (FPDF_PAGEOBJECT obj = FPDFText_GetTextObject(tp, i)) {
                 float l = 0, b = 0, r = 0, t = 0;
                 if (FPDFPageObj_GetBounds(obj, &l, &b, &r, &t))
-                    current.objectBounds = unturn.mapRect(space.toView(l, b, r, t));
+                    current.objectBounds = unturn.mapRect(space.toView(l, b, r, t))
+                                               .translated(along, askew ? -(originX - along) * shear : 0.0);
             }
             open = true;
             currentTurn = turn;

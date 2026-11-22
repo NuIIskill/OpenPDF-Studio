@@ -172,8 +172,7 @@ void Typeset::applyMarks()
         const qsizetype m = m_charMarks.at(i).styled() ? m_marks.indexOf(m_charMarks.at(i)) : -1;
         if (m >= 0) m_charStyles[i] = m_markStyles.at(m).value(m_charStyles.at(i), m_charStyles.at(i));
     }
-    // Text with parts in another look flows anew, as a box restyled whole does.
-    if (!m_marks.isEmpty()) m_restyled = true;
+    m_marked = !m_marks.isEmpty();
 }
 
 bool Typeset::underlinedAt(int position) const

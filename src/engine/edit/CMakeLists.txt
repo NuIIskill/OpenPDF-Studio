@@ -9,8 +9,22 @@ target_sources(OpenPDFStudio PRIVATE
     EditSession.hpp
     InkMetrics.cpp
     InkMetrics.hpp
+    ScanFit.cpp
+    ScanFit.hpp
+    ScanFlow.cpp
+    ScanFlow.hpp
     ScanFont.cpp
     ScanFont.hpp
+    ScanLike.cpp
+    ScanLike.hpp
+    ScanLine.cpp
+    ScanLine.hpp
+    ScanPaper.cpp
+    ScanPaper.hpp
+    ScanPen.cpp
+    ScanPen.hpp
+    ScanRules.cpp
+    ScanRules.hpp
     StandardFont.cpp
     SourcedText.cpp
     SourcedText.hpp

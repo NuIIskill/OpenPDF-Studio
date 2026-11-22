@@ -40,9 +40,12 @@ target_sources(OpenPDFStudio PRIVATE
     PdfiumImages.hpp
     PdfiumLock.cpp
     PdfiumLock.hpp
+    PdfiumScanInk.cpp
+    PdfiumScanInk.hpp
     PdfiumScanText.cpp
     PdfiumScanText.hpp
     PdfiumText.cpp
+    PdfiumText_Scan.cpp
     PdfiumText_Styles.cpp
     PdfiumTextCut.cpp
     PdfiumTextCut.hpp

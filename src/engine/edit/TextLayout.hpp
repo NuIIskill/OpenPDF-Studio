@@ -89,6 +89,8 @@ struct Metrics {
     QList<int>                originalStyles;
     QList<OriginalLine>       originals;
     bool                      anchor { false };
+    bool                      holdGaps { false };
+    double                    scanSpacingPt { 0.0 };
     QPointF                   boxTopLeft;
     QList<Source>             sources;
     QList<int>                sourceStyles;
@@ -112,8 +114,10 @@ struct Params {
     double lineStepPt         { 0.0 };
     double paragraphSpacingPt { 0.0 };
     double charSpacingPt      { 0.0 };
+    double scanWiderPt        { 0.0 };
     bool   anchor             { false };
     bool   keep               { false };
+    bool   holdGaps           { false };
     TextBoxProperties::ListStyle      list  { TextBoxProperties::ListStyle::None };
     TextBoxProperties::HorizontalAlign align { TextBoxProperties::HorizontalAlign::Left };
 };
@@ -140,6 +144,9 @@ struct Line {
     int     tailCount { 0 };
     QList<double> tailX;
     double  tailShift { 0.0 };
+    QList<double> placedX;
+    QList<int>    from;
+    double  pitch { 0.0 };
 };
 
 struct Result {
@@ -164,6 +171,11 @@ double textWidth(const TextBoxProperties &box, const QSizeF &bounds,
                  const QPointF &firstBaseline);
 
 double indentPt(const TextBoxProperties &box, const QSizeF &bounds, double sizePt);
+
+QList<int> sourcesOf(const QString &text, const QString &original);
+
+void anchorLine(Line &line, const QString &text, const OriginalLine &original, const QPointF &written,
+                const Params &params, double sizePt, const Advance &advance, bool keep);
 
 int commonPrefix(const OriginalLine &original, QStringView line);
 

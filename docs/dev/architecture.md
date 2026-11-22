@@ -77,7 +77,8 @@ coordinates.
 style of the original character it came from (font, size, matrix, colours,
 render mode, letter spacing, baseline shift); `TextLayout::styleIndices()`
 finds that character by comparing the text with the original lines, and a
-typed character takes the style before it. The format bar shows the style of
+typed character takes the style before it. The colour keeps its opacity, so
+text set gray as black under one shows gray in the editor too. The format bar shows the style of
 the character clicked or at the caret (`Metrics::appearances`). A change from
 it replaces one attribute for all characters and keeps the others; a size is
 the shown character's and the others scale with it. With part of the text
@@ -274,12 +275,162 @@ detection, as if it had an invisible OCR layer; a click on an unread scan waits
 for the worker to read it (`DocumentWorker::readScan()`), which the text tool
 already asks for the page in view and its neighbours. Text that shows
 only as a scan's pixels, found by OCR or in an invisible OCR text layer
-(`PdfBackend::hiddenText()`), is an `Edit::scanned`: `ScanFont` finds the
+(`PdfBackend::hiddenText()`), is an `Edit::scanned`, as is every line of a
+page this program read that holds no text of its own: `ScanFont` finds the
 installed face, weight, size and baseline its pixels match by rendering the
-candidates over them, a paragraph keeps only the lines set alike, the colour is
-sampled, the ink of its lines is painted over
-in the paper's colour in the preview and the file alike, and nothing of the
-invisible layer's font is used. Where the detection is wrong, a frame drawn with Shift
+candidates over them (`ScanFit`), a paragraph keeps only the lines set alike, the colour is
+sampled, and nothing of the invisible layer's font is used. A line's weight is
+the one most of its words fit, its size the one most of their width agrees on;
+a word OCR read as two counts as the one it is (`ScanLine`). A line no weight
+covers was misread, and how high its letters stand tells its size.
+Where a line's own pixels cannot tell (faces left close, none covering well, too
+few or too small letters), the lines nearby choose the face, and an unclear
+weight is the one that gives the line their size; a line nearby that none of
+the line's best faces covers was misread and has no say. Figures look alike in
+most faces: a few of them are compared in every face, on their row and the rows
+of figures nearby, each face counting for less the farther its strokes are from
+holding the scan's ink (a face's ink counted as the scan's is, blurred and
+against its own darkest, so thin strokes count as thin), also a face the
+document showed before. A heading of a word or two
+is bold where it holds more ink against the regular face than the lines nearby
+hold against theirs, and a few figures found bold are regular where they hold no more.
+Letters set apart or read one by one tell their size by their height, the
+face's letters blurred and cut as the scan's ink is (`ScanFit::fitLine`),
+figures and capitals letter by letter, so a row lying a little askew is no
+higher; the blur of a few figures is told by how soft their strokes show
+(`ScanFit::blurOf`), and rows nearby printed about as large share one size.
+Ink tells against a face only where the face is clearly heavier than the scan,
+as print and scan only add to a stroke.
+An edit changes a scan only in the scan's own pixels (`PdfiumScanInk`, with the
+pixel work in `ScanPaper`). Whole words that keep their text and look stay as
+they are where they stand (`Typeset::keptOnScan`), and those an edit only
+pushes along their line go there as the pixels they are, by whole pixels of
+the scan (`Typeset::movedOnScan`), so no font, misreading or weight of the
+matched face shows on a word nobody typed. What an edit replaces is cleared of
+its ink word by word, each word parted from the next in the white between
+them: the block around a word's ink takes the tone of the paper around it and
+its grain in blocks of that paper (`ScanPaper::withoutInk`). What it sets
+is drawn from its glyph outlines at the scan's resolution and laid on the page
+as pixels, thickened, blurred and faded as the scan printed its own words,
+or cut to black and white on such a scan: a few of the scan's words, drawn in
+the matched face where the scan has them, are held against their pixels to
+find that look (`ScanPaper::printedLike`). Text the user coloured or underlined
+shows as set. The text itself is written word by word without showing, as an
+OCR layer holds it, where the page has such a layer; a scan without one stays
+without and is read by OCR again when the file is opened. The pixels read and
+the look found are kept by the backend while the document is open
+(`PdfiumScanInk::Cache`), so typing reads them once. Preview and file take the
+same way; where the preview lays the text over the page, the page keeps the
+scan and the text brings these pixels. Each line is set where the scan has it, on its
+own baseline with each word on the middle of its ink (`Edit::originalLines`),
+so indents, centred and justified lines and tab stops keep their places; an edit
+closes up on what it replaced where the scan had it, and a gap as wide as a tab
+stop takes up what it grew or shrank. A scanned paragraph flows as in a text editor
+(`ScanFlow`): the lines of the text are matched to the scan's lines by what
+they hold, not by their number, so a line broken with Enter, joined or deleted
+moves the lines below by a line. Where the scan's paragraph flowed over a
+line's end, a line grown too long passes its last words to the next, one with
+room takes the next line's first word, and a justified line is spread to the
+right edge again; a line of few words, as of an address, is a line of its own.
+Words that keep their text go to their new line as the scan's pixels, as their
+ink alone (`ScanPaper::inkAlone`), so they stand on the paper where they land.
+Nothing the user did not type is set in the matched face, whatever OCR read:
+the letters an edit leaves alone are taken as runs that follow each other as
+the scan has them (`Typeset::scanRuns`), each staying where it is or going
+where the layout puts it as the scan's pixels, also inside a word the edit
+changes and where a paragraph breaks anew (`ScanFlow` keeps the scan's steps
+between such letters, and a letter typed for one of the scan's takes that letter's room). A run is cut from its word in the white between two
+letters; the cuts of one word are settled together on its runs of ink
+(`ScanPaper::inkRuns`, in `PdfiumScanInk`), so what lies between two cuts is
+as many letters as the text has there and no letter is cut or lost; where two
+letters touch at a cut it goes outward to the next white and what it passes is
+typed anew. Letters
+that stand apart, as figures in a form, are set each on its own ink
+(`EditOpener::settleScanLetters`), and letters printed apart keep their
+spacing in their places and still anchor. A line read across a gap far wider
+than its letters' steps is two entries side by side, of which the clicked one
+is taken (`ScanCleanup::keepSide`). Letters printed apart, which OCR reads
+badly or in pieces, are read again set close as a word, as far as they stand a
+like step apart (a word's last or first letter beside them is none of them),
+and the lines of a form around them leave the sample every
+later measurement reads (`EditOpener::rereadSpaced`, `EditOpen::wipe`). The page's
+reading is followed by one of rows of letters far apart that it left out or read in pieces, each letter set
+where the scan has it (`OcrMissed`, `OcrEngine::readMissedRows`), and a row of figures each apart with a
+letter among them, as OCR reads from a smudge, opens as the run of figures clicked
+(`EditOpener::keepFigures`). A small opaque picture without ink that lies over a scan and under nothing
+else, as an earlier edit leaves where it cleared a word, is no text: the page is read without it and the
+sample an edit measures in loses it (`PdfBackend::scanPatches`, `EditOpen::dropPatches`). A stroke
+drawn by hand, coloured among dark print or one long thin curve, is no text either: reading and sample
+lose it the same way (`ScanPen`). Letters with white between each are one word with a letter spacing
+(`EditOpener::closeApart`), each on its own run of ink, also in groups or with a place left empty
+(`ScanCleanup` lettersApart), and what is typed behind such a row stands that spacing off. Such a row is
+one step from middle to middle: a typed letter stands in the middle of its place whatever its width
+(`Line::pitch` in `TextLayout::anchorLine`). Its letters may stand higher than the usual one with their
+foot on the row's line or their head at the row's, as capitals, ascenders, descenders and dots do; a
+smudge reaches above and below (`lettersHigh`). A figure or letter typed among letters set apart is the
+scan's own ink of that character again, in whatever face the scan is: from the edit's own lines where
+they show it (`Typeset::copyFigures`), else borrowed from the nearest piece of ink on the page that is as
+large and shows that character before every other (`PdfiumScanInk` borrowed, `ScanLike`); else it is set
+in the matched face. Small pictures an earlier edit laid over the scan are known (`PdfBackend::scanPictures`):
+one without paper under its print is a smudge and no text, and one with print neither gives the line's
+size (`Scan::foreign`) nor is taken for a typed character before the scan's own print. The letter spacing of a scan's text can be changed
+like any other: the edit keeps the spacing its lines opened with (`Edit::scanSpacingPt`), and each of
+the scan's letters stands as much further on as the box's spacing differs from it (`Params::scanWiderPt`
+in `TextLayout::anchorLine` and `ScanFlow`), a paragraph flowing anew; letters that touch go together
+(`Typeset::joinTouching`). Only
+the clicked line is looked at where the click was, and only beside a label, on
+a rule read as a line or on letters OCR did not read: a click on the paper near
+a line of text opens that line. The
+rules of a form are no text. One finder knows them, drawn through, dotted or
+dashed, also a little askew: a thin stretch of ink with paper on both sides,
+an upright one where it runs from one line across to another, those lines
+no ink beside it (`ScanRules::find`). OCR reads the page without them, found
+once it is straightened, where they run level and whole
+(`OcrEngine::setPage`); a rule still read as a line of words opens as no text
+(`EditOpen::ruleAlone`). The sample an edit measures in loses them as soon as it
+is rendered (`EditOpen::dropRules`), where they lay still parts two lines into
+two edits (`ruledBetween`), and a rule running through a word's area is neither
+cleared nor moved with it (`PdfiumScanInk` rulesAround, `ScanPaper`). A scan
+another program read, all its text invisible over the page's picture, or one
+with a little text set onto it, as a stamp, is read again by this program's
+OCR for editing (`PdfBackend::scanBelowText`): such a layer may miss whole
+tables, and the stamp tells nothing of the scan. What is typed is drawn as thick and as blurred as brings the
+face's strokes to the scan's darkness at the scan's ink, at their darkest, their middle and near their edge,
+the face's own strokes before thinned or thickened ones (`ScanPaper::kGainsPx`), and never much lighter or
+darker than the scan's own. A family installed as a Type 1 file and as an OpenType one is taken as the one
+that can be embedded, and a face that cannot be loaded gives its outlines through PDFium
+(`PdfiumFonts::glyphOutline`), so text typed on a scan always shows as pixels.
+A scan lying askew is laid out level in a box turned by its slope; the box keeps
+what it turns about while it grows (`EditTarget::turnPivot`, applied with
+`EditSession::turnAbout`), so its words stay on the scan's. Lines
+set flush right or centred, told by their own edges or by those they share
+with the page's lines, grow that way in a box that holds the room beside them
+(`EditOpener::alignScan`); a line with ink close before it on its rows is the end of something longer,
+grows to the right and tells the lines around it no edge. A line of its own has room up to where the page's
+text ends on the right or other text stands beside it (`EditTarget::roomRight`,
+which stops the frame's growth there), a short entry alone on towards the
+page's edge; out of room it breaks and goes on a line below, as the scan's
+pixels too. A number and a word OCR read as one are parted where the
+line shows a word's gap more than its text has spaces
+(`ScanCleanup::partFigures`). A click puts the caret where the text was
+clicked. Columns OCR read as one line are parted
+at the white channel between them, where words start alike in the rows around,
+and a click opens its column only, looked at on the lines no rule parts from
+the clicked one; letters set apart at a like step are one entry and no columns; there a wide gap between words read by OCR
+parts blocks only where it stands out from the other gaps of its column or
+from the gaps beside it, so a loosely justified line opens whole and a table's
+cells stay apart. In a fixed pitch face, where words start below each other
+all over the lines, a channel parts columns only where it is wider than the
+gaps between the words as well (`ScanCleanup::keepColumn`). Each word of the app's own OCR layer counts as a word of its
+own, though the layer holds a line in one object, and an OCR layer over a page
+lying askew is grouped into lines and paragraphs turned level by the page's
+slope, its margins with its lines (`PdfiumContentProvider::collectWords`). A line printed italic is
+set italic, and a word printed bold or italic in a line set otherwise keeps
+its style as a mark of the edit, told by its ink and its shape. A page
+lying askew by up to 3° is set level in a box turned with it, and the cover
+follows the slope piece by piece; an OCR layer's slope is taken from each
+word's matrix, as PDFium's character angle leans with how far a word is squeezed. Bullets, middle dots and dashes OCR misread
+are told by the shape of their ink. Where the detection is wrong, a frame drawn with Shift
 decides instead: `EditOpener` takes exactly the characters inside it, also
 part of a text object, and `PdfiumEdits` splits such an object when the text is
 taken out, setting the characters outside the frame again where they were. On
@@ -445,6 +596,8 @@ on startup.
   reloads when that set changes; a scan clicked without any shows `EditNotice`
   with a way to the add-on page. A page is binarized with Sauvola and
   straightened before reading; the boxes found are turned back onto the page.
+  Words read as one are parted where the gap between two letters is as wide as a space,
+  and a line read over columns where its words stand two and a half line heights apart.
   For the search and the editor `OcrStyle` then sets each word in the face its paragraph is
   printed in (`ScanFont`) and tries the readings OCR confuses (a dash and a
   hyphen, § and 8, O and ©, o and 0, a missing accent or abbreviation point);

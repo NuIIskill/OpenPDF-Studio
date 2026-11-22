@@ -1,5 +1,7 @@
 #include "engine/edit/TextLayout.hpp"
 
+#include "engine/edit/ScanFlow.hpp"
+
 #include <QStringList>
 #include <QtGlobal>
 
@@ -151,6 +153,13 @@ QString TextLayout::originalText(const QList<OriginalLine> &originals)
     QStringList texts;
     for (const OriginalLine &line : originals) texts << line.text;
     return texts.join(QLatin1Char('\n'));
+}
+
+QList<int> TextLayout::sourcesOf(const QString &text, const QString &original)
+{
+    QList<int> at(text.size());
+    for (int i = 0; i < text.size(); ++i) at[i] = i;
+    return matchOriginal(text, at, original);
 }
 
 QList<int> TextLayout::styleIndices(const QString &text, const QString &original,
@@ -530,6 +539,99 @@ double TextLayout::restartX(const OriginalLine &original, int kept)
     return original.endX;
 }
 
+void TextLayout::anchorLine(Line &line, const QString &text, const OriginalLine &o, const QPointF &written,
+                            const Params &params, double sizePt, const Advance &advance, bool keep)
+{
+    // The line where its original stands: what it shares with it at its start
+    // and its end keeps the places it has there, what lies between is set anew.
+    const QStringView part = QStringView(text).mid(line.start, line.length);
+    line.x          = o.charX.first() - written.x();
+    line.y          = o.baseline - written.y();
+    line.keptCount  = keep ? keptPrefix(o, part) : 0;
+    line.keep       = keep && part == o.text && line.keptCount == o.text.size();
+    line.fixedCount = commonPrefix(o, part);
+    // A scan's letters stand as much further on, each, as the box sets its letters wider than the scan has them.
+    const double wider = params.holdGaps ? params.scanWiderPt : 0.0;
+    const int lastOf = qMax(0, int(o.text.size()) - 1);
+    for (int i = 0; i < line.fixedCount; ++i)
+        line.fixedX.append(o.charX.at(i) - o.charX.first() + wider * i);
+    // Behind a scan's whole line, whose end is where its ink ends, what is typed stands the line's letter spacing off.
+    const double apart = params.holdGaps && line.fixedCount == o.text.size() && part.size() > o.text.size() ? params.charSpacingPt : 0.0;
+    line.fixedX.append(restartX(o, line.fixedCount) - o.charX.first() + apart + wider * qMin(line.fixedCount, lastOf));
+    // Letters set apart stand at one step, each in the middle of its place whatever its width: the place is as
+    // wide as the row's letters are in the mean, and what is typed stands in the middle of the place it takes.
+    const auto widthOf = [&](QChar c) { return advance(line.start, c.unicode()); };
+    if (params.holdGaps && params.charSpacingPt >= sizePt * 0.25 && !o.text.isEmpty()) {
+        int letters = 0;
+        for (const QChar c : o.text)
+            if (!c.isSpace()) { line.pitch += widthOf(c); ++letters; }
+        line.pitch = letters > 0 ? line.pitch / letters : 0.0;
+    }
+    if (line.pitch > 0.0 && part.size() > line.fixedCount && !part.at(line.fixedCount).isSpace()) {
+        const int at = line.fixedCount;
+        const double typed = advance(line.start + at, part.at(at).unicode());
+        const double middle = at < o.text.size()
+            ? o.charX.at(at) + widthOf(o.text.at(at)) / 2.0 + wider * at
+            : o.charX.at(lastOf) + widthOf(o.text.at(lastOf)) / 2.0 + wider * lastOf + params.charSpacingPt + line.pitch;
+        line.fixedX.last() = middle - typed / 2.0 - o.charX.first();
+    }
+    // What follows the change as it was keeps its own spacing, as
+    // in justified or tracked text, moved by how much the change is wider.
+    line.tailCount = commonSuffix(o, part, line.fixedCount);
+    if (line.tailCount > 0) {
+        const qsizetype tailStart = o.text.size() - line.tailCount;
+        for (qsizetype i = tailStart; i < o.text.size(); ++i)
+            line.tailX.append(o.charX.at(i) - o.charX.first() + wider * double(i));
+        line.tailX.append(o.endX - o.charX.first() + wider * lastOf);
+        const int at = line.start + line.fixedCount;
+        double was = 0.0, now = 0.0;
+        for (const Glyph &g : glyphsOf(o.text, line.fixedCount, int(tailStart)))
+            was += (line.pitch > 0.0 ? line.pitch : advance(at, g.codePoint)) + params.charSpacingPt;
+        for (const Glyph &g : glyphsOf(text, at, line.start + line.length - line.tailCount))
+            now += (line.pitch > 0.0 ? line.pitch : advance(g.index, g.codePoint)) + params.charSpacingPt;
+        line.tailShift = now - was;
+        // Text set on a scan closes up on what it replaced where the scan had
+        // it, and a gap as wide as a tab or between columns, far wider than the
+        // line's other gaps, takes up what the change grew or shrank, so the
+        // words after it stay where they are.
+        if (params.holdGaps) {
+            QList<double> gaps;
+            for (qsizetype c = 1; c < o.text.size() && c < o.charX.size(); ++c)
+                if (!o.text.at(c).isSpace() && o.text.at(c - 1).isSpace())
+                    gaps.append(o.charX.at(c) - o.charX.at(c - 1));
+            const auto holds = [&](double gap) {
+                if (gap < sizePt * 2.0) return false;
+                QList<double> others = gaps;
+                others.removeOne(gap);
+                if (others.isEmpty()) return true;
+                std::sort(others.begin(), others.end());
+                return gap >= others.at(others.size() / 2) * 2.0;
+            };
+            const QList<double> placed = line.tailX;
+            // A change inside a word grows or shrinks it by what it adds, as the
+            // scan's word may be wider or narrower than the matched face sets it;
+            // one over a space closes up where the scan had what it replaced.
+            const bool inWord = std::none_of(o.text.cbegin() + line.fixedCount, o.text.cbegin() + tailStart,
+                                             [](QChar c) { return c.isSpace(); });
+            // What it takes out of a word leaves the room the scan gave those letters, not the face's.
+            const double stood = placed.first() - line.fixedX.last();
+            const double scanned = inWord && was > 0.0 && stood > 0.0 ? qBound(0.8, stood / was, 1.25) : 1.0;
+            double shift = inWord ? (now - was) * scanned : line.fixedX.last() + now - placed.first();
+            const int tail = line.start + line.length - line.tailCount;
+            for (int k = 0; k < placed.size(); ++k) {
+                const qsizetype c = tailStart + k;
+                if (k > 0 && c < o.text.size() && !o.text.at(c).isSpace() && o.text.at(c - 1).isSpace()
+                        && holds(o.charX.at(c) - o.charX.at(c - 1)))
+                    shift = shift > 0.0
+                        ? qMax(0.0, shift - (placed.at(k) - placed.at(k - 1) - advance(tail + k - 1, U' ')))
+                        : 0.0;
+                line.tailX[k] = placed.at(k) + shift;
+            }
+            line.tailShift = 0.0;
+        }
+    }
+}
+
 TextLayout::Result TextLayout::layout(const QString &text, const Params &params,
                                       const TextBoxProperties &box, const QRectF &bounds,
                                       double sizePt, bool wraps, bool hasTextOrigin,
@@ -554,39 +656,22 @@ TextLayout::Result TextLayout::layout(const QString &text, const Params &params,
         const QPointF origin = hasTextOrigin ? bounds.topLeft() + textOriginOffset : written;
         const QPointF moved = origin - written;
         const bool keep = params.keep && std::hypot(moved.x(), moved.y()) < 0.01;
+        // A scan's text, where it stands on the scan, flows as its paragraph does.
+        if (params.holdGaps && std::hypot(moved.x(), moved.y()) < 0.01) {
+            result.lines = ScanFlow::lines(text, params, sizePt, originals, advance, bounds.left() + box.paddingPt,
+                                           wraps ? bounds.right() - box.paddingPt : std::numeric_limits<double>::infinity());
+            result.firstBaseline = origin - bounds.topLeft();
+            result.anchored      = true;
+            return result;
+        }
         double lastY = 0.0;
         int lastParagraph = 0;
         bool fits = true;
         for (Line &line : lines) {
             const int p = line.paragraph;
             if (p < originals.size() && !originals.at(p).charX.isEmpty()) {
-                const OriginalLine &o = originals.at(p);
-                const QStringView part = QStringView(text).mid(line.start, line.length);
-                line.original   = p;
-                line.x          = o.charX.first() - written.x();
-                line.y          = o.baseline - written.y();
-                line.keptCount  = keep ? keptPrefix(o, part) : 0;
-                line.keep       = keep && part == o.text && line.keptCount == o.text.size();
-                line.fixedCount = commonPrefix(o, part);
-                for (int i = 0; i < line.fixedCount; ++i)
-                    line.fixedX.append(o.charX.at(i) - o.charX.first());
-                line.fixedX.append(restartX(o, line.fixedCount) - o.charX.first());
-                // What follows the change as it was keeps its own spacing, as
-                // in justified or tracked text, moved by how much the change is wider.
-                line.tailCount = commonSuffix(o, part, line.fixedCount);
-                if (line.tailCount > 0) {
-                    const qsizetype tailStart = o.text.size() - line.tailCount;
-                    for (qsizetype i = tailStart; i < o.text.size(); ++i)
-                        line.tailX.append(o.charX.at(i) - o.charX.first());
-                    line.tailX.append(o.endX - o.charX.first());
-                    const int at = line.start + line.fixedCount;
-                    double was = 0.0, now = 0.0;
-                    for (const Glyph &g : glyphsOf(o.text, line.fixedCount, int(tailStart)))
-                        was += advance(at, g.codePoint) + params.charSpacingPt;
-                    for (const Glyph &g : glyphsOf(text, at, line.start + line.length - line.tailCount))
-                        now += advance(g.index, g.codePoint) + params.charSpacingPt;
-                    line.tailShift = now - was;
-                }
+                line.original = p;
+                anchorLine(line, text, originals.at(p), written, params, sizePt, advance, keep);
                 lastY = line.y;
                 lastParagraph = p;
             } else {
@@ -601,9 +686,17 @@ TextLayout::Result TextLayout::layout(const QString &text, const Params &params,
             const bool unchanged = line.original >= 0
                 && originals.at(line.original).objectStart.value(0)
                 && QStringView(text).mid(line.start, line.length) == originals.at(line.original).text;
-            if (wraps && !unchanged && origin.x() + line.x + line.width
-                             > bounds.right() - box.paddingPt + 0.05)
-                fits = false;
+            const double over = origin.x() + line.x + line.width - (bounds.right() - box.paddingPt);
+            if (wraps && !unchanged && over > 0.05) {
+                // A scan's line out of room on its right is pushed left by what it
+                // lacks, as a line set flush right grows; other text flows anew.
+                if (params.holdGaps && line.original >= 0) {
+                    line.alignShift = -over;
+                    line.x -= over;
+                } else {
+                    fits = false;
+                }
+            }
         }
         if (fits) {
             result.lines         = lines;
@@ -630,12 +723,23 @@ double TextLayout::xAt(const Line &line, const QString &text, int position,
                        double charSpacing, const Advance &advance)
 {
     const int relative = qBound(0, position - line.start, line.length);
+    if (!line.placedX.isEmpty()) return line.placedX.at(qMin(relative, int(line.placedX.size()) - 1));
     const int tailFrom = line.tailX.isEmpty() ? line.length + 1 : line.length - line.tailCount;
     if (relative >= tailFrom) return line.tailX.at(relative - tailFrom) + line.tailShift;
     const int fixed = line.fixedX.isEmpty() ? 0 : line.fixedCount;
     if (!line.fixedX.isEmpty() && relative <= fixed) return line.fixedX.at(relative);
     const int to = relative;
     double x = line.fixedX.isEmpty() ? 0.0 : line.fixedX.last();
+    if (line.pitch > 0.0) {
+        // From the middle of one place to the middle of the next it is the row's step.
+        const QList<Glyph> typed = glyphsOf(text, line.start + fixed, line.start + qMin(to + 1, line.length));
+        for (int k = 0; k < typed.size() && typed.at(k).index < line.start + to; ++k) {
+            const double own = advance(typed.at(k).index, typed.at(k).codePoint);
+            const bool last = k + 1 >= typed.size();
+            x += last ? own : charSpacing + line.pitch + (own - advance(typed.at(k + 1).index, typed.at(k + 1).codePoint)) / 2.0;
+        }
+        return x;
+    }
     int glyphs = 0;
     for (const Glyph &g : glyphsOf(text, line.start + fixed, line.start + to)) {
         x += advance(g.index, g.codePoint);

@@ -118,6 +118,7 @@ struct Line {
     double      prevRight { -1e9 };
     double      nextLeft  { 1e9 };
     bool        entryRow  { false };
+    bool        read      { false };
 };
 
 bool symbolMarker(const QString &marker)
@@ -247,11 +248,64 @@ QList<RowSegs> segmentRows(const QList<ContentCluster> &cl, bool editing)
         RowSegs rs;
         rs.y     = row.refY;
         rs.lineH = row.lineH;
+        // Words read by OCR stand as far apart as their line was justified,
+        // in a narrow column wider than the gutter beside it: a column starts
+        // where a white channel runs down and words start alike in rows
+        // around; other gaps part the line only where they are far wider than
+        // the others in their column, as the backend parts them.
+        QList<double> gaps;
+        for (int k = 1; k < row.idx.size(); ++k)
+            gaps.append(cl[row.idx[k]].bounds.left() - cl[row.idx[k - 1]].bounds.right());
+        // In no line just above or below does a word run across where the column starts.
+        const auto startsAlike = [&](double x) {
+            int alike = 0;
+            const double near = std::max(1.5, row.lineH * 0.15);
+            for (const int n : { r - 2, r - 1, r + 1, r + 2 }) {
+                if (n < 0 || n >= rows.size()) continue;
+                const QList<int> &around = rows.at(n).idx;
+                const bool next = std::abs(rows.at(n).refY - row.refY) <= row.lineH * 1.4 * std::abs(n - r);
+                if (next && std::any_of(around.cbegin(), around.cend(), [&](int k) {
+                        return cl[k].bounds.left() < x - near && cl[k].bounds.right() > x + near;
+                    }))
+                    return false;
+                // OCR finds a word's left edge a side bearing off, by its first letter.
+                alike += std::any_of(around.cbegin(), around.cend(), [&](int k) {
+                    return std::abs(cl[k].bounds.left() - x) <= near;
+                });
+            }
+            return alike >= 2;
+        };
+        QList<bool> column(gaps.size(), false);
+        for (qsizetype k = 0; k < gaps.size(); ++k) {
+            const ContentCluster &a = cl[row.idx[k]], &b = cl[row.idx[k + 1]];
+            column[k] = a.read && b.read && gaps.at(k) >= row.lineH * 0.5 && startsAlike(b.bounds.left())
+                     && TextGutters::separates(ink, r, a.bounds.right(), b.bounds.left());
+        }
+        const auto standsOut = [&](qsizetype at, double times) {
+            QList<double> others;
+            for (qsizetype k = at - 1; k >= 0 && !column.at(k); --k) others.append(gaps.at(k));
+            for (qsizetype k = at + 1; k < gaps.size() && !column.at(k); ++k) others.append(gaps.at(k));
+            if (others.isEmpty() || gaps.at(at) >= row.lineH * 4.0) return true;
+            std::sort(others.begin(), others.end());
+            return gaps.at(at) >= others.at(others.size() / 2) * times;
+        };
+        // A justified line spreads its words evenly; a cell of a table stands
+        // apart by a gap unlike the ones beside it.
+        const auto even = [&](qsizetype at) {
+            for (const qsizetype k : { at - 1, at + 1 })
+                if (k >= 0 && k < gaps.size() && !column.at(k) && gaps.at(at) > 0.0
+                        && gaps.at(k) / gaps.at(at) >= 0.6 && gaps.at(k) / gaps.at(at) <= 1.67)
+                    return true;
+            return false;
+        };
         Seg cur;
-        for (const int i : row.idx) {
+        int before = -1;
+        for (qsizetype n = 0; n < row.idx.size(); ++n) {
+            const int i = row.idx.at(n);
             const ContentCluster &c = cl[i];
             if (cur.words > 0) {
                 const double gap = c.bounds.left() - cur.bounds.right();
+                const bool read = c.read && before >= 0 && cl[before].read;
                 // A justified narrow column spreads its words wide, so editing
                 // splits a line like the backend: at a block gap between text
                 // objects, or at a gutter. The tab after a list number is no
@@ -259,17 +313,20 @@ QList<RowSegs> segmentRows(const QList<ContentCluster> &cl, bool editing)
                 const auto oneObject = [&](const QRectF &object) {
                     return object.contains(cur.lastWord.center()) && object.contains(c.bounds.center());
                 };
-                const bool apart = !oneObject(cur.lastObject) && !oneObject(c.objectBounds);
+                // An OCR layer holds a line, maybe over columns, in one object.
+                const bool apart = read || (!oneObject(cur.lastObject) && !oneObject(c.objectBounds));
                 const bool block = editing ? apart && gap > std::max(12.0, row.lineH * 2.5)
+                                                 && (!read || standsOut(n - 1, 2.0) || !even(n - 1))
                                            : gap >= std::max(row.lineH * 1.5, 10.0);
-                if (block
-                        || (apart && !(cur.words == 1 && cur.marker)
+                if (block || (read && column.at(n - 1) && !(cur.words == 1 && cur.marker))
+                        || (apart && !(cur.words == 1 && cur.marker) && (!read || standsOut(n - 1, 1.5))
                             && TextGutters::separates(ink, r, cur.bounds.right(), c.bounds.left()))) {
                     rs.segs.append(cur);
                     cur = Seg{};
                 }
             }
             addWord(cur, c, i, row.lineH);
+            before = i;
         }
         if (cur.words > 0) rs.segs.append(cur);
         rsegs.append(rs);
@@ -430,9 +487,11 @@ void addParagraphs(const QList<Line> &lines, const QList<int> &chain, double lin
                      : 0.0;
         double slack = std::max(fs * 0.3, 2.5);
         // Short cells give no width to test against; a step beyond the page's
-        // plain line step there is the padding of the next table row.
-        if (lineStep > 0.0 && (p.item.type == ContentItem::Type::TableCell
-                               || l.item.type == ContentItem::Type::TableCell)) {
+        // plain line step there is the padding of the next table row. A line
+        // OCR read of running text, as in a column beside another, is no such cell.
+        const bool running = p.read && (p.item.text.count(u' ') >= 2 || p.item.text.size() >= 24);
+        if (lineStep > 0.0 && !running && (p.item.type == ContentItem::Type::TableCell
+                                           || l.item.type == ContentItem::Type::TableCell)) {
             usual = usual > 0.0 ? std::min(usual, lineStep) : lineStep;
             slack = 1.0;
         }
@@ -441,10 +500,16 @@ void addParagraphs(const QList<Line> &lines, const QList<int> &chain, double lin
                           && p.font != l.font;
         // In justified text a line of several words that stops short of the
         // margin is a paragraph's last, even when the next word would not fit.
+        // OCR gives the ink of a line: a comma or point at its end leaves its side of the margin white.
+        const bool endsOnMark = p.read && !p.item.text.isEmpty() && p.item.text.back().isPunct();
         const bool shortOfMargin = justified && p.item.text.contains(u' ')
-                                && right - pb.right() > std::max(1.5, fs * 0.15);
-        // In a table of short entries every row starts new cells.
-        const bool nextRow = p.entryRow && l.entryRow;
+                                && right - pb.right() > std::max(1.5, fs * 0.15) + (endsOnMark ? fs * 0.3 : 0.0);
+        // In a table every row starts new cells: of short entries, or, as OCR
+        // read them, with cells beside them in both rows, as a label and its value.
+        const bool beside = (p.prevRight > -1e8 || p.nextLeft < 1e8) && (l.prevRight > -1e8 || l.nextLeft < 1e8);
+        const bool nextRow = (p.entryRow && l.entryRow)
+                          || (p.read && !running && beside && p.item.type == ContentItem::Type::TableCell
+                              && l.item.type == ContentItem::Type::TableCell);
         bool ends = l.marker || heading || shortOfMargin || nextRow
                  || room >= fs * 0.25 + l.firstWord - 0.5
                  || (usual > 0.0 && step > usual * 1.15 + slack);
@@ -562,7 +627,7 @@ QList<ContentItem> classifyContentClusters(QList<ContentCluster> clusters,
                                seg.fonts.size() <= 1,
                                n > 0 ? rs.segs.at(n - 1).bounds.right() : -1e9,
                                n + 1 < rs.segs.size() ? rs.segs.at(n + 1).bounds.left() : 1e9,
-                               entryRow });
+                               entryRow, src.read });
         }
     }
 

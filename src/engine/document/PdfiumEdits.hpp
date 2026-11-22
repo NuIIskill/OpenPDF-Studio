@@ -2,6 +2,7 @@
 
 #if defined(HAVE_PDF_RENDERING) && defined(HAVE_PDFIUM)
 
+#include "engine/document/PdfiumScanInk.hpp"
 #include "engine/edit/EditSession.hpp"
 #include "engine/edit/TextLayout.hpp"
 
@@ -13,7 +14,8 @@
 namespace PdfiumEdits {
 
 void applyToPage(FPDF_DOCUMENT doc, FPDF_PAGE page, int pageIndex,
-                 const EditSession &session, const QHash<int, FPDF_PAGE> *sourcePages = nullptr);
+                 const EditSession &session, const QHash<int, FPDF_PAGE> *sourcePages = nullptr,
+                 PdfiumScanInk::Cache *ink = nullptr);
 
 void applyNoteEdits(FPDF_PAGE page, int pageIndex, const EditSession &session);
 
@@ -22,7 +24,8 @@ void showNoteHighlights(FPDF_PAGE page, int pageIndex, const EditSession *sessio
 TextLayout::Metrics metrics(FPDF_DOCUMENT doc, FPDF_PAGE page, FPDF_TEXTPAGE textPage,
                             const EditSession::Edit &edit);
 
-void textAlone(FPDF_DOCUMENT doc, FPDF_PAGE page, const QList<EditSession::Edit> &edits);
+void textAlone(FPDF_DOCUMENT doc, FPDF_PAGE page, int pageIndex, const QList<EditSession::Edit> &edits,
+               PdfiumScanInk::Cache *ink = nullptr);
 
 QList<TextLayout::OriginalLine> laidLines(FPDF_DOCUMENT doc, FPDF_PAGE page, FPDF_TEXTPAGE textPage,
                                           const EditSession::Edit &edit,

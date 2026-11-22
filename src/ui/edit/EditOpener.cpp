@@ -88,15 +88,18 @@ bool EditOpener::resolveEditTarget(const QPoint &canvasPos, EditOpen &o, int &la
         }
     }
 
-    const bool scan = !o.block.isValid() && m_ocr && m_src->backend()
-                   && !m_src->backend()->hasSelectableText(pageIdx);
+    // A scan another program read, or one with a little text set onto it, is read again here where that can be done.
+    PdfBackend *backend = m_src->backend();
+    const bool layer = m_ocr && backend && backend->hasSelectableText(pageIdx) && backend->scanBelowText(pageIdx);
+    const bool scan = m_ocr && backend
+                   && (layer ? !backend->hasScanText(pageIdx) : !o.block.isValid() && !backend->hasSelectableText(pageIdx));
     // Languages installed while the document is open count right away.
     if (scan) m_ocr->refresh();
-    m_ocrMissing = scan && !m_ocr->isReady();
+    m_ocrMissing = scan && !layer && !m_ocr->isReady();
     // A scan is read once, by the same OCR as the search, and from then on
     // edited as the text it holds.
-    if (scan && m_ocr->isReady() && waitForScan(pageIdx))
-        o.block = m_src->backend()->textAt(pageIdx, o.pdfPt, o.erasedZones);
+    if (scan && m_ocr->isReady() && waitForScan(pageIdx) && !o.isSessionEdit)
+        o.block = backend->textAt(pageIdx, o.pdfPt, o.erasedZones);
 
     if (!o.block.isValid()) return false;
 
@@ -120,15 +123,21 @@ bool EditOpener::resolveEditTarget(const QPoint &canvasPos, EditOpen &o, int &la
     } else if (!o.contentItem.isFormField()) {
         o.pdfPt = o.block.pdfBounds.center();
         if (m_src->contentProvider()) {
-            const ContentItem atBlock =
-                m_src->contentProvider()->itemAt(o.block.page, o.pdfPt);
+            // A line read over columns has its middle between them: the text clicked comes first.
+            ContentItem atBlock = m_src->contentProvider()->itemAt(o.block.page, o.clickPt, kTextualContentTypes, 0.0);
+            if (!atBlock.isValid() || !atBlock.bounds.intersects(o.block.pdfBounds))
+                atBlock = m_src->contentProvider()->itemAt(o.block.page, o.pdfPt);
             o.contentItem = atBlock.isFormField() ? ContentItem{} : atBlock;
         }
     }
 
-    // Turned text is edited upright, in a frame turned back about its middle.
-    if (o.isSessionEdit && !qFuzzyIsNull(o.sessionEdit.box.rotationDeg)) {
+    // Turned text is edited upright, in a frame turned back about its middle;
+    // a scan lying a little askew is edited where it is.
+    if (o.isSessionEdit && !qFuzzyIsNull(o.sessionEdit.box.rotationDeg)
+            && !(o.sessionEdit.scanned && std::abs(o.sessionEdit.box.rotationDeg) <= kScanAskewDeg)) {
         o.turn      = o.sessionEdit.box.rotationDeg;
+        o.turnPivot = o.sessionEdit.pdfBounds.center();
+    } else if (o.isSessionEdit && !qFuzzyIsNull(o.sessionEdit.box.rotationDeg)) {
         o.turnPivot = o.sessionEdit.pdfBounds.center();
     } else if (!o.isSessionEdit && o.block.turn != 0 && !o.contentItem.isFormField()) {
         o.turn      = o.block.turn;
@@ -226,7 +235,9 @@ void EditOpener::applyEditTargetBounds(EditOpen &o)
     if (o.isSessionEdit)
         o.scanned = o.sessionEdit.scanned;
     else if (!o.scanned && o.fieldName.isEmpty() && m_src->backend())
-        o.scanned = m_src->backend()->hiddenText(o.block.page, o.toShown().mapRect(o.originalBounds));
+        // On a page read here that holds no text of its own, every line is the scan's, wherever its layer set the letters.
+        o.scanned = m_src->backend()->hiddenText(o.block.page, o.toShown().mapRect(o.originalBounds))
+                 || (m_src->backend()->hasScanText(o.block.page) && !m_src->backend()->hasSelectableText(o.block.page));
 }
 
 void EditOpener::chooseEditorFont(EditOpen &o)
@@ -309,6 +320,8 @@ void EditOpener::chooseEditorFont(EditOpen &o)
     face = {};
     if (o.scanned) matchScanFace(o);
 
+    // A scan set in the face found, from its first line on, needs no other measure.
+    if (face.isValid() && face.lines.value(0).sizePt > 0.0) return;
     // A scan's text layer may lie a little beside its pixels.
     const InkMetrics::MeasuredInk origInk = o.measuredInk(o.scanned ? o.inkAround(o.bounds) : o.bounds);
     QFont probe(o.fontFamily.isEmpty()
@@ -342,6 +355,13 @@ void EditOpener::anchorEditOrigin(EditOpen &o)
         // On a scan the pen starts where the matched face covered the first line.
         o.hasOrigin = true;
         o.textOrigin = fits.first().originPt;
+        // Lines set where the scan's words are start at their first word, and
+        // the box holds each to its pen's end.
+        if (!o.scanOriginals.isEmpty()) {
+            o.textOrigin = QPointF(o.scanOriginals.first().charX.first(), o.scanOriginals.first().baseline);
+            for (const TextLayout::OriginalLine &line : std::as_const(o.scanOriginals))
+                o.bounds.setRight(qMax(o.bounds.right(), line.endX + 0.5));
+        }
         QList<double> steps;
         for (int i = 1; i < fits.size(); ++i)
             if (fits.at(i).sizePt > 0.0 && fits.at(i - 1).sizePt > 0.0)
@@ -774,6 +794,13 @@ bool EditOpener::open(const QPoint &from, const QPoint &to, bool framed, int &la
 {
     EditOpen o;
     o.color = target.color;
+    // A change of the document's edits changes what its pages show.
+    if (const QList<EditSession::Edit> shown = m_session ? m_session->snapshotEdits() : QList<EditSession::Edit>();
+            shown != m_faces.shown) {
+        m_faces.shown = shown;
+        m_faces.found.clear();
+    }
+    o.faces = &m_faces.found;
     QPoint at = from;
     QList<TextLayout::OriginalLine> lines;
     Cut cut;
@@ -790,12 +817,15 @@ bool EditOpener::open(const QPoint &from, const QPoint &to, bool framed, int &la
 
     applyEditTargetBounds(o);
     chooseEditorFont(o);
+    if (o.ruleOnly) return false;
     o.baseSizePt = o.isSessionEdit && o.sessionEdit.baseSizePt > 0.0 ? o.sessionEdit.baseSizePt
                                                                       : o.fontSizePt;
     anchorEditOrigin(o);
     if (!o.isSessionEdit) fitEditHeight(o);
     sampleEditColors(o);
     if (!o.isSessionEdit) fitEditWidth(o);
+    alignScan(o);
+    if (!o.isSessionEdit) levelScan(o);
     placeTurnedWindow(o);
     measureScan(o);
     if (cut.valid) scopeToCut(o, lines, cut);
@@ -952,6 +982,7 @@ void EditOpener::findUnit(EditOpen &whole, EditOpen &o, const QList<TextLayout::
     u.originalLines = lines;
     u.box           = whole.box;
     u.box.bounds    = u.pdfBounds;
+    u.scanSpacingPt = u.scanned ? u.box.characterSpacingPt : 0.0;
     o.unitSources   = sources;
     o.hasUnit       = true;
 }

@@ -122,6 +122,7 @@ public:
         bool    colorChanged { false };
         bool    laid { false };
         bool    scanned { false };
+        double  scanSpacingPt { 0.0 };
 
         QString formField;
 
@@ -130,6 +131,7 @@ public:
         QList<TextLayout::OriginalLine> originalLines;
         QList<TextLayout::Source> sources;
         QList<TextLayout::Mark>   marks;
+        QList<TextLayout::Mark>   scanMarks;
 
         bool operator==(const Edit &o) const {
             return page == o.page && sourcePage == o.sourcePage && pdfBounds == o.pdfBounds &&
@@ -146,9 +148,10 @@ public:
                    qFuzzyCompare(baseSizePt + 1.0, o.baseSizePt + 1.0) &&
                    sizeChanged == o.sizeChanged && colorChanged == o.colorChanged &&
                    scanned == o.scanned &&
+                   qFuzzyCompare(scanSpacingPt + 1.0, o.scanSpacingPt + 1.0) &&
                    formField == o.formField && eraseRects == o.eraseRects &&
                    box == o.box && originalLines == o.originalLines && sources == o.sources &&
-                   marks == o.marks;
+                   marks == o.marks && scanMarks == o.scanMarks;
         }
         bool operator!=(const Edit &o) const { return !(*this == o); }
     };

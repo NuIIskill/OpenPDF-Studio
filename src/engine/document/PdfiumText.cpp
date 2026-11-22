@@ -248,6 +248,18 @@ bool turnedIn(FPDF_TEXTPAGE textPage, const PdfiumPageSpace &space, const EditSe
     return false;
 }
 
+// A scan's text layer places its characters only roughly, and text set on it
+// flows in its own face; lines that start at the text's origin hold where
+// the matched face covered the scan's words, and keep those places.
+bool placedOnScan(const EditSession::Edit &edit)
+{
+    if (!edit.hasTextOrigin || edit.originalLines.isEmpty() || edit.originalLines.first().charX.isEmpty())
+        return false;
+    const TextLayout::OriginalLine &first = edit.originalLines.first();
+    const QPointF origin = edit.pdfBounds.topLeft() + edit.textOriginOffset;
+    return std::hypot(origin.x() - first.charX.first(), origin.y() - first.baseline) < 0.01;
+}
+
 QByteArray baseFontName(FPDF_FONT font)
 {
     char name[256] = {};
@@ -402,9 +414,17 @@ Typeset::Typeset(FPDF_DOCUMENT doc, FPDF_PAGE page, FPDF_TEXTPAGE textPage,
     // A change taken back again keeps the text where it is.
     const bool resized = edit.sizeChanged
         && !(edit.baseSizePt > 0.0 && std::abs(edit.fontSizePt - edit.baseSizePt) < 0.005);
-    // A scan's text layer places its characters only roughly: the text flows in its own face.
-    m_anchor = !edit.originalLines.isEmpty() && !edit.scanned && (edit.laid || (!m_restyled && !resized))
-            && TextLayout::anchors(box);
+    // Text with parts in another look flows anew, as a box restyled whole
+    // does, unless those are a scan's own, placed where it printed them.
+    const bool placed = edit.scanned && placedOnScan(edit);
+    // A scan's lines stay where they stand however they are aligned: flush right or centred, they grow that way.
+    TextBoxProperties plain = box;
+    if (edit.scanned) {
+        plain.horizontalAlign = TextBoxProperties::HorizontalAlign::Left;
+        plain.characterSpacingPt = 0.0;
+    }
+    m_anchor = !edit.originalLines.isEmpty() && (!edit.scanned || placed)
+            && (edit.laid || (!m_restyled && !(m_marked && !placed) && !resized)) && TextLayout::anchors(plain);
     m_keep = keepObjects && m_anchor && !edit.scanned && !edit.colorChanged && !edit.underline
           && m_charMarks.isEmpty()
           && box.opacity >= 0.999 && qFuzzyIsNull(box.rotationDeg)
@@ -420,9 +440,15 @@ Typeset::Typeset(FPDF_DOCUMENT doc, FPDF_PAGE page, FPDF_TEXTPAGE textPage,
     params.align              = box.horizontalAlign;
     params.anchor             = m_anchor;
     params.keep               = m_keep;
+    params.holdGaps           = edit.scanned;
+    params.scanWiderPt        = edit.scanned ? box.characterSpacingPt - edit.scanSpacingPt : 0.0;
     m_layout = TextLayout::layout(m_text, params, box, edit.pdfBounds, m_size, true,
                                   edit.hasTextOrigin, edit.textOriginOffset,
                                   edit.originalLines, advanceFunction());
+    if (edit.scanned && m_layout.anchored && !edit.laid && !resized && !edit.colorChanged && !edit.underline
+            && !edit.familyChanged && !edit.boldChanged && !edit.italicChanged
+            && box.opacity >= 0.999 && !box.backgroundEnabled && !box.borderEnabled)
+        keepScanInk();
 }
 
 Typeset::~Typeset()
@@ -564,6 +590,11 @@ double Typeset::advance(int style, char32_t codePoint) const
     return PdfiumFonts::glyphWidth(font, codePoint, s.size) * s.a + s.track;
 }
 
+FPDF_FONT Typeset::fontOf(int style, char32_t codePoint) const
+{
+    return style >= 0 && size_t(style) < m_fonts.size() ? m_fonts.at(size_t(style))->fontFor(codePoint) : nullptr;
+}
+
 int Typeset::styleAt(int position) const
 {
     if (position >= 0 && position < m_charStyles.size()) return m_charStyles.at(position);
@@ -640,8 +671,13 @@ void Typeset::insertInto(FPDF_PAGE page, const PdfiumPageSpace &space) const
     const QPointF base = m_layout.firstBaseline;
     const double spacing = m_edit.box.characterSpacingPt;
     const TextLayout::Advance advance = advanceFunction();
-    for (const TextLayout::Line &line : m_layout.lines) {
-        if (line.keep) continue;
+    for (int n = 0; n < m_layout.lines.size(); ++n) {
+        const TextLayout::Line &line = m_layout.lines.at(n);
+        // Words of a scan that stay its own pixels are not set again.
+        const auto [head, tail] = m_scanKept.value(n);
+        if (line.keep || (line.length > 0 && head >= line.length)) continue;
+        // A word cut keeps some letters as pixels and is written whole for reading.
+        const int headWords = m_scanParts.value(n).headWords, tailWords = m_scanParts.value(n).tailWords;
         const double baseline = bounds.top() + base.y() + line.y;
         const double lineX = bounds.left() + base.x() + line.x;
 
@@ -654,9 +690,16 @@ void Typeset::insertInto(FPDF_PAGE page, const PdfiumPageSpace &space) const
                 x += advance(-1, cp) + spacing;
             }
         }
+        // Words that only move are the scan's pixels there, under text that does not show.
+        const QList<Moved> moved = m_scanMoved.value(n);
+        const auto hiddenAt = [&](int k) {
+            return k < head || k >= line.length - tail || std::any_of(moved.cbegin(), moved.cend(), [k](const Moved &m) {
+                return m.pixels && k >= m.from && k < m.to;
+            });
+        };
         double inkStart = -1.0;
         const int end = line.start + line.length;
-        for (int i = line.start + line.keptCount; i < end;) {
+        for (int i = line.start + line.keptCount + headWords; i < end - tailWords;) {
             char32_t cp = m_text.at(i).unicode();
             int len = 1;
             if (m_text.at(i).isHighSurrogate() && i + 1 < end && m_text.at(i + 1).isLowSurrogate()) {
@@ -664,8 +707,10 @@ void Typeset::insertInto(FPDF_PAGE page, const PdfiumPageSpace &space) const
                 len = 2;
             }
             const double x = lineX + TextLayout::xAt(line, m_text, i, spacing, advance);
+            // A break the paragraph flows over within a line is a space there.
+            if (cp == U'\n') cp = U' ';
             if (inkStart < 0.0 && !QChar::isSpace(cp)) inkStart = x;
-            glyphs.append({ cp, x, styleAt(i) });
+            glyphs.append({ cp, x, styleAt(i), hiddenAt(i - line.start) });
             i += len;
         }
         insertRuns(page, glyphs, baseline, space);
@@ -716,6 +761,7 @@ void Typeset::insertRuns(FPDF_PAGE page, const QList<Placed> &glyphs, double bas
         FPDF_FONT    font;
         QString      text;
         QList<double> x;
+        bool         hidden;
     };
     QList<Run> runs;
     for (const Placed &g : glyphs) {
@@ -729,20 +775,24 @@ void Typeset::insertRuns(FPDF_PAGE page, const QList<Placed> &glyphs, double bas
         }
         FPDF_FONT font = m_fonts.at(size_t(g.style))->fontFor(g.codePoint);
         if (!font) continue;
-        if (runs.isEmpty() || runs.last().style != g.style || runs.last().font != font)
-            runs.append({ g.style, font, {}, {} });
+        if (runs.isEmpty() || runs.last().style != g.style || runs.last().font != font
+                || runs.last().hidden != g.hidden)
+            runs.append({ g.style, font, {}, {}, g.hidden });
         runs.last().text += ch;
         runs.last().x.append(g.x);
     }
 
-    for (const Run &run : std::as_const(runs))
-        if (!run.text.trimmed().isEmpty())
-            insertRun(page, run.style, run.font, run.text.toUcs4(), run.x, baseline, space);
+    for (const Run &run : std::as_const(runs)) {
+        if (run.text.trimmed().isEmpty()) continue;
+        const QList<uint> codes = run.text.toUcs4();
+        if (!insertOnScan(page, run.style, run.font, codes, run.x, baseline, space, run.hidden))
+            insertRun(page, run.style, run.font, codes, run.x, baseline, space, false);
+    }
 }
 
 void Typeset::insertRun(FPDF_PAGE page, int style, FPDF_FONT font, const QList<uint> &codePoints,
                         const QList<double> &x, double baseline,
-                        const PdfiumPageSpace &space) const
+                        const PdfiumPageSpace &space, bool hidden) const
 {
     const Style &s = m_styles.at(style);
     FPDF_PAGEOBJECT obj = FPDFPageObj_CreateTextObj(m_doc, font, float(s.size));
@@ -758,7 +808,7 @@ void Typeset::insertRun(FPDF_PAGE page, int style, FPDF_FONT font, const QList<u
             for (int i = 0; i < codePoints.size(); ++i)
                 if (!QChar::isSpace(codePoints.at(i)))
                     insertRun(page, style, font, { codePoints.at(i) }, { x.at(i) }, baseline,
-                              space);
+                              space, hidden);
             return;
         }
     }
@@ -775,6 +825,7 @@ void Typeset::insertRun(FPDF_PAGE page, int style, FPDF_FONT font, const QList<u
         if (s.stroke.isValid()) setColor(obj, s.stroke, m_edit.box.opacity, true);
         FPDFPageObj_SetStrokeWidth(obj, float(s.strokeWidth));
     }
+    if (hidden) FPDFTextObj_SetTextRenderMode(obj, FPDF_TEXTRENDERMODE_INVISIBLE);
     rotateObject(obj, m_edit, space);
     FPDFPage_InsertObject(page, obj);
 }
@@ -836,6 +887,8 @@ TextLayout::Metrics Typeset::metrics() const
     out.originalStyles = m_originalStyles;
     out.originals      = m_edit.originalLines;
     out.anchor         = m_anchor;
+    out.holdGaps       = m_edit.scanned;
+    out.scanSpacingPt  = m_edit.scanSpacingPt;
     out.boxTopLeft     = m_edit.pdfBounds.topLeft();
     out.sources        = m_sources;
     out.sourceStyles   = m_sourceStyles;

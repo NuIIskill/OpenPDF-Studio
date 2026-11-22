@@ -60,7 +60,7 @@ QImage PdfiumBackend::renderEditText(int page, qreal scale, const QList<EditSess
     if (target.isEmpty()) return {};
     FPDF_PAGE pg = FPDF_LoadPage(m_doc, page);
     if (!pg) return {};
-    PdfiumEdits::textAlone(m_doc, pg, edits);
+    PdfiumEdits::textAlone(m_doc, pg, page, edits, &m_scanInk);
     QImage out(target.size(), QImage::Format_ARGB32);
     out.fill(Qt::transparent);
     FPDF_BITMAP bmp = FPDFBitmap_CreateEx(target.width(), target.height(), FPDFBitmap_BGRA,
@@ -137,7 +137,7 @@ QImage PdfiumBackend::renderPageInternal(int page, qreal scale,
     if (!pg) return {};
     const auto closePage = [this, keep, pg] { if (!keep) closeShownPage(pg); };
 
-    if (session && !keep) PdfiumEdits::applyToPage(m_doc, pg, page, *session);
+    if (session && !keep) PdfiumEdits::applyToPage(m_doc, pg, page, *session, nullptr, &m_scanInk);
     PdfiumEdits::showNoteHighlights(pg, page, notes);
     if (keep && target.size() != px && !primeImages(page, pg, *cancelled)) return {};
 
@@ -220,7 +220,7 @@ FPDF_PAGE PdfiumBackend::backgroundPage(int page, quint64 state,
     }
     FPDF_PAGE loaded = FPDF_LoadPage(m_doc, page);
     if (!loaded) return nullptr;
-    if (state && session) PdfiumEdits::applyToPage(m_doc, loaded, page, *session);
+    if (state && session) PdfiumEdits::applyToPage(m_doc, loaded, page, *session, nullptr, &m_scanInk);
     m_backgroundPages.insert(m_backgroundPages.begin(), { page, state, loaded, false });
     while (m_backgroundPages.size() > kKept) {
         closeShownPage(m_backgroundPages.back().page);
@@ -303,7 +303,7 @@ PdfBackend::AreaRender PdfiumBackend::renderChanges(int page, qreal scale,
     if (session) {
         const QSizeF pts = pageSizePts(page);
         const QHash<FPDF_PAGEOBJECT, QRectF> before = objectBounds(pg);
-        PdfiumEdits::applyToPage(m_doc, pg, page, *session);
+        PdfiumEdits::applyToPage(m_doc, pg, page, *session, nullptr, &m_scanInk);
         QRectF changedPts = differingBounds(before, objectBounds(pg));
         for (const EditSession::Edit &edit : session->snapshotEdits()) {
             if (edit.page != page) continue;

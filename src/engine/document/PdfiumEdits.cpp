@@ -4,6 +4,7 @@
 
 #include "engine/document/PdfiumImages.hpp"
 #include "engine/document/PdfiumPageSpace.hpp"
+#include "engine/document/PdfiumScanInk.hpp"
 #include "engine/document/PdfiumText.hpp"
 #include "engine/document/PdfiumTextCut.hpp"
 #include "engine/edit/EditSession.hpp"
@@ -52,8 +53,19 @@ QList<QRectF> eraseAreas(const EditSession::Edit &edit)
     return { edit.pdfBounds };
 }
 
+// Where a text object stands: at its middle, or a word of a scan's invisible
+// text at its start, as an OCR layer may stretch a word far over the ones after it.
+QPointF standOf(FPDF_PAGEOBJECT obj, const QRectF &bounds, const PdfiumPageSpace &space, FPDF_TEXTPAGE textPage)
+{
+    if (!textPage || space.quarterTurns() != 0 || FPDFTextObj_GetTextRenderMode(obj) != FPDF_TEXTRENDERMODE_INVISIBLE
+            || PdfiumText::objectText(obj, textPage).trimmed().contains(u' '))
+        return bounds.center();
+    return QPointF(bounds.left() + qMin(bounds.width(), bounds.height()) / 2.0, bounds.center().y());
+}
+
 QList<FPDF_PAGEOBJECT> textObjectsIn(FPDF_PAGE page, const QList<QRectF> &areas,
-                                     const PdfiumPageSpace &space)
+                                     const PdfiumPageSpace &space, FPDF_TEXTPAGE textPage = nullptr,
+                                     QHash<FPDF_PAGEOBJECT, QPointF> *stands = nullptr)
 {
     QList<FPDF_PAGEOBJECT> out;
     const int count = FPDFPage_CountObjects(page);
@@ -62,11 +74,18 @@ QList<FPDF_PAGEOBJECT> textObjectsIn(FPDF_PAGE page, const QList<QRectF> &areas,
         if (!obj || FPDFPageObj_GetType(obj) != FPDF_PAGEOBJ_TEXT) continue;
         const QRectF bounds = objectBoundsQt(obj, space);
         if (bounds.isEmpty()) continue;
+        const QPointF at = standOf(obj, bounds, space, textPage);
         for (const QRectF &area : areas)
-            if (area.contains(bounds.center())) { out.append(obj); break; }
+            if (area.contains(at)) {
+                out.append(obj);
+                if (stands) stands->insert(obj, at);
+                break;
+            }
     }
     return out;
 }
+
+using ScanInk = PdfiumText::Typeset::ScanInk;
 
 struct Blank {
     int                    edit { -1 };
@@ -91,22 +110,6 @@ const Blank *blankOf(const QList<Blank> &blanks, const EditSession::Edit &edit)
         if (area > bestOverlap) { bestOverlap = area; best = &b; }
     }
     return best;
-}
-
-// Paints over the scanned pixels of text that is replaced, in the paper's colour.
-void coverScan(FPDF_PAGE page, const QList<QRectF> &areas, const QColor &paper,
-               const PdfiumPageSpace &space)
-{
-    const QColor fill = paper.isValid() ? paper : QColor(Qt::white);
-    for (const QRectF &area : areas) {
-        const QRectF r = space.toPdf(area);
-        FPDF_PAGEOBJECT rect = FPDFPageObj_CreateNewRect(float(r.left()), float(r.top()),
-                                                         float(r.width()), float(r.height()));
-        if (!rect) continue;
-        FPDFPageObj_SetFillColor(rect, fill.red(), fill.green(), fill.blue(), 255);
-        FPDFPath_SetDrawMode(rect, FPDF_FILLMODE_WINDING, false);
-        FPDFPage_InsertObject(page, rect);
-    }
 }
 
 void insertImage(FPDF_DOCUMENT doc, FPDF_PAGE page,
@@ -396,15 +399,78 @@ void applyLinkEdits(FPDF_DOCUMENT doc, FPDF_PAGE page, int pageIndex,
 
 }
 
+namespace {
+
+// What of a page's edits is read while the original objects are all still there.
+struct Reading {
+    QList<Blank>                                      blanks;
+    QHash<FPDF_PAGEOBJECT, QPointF>                   stands;
+    QHash<int, std::shared_ptr<PdfiumText::Typeset>>  plans;
+    QList<FPDF_PAGEOBJECT>                            cut;
+    std::vector<std::shared_ptr<PdfiumText::Typeset>> remainders;
+};
+
+Reading readPage(FPDF_DOCUMENT doc, FPDF_PAGE page, int pageIndex, const QList<EditSession::Edit> &edits,
+                 const PdfiumPageSpace &space, const QHash<int, FPDF_PAGE> *sourcePages)
+{
+    Reading read;
+    const auto onPage = [pageIndex](const EditSession::Edit &e) {
+        return e.page == pageIndex && e.formField.isEmpty();
+    };
+    FPDF_TEXTPAGE textPage = nullptr;
+    for (const EditSession::Edit &e : edits)
+        if (onPage(e) && !textPage) textPage = FPDFText_LoadPage(page);
+    for (int i = 0; i < edits.size(); ++i) {
+        const EditSession::Edit &e = edits.at(i);
+        if (!onPage(e) || !e.newText.isNull()) continue;
+        Blank b;
+        b.edit    = i;
+        b.area    = e.pdfBounds;
+        b.objects = textObjectsIn(page, eraseAreas(e), space, textPage, &read.stands);
+        // A scan's text layer is invisible; what is written there takes nothing of it.
+        if (!e.scanned) b.origin = PdfiumText::originOf(b.objects, textPage);
+        read.blanks.append(b);
+    }
+    for (int i = 0; i < edits.size(); ++i) {
+        const EditSession::Edit &e = edits.at(i);
+        if (!onPage(e) || e.newText.isEmpty()) continue;
+        const Blank *blank = blankOf(read.blanks, e);
+        read.plans.insert(i, std::make_shared<PdfiumText::Typeset>(
+                            doc, page, textPage, e, blank ? &blank->origin : nullptr, true,
+                            sourcePages));
+    }
+    // What of a cut object lies outside every erased area is set again in
+    // place, in the object's own style, by a plan that keeps no object.
+    if (textPage && !read.blanks.isEmpty()) {
+        QList<QRectF> areas;
+        for (const Blank &b : std::as_const(read.blanks)) areas += eraseAreas(edits.at(b.edit));
+        const PdfiumTextCut::Result taken =
+            PdfiumTextCut::cut(textPage, areas, space, PdfiumTextCut::Inside::Centre);
+        read.cut = taken.cut;
+        for (const TextLayout::OriginalLine &line : taken.rest)
+            read.remainders.push_back(PdfiumTextCut::setAgain(doc, page, textPage, pageIndex, line,
+                                                         sourcePages));
+    }
+    if (textPage) FPDFText_ClosePage(textPage);
+    return read;
+}
+
+// A scan's areas cleared of their ink, and those whose pixels cannot be read, which are painted over.
+struct Cleared {
+    QList<PdfiumScanInk::Piece> pieces;
+    QList<QRectF>               flat;
+    QColor                      paper;
+};
+
+}
+
 void PdfiumEdits::applyToPage(FPDF_DOCUMENT doc, FPDF_PAGE page, int pageIndex,
-                              const EditSession &session, const QHash<int, FPDF_PAGE> *sourcePages)
+                              const EditSession &session, const QHash<int, FPDF_PAGE> *sourcePages,
+                              PdfiumScanInk::Cache *ink)
 {
     if (!doc || !page) return;
     const PdfiumPageSpace space(page);
     const QList<EditSession::Edit> &edits = session.edits();
-    const auto onPage = [pageIndex](const EditSession::Edit &e) {
-        return e.page == pageIndex && e.formField.isEmpty();
-    };
 
     // Images are found by their place among the original objects, so they go first.
     std::vector<FPDF_PAGEOBJECT> removed;
@@ -413,68 +479,66 @@ void PdfiumEdits::applyToPage(FPDF_DOCUMENT doc, FPDF_PAGE page, int pageIndex,
         if (c.page == pageIndex) imageChanges.append(c);
     if (!imageChanges.isEmpty()) PdfiumImages::apply(doc, page, imageChanges, removed);
 
-    // Everything is read while the original objects are all still there.
-    FPDF_TEXTPAGE textPage = nullptr;
-    for (const EditSession::Edit &e : edits)
-        if (onPage(e) && !textPage) textPage = FPDFText_LoadPage(page);
-    QList<Blank> blanks;
-    for (int i = 0; i < edits.size(); ++i) {
-        const EditSession::Edit &e = edits.at(i);
-        if (!onPage(e) || !e.newText.isNull()) continue;
-        Blank b;
-        b.edit    = i;
-        b.area    = e.pdfBounds;
-        b.objects = textObjectsIn(page, eraseAreas(e), space);
-        // A scan's text layer is invisible; what is written there takes nothing of it.
-        if (!e.scanned) b.origin = PdfiumText::originOf(b.objects, textPage);
-        blanks.append(b);
-    }
-    QHash<int, std::shared_ptr<PdfiumText::Typeset>> plans;
-    for (int i = 0; i < edits.size(); ++i) {
-        const EditSession::Edit &e = edits.at(i);
-        if (!onPage(e) || e.newText.isEmpty()) continue;
-        const Blank *blank = blankOf(blanks, e);
-        plans.insert(i, std::make_shared<PdfiumText::Typeset>(
-                            doc, page, textPage, e, blank ? &blank->origin : nullptr, true,
-                            sourcePages));
-    }
-    // What of a cut object lies outside every erased area is set again in
-    // place, in the object's own style, by a plan that keeps no object.
-    QList<FPDF_PAGEOBJECT> cut;
-    std::vector<std::shared_ptr<PdfiumText::Typeset>> remainders;
-    if (textPage && !blanks.isEmpty()) {
-        QList<QRectF> areas;
-        for (const Blank &b : std::as_const(blanks)) areas += eraseAreas(edits.at(b.edit));
-        const PdfiumTextCut::Result taken =
-            PdfiumTextCut::cut(textPage, areas, space, PdfiumTextCut::Inside::Centre);
-        cut = taken.cut;
-        for (const TextLayout::OriginalLine &line : taken.rest)
-            remainders.push_back(PdfiumTextCut::setAgain(doc, page, textPage, pageIndex, line,
-                                                         sourcePages));
-    }
-    if (textPage) FPDFText_ClosePage(textPage);
+    Reading read = readPage(doc, page, pageIndex, edits, space, sourcePages);
+    const QList<Blank> &blanks = read.blanks;
+    const auto &plans = read.plans;
 
+    // A scan's blank leaves the words its edit keeps: their pixels and their text layer.
+    const auto keptBy = [&](const Blank &b, bool words) {
+        const EditSession::Edit &e = edits.at(b.edit);
+        QList<ScanInk> kept;
+        if (!e.scanned || e.eraseRects.isEmpty()) return kept;
+        for (auto it = plans.cbegin(); it != plans.cend(); ++it) {
+            const EditSession::Edit &t = edits.at(it.key());
+            if (t.scanned && t.eraseRects == e.eraseRects) kept += it.value()->keptOnScan(words);
+        }
+        return kept;
+    };
+    // A scan's pixels are read while the page is still the scan. Those of a page
+    // whose images the session changed are not the open document's and are not kept.
+    PdfiumScanInk::Cache *const pixels = imageChanges.isEmpty() ? ink : nullptr;
+    const bool layered = PdfiumScanInk::layered(page);
+    QHash<int, PdfiumScanInk::Edited> scans;
+    for (auto it = plans.cbegin(); it != plans.cend(); ++it)
+        scans.insert(it.key(), PdfiumScanInk::edited(page, pageIndex, edits.at(it.key()), *it.value(), layered, pixels));
+    QList<Cleared> covers;
+    for (const Blank &b : std::as_const(blanks)) {
+        const EditSession::Edit &e = edits.at(b.edit);
+        if (!e.scanned) continue;
+        Cleared c;
+        c.paper  = e.bgColor;
+        c.pieces = PdfiumScanInk::cleared(page, pageIndex, PdfiumScanInk::withoutKept(eraseAreas(e), keptBy(b, false)), &c.flat, pixels);
+        covers.append(c);
+    }
     for (const Blank &b : blanks) {
         QList<FPDF_PAGEOBJECT> doomed = b.objects;
         for (auto it = plans.cbegin(); it != plans.cend(); ++it) {
             const EditSession::Edit &t = edits.at(it.key());
-            if (!t.originalLines.isEmpty() && t.sourceRect == b.area && it.value()->anchored())
+            if (!t.originalLines.isEmpty() && !t.scanned && t.sourceRect == b.area && it.value()->anchored())
                 doomed = it.value()->replaces(b.objects, space);
         }
+        if (const QList<ScanInk> kept = keptBy(b, true); !kept.isEmpty())
+            doomed.removeIf([&](FPDF_PAGEOBJECT obj) {
+                return PdfiumScanInk::inKept(read.stands.value(obj, objectBoundsQt(obj, space).center()), kept);
+            });
         for (FPDF_PAGEOBJECT obj : doomed)
             if (FPDFPage_RemoveObject(page, obj)) removed.push_back(obj);
     }
-    for (FPDF_PAGEOBJECT obj : std::as_const(cut))
+    for (FPDF_PAGEOBJECT obj : std::as_const(read.cut))
         if (std::find(removed.cbegin(), removed.cend(), obj) == removed.cend()
                 && FPDFPage_RemoveObject(page, obj))
             removed.push_back(obj);
-    for (const Blank &b : std::as_const(blanks)) {
-        const EditSession::Edit &e = edits.at(b.edit);
-        if (e.scanned) coverScan(page, eraseAreas(e), e.bgColor, space);
+    for (const Cleared &c : std::as_const(covers)) {
+        PdfiumScanInk::paintOver(page, c.flat, c.paper, space);
+        PdfiumScanInk::insert(doc, page, c.pieces, space);
     }
-    for (const auto &rest : remainders) rest->insertInto(page, space);
+    for (const PdfiumScanInk::Edited &scan : std::as_const(scans)) PdfiumScanInk::insert(doc, page, scan.moved, space);
+    for (const auto &rest : read.remainders) rest->insertInto(page, space);
     for (int i = 0; i < edits.size(); ++i)
-        if (const auto plan = plans.value(i)) plan->insertInto(page, space);
+        if (const auto plan = plans.value(i)) {
+            plan->insertInto(page, space);
+            PdfiumScanInk::print(doc, page, plan->printed(), scans.value(i).look, edits.at(i).bgColor, space);
+        }
 
     for (const EditSession::ImageEdit &ie : session.imageEdits())
         if (ie.page == pageIndex) insertImage(doc, page, ie, space);
@@ -581,18 +645,32 @@ QList<TextLayout::OriginalLine> PdfiumEdits::laidLines(FPDF_DOCUMENT doc, FPDF_P
     return typeset.laidLines(sources, marks);
 }
 
-void PdfiumEdits::textAlone(FPDF_DOCUMENT doc, FPDF_PAGE page, const QList<EditSession::Edit> &edits)
+void PdfiumEdits::textAlone(FPDF_DOCUMENT doc, FPDF_PAGE page, int pageIndex,
+                            const QList<EditSession::Edit> &edits, PdfiumScanInk::Cache *ink)
 {
     // The page then holds the edits' text and nothing else: every line set
     // where it goes, also those that would stay the original objects.
     if (!doc || !page) return;
     FPDF_TEXTPAGE textPage = FPDFText_LoadPage(page);
+    const PdfiumPageSpace space(page);
+    const bool layered = PdfiumScanInk::layered(page);
     std::vector<std::unique_ptr<PdfiumText::Typeset>> plans;
+    QList<PdfiumScanInk::Edited> scans;
+    QList<Cleared> covers;
     for (const EditSession::Edit &e : edits) {
         if (e.newText.isEmpty() || !e.formField.isEmpty()) continue;
         const PdfiumText::Origin origin = originFor(page, textPage, e);
         plans.push_back(std::make_unique<PdfiumText::Typeset>(
             doc, page, textPage, e, origin.font ? &origin : nullptr, true, nullptr, false));
+        scans.append(PdfiumScanInk::edited(page, pageIndex, e, *plans.back(), layered, ink));
+        // The page under the text of a scan is drawn without its blank, so the
+        // text brings the cover of what it replaces.
+        if (!e.scanned) continue;
+        Cleared c;
+        c.paper  = e.bgColor;
+        c.pieces = PdfiumScanInk::cleared(page, pageIndex, PdfiumScanInk::withoutKept(eraseAreas(e), plans.back()->keptOnScan()),
+                                          &c.flat, ink);
+        covers.append(c);
     }
     // From the front: PDFium looks each object up from there, so this stays linear.
     while (FPDFPage_CountObjects(page) > 0) {
@@ -600,8 +678,15 @@ void PdfiumEdits::textAlone(FPDF_DOCUMENT doc, FPDF_PAGE page, const QList<EditS
         if (!FPDFPage_RemoveObject(page, obj)) break;
         FPDFPageObj_Destroy(obj);
     }
-    const PdfiumPageSpace space(page);
-    for (const auto &plan : plans) plan->insertInto(page, space);
+    for (const Cleared &c : std::as_const(covers)) {
+        PdfiumScanInk::paintOver(page, c.flat, c.paper, space);
+        PdfiumScanInk::insert(doc, page, c.pieces, space);
+    }
+    for (const PdfiumScanInk::Edited &scan : std::as_const(scans)) PdfiumScanInk::insert(doc, page, scan.moved, space);
+    for (size_t i = 0; i < plans.size(); ++i) {
+        plans[i]->insertInto(page, space);
+        PdfiumScanInk::print(doc, page, plans[i]->printed(), scans.at(qsizetype(i)).look, plans[i]->paper(), space);
+    }
     plans.clear();
     if (textPage) FPDFText_ClosePage(textPage);
 }
