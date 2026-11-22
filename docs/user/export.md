@@ -39,8 +39,7 @@ appearance before sharing it.
 | PDF/A | PDF/A-2b for long-term archiving; the same options as PDF, fonts are always embedded |
 
 PDF page selection and rewriting comments, forms, fonts or image compression
-require qpdf. Without it, those PDF controls are disabled. Keeping existing
-form fields during export does not provide a form editor.
+require qpdf. Without it, those PDF controls are disabled.
 
 PDF/A also requires qpdf. Fonts the document does not carry are embedded from
 an installed font with the same character widths, such as Liberation Sans for

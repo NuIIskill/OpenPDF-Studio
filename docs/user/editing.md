@@ -64,6 +64,25 @@ that page.
 Existing images are changed in place, preserving their ordering relative to
 text. Bookmark changes require qpdf.
 
+## Forms
+
+Fill in a form with the **Select**, **Pan** or **Bookmark** tool; Edit Mode is
+not needed. Click a field to type into it or to choose its value. Tab moves to
+the next text field, Enter confirms (`Ctrl+Enter` in a field with several
+lines) and Escape cancels. An entry that does not match the field's format or
+range is not taken, and a note under the field says why. Empty required fields
+have a red frame, and calculated fields such as sums follow every entry.
+
+With Edit Mode on, the **Form fields** tool adds and changes fields. Drag a
+text field, check box, radio button, drop-down or list box from its panel onto
+the page, or click one and then click or drag on the page; Escape cancels. A
+drag on the page draws a field of the kind used last. Click a field to select
+it, then drag it to move it, pull a corner to resize it, or press Delete to
+remove it. The panel sets the field's name, options, format and calculation;
+only a new field can change its type. **More settings** adds read-only, font
+size and an allowed range. Every entry and field change appears in
+**History**. Designing fields requires qpdf.
+
 ## Organize pages
 
 Open the page organizer to reorder pages by drag and drop, rotate or delete
@@ -165,6 +184,6 @@ to keep or drop media. See [Licensing](licensing.md) for the module's terms.
 
 ## Current limits
 
-A complete form editor is not implemented. Use the
-[signature guide](signatures.md) for signing and the [export guide](export.md)
-for output formats. If a tool is missing, check [Troubleshooting](troubleshooting.md).
+Form scripts other than formats, ranges and simple calculations do not run.
+Use the [signature guide](signatures.md) for signing and the
+[export guide](export.md) for output formats. If a tool is missing, check [Troubleshooting](troubleshooting.md).

@@ -3,7 +3,7 @@
 [README](../../README.md) · [User documentation](../../README.md#user-documentation)
 
 Start with the application version, operating system, package type and exact
-error. Version 0.3.7 is an alpha and saving replaces the original file, so
+error. Version 0.3.8 is an alpha and saving replaces the original file, so
 reproduce an editing or saving problem on a backup. For source builds, consult [Dependencies](../dev/dependencies.md).
 
 ## No PDF opens or a feature is missing
@@ -16,6 +16,7 @@ the configure output for the detected PDFium backend.
 | --- | --- |
 | PDF export controls, vector organizer save, bookmarks or protection | qpdf was found during configuration |
 | Saving, exporting or printing with redaction boxes | qpdf was found during configuration |
+| Designing form fields | qpdf was found during configuration |
 | Digital signing | qpdf and the platform signing dependencies; GnuTLS and p11-kit on Linux |
 | Rich Media tool | Module enabled and present, qpdf available, plus Qt Multimedia on Linux |
 | Editing a scan | Tesseract compiled in and OCR language data available |
@@ -24,8 +25,7 @@ the configure output for the detected PDFium backend.
 | Printing | Qt PrintSupport included and an operating-system printer configured |
 
 If a tool was hidden, use **Customize Tools** to show it again.
-PDF/A export, a complete form editor, signing timestamps and locking
-after signing are not implemented.
+Signing timestamps and locking after signing are not implemented.
 
 ![Customize Tools menu with visibility checkboxes beside each tool and drag handles for reordering](../images/screenshots/customize-tools.png)
 

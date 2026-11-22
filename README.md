@@ -1,11 +1,11 @@
 # OpenPDF Studio
 
 A native Qt 6 PDF viewer and editor for Linux and Windows. Read PDFs, edit
-existing text, organize pages, annotate, redact, sign and export documents in one
-desktop application. Word, OpenDocument and image files open as PDF working
-copies, converted locally.
+existing text, fill in forms, organize pages, annotate, redact, sign and export
+documents in one desktop application. Word, OpenDocument and image files open
+as PDF working copies, converted locally.
 
-Current version: **0.3.7, alpha**. Saving replaces the original file, so keep a
+Current version: **0.3.8, alpha**. Saving replaces the original file, so keep a
 backup of important PDFs and check the result in a second viewer.
 
 ![OpenPDF Studio displaying the NLBK test PDF, with editing tools on the left and document actions on the right](docs/images/screenshots/overview.png)
@@ -21,7 +21,11 @@ Sample document: [NLBK Niedersachsen test PDF](https://www.nlbk.niedersachsen.de
   whole box or only the selected characters; add text and images, draw and highlight.
 - Leave notes on the page or linked to text, in colours of your own, and manage
   them in the notes panel; linked notes move along with their text.
-- Edit scanned pages like text through OCR in up to 12 languages.
+- Edit scanned pages like text through OCR in up to 12 languages; words you
+  leave alone stay as scanned, and what you type takes the scan's font, size,
+  style and ink.
+- Fill in forms with format checks and calculations; the Form fields tool adds
+  fields by dragging them onto the page and edits existing ones.
 - Redact text, images and drawings for good, checked before the file is written.
 - Reorder, rotate, insert, delete and merge pages, or append another file's pages,
   with undo, history and crash recovery.
@@ -36,8 +40,7 @@ Sample document: [NLBK Niedersachsen test PDF](https://www.nlbk.niedersachsen.de
 - Choose light or dark themes, customize shortcuts and tools, and use English
   or one of 11 translations.
 
-Feature availability depends on the components included in a build. A
-complete form editor is not available yet. The
+Feature availability depends on the components included in a build. The
 [user documentation](#user-documentation) explains workflows and limitations.
 
 ## Supported operating systems
@@ -55,15 +58,15 @@ or the [download page](https://openpdf-studio.nullskill.de/download.html).
 On Linux, install the RPM or DEB with your package manager, or run the AppImage:
 
 ```bash
-sudo dnf install ./openpdf-studio-0.3.7-1.x86_64.rpm
-sudo apt install ./openpdf-studio_0.3.7_amd64.deb
+sudo dnf install ./openpdf-studio-0.3.8-1.x86_64.rpm
+sudo apt install ./openpdf-studio_0.3.8_amd64.deb
 # Alternatively:
-chmod +x OpenPDF_Studio-0.3.7-x86_64.AppImage
-./OpenPDF_Studio-0.3.7-x86_64.AppImage
+chmod +x OpenPDF_Studio-0.3.8-x86_64.AppImage
+./OpenPDF_Studio-0.3.8-x86_64.AppImage
 ```
 
-On Windows, run `OpenPDF-Studio-0.3.7-Setup.exe`, or extract
-`OpenPDF-Studio-0.3.7-win64-portable.zip` and start `OpenPDFStudio.exe`.
+On Windows, run `OpenPDF-Studio-0.3.8-Setup.exe`, or extract
+`OpenPDF-Studio-0.3.8-win64-portable.zip` and start `OpenPDFStudio.exe`.
 The setup offers ffmpeg as an optional component. See
 [Installation](docs/user/installation.md) for details.
 
@@ -85,7 +88,7 @@ for the terms and component boundaries.
 | --- | --- |
 | [Getting started](docs/user/getting-started.md) | First document, navigation, settings and saving |
 | [Installation](docs/user/installation.md) | Linux packages, Windows setup and portable mode |
-| [Editing](docs/user/editing.md) | Text, scans, images, annotations, notes, redaction, pages and media |
+| [Editing](docs/user/editing.md) | Text, scans, images, annotations, notes, forms, redaction, pages and media |
 | [Signatures](docs/user/signatures.md) | Handwritten and digital signatures, certificates and trust |
 | [Export](docs/user/export.md) | PDF, PDF/A, Word, OpenDocument, images, text, Markdown, HTML and printing |
 | [Licensing](docs/user/licensing.md) | Core, Rich Media, personal use and business licensing |
