@@ -532,11 +532,12 @@ void PdfiumEdits::applyToPage(FPDF_DOCUMENT doc, FPDF_PAGE page, int pageIndex,
         PdfiumScanInk::paintOver(page, c.flat, c.paper, space);
         PdfiumScanInk::insert(doc, page, c.pieces, space);
     }
-    for (const PdfiumScanInk::Edited &scan : std::as_const(scans)) PdfiumScanInk::insert(doc, page, scan.moved, space);
     for (const auto &rest : read.remainders) rest->insertInto(page, space);
+    // A box's fill lies under its text, also under the letters that are a scan's ink.
     for (int i = 0; i < edits.size(); ++i)
         if (const auto plan = plans.value(i)) {
             plan->insertInto(page, space);
+            PdfiumScanInk::insert(doc, page, scans.value(i).moved, space);
             PdfiumScanInk::print(doc, page, plan->printed(), scans.value(i).look, edits.at(i).bgColor, space);
         }
 
@@ -646,10 +647,12 @@ QList<TextLayout::OriginalLine> PdfiumEdits::laidLines(FPDF_DOCUMENT doc, FPDF_P
 }
 
 void PdfiumEdits::textAlone(FPDF_DOCUMENT doc, FPDF_PAGE page, int pageIndex,
-                            const QList<EditSession::Edit> &edits, PdfiumScanInk::Cache *ink)
+                            const QList<EditSession::Edit> &edits, PdfiumScanInk::Cache *ink, bool lifted)
 {
     // The page then holds the edits' text and nothing else: every line set
-    // where it goes, also those that would stay the original objects.
+    // where it goes, also those that would stay the original objects. Lifted, a
+    // scan's letters that would stay its own pixels come along as their ink, to be
+    // carried over a page that has them blanked.
     if (!doc || !page) return;
     FPDF_TEXTPAGE textPage = FPDFText_LoadPage(page);
     const PdfiumPageSpace space(page);
@@ -662,10 +665,11 @@ void PdfiumEdits::textAlone(FPDF_DOCUMENT doc, FPDF_PAGE page, int pageIndex,
         const PdfiumText::Origin origin = originFor(page, textPage, e);
         plans.push_back(std::make_unique<PdfiumText::Typeset>(
             doc, page, textPage, e, origin.font ? &origin : nullptr, true, nullptr, false));
+        if (lifted) plans.back()->liftFromScan();
         scans.append(PdfiumScanInk::edited(page, pageIndex, e, *plans.back(), layered, ink));
         // The page under the text of a scan is drawn without its blank, so the
         // text brings the cover of what it replaces.
-        if (!e.scanned) continue;
+        if (!e.scanned || lifted) continue;
         Cleared c;
         c.paper  = e.bgColor;
         c.pieces = PdfiumScanInk::cleared(page, pageIndex, PdfiumScanInk::withoutKept(eraseAreas(e), plans.back()->keptOnScan()),
@@ -682,9 +686,9 @@ void PdfiumEdits::textAlone(FPDF_DOCUMENT doc, FPDF_PAGE page, int pageIndex,
         PdfiumScanInk::paintOver(page, c.flat, c.paper, space);
         PdfiumScanInk::insert(doc, page, c.pieces, space);
     }
-    for (const PdfiumScanInk::Edited &scan : std::as_const(scans)) PdfiumScanInk::insert(doc, page, scan.moved, space);
     for (size_t i = 0; i < plans.size(); ++i) {
         plans[i]->insertInto(page, space);
+        PdfiumScanInk::insert(doc, page, scans.at(qsizetype(i)).moved, space);
         PdfiumScanInk::print(doc, page, plans[i]->printed(), scans.at(qsizetype(i)).look, plans[i]->paper(), space);
     }
     plans.clear();

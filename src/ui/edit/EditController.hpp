@@ -164,6 +164,7 @@ public:
     bool    activeEditScanned { false };
     QList<TextLayout::Mark> activeScanMarks;
     double activeScanSpacingPt { 0.0 };
+    bool   activeScanFitted { false };
 
     QString activeEditFieldName;
 

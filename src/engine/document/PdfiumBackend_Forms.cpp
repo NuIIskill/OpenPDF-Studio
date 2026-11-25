@@ -7,6 +7,7 @@
 #include "engine/document/PdfiumFonts.hpp"
 #include "engine/document/PdfiumForms.hpp"
 #include "engine/document/PdfiumLock.hpp"
+#include "engine/document/PdfiumPart.hpp"
 #include "engine/forms/FormFieldWriter.hpp"
 
 #include "fpdf_formfill.h"
@@ -81,15 +82,14 @@ QImage PdfiumBackend::renderFormPage(int page, const QSize &px, const QRect &tar
     PdfiumEdits::showNoteHighlights(pg, page, &session);
 
     QImage rendered;
-    if (FPDF_BITMAP bmp = FPDFBitmap_Create(target.width(), target.height(), 0)) {
-        FPDFBitmap_FillRect(bmp, 0, 0, target.width(), target.height(), 0xFFFFFFFF);
-        FPDF_RenderPageBitmap(bmp, pg, -target.x(), -target.y(), px.width(), px.height(),
+    const PdfiumPart::Frame frame = PdfiumPart::frameFor(pg, target, px);
+    if (FPDF_BITMAP bmp = FPDFBitmap_Create(frame.area.width(), frame.area.height(), 0)) {
+        FPDFBitmap_FillRect(bmp, 0, 0, frame.area.width(), frame.area.height(), 0xFFFFFFFF);
+        FPDF_RenderPageBitmap(bmp, pg, frame.startX(), frame.startY(), px.width(), px.height(),
                               0, FPDF_ANNOT);
-        FPDF_FFLDraw(m_forms->handle(), bmp, pg, -target.x(), -target.y(), px.width(), px.height(),
+        FPDF_FFLDraw(m_forms->handle(), bmp, pg, frame.startX(), frame.startY(), px.width(), px.height(),
                      0, FPDF_ANNOT);
-        if (const auto *buffer = static_cast<const uchar *>(FPDFBitmap_GetBuffer(bmp)))
-            rendered = QImage(buffer, target.width(), target.height(),
-                              FPDFBitmap_GetStride(bmp), QImage::Format_RGB32).copy();
+        rendered = PdfiumPart::cut(bmp, frame, target.size());
         FPDFBitmap_Destroy(bmp);
     }
     if (m_forms->valid()) FORM_OnBeforeClosePage(pg, m_forms->handle());

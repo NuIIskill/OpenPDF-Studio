@@ -1,4 +1,5 @@
 #pragma once
+#include <limits>
 #include <QColor>
 #include <QList>
 #include <QRect>
@@ -54,6 +55,7 @@ public:
     void setCharSources(const QList<TextLayout::Source> &sources);
     QList<TextLayout::Mark> charMarks() const;
     void setCharMarks(const QList<TextLayout::Mark> &marks);
+    void forgetUndo();
     bool hasSelection() const;
     bool markSelection(const TextLayout::Mark &mark);
     void unmark(const TextLayout::Mark &fields);
@@ -78,7 +80,7 @@ public:
 
     void growToFitText();
     void setGrowHorizontal(bool on);
-    void setRoomRightPt(qreal pt) { m_roomRightPt = pt; }
+    void setRoomRightPt(qreal pt) { m_roomRightPt = pt; m_roomStartPt = std::numeric_limits<qreal>::quiet_NaN(); }
     void setBoxProperties(const TextBoxProperties &properties, qreal scale);
 
 Q_SIGNALS:
@@ -138,6 +140,7 @@ private:
     bool          m_growHorizontal { false };
     bool          m_growClamped { false };
     qreal         m_roomRightPt { 0.0 };
+    mutable qreal m_roomStartPt { std::numeric_limits<qreal>::quiet_NaN() };
     bool          m_overflow { false };
     bool          m_autoHeight { true };
     TextBoxProperties m_box;
@@ -147,6 +150,7 @@ private:
     bool          m_hasInnerTopLeft { false };
 
     bool          m_userSized { false };
+    bool          m_dragSized { false };
     bool          m_paintHidden { false };
     bool          m_renderingTurned { false };
     QPointF       m_anchorPt;

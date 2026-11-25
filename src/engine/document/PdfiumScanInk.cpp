@@ -4,6 +4,7 @@
 
 #include "engine/document/PdfiumImages.hpp"
 #include "engine/document/PdfiumPageSpace.hpp"
+#include "engine/document/PdfiumPart.hpp"
 #include "engine/edit/ScanLike.hpp"
 #include "engine/edit/ScanPaper.hpp"
 #include "engine/edit/ScanRules.hpp"
@@ -72,15 +73,31 @@ Grid gridOf(FPDF_PAGE page, const QRectF &area)
 
 QImage render(FPDF_PAGE page, const QRect &px, const QSize &pagePx)
 {
-    FPDF_BITMAP bitmap = FPDFBitmap_Create(px.width(), px.height(), 0);
+    const PdfiumPart::Frame frame = PdfiumPart::frameFor(page, px, pagePx);
+    FPDF_BITMAP bitmap = FPDFBitmap_Create(frame.area.width(), frame.area.height(), 0);
     if (!bitmap) return {};
-    FPDFBitmap_FillRect(bitmap, 0, 0, px.width(), px.height(), 0xFFFFFFFF);
-    FPDF_RenderPageBitmap(bitmap, page, -px.x(), -px.y(), pagePx.width(), pagePx.height(), 0, 0);
-    QImage out;
-    if (const auto *buffer = static_cast<const uchar *>(FPDFBitmap_GetBuffer(bitmap)))
-        out = QImage(buffer, px.width(), px.height(), FPDFBitmap_GetStride(bitmap), QImage::Format_RGB32).copy();
+    FPDFBitmap_FillRect(bitmap, 0, 0, frame.area.width(), frame.area.height(), 0xFFFFFFFF);
+    FPDF_RenderPageBitmap(bitmap, page, frame.startX(), frame.startY(), pagePx.width(), pagePx.height(), 0, 0);
+    const QImage out = PdfiumPart::cut(bitmap, frame, px.size());
     FPDFBitmap_Destroy(bitmap);
     return out;
+}
+
+// A stretch of the page as the scan has it. A document that keeps what it read has the page read whole and
+// once, and every stretch is cut from that: rendering each by itself would decode the scan each time.
+QImage read(FPDF_PAGE page, int pageIndex, const Grid &grid, const QRect &px, Cache *cache)
+{
+    constexpr qint64 kMost = 40'000'000;
+    if (px.isEmpty()) return {};
+    if (cache && qint64(grid.pagePx.width()) * grid.pagePx.height() <= kMost) {
+        QImage whole = cache->findWhole(pageIndex, grid.pagePx);
+        if (whole.isNull()) {
+            whole = render(page, QRect(QPoint(), grid.pagePx), grid.pagePx);
+            if (!whole.isNull()) cache->addWhole(pageIndex, grid.pagePx, whole);
+        }
+        if (!whole.isNull()) return px == whole.rect() ? whole : whole.copy(px);
+    }
+    return render(page, px, grid.pagePx);
 }
 
 QImage pixelsAt(FPDF_PAGE page, int pageIndex, const Grid &grid, const QRect &px, Cache *cache)
@@ -88,7 +105,7 @@ QImage pixelsAt(FPDF_PAGE page, int pageIndex, const Grid &grid, const QRect &px
     if (px.isEmpty()) return {};
     QImage pixels = cache ? cache->find(pageIndex, px, grid.pagePx.width()) : QImage();
     if (!pixels.isNull()) return pixels;
-    pixels = render(page, px, grid.pagePx);
+    pixels = read(page, pageIndex, grid, px, cache);
     if (cache && !pixels.isNull()) cache->add(pageIndex, px, grid.pagePx.width(), pixels);
     return pixels;
 }
@@ -104,11 +121,11 @@ struct Sheet {
     }
 };
 
-Sheet sheetOf(FPDF_PAGE page, const Grid &grid, const QRect &px)
+Sheet sheetOf(FPDF_PAGE page, int pageIndex, const Grid &grid, const QRect &px, Cache *cache)
 {
     constexpr qint64 kMost = 8'000'000;
     if (px.isEmpty() || qint64(px.width()) * px.height() > kMost) return {};
-    return { render(page, px, grid.pagePx), px };
+    return { read(page, pageIndex, grid, px, cache), px };
 }
 
 // How much ink each pixel holds of text drawn black with its outlines thickened by a gain, or thinned by one below zero.
@@ -185,11 +202,26 @@ void Cache::addLetters(int page, int pageWidthPx, const QList<QRect> &letters)
     m_letters.append({ page, pageWidthPx, letters });
 }
 
+QImage Cache::findWhole(int page, const QSize &pagePx) const
+{
+    for (const Whole &w : m_wholes)
+        if (w.page == page && w.pagePx == pagePx) return w.pixels;
+    return {};
+}
+
+void Cache::addWhole(int page, const QSize &pagePx, const QImage &pixels)
+{
+    constexpr qsizetype kMost = 2;
+    if (m_wholes.size() >= kMost) m_wholes.removeFirst();
+    m_wholes.append({ page, pagePx, pixels });
+}
+
 void Cache::clear()
 {
     m_entries.clear();
     m_looks.clear();
     m_letters.clear();
+    m_wholes.clear();
 }
 
 QList<QRectF> pictures(FPDF_PAGE page)
@@ -316,7 +348,7 @@ QList<QRect> lettersOn(FPDF_PAGE page, int pageIndex, const Grid &grid, Cache *c
 {
     QList<QRect> out;
     if (cache && cache->findLetters(pageIndex, grid.pagePx.width(), &out)) return out;
-    const QImage gray = render(page, QRect(QPoint(), grid.pagePx), grid.pagePx).convertToFormat(QImage::Format_Grayscale8);
+    const QImage gray = read(page, pageIndex, grid, QRect(QPoint(), grid.pagePx), cache).convertToFormat(QImage::Format_Grayscale8);
     if (gray.isNull()) return out;
     const int w = gray.width(), h = gray.height();
     qsizetype tones[256] = {};
@@ -380,26 +412,31 @@ bool borrowed(FPDF_PAGE page, int pageIndex, const Grid &grid, const ScanMove &m
     QList<bool> twin;
     for (qsizetype k = 0; k < paths.size(); ++k) twin.append(k == own || ScanLike::alike(paths.at(k), paths.at(own)) >= kTwin);
     // Nor does one count that the face draws far smaller or larger than a piece is: that piece cannot be it.
+    // Text set larger or smaller than the scan's takes a piece as large as the scan has it, and sets it as large as the text.
+    const double scale = m.scale > 0.0 ? m.scale : 1.0;
     const auto fits = [&](qsizetype k, const QRect &b) {
         const QRectF box = paths.at(k).boundingRect();
-        return std::abs(box.height() * grid.sy - b.height()) <= b.height() * 0.15 + 1.0 && std::abs(box.width() * grid.sx - b.width()) <= b.width() * 0.35 + 2.0;
+        return std::abs(box.height() * grid.sy / scale - b.height()) <= b.height() * 0.15 + 1.0
+            && std::abs(box.width() * grid.sx / scale - b.width()) <= b.width() * 0.35 + 2.0;
     };
-    const QRect want(QPoint(qRound(m.onto.left() * grid.sx), qRound(m.onto.top() * grid.sy)),
-                     QSize(qMax(1, qRound(m.onto.width() * grid.sx)), qMax(1, qRound(m.onto.height() * grid.sy))));
+    const QRect place(QPoint(qRound(m.onto.left() * grid.sx), qRound(m.onto.top() * grid.sy)),
+                      QSize(qMax(1, qRound(m.onto.width() * grid.sx)), qMax(1, qRound(m.onto.height() * grid.sy))));
+    const QSize sought(qMax(1, qRound(place.width() / scale)), qMax(1, qRound(place.height() / scale)));
+    const QRect want = sought == place.size() ? place : QRect(place.center() - QPoint(sought.width() / 2, sought.height() / 2), sought);
     // The scan's own print before what an earlier edit laid on it as a picture.
     const QList<QRectF> laid = pictures(page);
-    QList<std::pair<double, int>> near;
+    QList<std::pair<double, int>> byDistance;
     for (int i = 0; i < letters.size(); ++i) {
         const QRect &b = letters.at(i);
         if (std::abs(b.height() - want.height()) > want.height() * 0.08 + 1.0 || std::abs(b.width() - want.width()) > want.width() * 0.3 + 2.0)
             continue;
         const QPointF middle = grid.at(b).center();
         const bool foreign = std::any_of(laid.cbegin(), laid.cend(), [&](const QRectF &r) { return r.contains(middle); });
-        near.append({ std::hypot(double(b.center().x() - want.center().x()), 2.0 * (b.center().y() - want.center().y())) + (foreign ? 1e7 : 0.0), i });
+        byDistance.append({ std::hypot(double(b.center().x() - want.center().x()), 2.0 * (b.center().y() - want.center().y())) + (foreign ? 1e7 : 0.0), i });
     }
-    std::sort(near.begin(), near.end());
-    for (int n = 0; n < near.size() && n < kTried; ++n) {
-        const QRect &b = letters.at(near.at(n).second);
+    std::sort(byDistance.begin(), byDistance.end());
+    for (int n = 0; n < byDistance.size() && n < kTried; ++n) {
+        const QRect &b = letters.at(byDistance.at(n).second);
         // Read with paper above and below it, by which the paper under an upright stroke is told.
         const int room = qMax(4, b.height() / 2);
         const QRect around = grid.within(b.adjusted(-3, -room, 3, room));
@@ -412,8 +449,12 @@ bool borrowed(FPDF_PAGE page, int pageIndex, const Grid &grid, const ScanMove &m
         for (qsizetype k = 0; k < scores.size() && clear; ++k)
             clear = twin.at(k) || !fits(k, b) || scores.at(k) <= scores.at(own) - kAhead;
         if (!clear) continue;
-        const QPoint to(want.center().x() - b.width() / 2, want.bottom() - b.height() + 1);
+        const QPoint to(place.center().x() - b.width() / 2, place.bottom() - b.height() + 1);
         *out = { ink, grid.at(QRect(to, b.size())) };
+        if (std::abs(scale - 1.0) > 1e-6) {
+            const QSizeF size = out->at.size() * scale;
+            out->at = QRectF(QPointF(m.onto.center().x() - size.width() / 2.0, m.onto.bottom() - size.height()), size);
+        }
         return true;
     }
     return false;
@@ -456,7 +497,7 @@ QList<Piece> moved(FPDF_PAGE page, int pageIndex, const QList<QRectF> &areas,
         if (!cache || cache->find(pageIndex, arounds.last(), grid.pagePx.width()).isNull()) unread |= arounds.last();
     }
     // What the document was not asked for before is read from the page in one go.
-    const Sheet sheet = sheetOf(page, grid, unread);
+    const Sheet sheet = sheetOf(page, pageIndex, grid, unread, cache);
     const QList<QRect> rules = rulesAround(page, pageIndex, grid, pixels, cache);
     QList<QRect> letters;
     bool lettersRead = false;
@@ -465,15 +506,20 @@ QList<Piece> moved(FPDF_PAGE page, int pageIndex, const QList<QRectF> &areas,
             if (!lettersRead && grid.isValid()) letters = lettersOn(page, pageIndex, grid, cache);
             lettersRead = true;
             Piece taken;
-            if (grid.isValid() && borrowed(page, pageIndex, grid, moves.at(i), shapes, letters, cache, &taken)) out.append(taken);
-            else missed->append(i);
+            const ScanMove &b = moves.at(i);
+            if (grid.isValid() && borrowed(page, pageIndex, grid, b, shapes, letters, cache, &taken)) {
+                if (b.tint.isValid() || b.opacity < 0.999) taken.pixels = ScanPaper::tinted(taken.pixels, b.tint, b.opacity);
+                out.append(taken);
+            } else {
+                missed->append(i);
+            }
             continue;
         }
         const QRect &px = pixels.at(i), &around = arounds.at(i);
         QImage piece = cache && !px.isEmpty() ? cache->find(pageIndex, around, grid.pagePx.width()) : QImage();
         if (piece.isNull() && !px.isEmpty()) {
             piece = sheet.part(around);
-            if (piece.isNull()) piece = render(page, around, grid.pagePx);
+            if (piece.isNull()) piece = read(page, pageIndex, grid, around, cache);
             if (cache && !piece.isNull()) cache->add(pageIndex, around, grid.pagePx.width(), piece);
         }
         if (piece.isNull()) { missed->append(i); continue; }
@@ -487,7 +533,14 @@ QList<Piece> moved(FPDF_PAGE page, int pageIndex, const QList<QRectF> &areas,
             const qsizetype want = kind.chars.indexOf(QChar(char16_t(m.figure)));
             if (want < 0 || ScanLike::shown(ink, kind.paths) != want) { missed->append(i); continue; }
         }
-        out.append({ ink, grid.at(px).translated(by) });
+        // Set larger or smaller it is the same ink as large, about where its first letter starts.
+        QRectF at = grid.at(px).translated(by);
+        if (std::abs(m.scale - 1.0) > 1e-6) {
+            const QRectF was = grid.at(px);
+            at = QRectF(m.from + m.by + (was.topLeft() - m.from) * m.scale, was.size() * m.scale);
+        }
+        // In the colour the user gave it, or fainter, it is the same ink.
+        out.append({ m.tint.isValid() || m.opacity < 0.999 ? ScanPaper::tinted(ink, m.tint, m.opacity) : ink, at });
     }
     return out;
 }
@@ -515,14 +568,14 @@ QList<Piece> cleared(FPDF_PAGE page, int pageIndex, const QList<QRectF> &areas, 
         arounds.append(px.isEmpty() ? QRect() : grid.within(px.adjusted(-margin, -margin, margin, margin)));
         if (!px.isEmpty() && (!cache || cache->find(pageIndex, px, grid.pagePx.width(), true).isNull())) unread |= arounds.last();
     }
-    const Sheet sheet = sheetOf(page, grid, unread);
+    const Sheet sheet = sheetOf(page, pageIndex, grid, unread, cache);
     const QList<QRect> rules = unread.isEmpty() ? QList<QRect>() : rulesAround(page, pageIndex, grid, pixels, cache);
     for (int i = 0; i < areas.size(); ++i) {
         const QRect &px = pixels.at(i), &around = arounds.at(i);
         QImage clean = cache && !px.isEmpty() ? cache->find(pageIndex, px, grid.pagePx.width(), true) : QImage();
         if (clean.isNull() && !px.isEmpty()) {
             QImage paper = sheet.part(around);
-            if (paper.isNull()) paper = render(page, around, grid.pagePx);
+            if (paper.isNull()) paper = read(page, pageIndex, grid, around, cache);
             if (!paper.isNull()) {
                 clean = ScanPaper::withoutInk(paper, px.translated(-around.topLeft()), reach, around.topLeft(),
                                               uint(px.x()) * 7919u + uint(px.y()), rules);
@@ -651,9 +704,9 @@ Look lookOf(FPDF_PAGE page, int pageIndex, const QList<Outline> &sample, const Q
     const ScanPaper::Printed printed = ScanPaper::printedLike(scans, words, qCeil(0.6 * grid.scale));
     if (!printed.found) {
         // Without words to tell by, the pixels around still tell black and white from gray.
-        const Grid near = gridOf(page, around);
-        if (near.isValid())
-            look.bilevel = ScanPaper::bilevel(ScanPaper::grayOf(pixelsAt(page, pageIndex, near, near.around(around, 0), cache)));
+        const Grid nearby = gridOf(page, around);
+        if (nearby.isValid())
+            look.bilevel = ScanPaper::bilevel(ScanPaper::grayOf(pixelsAt(page, pageIndex, nearby, nearby.around(around, 0), cache)));
         return look;
     }
     look.gainPt   = printed.gainPx / grid.scale;
@@ -696,9 +749,13 @@ Edited edited(FPDF_PAGE page, int pageIndex, const EditSession::Edit &edit, Pdfi
     const QString key = QStringLiteral("%1|%2|%3|%4|%5|%6|%7|%8").arg(pageIndex).arg(edit.eraseRects.size())
         .arg(first.x()).arg(first.y()).arg(edit.fontFamily).arg(edit.fontSizePt).arg(edit.bold).arg(edit.italic)
         + u'|' + plan.sampleKey();
-    if (cache && cache->findLook(key, &out.look)) return out;
-    out.look = lookOf(page, pageIndex, plan.sample(), first, cache);
-    if (cache) cache->addLook(key, out.look);
+    if (!cache || !cache->findLook(key, &out.look)) {
+        out.look = lookOf(page, pageIndex, plan.sample(), first, cache);
+        if (cache) cache->addLook(key, out.look);
+    }
+    // Set larger or smaller than the scan has its text, what is printed is as much thicker and softer.
+    out.look.gainPt *= plan.scanScale();
+    out.look.blurPx *= plan.scanScale();
     return out;
 }
 
@@ -724,12 +781,11 @@ void insert(FPDF_DOCUMENT doc, FPDF_PAGE page, const QList<Piece> &pieces, const
     }
 }
 
-void print(FPDF_DOCUMENT doc, FPDF_PAGE page, const QList<Outline> &text, const Look &look,
-           const QColor &paper, const PdfiumPageSpace &space)
+namespace {
+
+void printAlike(FPDF_DOCUMENT doc, FPDF_PAGE page, const QList<Outline> &text, const Look &look,
+                const QColor &paper, const PdfiumPageSpace &space)
 {
-    // The text is drawn at the scan's resolution, thickened, blurred and faded
-    // as the scan printed its own, and laid on the page as pixels in its ink.
-    if (text.isEmpty()) return;
     QRectF all;
     for (const Outline &o : text) all = all.united(o.path.boundingRect());
     const Grid grid = gridOf(page, all);
@@ -737,11 +793,32 @@ void print(FPDF_DOCUMENT doc, FPDF_PAGE page, const QList<Outline> &text, const 
     const QRect px = grid.around(all, qCeil((look.gainPt + text.first().strokePt) * grid.scale + 3.0 * look.blurPx) + 2);
     if (px.isEmpty()) return;
     QRect inked;
-    const QImage pixels = ScanPaper::printed(drawn(text, look.gainPt, grid, px),
-                                             { true, look.blurPx, look.gainPt * grid.scale, look.contrast,
-                                               look.bilevel, look.cut }, text.first().fill, paper, &inked);
+    // A colour the user chose shows as chosen, not as dark as the scan's own ink.
+    const Outline &first = text.first();
+    QImage pixels = ScanPaper::printed(drawn(text, look.gainPt, grid, px),
+                                       { true, look.blurPx, look.gainPt * grid.scale, first.chosen ? -1.0 : look.contrast,
+                                         look.bilevel, look.cut }, first.fill, paper, &inked);
     if (inked.isEmpty()) return;
+    if (first.chosen || first.opacity < 0.999) pixels = ScanPaper::tinted(pixels, first.chosen ? first.fill : QColor(), first.opacity);
     insert(doc, page, { { pixels.copy(inked), grid.at(inked.translated(px.topLeft())) } }, space);
+}
+
+}
+
+void print(FPDF_DOCUMENT doc, FPDF_PAGE page, const QList<Outline> &text, const Look &look,
+           const QColor &paper, const PdfiumPageSpace &space)
+{
+    // The text is drawn at the scan's resolution, thickened, blurred and faded
+    // as the scan printed its own, and laid on the page as pixels in its ink: what is of one colour in one go.
+    QList<Outline> rest = text;
+    while (!rest.isEmpty()) {
+        const Outline first = rest.first();
+        QList<Outline> alike, others;
+        for (const Outline &o : std::as_const(rest))
+            (o.fill == first.fill && o.chosen == first.chosen && qFuzzyCompare(o.opacity + 1.0, first.opacity + 1.0) ? alike : others).append(o);
+        printAlike(doc, page, alike, look, paper, space);
+        rest = others;
+    }
 }
 
 }

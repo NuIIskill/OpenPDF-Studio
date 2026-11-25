@@ -63,6 +63,36 @@ int PdfiumBackend::shownOnScan(int page) const
     return shown;
 }
 
+namespace {
+
+// Whether a picture is made of flat blocks of several tones, as a smudge an edit left for paper is: print has
+// one tone for its paper and strokes thinner than any block, a piece of a scan its grain.
+bool blocks(const QImage &pixels)
+{
+    const int w = pixels.width(), h = pixels.height();
+    if (w < 6 || h < 6) return false;
+    qsizetype flat = 0, tones[256] = {};
+    for (int y = 0; y < h; ++y)
+        for (int x = 0; x < w; ++x) {
+            const int here = qGray(pixels.pixel(x, y));
+            ++tones[here];
+            flat += std::abs(qGray(pixels.pixel(qMin(x + 1, w - 1), y)) - here) <= 2 && std::abs(qGray(pixels.pixel(x, qMin(y + 1, h - 1))) - here) <= 2;
+        }
+    const qsizetype all = qsizetype(w) * h;
+    // The tones that each fill a twentieth of it and more, a few steps of gray taken as one.
+    int filled = 0;
+    qsizetype most = 0;
+    for (int t = 0; t < 256; t += 6) {
+        qsizetype share = 0;
+        for (int k = t; k < t + 6 && k < 256; ++k) share += tones[k];
+        most = qMax(most, share);
+        filled += share * 20 >= all;
+    }
+    return flat * 20 >= all * 9 && most * 2 < all && filled >= 3;
+}
+
+}
+
 QList<QRectF> PdfiumBackend::scanPatches(int page) const
 {
     // Small opaque pictures over a page's scan that hold no ink, as an edit leaves where it cleared a
@@ -113,7 +143,7 @@ QList<QRectF> PdfiumBackend::scanPatches(int page) const
         for (qsizetype seen = 0; light > 0 && (seen += tones[light]) * 50 < solid;) --light;
         qsizetype paper = 0;
         for (int t = qMax(0, light - kPaper); t < 256; ++t) paper += tones[t];
-        if (middle - dark <= kInk || paper * 5 < solid * 2) patches.append(b);
+        if (middle - dark <= kInk || paper * 5 < solid * 2 || blocks(pixels)) patches.append(b);
     }
     m_scanPatches.insert(page, patches);
     m_scanPictures.insert(page, pictures);

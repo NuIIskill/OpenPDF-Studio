@@ -53,7 +53,7 @@ public:
     AreaRender renderChanges(int page, qreal scale, const EditSession *session,
                              const QRect &include, bool wholePage) const override;
     QImage renderEditText(int page, qreal scale, const QList<EditSession::Edit> &edits,
-                          const QRect &pixels) const override;
+                          const QRect &pixels, bool lifted = false) const override;
 
     std::unique_ptr<ContentProvider> makeContentProvider() const override;
 
@@ -117,7 +117,6 @@ private:
 
     FPDF_PAGE backgroundPage(int page, quint64 state = 0,
                              const EditSession *session = nullptr) const;
-    bool      primeImages(int page, FPDF_PAGE pg, const std::function<bool()> &cancelled) const;
     void      dropBackgroundPages() const;
     bool      syncForms(const QList<EditSession::FormValue> &values,
                         const QList<FormSpec> &design) const;
@@ -134,7 +133,7 @@ private:
 
     FPDF_DOCUMENT       m_doc { nullptr };
     std::vector<QSizeF> m_pageSizes;
-    struct BackgroundPage { int index; quint64 state; FPDF_PAGE page; bool primed; };
+    struct BackgroundPage { int index; quint64 state; FPDF_PAGE page; };
     mutable std::vector<BackgroundPage> m_backgroundPages;
     struct ReadPage { int index; FPDF_PAGE page; FPDF_TEXTPAGE text; };
     mutable std::vector<ReadPage> m_readPages;

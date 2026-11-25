@@ -189,6 +189,8 @@ void EditController::resizeText(double ptSize)
         clampToPdfPage(activeEditPage, activeEditBounds);
 
         activeEditLineSpacingPt *= ratio;
+        // A scan's letters stand as much further apart as they are larger.
+        if (activeEditScanned) currentBox.characterSpacingPt *= ratio;
         // The first baseline keeps its place relative to the box, not its
         // distance: larger text would rise out of the box's top.
         if (activeEditHasOrigin) {

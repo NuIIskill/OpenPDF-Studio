@@ -631,4 +631,19 @@ QImage printed(const Plane &ink, const Printed &like, const QColor &fill, const 
     return out;
 }
 
+QImage tinted(const QImage &ink, const QColor &colour, double opacity)
+{
+    // Ink in another colour, or fainter: each pixel keeps how much of it is ink.
+    QImage out = ink.convertToFormat(QImage::Format_ARGB32);
+    for (int y = 0; y < out.height(); ++y) {
+        QRgb *row = reinterpret_cast<QRgb *>(out.scanLine(y));
+        for (int x = 0; x < out.width(); ++x) {
+            const int alpha = qBound(0, qRound(qAlpha(row[x]) * opacity), 255);
+            row[x] = colour.isValid() ? qRgba(colour.red(), colour.green(), colour.blue(), alpha)
+                                      : qRgba(qRed(row[x]), qGreen(row[x]), qBlue(row[x]), alpha);
+        }
+    }
+    return out;
+}
+
 }

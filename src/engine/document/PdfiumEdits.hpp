@@ -25,7 +25,7 @@ TextLayout::Metrics metrics(FPDF_DOCUMENT doc, FPDF_PAGE page, FPDF_TEXTPAGE tex
                             const EditSession::Edit &edit);
 
 void textAlone(FPDF_DOCUMENT doc, FPDF_PAGE page, int pageIndex, const QList<EditSession::Edit> &edits,
-               PdfiumScanInk::Cache *ink = nullptr);
+               PdfiumScanInk::Cache *ink = nullptr, bool lifted = false);
 
 QList<TextLayout::OriginalLine> laidLines(FPDF_DOCUMENT doc, FPDF_PAGE page, FPDF_TEXTPAGE textPage,
                                           const EditSession::Edit &edit,

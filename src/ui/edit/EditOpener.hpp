@@ -140,6 +140,11 @@ private:
     bool resolveEditTarget(const QPoint &canvasPos, EditOpen &o, int &lastCommittedPage,
                            const QRectF &lastCommittedOrigBounds);
     bool scopeToFrame(EditOpen &o, const QList<TextLayout::OriginalLine> &lines);
+    bool fit(EditOpen &o);
+    bool framesWholeScanUnit(EditOpen &o, const QList<TextLayout::OriginalLine> &lines, const QPoint &from, const QPoint &to);
+    bool framesScanLines(EditOpen &o, const QList<TextLayout::OriginalLine> &lines, const QPoint &from, const QPoint &to);
+    bool framesScanUnits(EditOpen &o, const QList<TextLayout::OriginalLine> &lines, const QPoint &from, const QPoint &to,
+                         int lastCommittedPage, const QRectF &lastCommittedOrigBounds);
     void scopeToCut(EditOpen &o, const QList<TextLayout::OriginalLine> &lines, const Cut &cut);
     void findUnit(EditOpen &whole, EditOpen &o, const QList<TextLayout::OriginalLine> &gapLines,
                   const QList<TextLayout::OriginalLine> &wholeLines);

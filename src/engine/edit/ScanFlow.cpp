@@ -57,7 +57,7 @@ class Flow
 {
 public:
     Flow(const QString &text, const Params &params, double sizePt, const QList<OriginalLine> &originals,
-         const Advance &advance, double low, double high);
+         const Advance &advance, double low, double high, double column);
     QList<Line> lines() const;
 
 private:
@@ -87,9 +87,13 @@ private:
     const QList<OriginalLine> &m_originals;
     const Advance &m_advance;
     const double m_low, m_high;
+    // The edge the lines flow to where they are set larger or smaller than the scan has them: its paragraph's own.
+    const double m_column;
     QPointF m_written;
-    double m_space { 0.0 }, m_right { 0.0 }, m_step { 0.0 };
+    double m_space { 0.0 }, m_edge { 0.0 }, m_right { 0.0 }, m_step { 0.0 };
     bool m_flowing { false };
+    // The box was made narrower than the scan has its lines: it holds them all, also those still as the scan has them.
+    bool m_narrow { false };
     QList<int> m_src, m_lineAt, m_charAt, m_offset;
     QList<bool> m_soft;
     QList<Word> m_words;
@@ -97,8 +101,9 @@ private:
 };
 
 Flow::Flow(const QString &text, const Params &params, double sizePt, const QList<OriginalLine> &originals,
-           const Advance &advance, double low, double high)
-    : m_text(text), m_params(params), m_size(sizePt), m_originals(originals), m_advance(advance), m_low(low), m_high(high)
+           const Advance &advance, double low, double high, double column)
+    : m_text(text), m_params(params), m_size(sizePt), m_originals(originals), m_advance(advance), m_low(low), m_high(high),
+      m_column(column)
 {
     m_written = QPointF(originals.first().charX.first(), originals.first().baseline);
     m_space = advance(0, U' ') + params.charSpacingPt;
@@ -202,8 +207,9 @@ void Flow::readOriginals()
             m_lineAt.append(j);
             m_charAt.append(-1);
         }
-        if (usable(j)) m_right = qMax(m_right, o.endX);
+        if (usable(j)) m_edge = qMax(m_edge, o.endX);
     }
+    m_right = m_column >= 0.0 ? m_column : m_edge;
     // The step from one line to the next is the closest two of them stand.
     for (int j = 1; j < n; ++j) {
         if (!usable(j) || !usable(j - 1)) continue;
@@ -236,8 +242,8 @@ void Flow::readOriginals()
             int words = 0;
             for (int c = 0; c < a.text.size(); ++c) words += !a.text.at(c).isSpace() && (c == 0 || a.text.at(c - 1).isSpace());
             // Lines set far apart, as the items of a list, flow on only where they end flush at the right edge.
-            const bool close = b.baseline - a.baseline <= m_size * kLeading || m_right - a.endX <= m_size * 0.1 + 0.5;
-            soft = a.endX + kFits * m_space + xOf(j + 1, e) - leftOf(j + 1) > m_right && under && close
+            const bool close = b.baseline - a.baseline <= m_size * kLeading || m_edge - a.endX <= m_size * 0.1 + 0.5;
+            soft = a.endX + kFits * m_space + xOf(j + 1, e) - leftOf(j + 1) > m_edge && under && close
                 && b.baseline - a.baseline <= m_step * 1.3 && words >= kWords && a.endX - leftOf(j) >= m_size * kWide;
         }
         m_soft.append(soft);
@@ -300,14 +306,22 @@ void Flow::readText()
             if (tl.own < 0 || tally.at(j) > tally.at(tl.own)) tl.own = j;
         }
         tl.intact = sources == 1 && usable(tl.own);
-        // A line whose letters the box sets wider or closer than the scan has them is not as the scan has it.
+        // A line whose letters the box sets wider or closer than the scan has them, or larger or smaller, is not as the scan has it.
         tl.pristine = tl.intact && QStringView(m_text).mid(start, end - start) == m_originals.at(tl.own).text
-                   && qFuzzyIsNull(m_params.scanWiderPt);
+                   && qFuzzyIsNull(m_params.scanWiderPt) && m_column < 0.0;
         if (end < m_text.size())
             if (const int s = m_src.at(end); s >= 0 && m_charAt.at(s) < 0) tl.softAfter = m_soft.value(m_lineAt.at(s));
         m_lines.append(tl);
         start = end + 1;
     }
+    // A box made narrower than the scan has the lines its text stands on holds them all: they break at its edge
+    // as in any text box. A line the text has nothing of any more tells nothing.
+    double widest = m_column;
+    if (m_column < 0.0)
+        for (const TextLine &tl : std::as_const(m_lines))
+            if (tl.own >= 0 && usable(tl.own)) widest = qMax(widest, m_originals.at(tl.own).endX);
+    m_narrow = widest >= 0.0 && m_high < widest - m_size * 0.25;
+    if (m_narrow) m_right = m_high;
 }
 
 double Flow::gapBefore(int w, bool even) const
@@ -486,8 +500,13 @@ void Flow::reflow(int firstLine, int lastLine, const QList<int> &places, int tak
         // From where a line starts as the scan has it and all after it are the scan's still, they stay.
         if (startsLine) {
             bool rest = true;
-            for (int p = head.line; p <= lastLine && rest; ++p)
+            for (int p = head.line; p <= lastLine && rest; ++p) {
                 rest = m_lines.at(p).pristine && (p == head.line || m_lines.at(p).own == m_lines.at(p - 1).own + 1);
+                if (rest && m_narrow) {
+                    const Line as = legacy(p);
+                    rest = m_written.x() + as.x + as.width <= m_right + m_space * 0.3;
+                }
+            }
             if (rest) {
                 for (int p = head.line; p <= lastLine; ++p) out.append({ legacy(p), m_lines.at(p).own });
                 return;
@@ -546,7 +565,7 @@ void Flow::lay(int first, int last, QList<Shown> &out) const
     for (const int j : std::as_const(places))
         if (m_soft.value(j)) {
             ++full;
-            flush = flush && m_right - m_originals.at(j).endX <= m_size * 0.1 + 0.5;
+            flush = flush && m_edge - m_originals.at(j).endX <= m_size * 0.1 + 0.5;
             const OriginalLine &o = m_originals.at(j);
             for (int c = 1; c < o.text.size(); ++c)
                 if (!o.text.at(c).isSpace() && o.text.at(c - 1).isSpace()) gaps.append(o.charX.at(c) - o.charX.at(c - 1));
@@ -563,7 +582,7 @@ void Flow::lay(int first, int last, QList<Shown> &out) const
             const double left = m_written.x() + own.x;
             const bool roomy = m_params.align == TextBoxProperties::HorizontalAlign::Center
                 ? left >= m_low - 0.05 && left + own.width <= m_high + 0.05 : own.width <= standOf(tl.own, 0.0).room + 0.05;
-            if (tl.intact && (tl.pristine || roomy))
+            if (tl.intact && ((tl.pristine && !m_narrow) || roomy))
                 out.append({ own, tl.own });
             else
                 rows(p, out.isEmpty() ? m_written.x() : m_written.x() + out.last().line.x, out);
@@ -592,19 +611,25 @@ void Flow::lay(int first, int last, QList<Shown> &out) const
 QList<Line> Flow::lines() const
 {
     QList<Shown> shown;
+    QList<int> firsts;
     for (int p = 0; p < m_lines.size();) {
         int q = p;
         while (q + 1 < m_lines.size() && m_lines.at(q).softAfter) ++q;
         lay(p, q, shown);
+        while (firsts.size() < shown.size()) firsts.append(p);
         p = q + 1;
     }
-    // Each line as far below the one before as the scan's own lines stood apart there, a new one by the usual step.
+    // Each line as far below the one before as the scan's own lines stood apart there, a new one by the usual
+    // step; all by the step the box sets where it sets one, and a paragraph further below the one before by its spacing.
     QList<Line> out;
     double y = 0.0;
     for (int v = 0; v < shown.size(); ++v) {
         const int slot = shown.at(v).slot;
-        if (v > 0)
-            y += usable(slot) && usable(slot - 1) ? m_originals.at(slot).baseline - m_originals.at(slot - 1).baseline : m_step;
+        if (v > 0) {
+            y += m_params.lineStepSet ? m_params.lineStepPt
+               : usable(slot) && usable(slot - 1) ? m_originals.at(slot).baseline - m_originals.at(slot - 1).baseline : m_step;
+            if (firsts.at(v) != firsts.at(v - 1)) y += m_params.paragraphSpacingPt;
+        }
         Line line = shown.at(v).line;
         line.y = y;
         out.append(line);
@@ -618,7 +643,23 @@ QList<TextLayout::Line> lines(const QString &text, const TextLayout::Params &par
                               const QList<TextLayout::OriginalLine> &originals,
                               const TextLayout::Advance &advance, double low, double high)
 {
-    return Flow(text, params, sizePt, originals, advance, low, high).lines();
+    const double scale = params.scanScale;
+    if (scale <= 0.0 || std::abs(scale - 1.0) < 1e-6) return Flow(text, params, sizePt, originals, advance, low, high, -1.0).lines();
+    // Set larger or smaller than the scan has it, the text is laid out on the scan's lines as large, about
+    // where the first of them starts, and flows to the edge the scan's paragraph has.
+    QList<TextLayout::OriginalLine> scaled = originals;
+    const QPointF about(originals.first().charX.first(), originals.first().baseline);
+    const auto x = [&](double v) { return about.x() + (v - about.x()) * scale; };
+    const auto y = [&](double v) { return about.y() + (v - about.y()) * scale; };
+    double column = 0.0;
+    for (TextLayout::OriginalLine &o : scaled) {
+        if (!o.text.isEmpty() && o.charX.size() == o.text.size()) column = qMax(column, o.endX);
+        for (double &c : o.charX) c = x(c);
+        o.endX = x(o.endX);
+        o.baseline = y(o.baseline);
+        o.rect = QRectF(QPointF(x(o.rect.left()), y(o.rect.top())), QPointF(x(o.rect.right()), y(o.rect.bottom())));
+    }
+    return Flow(text, params, sizePt, scaled, advance, low, high, column).lines();
 }
 
 }

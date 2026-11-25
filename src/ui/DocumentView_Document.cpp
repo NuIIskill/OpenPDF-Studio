@@ -5,6 +5,7 @@
 #include "app/PdfPwStore.hpp"
 #include "engine/document/BookmarkWriter.hpp"
 #include "engine/document/DocumentSource.hpp"
+#include "engine/edit/EditCodec.hpp"
 #include "engine/edit/InkMetrics.hpp"
 #include "engine/sign/SignatureRemover.hpp"
 #include "app/SafeWrite.hpp"
@@ -457,6 +458,16 @@ bool DocumentView::finishStaging(const QString &staging, bool conform)
 }
 #endif
 
+namespace {
+
+// What the undo stack holds, kept with every history entry so it outlives a crash.
+const QString kTextKey     = QStringLiteral("text");
+const QString kNotesKey    = QStringLiteral("notes");
+const QString kLinksKey    = QStringLiteral("links");
+const QString kDrawingsKey = QStringLiteral("drawings");
+
+}
+
 WriteGrant DocumentView::newWorkingCopy() const
 {
     // What is written there counts only once openWorkingCopy() takes it into the history.
@@ -485,7 +496,12 @@ void DocumentView::writeRecoveryCopyInBackground(const QString &path,
 #ifdef HAVE_PDF_RENDERING
     const bool usable = !path.isEmpty() && path != m_src->contentPath()
                      && m_src->backend() && m_src->pageCount() > 0;
-    const QString staging = usable && m_writeGate.recorded(m_journal.history(), documentState())
+    // An edit open in its editor is out of the session until it is taken again: the copy holds it as the history does.
+    auto session = std::make_shared<EditSession>(m_session ? *m_session : EditSession());
+    session->restoreSuspended();
+    DocumentHistory::DocumentState state = documentState();
+    state.edits.insert(kTextKey, EditCodec::encode(session->edits()));
+    const QString staging = usable && m_writeGate.recorded(m_journal.history(), state)
                           ? SafeWrite::stagingPath(path) : QString();
     if (staging.isEmpty()) {
         done(false);
@@ -501,7 +517,7 @@ void DocumentView::writeRecoveryCopyInBackground(const QString &path,
         if (!ok) SafeWrite::discard(staging);
         done(ok && SafeWrite::commit(staging, path));
     });
-    m_src->worker()->writeCopy(WriteGrant(staging), std::make_shared<EditSession>(*m_session));
+    m_src->worker()->writeCopy(WriteGrant(staging), session);
 #else
     Q_UNUSED(path)
     done(false);
@@ -554,16 +570,6 @@ bool DocumentView::detachSourceFrom(const QString &saveTarget)
 }
 
 #endif
-
-namespace {
-
-// What the undo stack holds, kept with every history entry so it outlives a crash.
-const QString kTextKey     = QStringLiteral("text");
-const QString kNotesKey    = QStringLiteral("notes");
-const QString kLinksKey    = QStringLiteral("links");
-const QString kDrawingsKey = QStringLiteral("drawings");
-
-}
 
 DocumentHistory::DocumentState DocumentView::documentState() const
 {

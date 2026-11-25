@@ -434,6 +434,8 @@ bool PdfiumWriter::save(const QString &sourcePath, const WriteGrant &output,
 
     // Pasted text takes its style from other pages, read before the loop changes them.
     QHash<int, FPDF_PAGE> sourcePages;
+    // A scan's page is read once for all the pieces its edits take from it.
+    PdfiumScanInk::Cache ink;
     pass.begin = [&](FPDF_DOCUMENT doc) {
         // Filled in like the preview does it, so the appearances match it.
         if (!session.formValues().isEmpty()) PdfiumForms(doc).apply(session.formValues());
@@ -443,7 +445,7 @@ bool PdfiumWriter::save(const QString &sourcePath, const WriteGrant &output,
                     if (FPDF_PAGE p = FPDF_LoadPage(doc, s.page)) sourcePages.insert(s.page, p);
     };
     pass.change = [&](FPDF_DOCUMENT doc, FPDF_PAGE page, int pageIndex, bool &inPlace) {
-        PdfiumEdits::applyToPage(doc, page, pageIndex, session, &sourcePages);
+        PdfiumEdits::applyToPage(doc, page, pageIndex, session, &sourcePages, &ink);
         PdfiumEdits::applyNoteEdits(page, pageIndex, session);
         for (const EditSession::Edit &edit : fieldsByPage.value(pageIndex))
             setFieldValue(page, edit.formField, edit.newText);

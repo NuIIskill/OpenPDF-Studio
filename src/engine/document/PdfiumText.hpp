@@ -15,6 +15,7 @@
 #include <QPainterPath>
 #include <QSet>
 #include <QString>
+#include <QTransform>
 
 #include <memory>
 #include <vector>
@@ -55,6 +56,7 @@ public:
     struct ScanMove {
         QLineF word; double size { 0.0 }; QPointF by; bool starts { false }; bool ends { false }; bool cutLeft { false }; bool cutRight { false };
         int figure { -1 }; int kind { 0 }; bool borrowed { false }; QRectF onto;
+        QColor tint; double opacity { 1.0 }; double scale { 1.0 }; QPointF from;
     };
     QList<ScanMove> movedOnScan() const;
     // The characters a typed one may be taken from the scan for, of one kind, with their outlines in the edit's face.
@@ -65,9 +67,11 @@ public:
     void setCuts(const QList<ScanCut> &cuts, const QList<double> &shiftsPt, const QList<bool> &outward);
     QList<bool> changedOnScan() const;
     void setAgain(int move);
-    struct Outline { QPainterPath path; double strokePt { 0.0 }; QColor fill; };
+    struct Outline { QPainterPath path; double strokePt { 0.0 }; QColor fill; bool chosen { false }; double opacity { 1.0 }; };
     bool printedOnScan() const;
     void setLayered(bool layered) { m_layered = layered; }
+    void liftFromScan();
+    double scanScale() const { return m_scanScale; }
     QList<Outline> printed() const { return m_printed; }
     QColor paper() const { return m_edit.bgColor; }
     QList<Outline> sample() const;
@@ -109,6 +113,7 @@ private:
         double  shiftRight { 0.0 };
         bool    copied { false };
         bool    borrowed { false };
+        QColor  tint;
     };
     // Some letters of a scanned line as the edit has it that follow each other as the scan has them.
     struct ScanWord {
@@ -117,6 +122,7 @@ private:
         int     line { -1 };
         int     at { 0 };
         QPointF by;
+        QColor  tint;
     };
     // The cuts inside words where what a line keeps at its start and its end ends.
     struct Part {
@@ -146,18 +152,24 @@ private:
     int styleAt(int position) const;
     TextLayout::Advance advanceFunction() const;
     void keepScanInk();
+    QPointF scanShift() const;
+    QTransform turnOnScan() const;
+    QColor tintAt(int position, int source) const;
+    bool chosenColour(int style) const;
     void copyFigures(int n);
     static void joinTouching(QList<Moved> &moved, QList<std::pair<bool, bool>> &outward);
     QList<ScanWord> scanRuns(int n) const;
     void insertRuns(FPDF_PAGE page, const QList<Placed> &glyphs, double baseline,
                     const PdfiumPageSpace &space) const;
+    void underline(FPDF_PAGE page, int n, double lineX, double baseline, double inkStart,
+                   const PdfiumPageSpace &space) const;
     void insertRun(FPDF_PAGE page, int style, FPDF_FONT font, const QList<uint> &codePoints,
                    const QList<double> &x, double baseline, const PdfiumPageSpace &space,
                    bool hidden = false) const;
     bool insertOnScan(FPDF_PAGE page, int style, FPDF_FONT font, const QList<uint> &codes,
                       const QList<double> &x, double baseline, const PdfiumPageSpace &space, bool hidden) const;
     bool outlineOf(int style, FPDF_FONT font, const QList<uint> &codePoints, const QList<double> &x,
-                   double baseline, Outline *outline) const;
+                   double baseline, Outline *outline, bool onScan = false) const;
 
     FPDF_DOCUMENT     m_doc;
     FPDF_PAGE         m_page;
@@ -194,6 +206,8 @@ private:
     QList<Part> m_scanParts;
     mutable QList<Outline> m_printed;
     bool              m_layered { true };
+    bool              m_lifted { false };
+    double            m_scanScale { 1.0 };
 };
 
 }

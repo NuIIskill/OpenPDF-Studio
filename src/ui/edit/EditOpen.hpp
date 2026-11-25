@@ -4,6 +4,7 @@
 
 #include "engine/document/PdfBackend.hpp"
 #include "engine/edit/ContentModel.hpp"
+#include "engine/edit/EditSession.hpp"
 #include "engine/edit/InkMetrics.hpp"
 #include "engine/edit/ScanFont.hpp"
 #include "engine/edit/ScanPen.hpp"
@@ -24,8 +25,7 @@
 #include <cmath>
 
 inline constexpr qreal kSampleScale = 3.0;
-// A scan lying askew by up to this many degrees is edited where it is, in a box turned with it.
-inline constexpr double kScanAskewDeg = 3.0;
+inline constexpr double kScanAskewDeg = EditSession::kScanAskewDeg;
 
 inline double distanceTo(const QRectF &r, const QPointF &p)
 {

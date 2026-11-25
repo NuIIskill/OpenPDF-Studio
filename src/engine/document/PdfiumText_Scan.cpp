@@ -14,6 +14,48 @@
 
 namespace PdfiumText {
 
+namespace {
+
+// What of a mark tells the face a letter is set in: its colour and an underline change no letter's shape.
+TextLayout::Mark faceOf(TextLayout::Mark mark)
+{
+    mark.color = QColor();
+    mark.underline.reset();
+    return mark;
+}
+
+}
+
+QColor Typeset::tintAt(int position, int source) const
+{
+    // The colour the user gave a letter of the scan, which its ink then takes; none where it keeps its own.
+    const QColor marked = m_charMarks.value(position).color;
+    const bool own = !m_edit.colorChanged
+                  && (!marked.isValid() || marked == m_edit.scanMarks.value(source).color || marked == m_styles.first().fill);
+    return own ? QColor() : m_styles.at(styleAt(position)).fill;
+}
+
+bool Typeset::chosenColour(int style) const
+{
+    return m_edit.colorChanged || m_styles.at(style).fill != m_styles.first().fill;
+}
+
+QPointF Typeset::scanShift() const
+{
+    // How far the box carries a scan's lines from where the scan has them: nothing while it stands in its place.
+    const QList<TextLayout::OriginalLine> &originals = m_edit.originalLines;
+    if (originals.isEmpty() || originals.first().charX.isEmpty()) return {};
+    return m_edit.pdfBounds.topLeft() + m_layout.firstBaseline
+         - QPointF(originals.first().charX.first(), originals.first().baseline);
+}
+
+QTransform Typeset::turnOnScan() const
+{
+    // A box lying askew with its scan turns about its middle; moved, the scan's own places still turn about where that was.
+    const QPointF c = m_edit.pdfBounds.center() - scanShift();
+    return QTransform().translate(c.x(), c.y()).rotate(m_edit.box.rotationDeg).translate(-c.x(), -c.y());
+}
+
 QList<Typeset::ScanWord> Typeset::scanRuns(int n) const
 {
     // The runs of letters of a line that follow each other as the scan has
@@ -27,7 +69,10 @@ QList<Typeset::ScanWord> Typeset::scanRuns(int n) const
     QList<int> offsets;
     for (int j = 0, at = 0; j < originals.size(); at += int(originals.at(j).text.size()) + 1, ++j) offsets.append(at);
     const QPointF first(originals.first().charX.first(), originals.first().baseline);
+    const QPointF shift = scanShift();
     QList<ScanWord> runs;
+    // Lines taken to another page have their pixels on the page they came from: they are set in the matched face.
+    if (m_edit.sourcePage >= 0 && m_edit.sourcePage != m_edit.page) return runs;
     for (int i = 0; i < line.length; ++i) {
         const int source = line.from.at(i);
         if (source < 0 || m_text.at(line.start + i).isSpace()) continue;
@@ -35,17 +80,28 @@ QList<Typeset::ScanWord> Typeset::scanRuns(int n) const
         const TextLayout::OriginalLine &o = originals.at(j);
         const int c = source - offsets.at(j);
         if (o.charX.size() != o.text.size() || c >= o.text.size() || o.text.at(c).isSpace()
-                || m_charMarks.value(line.start + i) != m_edit.scanMarks.value(source))
+                || faceOf(m_charMarks.value(line.start + i)) != faceOf(m_edit.scanMarks.value(source)))
             continue;
-        const QPointF by = QPointF(line.x + TextLayout::xAt(line, m_text, line.start + i, spacing, advance), line.y)
+        const QPointF by = shift + QPointF(line.x + TextLayout::xAt(line, m_text, line.start + i, spacing, advance), line.y)
                          - QPointF(o.charX.at(c) - first.x(), o.baseline - first.y());
-        if (!runs.isEmpty() && runs.last().to == i && runs.last().line == j && runs.last().at + (i - runs.last().from) == c
-                && std::hypot(by.x() - runs.last().by.x(), by.y() - runs.last().by.y()) <= kSamePlace)
+        const QColor tint = tintAt(line.start + i, source);
+        // Set larger or smaller, the letters of a run stand apart by as much more or less.
+        const bool follows = !runs.isEmpty() && runs.last().to == i && runs.last().line == j
+                          && runs.last().at + (i - runs.last().from) == c && runs.last().tint == tint;
+        const double grown = follows ? (m_scanScale - 1.0) * (o.charX.at(c) - o.charX.at(runs.last().at)) : 0.0;
+        if (follows && std::hypot(by.x() - grown - runs.last().by.x(), by.y() - runs.last().by.y()) <= kSamePlace)
             runs.last().to = i + 1;
         else
-            runs.append({ i, i + 1, j, c, by });
+            runs.append({ i, i + 1, j, c, by, tint });
     }
     return runs;
+}
+
+void Typeset::liftFromScan()
+{
+    // For a picture of the text alone: what would stay the scan's own pixels goes as pieces of its ink too.
+    m_lifted = true;
+    if (!m_scanKept.isEmpty()) keepScanInk();
 }
 
 void Typeset::keepScanInk()
@@ -64,8 +120,11 @@ void Typeset::keepScanInk()
         const TextLayout::Line &line = m_layout.lines.at(n);
         if (line.from.size() != line.length || !line.prefix.isEmpty()) continue;
         const QList<ScanWord> runs = scanRuns(n);
+        // Ink that takes another colour or size, shows through or lies on a filled box is laid anew where it stands.
+        const bool lifted = m_lifted || m_edit.box.opacity < 0.999 || m_edit.box.backgroundEnabled
+                         || std::abs(m_scanScale - 1.0) > 1e-6;
         const auto stays = [&](const ScanWord &r) {
-            return r.line == line.original && std::hypot(r.by.x(), r.by.y()) <= kSamePlace;
+            return !lifted && !r.tint.isValid() && r.line == line.original && std::hypot(r.by.x(), r.by.y()) <= kSamePlace;
         };
         int head = 0, tail = 0, first = 0, last = int(runs.size());
         if (line.original >= 0) {
@@ -117,6 +176,7 @@ void Typeset::keepScanInk()
             const int end = run.at + (run.to - run.from);
             m_scanMoved[n].append({ run.from, run.to, run.line, run.at, run.by, true,
                                     run.at > 0 && !o.at(run.at - 1).isSpace(), end < o.size() && !o.at(end).isSpace() });
+            m_scanMoved[n].last().tint = run.tint;
         }
         copyFigures(n);
     }
@@ -152,9 +212,10 @@ void Typeset::copyFigures(int n)
     const TextLayout::Advance advance = advanceFunction();
     const QPointF first(originals.first().charX.first(), originals.first().baseline);
     // Where a point of the edit's lines lies on the page, and the pictures an earlier edit laid over the scan there.
-    const QPointF onPage = m_edit.pdfBounds.topLeft() + m_layout.firstBaseline;
+    const QPointF shift = scanShift();
     const QList<QRectF> laid = PdfiumScanInk::pictures(m_page);
     bool added = false;
+    if (m_edit.sourcePage >= 0 && m_edit.sourcePage != m_edit.page) return;
     for (int i = 0; i < line.length; ++i) {
         const qsizetype at = line.start + i;
         const QChar typed = m_text.at(at);
@@ -168,28 +229,30 @@ void Typeset::copyFigures(int n)
             if (o.charX.size() != o.text.size()) continue;
             for (qsizetype c = 0; c < o.text.size(); ++c) {
                 if (o.text.at(c) != typed || !alone(o.text, 0, o.text.size(), c)
-                        || m_charMarks.value(at) != m_edit.scanMarks.value(offset + c))
+                        || faceOf(m_charMarks.value(at)) != faceOf(m_edit.scanMarks.value(offset + c)))
                     continue;
                 const QPointF from(o.charX.at(c) - first.x(), o.baseline - first.y());
                 // One of its own line before one of another, the scan's own print before a picture laid on it.
-                const QPointF inside = onPage + from + QPointF(advance(int(at), typed.unicode()) / 2.0, -m_size * 0.3);
+                const QPointF inside = first + from + QPointF(advance(int(at), typed.unicode()) / 2.0, -m_size * 0.3);
                 const bool foreign = std::any_of(laid.cbegin(), laid.cend(), [&](const QRectF &r) { return r.contains(inside); });
-                const double far = std::abs(to.x() - from.x()) + std::abs(to.y() - from.y()) * 8.0 + (foreign ? 1e7 : 0.0);
-                if (source >= 0 && far >= least) continue;
+                const double distance = std::abs(to.x() - from.x()) + std::abs(to.y() - from.y()) * 8.0 + (foreign ? 1e7 : 0.0);
+                if (source >= 0 && distance >= least) continue;
                 source = j;
                 sourceAt = int(c);
-                least = far;
-                by = to - from;
+                least = distance;
+                by = shift + to - from;
             }
         }
         // Borrowed from the page where the edit's lines show none of the scan's own print: for a box that lies
         // level, in the scan's own look. What an earlier edit laid on the line is the last to be taken.
-        const bool plain = m_charMarks.value(at) == m_edit.scanMarks.value(0);
+        const bool plain = faceOf(m_charMarks.value(at)) == faceOf(m_edit.scanMarks.value(0));
         const bool borrows = plain && qFuzzyIsNull(m_edit.box.rotationDeg);
         if (source >= 0 && least >= 1e7 && borrows) source = -1;
         if (source < 0 && !borrows) continue;
         if (source >= 0) m_scanMoved[n].append({ i, i + 1, source, sourceAt, by, true, false, false, 0.0, 0.0, true, false });
         else m_scanMoved[n].append({ i, i + 1, 0, 0, to, true, false, false, 0.0, 0.0, true, true });
+        // What is typed in a colour of its own is the scan's ink in that colour.
+        if (chosenColour(styleAt(int(at)))) m_scanMoved[n].last().tint = m_styles.at(styleAt(int(at))).fill;
         added = true;
     }
     if (added)
@@ -223,12 +286,9 @@ QList<Typeset::ScanCut> Typeset::cutsOnScan() const
     QList<ScanCut> out;
     const QList<TextLayout::OriginalLine> &originals = m_edit.originalLines;
     if (originals.isEmpty() || originals.first().charX.isEmpty()) return out;
-    const QRectF &bounds = m_edit.pdfBounds;
-    const QPointF c = bounds.center();
-    const QTransform turn = QTransform().translate(c.x(), c.y()).rotate(m_edit.box.rotationDeg)
-                                        .translate(-c.x(), -c.y());
-    const QPointF origin = bounds.topLeft() + m_layout.firstBaseline
-                         - QPointF(originals.first().charX.first(), originals.first().baseline);
+    // Where the scan has its lines, whatever way the box has gone since.
+    const QTransform turn = turnOnScan();
+    const QPointF origin;
     const TextLayout::Advance advance = advanceFunction();
     // In the middle of the white the letter before leaves, by what the face gives that letter; with how
     // many letters the cut's word has, and how many of them stand before it.
@@ -337,7 +397,7 @@ void Typeset::joinTouching(QList<Moved> &moved, QList<std::pair<bool, bool>> &ou
         Moved &a = moved[k];
         const Moved &b = moved.at(k + 1);
         const bool beside = a.pixels && b.pixels && !a.copied && !b.copied && a.cutRight && b.cutLeft && a.to == b.from
-                         && a.source == b.source && a.at + (a.to - a.from) == b.at;
+                         && a.source == b.source && a.at + (a.to - a.from) == b.at && a.tint == b.tint;
         if (!beside || !(outward.at(k).second || outward.at(k + 1).first)) { ++k; continue; }
         a.to = b.to;
         a.cutRight = b.cutRight;
@@ -359,8 +419,9 @@ QList<Typeset::ScanMove> Typeset::movedOnScan() const
     const QPointF c = bounds.center();
     const QTransform turn = QTransform().translate(c.x(), c.y()).rotate(m_edit.box.rotationDeg)
                                         .translate(-c.x(), -c.y());
-    const QPointF origin = bounds.topLeft() + m_layout.firstBaseline
-                         - QPointF(originals.first().charX.first(), originals.first().baseline);
+    // Where the scan has its lines, whatever way the box has gone since; where they go, the box as it stands tells.
+    const QTransform home = turnOnScan();
+    const QPointF origin;
     for (int n = 0; n < m_layout.lines.size() && n < m_scanMoved.size(); ++n) {
         const QList<Moved> &moved = m_scanMoved.at(n);
         const auto alike = [&](int a, int b) {
@@ -378,6 +439,9 @@ QList<Typeset::ScanMove> Typeset::movedOnScan() const
                 move.size = m_size;
                 move.kind = kindOf(typed);
                 move.borrowed = true;
+                move.tint = m.tint;
+                move.opacity = m_edit.box.opacity;
+                move.scale = m_scanScale;
                 const QPointF target = bounds.topLeft() + m_layout.firstBaseline + m.by;
                 move.word = QLineF(target, target + QPointF(1.0, 0.0));
                 QPainterPath glyph;
@@ -391,14 +455,18 @@ QList<Typeset::ScanMove> Typeset::movedOnScan() const
             }
             const TextLayout::OriginalLine &o = originals.at(m.source);
             const auto at = [&](qsizetype i) { return origin + QPointF(i < o.charX.size() ? o.charX.at(i) : o.endX, o.baseline); };
-            const QPointF was = turn.map(at(m.at));
+            const QPointF was = home.map(at(m.at));
             // Letters of a changed word start and end at the cuts that part them from it.
-            const QPointF start = m.cutLeft ? turn.map(at(m.at) + QPointF(m.shiftLeft, 0.0)) : was;
-            const QPointF end = turn.map(at(m.at + (m.to - m.from)) + QPointF(m.cutRight ? m.shiftRight : 0.0, 0.0));
+            const QPointF start = m.cutLeft ? home.map(at(m.at) + QPointF(m.shiftLeft, 0.0)) : was;
+            const QPointF end = home.map(at(m.at + (m.to - m.from)) + QPointF(m.cutRight ? m.shiftRight : 0.0, 0.0));
             out.append({ QLineF(start, end), m_size, turn.map(at(m.at) + m.by) - was, !alike(k - 1, k), !alike(k, k + 1),
                          m.cutLeft, m.cutRight,
                          m.copied ? int(m_text.at(m_layout.lines.at(n).start + m.from).unicode()) : -1,
                          m.copied ? kindOf(m_text.at(m_layout.lines.at(n).start + m.from)) : 0, false, {} });
+            out.last().tint = m.tint;
+            out.last().opacity = m_edit.box.opacity;
+            out.last().scale = m_scanScale;
+            out.last().from = was;
         }
     }
     return out;
@@ -439,18 +507,12 @@ QString Typeset::sampleKey() const
 
 bool Typeset::printedOnScan() const
 {
-    // Text set on a scan in the scan's own ink shows as the scan printed it;
-    // what the user coloured or underlined shows as set.
-    const TextBoxProperties &box = m_edit.box;
-    return m_edit.scanned && !m_edit.colorChanged && !m_edit.underline
-        && box.opacity >= 0.999 && !box.backgroundEnabled && !box.borderEnabled
-        && std::none_of(m_charMarks.cbegin(), m_charMarks.cend(), [](const TextLayout::Mark &m) {
-               return m.color.isValid() || m.underline.value_or(false);
-           });
+    // Text set on a scan shows as the scan printed it, in the colour it is given.
+    return m_edit.scanned;
 }
 
 bool Typeset::outlineOf(int style, FPDF_FONT font, const QList<uint> &codePoints, const QList<double> &x,
-                        double baseline, Outline *outline) const
+                        double baseline, Outline *outline, bool onScan) const
 {
     // The glyphs of a run where it is set on the shown page, the box's turn included.
     const Style &s = m_styles.at(style);
@@ -460,11 +522,12 @@ bool Typeset::outlineOf(int style, FPDF_FONT font, const QList<uint> &codePoints
     for (int i = 0; i < codePoints.size(); ++i) {
         if (QChar::isSpace(codePoints.at(i))) continue;
         QPainterPath glyph;
-        if (!PdfiumFonts::glyphOutline(font, codePoints.at(i), s.size, &glyph)) return false;
+        // Where the scan has its words they are as large as the scan has them.
+        if (!PdfiumFonts::glyphOutline(font, codePoints.at(i), onScan ? s.size / m_scanScale : s.size, &glyph)) return false;
         run.addPath(QTransform(s.a, 0.0, -s.c, 1.0, x.at(i), baseline - s.rise).map(glyph));
     }
     const QPointF c = m_edit.pdfBounds.center();
-    outline->path = QTransform().translate(c.x(), c.y()).rotate(m_edit.box.rotationDeg).translate(-c.x(), -c.y()).map(run);
+    outline->path = (onScan ? turnOnScan() : QTransform().translate(c.x(), c.y()).rotate(m_edit.box.rotationDeg).translate(-c.x(), -c.y())).map(run);
     outline->strokePt = s.mode == FPDF_TEXTRENDERMODE_FILL_STROKE ? s.strokeWidth : 0.0;
     outline->fill = s.fill;
     return true;
@@ -509,8 +572,7 @@ QList<Typeset::Outline> Typeset::sample() const
         words.removeIf([](const Word &w) { return !w.changed; });
     std::stable_sort(words.begin(), words.end(), [](const Word &a, const Word &b) { return a.to - a.from > b.to - b.from; });
     const int style = TextLayout::dominantStyle(m_charStyles, int(m_styles.size()));
-    const QPointF origin = m_edit.pdfBounds.topLeft() + m_layout.firstBaseline
-                         - QPointF(originals.first().charX.first(), originals.first().baseline);
+    const QPointF origin;
     for (const Word &word : words.mid(0, kWords)) {
         const TextLayout::OriginalLine &o = originals.at(word.line);
         QList<uint> codes;
@@ -526,7 +588,7 @@ QList<Typeset::Outline> Typeset::sample() const
             x.append(origin.x() + o.charX.at(c));
         }
         Outline outline;
-        if (one && font && outlineOf(style, font, codes, x, origin.y() + o.baseline, &outline)) made.append(outline);
+        if (one && font && outlineOf(style, font, codes, x, origin.y() + o.baseline, &outline, true)) made.append(outline);
     }
     return made;
 }
@@ -538,6 +600,8 @@ bool Typeset::insertOnScan(FPDF_PAGE page, int style, FPDF_FONT font, const QLis
     // its outlines; the text itself is set for reading and does not show.
     Outline outline;
     const bool drawn = !hidden && printedOnScan() && outlineOf(style, font, codes, x, baseline, &outline);
+    outline.chosen = chosenColour(style);
+    outline.opacity = m_edit.box.opacity;
     if (drawn) m_printed.append(outline);
     if (!hidden && !drawn) return false;
     // A scan without a text layer stays one: what shows as its pixels adds no text to the page.

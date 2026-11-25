@@ -91,6 +91,7 @@ struct Metrics {
     bool                      anchor { false };
     bool                      holdGaps { false };
     double                    scanSpacingPt { 0.0 };
+    double                    scanScale { 1.0 };
     QPointF                   boxTopLeft;
     QList<Source>             sources;
     QList<int>                sourceStyles;
@@ -112,9 +113,11 @@ struct Params {
     double widthPt            { 0.0 };
     double alignWidthPt       { 0.0 };
     double lineStepPt         { 0.0 };
+    bool   lineStepSet        { false };
     double paragraphSpacingPt { 0.0 };
     double charSpacingPt      { 0.0 };
     double scanWiderPt        { 0.0 };
+    double scanScale          { 1.0 };
     bool   anchor             { false };
     bool   keep               { false };
     bool   holdGaps           { false };

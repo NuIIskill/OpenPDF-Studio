@@ -11,6 +11,7 @@
 #include <QList>
 #include <QRect>
 #include <QRectF>
+#include <QSize>
 #include <QString>
 
 class PdfiumPageSpace;
@@ -48,6 +49,8 @@ public:
     void addLook(const QString &key, const Look &look);
     bool findLetters(int page, int pageWidthPx, QList<QRect> *letters) const;
     void addLetters(int page, int pageWidthPx, const QList<QRect> &letters);
+    QImage findWhole(int page, const QSize &pagePx) const;
+    void addWhole(int page, const QSize &pagePx, const QImage &pixels);
     void clear();
 
 private:
@@ -63,9 +66,15 @@ private:
         int          pageWidthPx;
         QList<QRect> boxes;
     };
+    struct Whole {
+        int    page;
+        QSize  pagePx;
+        QImage pixels;
+    };
     QList<Entry> m_entries;
     QList<std::pair<QString, Look>> m_looks;
     QList<Letters> m_letters;
+    QList<Whole> m_wholes;
 };
 
 QList<QRectF> pictures(FPDF_PAGE page);

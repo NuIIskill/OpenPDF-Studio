@@ -50,4 +50,6 @@ Printed printedLike(const QList<Plane> &scans, const QList<QList<Plane>> &drawn,
 
 QImage printed(const Plane &ink, const Printed &like, const QColor &fill, const QColor &paper, QRect *inked);
 
+QImage tinted(const QImage &ink, const QColor &colour, double opacity);
+
 }

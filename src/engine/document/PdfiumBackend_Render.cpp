@@ -5,6 +5,7 @@
 #include "engine/document/PdfiumEdits.hpp"
 #include "engine/document/PdfiumLock.hpp"
 #include "engine/document/PdfiumPageSpace.hpp"
+#include "engine/document/PdfiumPart.hpp"
 #include "engine/edit/EditSession.hpp"
 
 #include "fpdf_edit.h"
@@ -50,9 +51,9 @@ bool renderProgressive(FPDF_BITMAP bmp, FPDF_PAGE pg, const QRect &target, const
 }
 
 QImage PdfiumBackend::renderEditText(int page, qreal scale, const QList<EditSession::Edit> &edits,
-                                     const QRect &pixels) const
+                                     const QRect &pixels, bool lifted) const
 {
-    // Only the text, on transparency, to be laid over the page without it.
+    // Only the text, on transparency, to be laid over the page without it; lifted, with what of a scan it leaves in place.
     PdfiumLock lock;
     if (!m_doc || edits.isEmpty()) return {};
     const QSize px = pixelSize(page, scale);
@@ -60,7 +61,7 @@ QImage PdfiumBackend::renderEditText(int page, qreal scale, const QList<EditSess
     if (target.isEmpty()) return {};
     FPDF_PAGE pg = FPDF_LoadPage(m_doc, page);
     if (!pg) return {};
-    PdfiumEdits::textAlone(m_doc, pg, page, edits, &m_scanInk);
+    PdfiumEdits::textAlone(m_doc, pg, page, edits, &m_scanInk, lifted);
     QImage out(target.size(), QImage::Format_ARGB32);
     out.fill(Qt::transparent);
     FPDF_BITMAP bmp = FPDFBitmap_CreateEx(target.width(), target.height(), FPDFBitmap_BGRA,
@@ -139,31 +140,24 @@ QImage PdfiumBackend::renderPageInternal(int page, qreal scale,
 
     if (session && !keep) PdfiumEdits::applyToPage(m_doc, pg, page, *session, nullptr, &m_scanInk);
     PdfiumEdits::showNoteHighlights(pg, page, notes);
-    if (keep && target.size() != px && !primeImages(page, pg, *cancelled)) return {};
 
-    FPDF_BITMAP bmp = FPDFBitmap_Create(target.width(), target.height(), 0);
+    const PdfiumPart::Frame frame = PdfiumPart::frameFor(pg, target, px);
+    FPDF_BITMAP bmp = FPDFBitmap_Create(frame.area.width(), frame.area.height(), 0);
     if (!bmp) { closePage(); return {}; }
-    FPDFBitmap_FillRect(bmp, 0, 0, target.width(), target.height(), 0xFFFFFFFF);
+    FPDFBitmap_FillRect(bmp, 0, 0, frame.area.width(), frame.area.height(), 0xFFFFFFFF);
     if (cancelled) {
-        if (!renderProgressive(bmp, pg, target, px, *cancelled)) {
+        if (!renderProgressive(bmp, pg, frame.area, px, *cancelled)) {
             FPDFBitmap_Destroy(bmp);
             closePage();
             return {};
         }
     } else {
-        FPDF_RenderPageBitmap(bmp, pg, -target.x(), -target.y(), px.width(), px.height(),
+        FPDF_RenderPageBitmap(bmp, pg, frame.startX(), frame.startY(), px.width(), px.height(),
                               0, FPDF_ANNOT);
     }
-    drawForms(bmp, pg, target, px);
+    drawForms(bmp, pg, frame.area, px);
 
-    const auto *buffer = static_cast<const uchar *>(FPDFBitmap_GetBuffer(bmp));
-    QImage rendered;
-    if (buffer) {
-
-        rendered = QImage(buffer, target.width(), target.height(),
-                          FPDFBitmap_GetStride(bmp), QImage::Format_RGB32).copy();
-    }
-
+    QImage rendered = PdfiumPart::cut(bmp, frame, target.size());
     FPDFBitmap_Destroy(bmp);
     closePage();
 
@@ -221,40 +215,12 @@ FPDF_PAGE PdfiumBackend::backgroundPage(int page, quint64 state,
     FPDF_PAGE loaded = FPDF_LoadPage(m_doc, page);
     if (!loaded) return nullptr;
     if (state && session) PdfiumEdits::applyToPage(m_doc, loaded, page, *session, nullptr, &m_scanInk);
-    m_backgroundPages.insert(m_backgroundPages.begin(), { page, state, loaded, false });
+    m_backgroundPages.insert(m_backgroundPages.begin(), { page, state, loaded });
     while (m_backgroundPages.size() > kKept) {
         closeShownPage(m_backgroundPages.back().page);
         m_backgroundPages.pop_back();
     }
     return loaded;
-}
-
-bool PdfiumBackend::primeImages(int page, FPDF_PAGE pg, const std::function<bool()> &cancelled) const
-{
-    // PDFium decodes an image as finely as the first render of it needs, and
-    // a small part rendered first leaves it coarse and shifted for every later
-    // part. One render of the whole page at about a million pixels avoids that.
-    const auto kept = std::find_if(m_backgroundPages.begin(), m_backgroundPages.end(),
-                                   [pg](const BackgroundPage &p) { return p.page == pg; });
-    if (kept == m_backgroundPages.end() || kept->primed) return true;
-    bool images = false;
-    for (int i = 0, n = FPDFPage_CountObjects(pg); i < n && !images; ++i) {
-        const int type = FPDFPageObj_GetType(FPDFPage_GetObject(pg, i));
-        images = type == FPDF_PAGEOBJ_IMAGE || type == FPDF_PAGEOBJ_FORM;
-    }
-    if (images) {
-        const QSizeF pts = pageSizePts(page);
-        const QSize px = pixelSize(page, std::sqrt(1'000'000.0 / qMax(1.0, pts.width() * pts.height())));
-        FPDF_BITMAP bmp = FPDFBitmap_Create(px.width(), px.height(), 0);
-        if (!bmp) return true;
-        const bool done = renderProgressive(bmp, pg, QRect(QPoint(), px), px, cancelled);
-        FPDFBitmap_Destroy(bmp);
-        if (!done) return false;
-    }
-    // Another thread may have reordered the kept pages while this one waited.
-    for (BackgroundPage &p : m_backgroundPages)
-        if (p.page == pg) p.primed = true;
-    return true;
 }
 
 void PdfiumBackend::dropBackgroundPages() const
@@ -327,15 +293,14 @@ PdfBackend::AreaRender PdfiumBackend::renderChanges(int page, qreal scale,
     }
 
     PdfiumEdits::showNoteHighlights(pg, page, notes);
-    FPDF_BITMAP bmp = FPDFBitmap_Create(target.width(), target.height(), 0);
+    const PdfiumPart::Frame frame = PdfiumPart::frameFor(pg, target, px);
+    FPDF_BITMAP bmp = FPDFBitmap_Create(frame.area.width(), frame.area.height(), 0);
     if (!bmp) { closePage(); return result; }
-    FPDFBitmap_FillRect(bmp, 0, 0, target.width(), target.height(), 0xFFFFFFFF);
-    FPDF_RenderPageBitmap(bmp, pg, -target.x(), -target.y(), px.width(), px.height(),
+    FPDFBitmap_FillRect(bmp, 0, 0, frame.area.width(), frame.area.height(), 0xFFFFFFFF);
+    FPDF_RenderPageBitmap(bmp, pg, frame.startX(), frame.startY(), px.width(), px.height(),
                           0, FPDF_ANNOT);
-    drawForms(bmp, pg, target, px);
-    if (const auto *buffer = static_cast<const uchar *>(FPDFBitmap_GetBuffer(bmp)))
-        result.image = QImage(buffer, target.width(), target.height(),
-                              FPDFBitmap_GetStride(bmp), QImage::Format_RGB32).copy();
+    drawForms(bmp, pg, frame.area, px);
+    result.image = PdfiumPart::cut(bmp, frame, target.size());
     FPDFBitmap_Destroy(bmp);
     closePage();
     result.pixels = target;

@@ -225,7 +225,14 @@ std::optional<EditSession::Edit> EditController::mergedFrameEdit(const QString &
     e.pdfBounds     = bounds;
     e.box.bounds    = bounds;
     if (m_unit.scanned && m_unit.hasTextOrigin) {
-        e.textOriginOffset = m_unit.pdfBounds.topLeft() + m_unit.textOriginOffset - bounds.topLeft();
+        QPointF origin = m_unit.pdfBounds.topLeft() + m_unit.textOriginOffset;
+        // The origin goes with the first line: where lines above were taken out or it starts elsewhere now,
+        // the lines that stay are still where they stand.
+        const QList<TextLayout::OriginalLine> &was = m_unit.originalLines;
+        if (!lines.isEmpty() && !was.isEmpty() && !lines.first().charX.isEmpty() && !was.first().charX.isEmpty())
+            origin += QPointF(lines.first().charX.first(), lines.first().baseline)
+                    - QPointF(was.first().charX.first(), was.first().baseline);
+        e.textOriginOffset = origin - bounds.topLeft();
     } else if (!lines.isEmpty()) {
         e.hasTextOrigin    = true;
         e.textOriginOffset = QPointF(lines.first().charX.first(), lines.first().baseline)

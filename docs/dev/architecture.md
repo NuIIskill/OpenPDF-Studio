@@ -183,9 +183,10 @@ document.
 
 Background renders keep their last pages loaded, so the tiles of a page share
 its decoded images; an edited page is kept with its edits for as long as its
-version stays the same. PDFium decodes an image only as finely as the first
-render of it needs, so before the first part of a page is rendered, the page is
-rendered whole once at about a million pixels.
+version stays the same. PDFium reads an image the coarser the smaller the
+bitmap it renders into, a JPEG down to an eighth, whatever part of the page
+that bitmap shows. Every part of a page is therefore rendered into a bitmap
+sized by `PdfiumPart`, in which each image comes out as for the whole page.
 
 What was on screen once comes back without a render. Tiles that leave the view
 are kept and put back in the same frame when the view returns. A picture
@@ -302,7 +303,9 @@ higher; the blur of a few figures is told by how soft their strokes show
 Ink tells against a face only where the face is clearly heavier than the scan,
 as print and scan only add to a stroke.
 An edit changes a scan only in the scan's own pixels (`PdfiumScanInk`, with the
-pixel work in `ScanPaper`). Whole words that keep their text and look stay as
+pixel work in `ScanPaper`). The page is read whole once at the scan's
+resolution and every piece is cut from that (`PdfiumScanInk::Cache`), in the
+view and in a save alike. Whole words that keep their text and look stay as
 they are where they stand (`Typeset::keptOnScan`), and those an edit only
 pushes along their line go there as the pixels they are, by whole pixels of
 the scan (`Typeset::movedOnScan`), so no font, misreading or weight of the
@@ -314,8 +317,8 @@ is drawn from its glyph outlines at the scan's resolution and laid on the page
 as pixels, thickened, blurred and faded as the scan printed its own words,
 or cut to black and white on such a scan: a few of the scan's words, drawn in
 the matched face where the scan has them, are held against their pixels to
-find that look (`ScanPaper::printedLike`). Text the user coloured or underlined
-shows as set. The text itself is written word by word without showing, as an
+find that look (`ScanPaper::printedLike`), in the colour the text is given.
+The text itself is written word by word without showing, as an
 OCR layer holds it, where the page has such a layer; a scan without one stays
 without and is read by OCR again when the file is opened. The pixels read and
 the look found are kept by the backend while the document is open
@@ -377,7 +380,17 @@ size (`Scan::foreign`) nor is taken for a typed character before the scan's own 
 like any other: the edit keeps the spacing its lines opened with (`Edit::scanSpacingPt`), and each of
 the scan's letters stands as much further on as the box's spacing differs from it (`Params::scanWiderPt`
 in `TextLayout::anchorLine` and `ScanFlow`), a paragraph flowing anew; letters that touch go together
-(`Typeset::joinTouching`). Only
+(`Typeset::joinTouching`). What is done to the box leaves the scan's letters the scan's own ink. Lines fitted
+to that ink are marked (`Edit::scanFitted`), as the box's place no longer tells them once it is moved. A box moved
+takes them along (`Typeset::scanShift`; on a scan lying askew they turn about where the box stood,
+`Typeset::turnOnScan`). A frame around all the ink of what a click opens takes it as that click does
+(`EditOpener::framesWholeScanUnit`), and one around whole lines of it takes those lines the same way while the
+lines beside them stay the scan's (`EditOpener::framesScanLines`); one around several such units, as a label and the entry far behind it, takes them as one line with the scan's gaps (`EditOpener::framesScanUnits`); a part cut out of a line by a frame is set anew, as its places are only read. Set larger or smaller they are that ink as large, and a paragraph flows anew on the
+scan's lines as large (`Params::scanScale` in `ScanFlow`). Coloured or shown through they are that ink in the
+colour (`ScanPaper::tinted`), and an underline is printed under them. A line or paragraph spacing moves their
+lines, and an inset grows the box around them. Another face, bold, italic or a box turned further than a scan
+lies askew sets them anew. The picture carried while a box is dragged holds these letters too
+(`Typeset::liftFromScan`). Only
 the clicked line is looked at where the click was, and only beside a label, on
 a rule read as a line or on letters OCR did not read: a click on the paper near
 a line of text opens that line. The
@@ -408,9 +421,11 @@ with the page's lines, grow that way in a box that holds the room beside them
 (`EditOpener::alignScan`); a line with ink close before it on its rows is the end of something longer,
 grows to the right and tells the lines around it no edge. A line of its own has room up to where the page's
 text ends on the right or other text stands beside it (`EditTarget::roomRight`,
-which stops the frame's growth there), a short entry alone on towards the
+which stops the frame's growth there and goes with the text wherever its box is moved), a short entry alone on towards the
 page's edge; out of room it breaks and goes on a line below, as the scan's
-pixels too. A number and a word OCR read as one are parted where the
+pixels too. Lines an earlier edit took still tell where the page's text ends.
+A box made narrower than the scan has its lines holds them all, single lines
+and paragraphs, and they break at its edge as in any text box (`ScanFlow`). A number and a word OCR read as one are parted where the
 line shows a word's gap more than its text has spaces
 (`ScanCleanup::partFigures`). A click puts the caret where the text was
 clicked. Columns OCR read as one line are parted
@@ -553,7 +568,8 @@ AcroForm and draws it after each render.
 `SessionStore` (`app/`) keeps working copies, snapshots and a list of the open
 documents. `SessionRecovery` (`ui/session/`) watches every view and writes a
 history archive half a second after each change, and a recovery copy on the
-view's worker every half minute at most. Every history entry keeps, besides
+view's worker every half minute at most. An edit open in its editor is out of
+the session until it is taken again; the copy holds it as the history does. Every history entry keeps, besides
 images, bookmarks and overlays, what the undo stack holds: text edits, notes,
 links, drawings and changes to the page's own images (`DocumentState::edits`).
 At the next start the document is taken up on its base file with the last

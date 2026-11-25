@@ -156,6 +156,7 @@ QList<DocumentWorker::Render> PageLayoutEngine::askDragRenders() const
         render.session  = std::move(session);
         render.finish   = true;
         render.textOnly = true;
+        render.lifted   = true;
         renders.append(render);
     }
     if (m_drag.base.isNull()) {

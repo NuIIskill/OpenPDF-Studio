@@ -366,7 +366,7 @@ void DocumentWorker::runRender(const Render &render, quint64 generation)
     // An edited page's version names its state, so its renders can share one load.
     const QImage image = render.textOnly && render.session
         ? m_backend->renderEditText(render.page, render.scale, render.session->snapshotEdits(),
-                                    render.area)
+                                    render.area, render.lifted)
         : m_backend->renderPageInBackground(
               render.page, render.scale, render.session.get(),
               [this] { return m_cancelRender.load(); }, render.area,

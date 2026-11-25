@@ -292,9 +292,19 @@ void EditController::setTextBoxProperties(const TextBoxProperties &properties)
         defaultBox.bounds = defaultBounds;
         return;
     }
-    currentBox = properties;
-    refreshAdvanceMeasure();
+    // A scan's box that lay level turns about its own middle from now on.
+    if (activeEditScanned && !activeEditTurned && qFuzzyIsNull(currentBox.rotationDeg) && !qFuzzyIsNull(properties.rotationDeg))
+        activeEditTurnPivot = activeEditBounds.center();
     QRectF bounds = properties.bounds.normalized();
+    // A scan's text stays where the scan has it: an inset makes its box that much larger around it.
+    if (const double more = properties.paddingPt - currentBox.paddingPt; activeEditScanned && activeEditHasOrigin && !qFuzzyIsNull(more)) {
+        bounds.adjust(-more, -more, more, more);
+        activeEditOriginOffset += QPointF(more, more);
+        m_frame->setTextAnchor(true, activeEditOriginOffset);
+    }
+    currentBox = properties;
+    currentBox.bounds = bounds;
+    refreshAdvanceMeasure();
     if (bounds.width() < 1.0) bounds.setWidth(1.0);
     if (bounds.height() < 1.0) bounds.setHeight(1.0);
     clampToPdfPage(activeEditPage, bounds);
@@ -469,10 +479,17 @@ void EditController::presentEditor(const EditTarget &t)
         }
     }
 
+    // A scan's lines fitted to its ink start where the box has its origin: they stay those lines wherever the box goes.
+    activeScanFitted = t.isSessionEdit ? t.sessionEdit.scanFitted
+        : activeEditScanned && EditSession::startsOnFirstLine(activeEditBounds, activeEditHasOrigin, activeEditOriginOffset,
+                                                              activeEditOriginalLines);
+
+    // The zoom may have moved on since the click, as while the steps of a wheel still follow each other.
+    const qreal scale = PdfRenderer::screenScale(m_zoom->zoom());
     const QRectF canvasBounds(
-        activeEditBounds.topLeft() * t.scale + QPointF(t.label->pos()),
-        activeEditBounds.size() * t.scale);
-    const qreal fontSize = qMax(1.0, currentEditorFontSizePt * t.scale);
+        activeEditBounds.topLeft() * scale + QPointF(t.label->pos()),
+        activeEditBounds.size() * scale);
+    const qreal fontSize = qMax(1.0, currentEditorFontSizePt * scale);
 
     m_frame->setDecorations(true);
     m_frame->setGlyphsVisible(!activeEditFieldName.isEmpty());
@@ -487,7 +504,7 @@ void EditController::presentEditor(const EditTarget &t)
                                || (!t.sessionEdit.originalLines.isEmpty()
                                    && !t.sessionEdit.newText.contains(QChar(TextLayout::kSoftBreak))));
     currentBox.bounds = activeEditBounds;
-    m_frame->setBoxProperties(currentBox, t.scale);
+    m_frame->setBoxProperties(currentBox, scale);
     m_frame->resetCommitGuard();
     undoSnapBefore = m_session->snapshotEdits();
     m_session->suspendEditsAt(t.block.page, t.isSessionEdit ? t.sessionEdit.pdfBounds : t.block.pdfBounds,
@@ -520,6 +537,8 @@ void EditController::presentEditor(const EditTarget &t)
     } else if (t.scanned && !t.scanMarks.isEmpty()) {
         m_frame->setCharMarks(t.scanMarks);
     }
+    // Undo in the box takes back what the user does there, never the look the text opened with.
+    m_frame->forgetUndo();
 
     activeEditOriginalText        = m_frame->currentText();
     activeEditOriginalPlain       = m_frame->plainText();
@@ -676,6 +695,7 @@ EditSession::Edit EditController::makeSessionEdit(int page, const QRectF &bounds
     e.scanned     = activeEditScanned;
     e.scanMarks   = activeScanMarks;
     e.scanSpacingPt = activeScanSpacingPt;
+    e.scanFitted  = activeScanFitted;
     if (activeEditNeedsBlank) {
         e.eraseRects = activeEditEraseRects;
         if (activeEditSourcePage < 0 || activeEditSourcePage == page)
@@ -961,6 +981,7 @@ void EditController::createTextFrame(const QRect &viewportDragRect)
     activeEditScanned       = false;
     activeScanMarks.clear();
     activeScanSpacingPt = 0.0;
+    activeScanFitted    = false;
     m_rest.clear();
     m_hasUnit = false;
     currentBox = defaultBox;

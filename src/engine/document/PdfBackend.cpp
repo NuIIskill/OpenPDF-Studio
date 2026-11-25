@@ -61,7 +61,7 @@ QList<TextLayout::OriginalLine> PdfBackend::editLines(const EditSession::Edit &,
     return {};
 }
 
-QImage PdfBackend::renderEditText(int, qreal, const QList<EditSession::Edit> &, const QRect &) const
+QImage PdfBackend::renderEditText(int, qreal, const QList<EditSession::Edit> &, const QRect &, bool) const
 {
     return {};
 }

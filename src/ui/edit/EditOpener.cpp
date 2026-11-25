@@ -712,6 +712,183 @@ QList<TextLayout::OriginalLine> EditOpener::linesInFrame(const QPoint &from, con
     return out;
 }
 
+bool EditOpener::fit(EditOpen &o)
+{
+    // The box, face, origin and size of what is opened, measured on the page.
+    applyEditTargetBounds(o);
+    chooseEditorFont(o);
+    if (o.ruleOnly) return false;
+    o.baseSizePt = o.isSessionEdit && o.sessionEdit.baseSizePt > 0.0 ? o.sessionEdit.baseSizePt
+                                                                      : o.fontSizePt;
+    anchorEditOrigin(o);
+    if (!o.isSessionEdit) fitEditHeight(o);
+    sampleEditColors(o);
+    if (!o.isSessionEdit) fitEditWidth(o);
+    alignScan(o);
+    if (!o.isSessionEdit) levelScan(o);
+    placeTurnedWindow(o);
+    measureScan(o);
+    return true;
+}
+
+bool EditOpener::framesWholeScanUnit(EditOpen &o, const QList<TextLayout::OriginalLine> &lines, const QPoint &from, const QPoint &to)
+{
+    // A frame around all the ink of what a click on a scan opens there takes it as that click does, its
+    // lines fitted to the scan's ink, so it moves and is changed as that ink.
+    PdfBackend *backend = m_src->backend();
+    if (!backend || o.isSessionEdit || o.contentItem.isFormField() || !o.block.isValid() || !o.label || o.scale <= 0.0) return false;
+    if (!backend->hiddenText(o.block.page, o.block.pdfBounds)
+            && !(backend->hasScanText(o.block.page) && !backend->hasSelectableText(o.block.page)))
+        return false;
+    // The frame holds that text and none beside it: a label and its entry framed together are not the label alone.
+    QStringList framed;
+    for (const TextLayout::OriginalLine &line : lines) framed << line.text.simplified();
+    QStringList whole;
+    for (const QString &line : o.block.text.split(u'\n')) whole << line.simplified();
+    if (framed != whole) return false;
+    EditOpen unit = o;
+    if (!fit(unit) || !unit.scanned || unit.scanRects.isEmpty()) return false;
+    const QRectF frame = QRectF((QPointF(from) - QPointF(o.label->pos())) / o.scale, (QPointF(to) - QPointF(o.label->pos())) / o.scale).normalized();
+    for (const QRectF &ink : std::as_const(unit.scanRects))
+        if (!frame.contains(ink.center())) return false;
+    o = unit;
+    return true;
+}
+
+bool EditOpener::framesScanLines(EditOpen &o, const QList<TextLayout::OriginalLine> &lines, const QPoint &from, const QPoint &to)
+{
+    // A frame around whole lines of what a click on a scan opens there takes them as a click on those lines
+    // alone would, fitted to the scan's ink: they move and are changed as that ink, and the lines beside them
+    // stay the scan's own, untouched.
+    PdfBackend *backend = m_src->backend();
+    if (!backend || lines.isEmpty() || o.isSessionEdit || o.contentItem.isFormField() || !o.block.isValid() || !o.label || o.scale <= 0.0)
+        return false;
+    if (!backend->hiddenText(o.block.page, o.block.pdfBounds)
+            && !(backend->hasScanText(o.block.page) && !backend->hasSelectableText(o.block.page)))
+        return false;
+    QStringList whole;
+    for (const QString &line : o.block.text.split(u'\n')) whole << line.simplified();
+    for (const TextLayout::OriginalLine &line : lines)
+        if (!whole.contains(line.text.simplified())) return false;
+    EditOpen part = o;
+    if (!scopeToFrame(part, lines)) return false;
+    part.framedLines.clear();
+    if (!fit(part) || !part.scanned || part.scanRects.isEmpty() || part.scanOriginals.size() != lines.size()) return false;
+    const QRectF frame = QRectF((QPointF(from) - QPointF(o.label->pos())) / o.scale, (QPointF(to) - QPointF(o.label->pos())) / o.scale).normalized();
+    for (const QRectF &ink : std::as_const(part.scanRects))
+        if (!frame.contains(ink.center())) return false;
+    o = part;
+    return true;
+}
+
+bool EditOpener::framesScanUnits(EditOpen &o, const QList<TextLayout::OriginalLine> &lines, const QPoint &from, const QPoint &to,
+                                 int lastCommittedPage, const QRectF &lastCommittedOrigBounds)
+{
+    // A frame around several things a click on a level scan opens one by one, as a label and the entry far
+    // behind it, takes them together as the scan's ink: each fitted as its click fits it, and what stands on
+    // one row is one line with the gaps the scan has, so nothing of it is set anew or put below the other.
+    PdfBackend *backend = m_src->backend();
+    if (!backend || lines.size() < 2 || o.isSessionEdit || o.contentItem.isFormField() || !o.label || o.scale <= 0.0) return false;
+    if (!backend->hasScanText(o.page) || backend->hasSelectableText(o.page)) return false;
+    const QRectF frame = QRectF((QPointF(from) - QPointF(o.label->pos())) / o.scale, (QPointF(to) - QPointF(o.label->pos())) / o.scale).normalized();
+    QStringList framed;
+    for (const TextLayout::OriginalLine &line : lines) framed << line.text.simplified();
+    QList<EditOpen> units;
+    for (const TextLayout::OriginalLine &piece : lines) {
+        const QPointF middle = piece.rect.center();
+        if (std::any_of(units.cbegin(), units.cend(), [&](const EditOpen &u) { return u.bounds.adjusted(-1.0, -1.0, 1.0, 1.0).contains(middle); }))
+            continue;
+        EditOpen u;
+        u.color = o.color;
+        u.faces = o.faces;
+        int committed = lastCommittedPage;
+        if (!resolveEditTarget((QPointF(o.label->pos()) + middle * o.scale).toPoint(), u, committed, lastCommittedOrigBounds)
+                || u.isSessionEdit || u.page != o.page || !u.contentItem.fieldName.isEmpty())
+            return false;
+        if (!fit(u) || !u.scanned || u.scanOriginals.isEmpty() || u.scanRects.isEmpty() || !qFuzzyIsNull(u.turn) || !qFuzzyIsNull(u.scanSlope))
+            return false;
+        for (const TextLayout::OriginalLine &line : std::as_const(u.scanOriginals))
+            if (line.charX.size() != line.text.size() || !framed.contains(line.text.simplified())) return false;
+        for (const QRectF &ink : std::as_const(u.scanRects))
+            if (!frame.contains(ink.center())) return false;
+        units.append(u);
+    }
+    if (units.size() < 2) return false;
+
+    struct Piece { TextLayout::OriginalLine line; QList<TextLayout::Mark> marks; };
+    QList<Piece> pieces;
+    bool marked = false;
+    for (const EditOpen &u : std::as_const(units)) {
+        const bool own = !u.scanMarks.isEmpty() && u.scanMarks.size() == u.displayText.size();
+        qsizetype at = 0;
+        for (const TextLayout::OriginalLine &line : u.scanOriginals) {
+            QList<TextLayout::Mark> marks = own ? u.scanMarks.mid(at, line.text.size()) : QList<TextLayout::Mark>();
+            marks.resize(line.text.size());
+            marked = marked || own;
+            pieces.append({ line, marks });
+            at += line.text.size() + 1;
+        }
+    }
+    std::stable_sort(pieces.begin(), pieces.end(), [](const Piece &a, const Piece &b) { return a.line.baseline < b.line.baseline; });
+    QList<TextLayout::OriginalLine> rows;
+    QList<TextLayout::Mark> marks;
+    for (qsizetype i = 0; i < pieces.size();) {
+        qsizetype j = i + 1;
+        while (j < pieces.size() && pieces.at(j).line.baseline - pieces.at(i).line.baseline < pieces.at(i).line.rect.height() * 0.4) ++j;
+        std::stable_sort(pieces.begin() + i, pieces.begin() + j, [](const Piece &a, const Piece &b) { return a.line.charX.first() < b.line.charX.first(); });
+        TextLayout::OriginalLine row = pieces.at(i).line;
+        if (!rows.isEmpty()) marks.append(TextLayout::Mark{});
+        marks += pieces.at(i).marks;
+        for (qsizetype k = i + 1; k < j; ++k) {
+            const TextLayout::OriginalLine &next = pieces.at(k).line;
+            if (next.charX.first() < row.endX) return false;
+            // The gap between the two is one space as wide as the scan has it.
+            row.text += u' ' + next.text;
+            row.charX.append(row.endX);
+            row.charX += next.charX;
+            row.objectStart = QList<bool>(row.text.size(), false);
+            row.endX = next.endX;
+            row.rect = row.rect.united(next.rect);
+            marks.append(TextLayout::Mark{});
+            marks += pieces.at(k).marks;
+        }
+        rows.append(row);
+        i = j;
+    }
+
+    EditOpen all = units.first();
+    for (const EditOpen &u : std::as_const(units)) {
+        if (u.textOrigin.y() < all.textOrigin.y() - 0.5 || (std::abs(u.textOrigin.y() - all.textOrigin.y()) <= 0.5 && u.textOrigin.x() < all.textOrigin.x())) {
+            EditOpen first = u;
+            first.bounds = first.bounds.united(all.bounds);
+            first.originalBounds = first.originalBounds.united(all.originalBounds);
+            first.block.pdfBounds = first.block.pdfBounds.united(all.block.pdfBounds);
+            first.roomRight = qMax(first.roomRight, all.roomRight);
+            all = first;
+        } else {
+            all.bounds = all.bounds.united(u.bounds);
+            all.originalBounds = all.originalBounds.united(u.originalBounds);
+            all.block.pdfBounds = all.block.pdfBounds.united(u.block.pdfBounds);
+            all.roomRight = qMax(all.roomRight, u.roomRight);
+        }
+    }
+    all.scanRects.clear();
+    for (const EditOpen &u : std::as_const(units)) all.scanRects += u.scanRects;
+    all.scanOriginals = rows;
+    all.scanMarks = marked ? marks : QList<TextLayout::Mark>();
+    all.eraseBounds = QRectF();
+    QStringList texts;
+    for (const TextLayout::OriginalLine &row : std::as_const(rows)) texts << row.text;
+    const QString text = texts.join(u'\n');
+    all.block.text = text;
+    all.displayText = all.originalText = all.pdfText = all.selectionIn = text;
+    all.selStart = all.selEnd = int(text.size());
+    all.paragraphBounds = rows.size() > 1;
+    all.box.bounds = all.bounds;
+    o = all;
+    return true;
+}
+
 bool EditOpener::scopeToFrame(EditOpen &o, const QList<TextLayout::OriginalLine> &lines)
 {
     if (o.isSessionEdit || o.contentItem.isFormField()) return false;
@@ -812,22 +989,15 @@ bool EditOpener::open(const QPoint &from, const QPoint &to, bool framed, int &la
     if (!resolveEditTarget(at, o, lastCommittedPage, lastCommittedOrigBounds)) return false;
     if (cut.valid && !(o.isSessionEdit && o.sessionEdit == cut.edit)) return false;
     EditOpen whole = o;
+    if (framed && !cut.valid && (framesWholeScanUnit(o, lines, from, to) || framesScanLines(o, lines, from, to)
+                                 || framesScanUnits(o, lines, from, to, lastCommittedPage, lastCommittedOrigBounds))) {
+        target = o;
+        return true;
+    }
     const bool scoped = framed && !cut.valid && scopeToFrame(o, lines);
     if (scoped) o.selectionIn = o.displayText;
 
-    applyEditTargetBounds(o);
-    chooseEditorFont(o);
-    if (o.ruleOnly) return false;
-    o.baseSizePt = o.isSessionEdit && o.sessionEdit.baseSizePt > 0.0 ? o.sessionEdit.baseSizePt
-                                                                      : o.fontSizePt;
-    anchorEditOrigin(o);
-    if (!o.isSessionEdit) fitEditHeight(o);
-    sampleEditColors(o);
-    if (!o.isSessionEdit) fitEditWidth(o);
-    alignScan(o);
-    if (!o.isSessionEdit) levelScan(o);
-    placeTurnedWindow(o);
-    measureScan(o);
+    if (!fit(o)) return false;
     if (cut.valid) scopeToCut(o, lines, cut);
     if (scoped) findUnit(whole, o, cut.gapLines, cut.wholeLines);
     if (cut.valid && !cut.lines.isEmpty()) {

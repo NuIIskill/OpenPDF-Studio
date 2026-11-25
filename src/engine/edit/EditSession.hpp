@@ -18,6 +18,9 @@
 class EditSession
 {
 public:
+    // A scan lying askew by up to this many degrees is edited where it is, in a box turned with it.
+    static constexpr double kScanAskewDeg = 3.0;
+
     /// Image overlay embedded in the document (inserted via image tool).
     struct ImageEdit {
         int    page;
@@ -123,6 +126,7 @@ public:
         bool    laid { false };
         bool    scanned { false };
         double  scanSpacingPt { 0.0 };
+        bool    scanFitted { false };
 
         QString formField;
 
@@ -149,6 +153,7 @@ public:
                    sizeChanged == o.sizeChanged && colorChanged == o.colorChanged &&
                    scanned == o.scanned &&
                    qFuzzyCompare(scanSpacingPt + 1.0, o.scanSpacingPt + 1.0) &&
+                   scanFitted == o.scanFitted &&
                    formField == o.formField && eraseRects == o.eraseRects &&
                    box == o.box && originalLines == o.originalLines && sources == o.sources &&
                    marks == o.marks && scanMarks == o.scanMarks;
@@ -228,6 +233,8 @@ public:
     static QTransform turnOf(const Edit &e);
     static QRectF shownBounds(const Edit &e);
     static void turnAbout(Edit &e, const QPointF &pivot);
+    static bool startsOnFirstLine(const QRectF &bounds, bool hasOrigin, const QPointF &originOffset,
+                                  const QList<TextLayout::OriginalLine> &lines);
 
     void paintFormFields(int page, QImage &img, qreal scale) const;
 

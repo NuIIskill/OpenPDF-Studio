@@ -7,7 +7,7 @@ namespace EditCodec {
 
 namespace {
 
-constexpr quint8 kVersion = 4;
+constexpr quint8 kVersion = 5;
 
 void write(QDataStream &out, const TextBoxProperties &b)
 {
@@ -56,7 +56,7 @@ void write(QDataStream &out, const EditSession::Edit &e)
             out << m.family << state(m.bold) << state(m.italic) << state(m.underline) << m.scale
                 << m.color;
     }
-    out << e.scanSpacingPt;
+    out << e.scanSpacingPt << e.scanFitted;
 }
 
 bool read(QDataStream &in, EditSession::Edit &e, quint8 version)
@@ -110,6 +110,9 @@ bool read(QDataStream &in, EditSession::Edit &e, quint8 version)
     // An edit stored before the spacing a scan opened with was kept stands as it was set.
     e.scanSpacingPt = e.box.characterSpacingPt;
     if (version >= 4) in >> e.scanSpacingPt;
+    // Before a scan's fitted lines were marked, they were known by starting where their box has its origin.
+    e.scanFitted = e.scanned && EditSession::startsOnFirstLine(e.pdfBounds, e.hasTextOrigin, e.textOriginOffset, e.originalLines);
+    if (version >= 5) in >> e.scanFitted;
     return in.status() == QDataStream::Ok;
 }
 

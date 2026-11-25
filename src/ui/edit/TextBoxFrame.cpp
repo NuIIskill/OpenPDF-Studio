@@ -1,4 +1,6 @@
 #include "ui/edit/TextBoxFrame.hpp"
+
+#include <cmath>
 #include "ui/edit/InlineEditor.hpp"
 
 #include <QDebug>
@@ -208,8 +210,16 @@ qreal TextBoxFrame::freieBreitePt() const
     if (m_pageRect.isNull()) return 0.0;
     // In points, so the room to the page edge does not change with the zoom.
     if (!m_pageSizePt.isEmpty() && m_hasInnerTopLeft) {
-        const qreal edge = m_roomRightPt > 0.0 ? qMin(m_roomRightPt, m_pageSizePt.width()) : m_pageSizePt.width();
-        return qMax(0.0, edge - (m_innerTopLeft.x() - m_pageRect.left()) / m_scale);
+        const qreal left = (m_innerTopLeft.x() - m_pageRect.left()) / m_scale;
+        qreal edge = m_pageSizePt.width();
+        if (m_roomRightPt > 0.0) {
+            // The room goes with the text: wherever its box is taken, its lines have the room they had where
+            // the box was opened, told by where the text starts and not by steps of the drag.
+            const qreal start = left + (m_hasAnchor ? m_anchorPt.x() : 0.0);
+            if (std::isnan(m_roomStartPt)) m_roomStartPt = start;
+            edge = qMin(m_roomRightPt + start - m_roomStartPt, edge);
+        }
+        return qMax(0.0, edge - left);
     }
     const int innen = m_pageRect.right() - x() + 1
                     - (m_decorations ? 2 * kPad : 0);
@@ -360,6 +370,7 @@ void TextBoxFrame::setCharMarks(const QList<TextLayout::Mark> &marks)
     growToFitText();
     layoutEditor();
 }
+void TextBoxFrame::forgetUndo() { m_editor->document()->clearUndoRedoStacks(); }
 bool TextBoxFrame::hasSelection() const { return m_editor->textCursor().hasSelection(); }
 bool TextBoxFrame::markSelection(const TextLayout::Mark &mark) { return m_editor->markSelection(mark); }
 void TextBoxFrame::unmark(const TextLayout::Mark &fields) { m_editor->unmark(fields); }
@@ -504,6 +515,7 @@ void TextBoxFrame::mousePressEvent(QMouseEvent *e)
             m_dragOrigin     = e->globalPosition().toPoint();
             m_dragAt         = m_dragOrigin;
             m_dragStartGeo   = geometry();
+            m_dragSized      = false;
             m_zoomPending    = false;
             // The spot of the box under the cursor, in points: a moved box
             // stays held there, also when the zoom changes on the way.
@@ -542,18 +554,19 @@ void TextBoxFrame::mouseMoveEvent(QMouseEvent *e)
     }
     const QPoint d  = m_dragAt - m_dragOrigin;
     QRect geo       = m_dragStartGeo;
-    const int minW  = m_minInnerW + 2 * kPad;
-    const int minH  = minInnerHeight(m_editor->fontPixelSizeF()) + 2 * kPad;
+    // A box smaller than the least it can be dragged to keeps the edges the drag does not move.
+    const int minW  = qMin(m_minInnerW + 2 * kPad, m_dragStartGeo.width());
+    const int minH  = qMin(minInnerHeight(m_editor->fontPixelSizeF()) + 2 * kPad, m_dragStartGeo.height());
 
     if (m_drag == Handle::W || m_drag == Handle::NW || m_drag == Handle::SW)
-        geo.setLeft(qMin(geo.left() + d.x(), geo.right() - minW));
+        geo.setLeft(qMin(geo.left() + d.x(), geo.right() - minW + 1));
     if (m_drag == Handle::E || m_drag == Handle::NE || m_drag == Handle::SE)
-        geo.setRight(qMax(geo.right() + d.x(), geo.left() + minW));
+        geo.setRight(qMax(geo.right() + d.x(), geo.left() + minW - 1));
 
     if (m_drag == Handle::N || m_drag == Handle::NW || m_drag == Handle::NE)
-        geo.setTop(qMin(geo.top() + d.y(), geo.bottom() - minH));
+        geo.setTop(qMin(geo.top() + d.y(), geo.bottom() - minH + 1));
     if (m_drag == Handle::S || m_drag == Handle::SW || m_drag == Handle::SE)
-        geo.setBottom(qMax(geo.bottom() + d.y(), geo.top() + minH));
+        geo.setBottom(qMax(geo.bottom() + d.y(), geo.top() + minH - 1));
 
     if (!m_pageRect.isNull()) {
         geo = geo.intersected(m_pageRect).normalized();
@@ -561,6 +574,8 @@ void TextBoxFrame::mouseMoveEvent(QMouseEvent *e)
             geo = m_dragStartGeo;
     }
 
+    // Told here and not by where the drag started: the frame may be placed anew while it is held.
+    if (geo != geometry()) m_dragSized = true;
     setGeometry(geo);
     e->accept();
 }
@@ -578,7 +593,7 @@ void TextBoxFrame::mouseReleaseEvent(QMouseEvent *e)
         else if (m_drag == Handle::Move && !m_pageRect.isNull())
             keepInsidePage();
 
-        else if (m_drag != Handle::Move && geometry() != m_dragStartGeo) {
+        else if (m_drag != Handle::Move && (m_dragSized || geometry() != m_dragStartGeo)) {
             m_userSized = true;
             if (m_growHorizontal) setGrowHorizontal(false);
         }

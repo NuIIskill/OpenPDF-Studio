@@ -656,10 +656,11 @@ TextLayout::Result TextLayout::layout(const QString &text, const Params &params,
         const QPointF origin = hasTextOrigin ? bounds.topLeft() + textOriginOffset : written;
         const QPointF moved = origin - written;
         const bool keep = params.keep && std::hypot(moved.x(), moved.y()) < 0.01;
-        // A scan's text, where it stands on the scan, flows as its paragraph does.
-        if (params.holdGaps && std::hypot(moved.x(), moved.y()) < 0.01) {
-            result.lines = ScanFlow::lines(text, params, sizePt, originals, advance, bounds.left() + box.paddingPt,
-                                           wraps ? bounds.right() - box.paddingPt : std::numeric_limits<double>::infinity());
+        // A scan's text flows as its paragraph does, also in a box moved away with it: the room is the
+        // box's, taken back to where the scan has the lines.
+        if (params.holdGaps) {
+            result.lines = ScanFlow::lines(text, params, sizePt, originals, advance, bounds.left() + box.paddingPt - moved.x(),
+                                           wraps ? bounds.right() - box.paddingPt - moved.x() : std::numeric_limits<double>::infinity());
             result.firstBaseline = origin - bounds.topLeft();
             result.anchored      = true;
             return result;

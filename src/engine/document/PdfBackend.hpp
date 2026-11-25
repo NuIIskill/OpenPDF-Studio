@@ -144,7 +144,7 @@ public:
                                      const QRect &include, bool wholePage) const = 0;
 
     virtual QImage renderEditText(int page, qreal scale, const QList<EditSession::Edit> &edits,
-                                  const QRect &pixels) const;
+                                  const QRect &pixels, bool lifted = false) const;
 
     virtual std::unique_ptr<ContentProvider> makeContentProvider() const = 0;
 

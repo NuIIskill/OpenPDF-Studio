@@ -4,6 +4,7 @@
 #include <QFont>
 #include <QDebug>
 #include <climits>
+#include <cmath>
 
 void EditSession::addEdit(int page, const QRectF &pdfBounds, const QString &newText,
                           double fontSizePt, const QColor &color, const QRectF &sourceRect,
@@ -318,6 +319,15 @@ void EditSession::turnAbout(Edit &e, const QPointF &pivot)
         for (double &x : line.charX) x += by.x();
         line.endX += by.x();
     }
+}
+
+// Whether a box has its text's origin exactly where its first original line starts.
+bool EditSession::startsOnFirstLine(const QRectF &bounds, bool hasOrigin, const QPointF &originOffset,
+                                    const QList<TextLayout::OriginalLine> &lines)
+{
+    if (!hasOrigin || lines.isEmpty() || lines.first().charX.isEmpty()) return false;
+    const QPointF origin = bounds.topLeft() + originOffset;
+    return std::hypot(origin.x() - lines.first().charX.first(), origin.y() - lines.first().baseline) < 0.01;
 }
 
 void EditSession::paintFormFields(int page, QImage &img, qreal scale) const

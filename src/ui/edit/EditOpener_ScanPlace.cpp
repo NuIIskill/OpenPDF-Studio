@@ -396,12 +396,24 @@ void EditOpener::alignScan(EditOpen &o)
         if (other.rect.right() <= leftLow) room = qMax(room, other.rect.right() + o.fontSizePt * 0.5);
         if (other.rect.left() >= rightHigh) beside = qMin(beside, other.rect.left() - o.fontSizePt * 0.5);
     }
+    // Lines an earlier edit took still tell the page's margins, where the scan has them.
+    for (const EditSession::Edit &e : m_session->edits()) {
+        if (e.page != o.block.page || !e.scanned || (e.sourcePage >= 0 && e.sourcePage != e.page)) continue;
+        for (const TextLayout::OriginalLine &line : e.originalLines) {
+            if (line.rect.isEmpty() || line.rect.intersects(unit.adjusted(1.0, 1.0, -1.0, -1.0))) continue;
+            pageLeft = qMin(pageLeft, line.rect.left());
+            pageRight = qMax(pageRight, line.rect.right());
+        }
+    }
     if (pageRight > pageLeft) {
         // A short entry alone that ends at the page's text edge, as in a table's last column, runs on
         // towards the page's edge instead of breaking at once; any other line flows at the text's edge.
         const bool entry = !several && unit.width() < (pageRight - pageLeft) * 0.5 && rightHigh > pageRight - o.fontSizePt * 2.0;
         const double edge = entry ? qMax(pageRight, o.pageSize.width() - qMax(12.0, pageLeft * 0.5)) : pageRight;
         o.roomRight = qMax(qMin(qMax(edge, rightHigh), beside), rightHigh) + 1.0;
+        // A box moved before took its room along: its lines are as long there as where the scan has them.
+        if (o.isSessionEdit && o.sessionEdit.hasTextOrigin)
+            o.roomRight += o.sessionEdit.pdfBounds.left() + o.sessionEdit.textOriginOffset.x() - own.first().charX.first();
     }
     if (o.isSessionEdit) return;
     // A line alone with ink close before it on its rows is the end of something longer, as figures behind

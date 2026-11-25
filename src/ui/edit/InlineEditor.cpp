@@ -261,6 +261,7 @@ void InlineEditor::relayout()
     const double size = m_sizePt;
     TextLayout::Params params;
     params.lineStepPt         = TextLayout::lineStep(size, m_lineSpacingPt);
+    params.lineStepSet        = !qFuzzyIsNull(m_box.lineSpacingMultiplier);
     params.paragraphSpacingPt = m_box.paragraphSpacingPt;
     params.charSpacingPt      = m_box.characterSpacingPt;
     params.list               = m_box.listStyle;
@@ -268,6 +269,7 @@ void InlineEditor::relayout()
     params.anchor             = m_metrics.anchor;
     params.holdGaps           = m_metrics.holdGaps;
     params.scanWiderPt        = m_metrics.holdGaps ? m_box.characterSpacingPt - m_metrics.scanSpacingPt : 0.0;
+    params.scanScale          = m_metrics.scanScale;
     const TextLayout::Result result = TextLayout::layout(
         m_metricsText, params, m_box, QRectF(m_metrics.boxTopLeft, m_boundsPt), size,
         m_wraps, m_hasAnchor, m_anchorPt, m_metrics.originals, m_advance);
